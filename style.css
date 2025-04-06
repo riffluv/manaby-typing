@@ -1,40 +1,47 @@
 /* �}�i�r�[�E�h�b�g�A�h�x���`���[ - �X�^�C���V�[�g */
 /* �N���W�b�g: �J�t�F�C������ */
 
-/* �ϐ���` */
-:root {
-  /* �J���[�p���b�g */
-  --primary: #FF8C00;       /* �}�i�r�[�I�����W */
-  --primary-dark: #CC7000;  /* �Â߂̃I�����W */
-  --primary-light: #FFAA33; /* ����߂̃I�����W */
-  --secondary: #1A2238;     /* �f�B�[�v�l�C�r�[ */
-  --accent: #0ABDE3;        /* �A�N�A�u���[ */
-  --gold: #FFD700;          /* ���g���S�[���h */
-  --bg-dark: #121212;       /* �_�[�N�`���R�[�� */
-  
-  /* �e�L�X�g�F */
-  --text-light: #f0f0f0;    /* ���邢�e�L�X�g�F */
-  --text-dark: #222222;     /* �Â��e�L�X�g�F */
-  
-  /* �]���T�C�Y */
-  --spacing-xs: 8px;        /* �ɏ��]�� */
-  --spacing-sm: 16px;       /* ���]�� */
-  --spacing-md: 24px;       /* ���]�� */
-  --spacing-lg: 32px;       /* ��]�� */
-  --spacing-xl: 48px;       /* ����]�� */
+/* Googleフォントを追加（Noto Sans JP）*/
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Press+Start+2P&display=swap');
 
-  /* �V���h�E */
+/* ϐ` */
+:root {
+  /*J[pbg */
+  --primary: #FF8C00;       /*}ir[IW */
+  --primary-dark: #CC7000;  /*Â߂̃IW */
+  --primary-light: #FFAA33; /* ߂̃IW */
+  --secondary: #1A2238;     /*fB[vlCr[ */
+  --accent: #0ABDE3;        /*ANAu[ - 補色シアン */
+  --accent-purple: #6A4C93; /* 補色パープル */
+  --accent-purple-light: #9A7DD3; /* 薄めの紫 */
+  --gold: #FFD700;          /* gS[h */
+  --bg-dark: #121212;       /*_[N`R[ */
+  
+  /*eLXgF */
+  --text-light: #f0f0f0;    /* 邢eLXgF */
+  --text-dark: #222222;     /*ÂeLXgF */
+  
+  /*]TCY */
+  --spacing-xs: 8px;        /* ɏ] */
+  --spacing-sm: 16px;       /* ] */
+  --spacing-md: 24px;       /* ] */
+  --spacing-lg: 32px;       /* ] */
+  --spacing-xl: 48px;       /* ] */
+
+  /*VhE */
   --shadow-normal: 0 4px 0 rgba(0, 0, 0, 0.3);
   --shadow-inset: inset 0 0 10px rgba(0, 0, 0, 0.5);
   --text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
 
-  /* ���E�� */
+  /*E */
   --border-thin: 1px solid rgba(255, 255, 255, 0.1);
   --border-thick: 2px solid rgba(255, 255, 255, 0.15);
   --border-highlight: 1px solid var(--primary);
+  --border-accent: 1px solid var(--accent); /* シアンボーダー */
+  --border-purple: 1px solid var(--accent-purple); /* 紫ボーダー */
 }
 
-/* --------- �O���[�o���X�^�C�� --------- */
+/* --------- O[oX^C --------- */
 * {
   margin: 0;
   padding: 0;
@@ -48,7 +55,7 @@ html, body {
 }
 
 body {
-  font-family: 'Press Start 2P', cursive, monospace;
+  font-family: 'Noto Sans JP', sans-serif; /* 基本フォントをNoto Sans JPに変更 */
   background-color: var(--bg-dark);
   overflow: hidden;
   color: var(--text-light);
@@ -60,23 +67,33 @@ body {
   align-items: center;
 }
 
-/* ���ʂ̃s�N�Z�����ʃX�^�C�� - �x���_�[�v���t�B�b�N�X���ꌳ�Ǘ� */
+/* ゲームタイトルやヘッダーにピクセルフォントを適用 */
+h1, h2, h3, 
+.game-title, 
+.mode-title, 
+.result-title {
+  font-family: 'Press Start 2P', cursive, monospace;
+}
+
+/* ʂ̃sNZeX^C - x_[vtbNXǗ */
 .pixel-style {
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
   image-rendering: pixelated;
+  font-family: 'Press Start 2P', cursive, monospace;
 }
 
-/* �s�N�Z���t�H���g�p�X�^�C�� */
+/* sNZe tHggpX^C */
 .pixel-text {
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
   image-rendering: pixelated;
+  font-family: 'Press Start 2P', cursive, monospace;
 }
 
-/* �Q�[���e�L�X�g��UI�v�f�̃O���[�v�� */
+/* Q[eLxgUIvfO[v */
 .game-header,
 .mode-header,
 .result-header,
@@ -90,13 +107,33 @@ body {
 .question-display,
 .mode-title,
 .result-title {
-  /* �s�N�Z�����ʂ�K�p */
+  /* ʂKp */
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
+  font-family: 'Press Start 2P', cursive, monospace;
 }
 
-/* --------- �A�j���[�V������` --------- */
+/* 説明文用のスタイル */
+.description-text, 
+.popup-content p,
+.mode-button .mode-desc,
+.stats-table {
+  font-family: 'Noto Sans JP', sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* 強調テキスト用のスタイル */
+.stat-label,
+.highlight,
+.popup-content h4,
+.combo-rank {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+}
+
+/* --------- AjV` --------- */
 @keyframes pulse {
   0% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.05); opacity: 0.9; }
@@ -222,7 +259,7 @@ body {
   100% { color: #4fc3f7; text-shadow: 0 0 12px #4fc3f7; }
 }
 
-/* --------- CRT�G�t�F�N�g --------- */
+/* --------- CRTtFNG --------- */
 .crt-overlay {
   position: fixed;
   top: 0;
@@ -247,7 +284,7 @@ body {
   opacity: 0.1;
 }
 
-/* --------- ��ʂ̊�{�X�^�C�� --------- */
+/* --------- ʂ̊{X^C --------- */
 .screen {
   position: fixed;
   top: 0;
@@ -358,14 +395,7 @@ body {
   top: 0;
   height: 100%;
   width: 100%;
-  background-image: repeating-linear-gradient(
-    to right,
-    var(--primary) 0px,
-    var(--primary) 4px,
-    var(--primary-dark) 4px,
-    var(--primary-dark) 8px
-  );
-  background-size: 8px 100%;
+  background: linear-gradient(to right, var(--primary), var(--accent));
   animation: pulse-glow 2s infinite;
   image-rendering: pixelated;
 }
@@ -379,7 +409,7 @@ body {
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
 }
 
-/* --------- ���C�����j���[��� --------- */
+/* --------- Cj[ƑIʂ̃Rei --------- */
 #main-menu {
   background-color: var(--secondary);
   position: relative;
@@ -437,8 +467,8 @@ body {
   font-family: 'Press Start 2P', cursive;
   color: var(--gold);
   font-size: 28px;
-  text-shadow: 3px 3px 0 var(--primary-dark), 
-               5px 5px 0 rgba(0, 0, 0, 0.5);
+  text-shadow: 3px 3px 0 var(--secondary), 
+               5px 5px 0 rgba(10, 189, 227, 0.3);
   margin-bottom: var(--spacing-sm);
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -467,7 +497,7 @@ body {
   transform: scale(1.1);
 }
 
-/* ���C�����j���[��ʂ�start-text�p�X�^�C�� */
+/* Cj[ƑIʂstart-textpX^C */
 .menu-content .start-text {
   font-family: 'Press Start 2P', cursive;
   font-size: 18px;
@@ -484,7 +514,7 @@ body {
   justify-content: center;
   width: 100%;
   gap: var(--spacing-sm);
-  flex-wrap: wrap; /* �{�^���������ꍇ�ɐ܂�Ԃ��悤�� */
+  flex-wrap: wrap; /* {^ꍇɐ܂Ԃ悤 */
 }
 
 /* --------- [fBO --------- */
@@ -498,7 +528,7 @@ body {
   padding: 0;
 }
 
-/* ���ʃR���e�i�X�^�C�� - UgʂƃUgʂŋL */
+/* ʃRieX^C - UgʂƃUgʂŋL */
 .game-container, .arcade-bezel {
   width: 92%;
   max-width: 720px;
@@ -666,12 +696,7 @@ body {
 
 .progress-fill {
   height: 100%;
-  background: repeating-linear-gradient(
-    to right,
-    var(--primary-dark),
-    var(--primary) 4px,
-    var(--primary-dark) 8px
-  );
+  background: linear-gradient(to right, var(--primary), var(--accent));
   width: 0%;
   transition: width 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
   position: absolute;
@@ -878,7 +903,7 @@ body {
   box-shadow: 0 0 10px rgba(0, 255, 0, 0.5) !important;
 }
 
-/* --------- ���ve[u --------- */
+/* --------- ve[u --------- */
 .stats-table {
   border-collapse: collapse;
   margin: var(--spacing-xs);
@@ -921,7 +946,7 @@ body {
   text-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
 }
 
-/* --------- ���X|Vu --------- */
+/* --------- X|Vu --------- */
 /* fXNg */
 @media (min-width: 1200px) {
   .game-container, .arcade-bezel, .result-content {
@@ -937,7 +962,7 @@ body {
   }
 }
 
-/* ���X|Vu */
+/* X|Vu */
 @media (max-width: 768px) {
   /* ʃRei */
   .game-container, .arcade-bezel, .result-content {
@@ -947,7 +972,7 @@ body {
     border-width: 4px;
   }
   
-  /* ��Cj[ƑIʂ̃Rei */
+  /* Cj[ƑIʂ̃Rei */
   .menu-content, .mode-select-content {
     width: 95%;
     max-width: 650px;
@@ -1518,16 +1543,17 @@ body {
 }
 
 .key-hint {
-  font-size: 8px;
-  color: var(--accent);
+  font-size: 12px;
+  color: var(--text-light);
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
   letter-spacing: 1px;
-  background-color: rgba(0, 0, 0, 0.3);
-  display: inline-block;
-  padding: var(--spacing-xs);
+  background-color: var(--secondary);
+  border: 1px solid var(--accent);
+  padding: 4px 8px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: pulse 3s infinite ease-in-out;
+  display: inline-block;
+  margin: 0 2px;
+  box-shadow: 0 0 5px var(--accent);
 }
 
 /* sN[XvbVGtFNG */
@@ -1672,6 +1698,8 @@ body {
   transform: translateY(2px);
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
   border-color: var(--gold);
+  border: 2px solid var(--accent-purple);
+  box-shadow: 0 0 15px var(--accent-purple-light);
 }
 
 .mode-button:active,
@@ -1930,6 +1958,8 @@ body {
 
 .combo-display.active {
   display: flex;
+  border: 2px solid var(--accent-purple);
+  box-shadow: 0 0 15px var(--accent-purple-light);
 }
 
 .combo-container {
@@ -2138,9 +2168,11 @@ body {
 
 /* 1ʁA2ʁA3ʂ̃X^Cg */
 .ranking-table tr.rank-1 td {
-  background-color: rgba(255, 215, 0, 0.2);
   color: var(--gold);
+  background-color: rgba(26, 34, 56, 0.7);
+  border-bottom: 2px solid var(--gold);
   font-weight: bold;
+  text-shadow: 0 0 5px var(--gold);
 }
 
 .ranking-table tr.rank-2 td {
@@ -2514,9 +2546,10 @@ body {
 }
 
 .pixel-button:hover {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--primary-dark), 
-              0 0 15px rgba(255, 140, 0, 0.6);
+  background-color: var(--primary-light);
+  color: var(--text-light);
+  box-shadow: 0 6px 0 var(--primary-dark), 0 0 10px var(--accent);
+  transform: translateY(-2px);
 }
 
 .pixel-button:active {
