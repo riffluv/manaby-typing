@@ -1236,18 +1236,28 @@ h1, h2, h3,
   left: 20px;
   bottom: 20px;
   z-index: 1500;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
   transition: all 0.3s ease;
   animation: float 4s infinite ease-in-out;
+  /* 背景を明示的に透明に設定 */
+  background-color: transparent;
 }
 
 #manabykun-container img {
   width: 180px;
   height: auto;
+  /* ピクセルアート用のレンダリング方法を指定 */
   image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
+  /* 透過部分の処理を改善したドロップシャドウ */
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+  /* 背景を透明に */
+  background-color: transparent;
+  /* 画像の表示方法を調整 */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 #manabykun-container:hover {

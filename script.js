@@ -160,8 +160,20 @@ const audio = {
     },
     
     playSound(audioElement) {
-        audioElement.currentTime = 0;
-        audioElement.play().catch(e => console.warn('Audio play failed:', e));
+        // 音量設定の適用
+        if (audioElement) {
+            // ローカルストレージから音量とミュート状態を取得
+            const volume = localStorage.getItem('soundVolume') || 80;
+            const enabled = localStorage.getItem('soundEnabled') === 'false' ? false : true;
+            
+            // 値を適用
+            audioElement.volume = volume / 100;
+            audioElement.muted = !enabled;
+            
+            // 再生
+            audioElement.currentTime = 0;
+            audioElement.play().catch(e => console.warn('Audio play failed:', e));
+        }
     }
 };
 
@@ -1250,12 +1262,57 @@ const popup = {
       // 音量スライダーの処理
       const volumeControl = document.getElementById('volume-control');
       const volumeValue = document.getElementById('volume-value');
+      const soundToggle = document.getElementById('sound-toggle');
       
       if (volumeControl && volumeValue) {
+        // 現在の音量を反映（ローカルストレージから取得または初期値）
+        const savedVolume = localStorage.getItem('soundVolume') || '80';
+        const savedToggle = localStorage.getItem('soundEnabled') === 'false' ? false : true;
+        
+        volumeControl.value = savedVolume;
+        volumeValue.textContent = `${savedVolume}%`;
+        soundToggle.checked = savedToggle;
+        
+        // 音量変更時の処理
         volumeControl.addEventListener('input', function() {
+          const newVolume = this.value / 100;
           volumeValue.textContent = `${this.value}%`;
-          // ここに音量変更のロジックを追加
+          
+          // 全ての音声要素の音量を設定
+          Object.values(elements.audio).forEach(audioElement => {
+            if (audioElement && audioElement.volume !== undefined) {
+              audioElement.volume = newVolume;
+            }
+          });
+          
+          // 設定を保存
+          localStorage.setItem('soundVolume', this.value);
         });
+        
+        // サウンド有効/無効の処理
+        soundToggle.addEventListener('change', function() {
+          // 全ての音声要素のミュート状態を設定
+          Object.values(elements.audio).forEach(audioElement => {
+            if (audioElement) {
+              audioElement.muted = !this.checked;
+            }
+          });
+          
+          // 設定を保存
+          localStorage.setItem('soundEnabled', this.checked);
+          
+          // ミュート時はスライダーも無効化して視覚的にフィードバック
+          if (!this.checked) {
+            volumeControl.disabled = true;
+            volumeValue.style.opacity = '0.5';
+          } else {
+            volumeControl.disabled = false;
+            volumeValue.style.opacity = '1';
+          }
+        });
+        
+        // 初期状態を設定
+        soundToggle.dispatchEvent(new Event('change'));
       }
     }
     
@@ -1511,14 +1568,12 @@ function updateComboDisplay(combo) {
     // コンボ波紋エフェクト
     const comboRipple = document.querySelector('.combo-ripple');
     
-    // コンボが上がるたびに波紋エフェクトをトリガー（高コンボでも常に表示）
-    if (combo > 0) {
+    // ランクが変わった場合やコンボが上がった場合に波紋エフェクトをトリガー
+    if (rankChanged && combo > 0) {
         if (comboRipple) {
             // 現在のアニメーションをリセット
             comboRipple.classList.remove('active');
-            // 強制的に再フロー（要素の再描画を促す）
-            void comboRipple.offsetWidth;
-            // アニメーションを再適用
+            void comboRipple.offsetWidth; // 強制的に再フロー
             comboRipple.classList.add('active');
         }
     }
@@ -2208,6 +2263,93 @@ function updateStarEffect(combo, rankText) {
     }
 }
 
+// コンボ表示を更新する関数
+function updateComboDisplay(combo) {
+    // 前回のランク
+    const prevRankText = elements.game.comboRank.textContent || 'Ready!';
+    
+    // ランクテキストを取得
+    const rankText = getRankText(combo);
+    
+    // ランクが変わったかチェック
+    const rankChanged = prevRankText !== rankText;
+    
+    if (combo === -1) {
+        // ミス時：マイナススコアを表示して構造を維持
+        elements.game.comboCount.style.visibility = 'visible';
+        elements.game.comboCount.textContent = "-10";
+        elements.game.comboCount.style.color = '#ff5252'; // 赤色でマイナスを強調
+        
+        // スタイルをリセットして、CSSで定義されたサイズを使用
+        elements.game.comboCount.style.fontSize = '28px';
+        elements.game.comboRank.style.fontSize = '20px';
+    } else {
+        // 通常時：数字表示、通常のサイズ
+        elements.game.comboCount.style.visibility = 'visible';
+        elements.game.comboCount.textContent = combo;
+        elements.game.comboCount.style.color = 'var(--gold)'; // 通常の金色
+        
+        // スタイルをリセットして、CSSで定義されたサイズを使用
+        elements.game.comboCount.style.fontSize = '28px';
+        elements.game.comboRank.style.fontSize = '20px';
+    }
+    
+    // 共通の高さと配置を設定
+    elements.game.comboRank.style.height = '30px';
+    elements.game.comboRank.style.marginTop = '0px';
+    
+    // ランクテキストを更新
+    elements.game.comboRank.textContent = rankText;
+    
+    // クラスをリセットして新しいクラスを追加
+    removeAllRankClasses(elements.game.comboRank);
+    
+    // 星エフェクト更新
+    updateStarEffect(combo, rankText);
+    
+    // コンボ波紋エフェクト
+    const comboRipple = document.querySelector('.combo-ripple');
+    
+    // ランクが変わった場合やコンボが上がった場合に波紋エフェクトをトリガー
+    if (rankChanged && combo > 0) {
+        if (comboRipple) {
+            // 現在のアニメーションをリセット
+            comboRipple.classList.remove('active');
+            void comboRipple.offsetWidth; // 強制的に再フロー
+            comboRipple.classList.add('active');
+        }
+    }
+    
+    // コンボ数に応じたクラスを追加
+    if (combo === -1) {
+        elements.game.comboRank.classList.add('oops');
+    } else if (combo <= 2 && combo > 0) {
+        elements.game.comboRank.classList.add('good');
+    } else if (combo <= 4) {
+        elements.game.comboRank.classList.add('nice');
+    } else if (combo <= 6) {
+        elements.game.comboRank.classList.add('great');
+    } else if (combo <= 8) {
+        elements.game.comboRank.classList.add('awesome');
+    } else if (combo <= 10) {
+        elements.game.comboRank.classList.add('excellent');
+    } else if (combo <= 15) {
+        elements.game.comboRank.classList.add('unstoppable');
+    } else if (combo <= 20) {
+        elements.game.comboRank.classList.add('legendary');
+    } else if (combo > 20) {
+        elements.game.comboRank.classList.add('godlike');
+    }
+    
+    // 表示をアクティブにする（Ready!のときは非表示）
+    if (combo === -1 || combo > 0) {
+        elements.game.comboDisplay.classList.add('active');
+    } else {
+        // コンボが0の場合は非表示
+        elements.game.comboDisplay.classList.remove('active');
+    }
+}
+
 // 初期化後に星エフェクトを作成
 document.addEventListener('DOMContentLoaded', function() {
     // 既存の初期化コード...
@@ -2327,6 +2469,93 @@ function updateWaveEffect(combo, rankText) {
                 }, delay);
             }, 50);
         });
+    }
+}
+
+// コンボ表示を更新する関数
+function updateComboDisplay(combo) {
+    // 前回のランク
+    const prevRankText = elements.game.comboRank.textContent || 'Ready!';
+    
+    // ランクテキストを取得
+    const rankText = getRankText(combo);
+    
+    // ランクが変わったかチェック
+    const rankChanged = prevRankText !== rankText;
+    
+    if (combo === -1) {
+        // ミス時：マイナススコアを表示して構造を維持
+        elements.game.comboCount.style.visibility = 'visible';
+        elements.game.comboCount.textContent = "-10";
+        elements.game.comboCount.style.color = '#ff5252'; // 赤色でマイナスを強調
+        
+        // スタイルをリセットして、CSSで定義されたサイズを使用
+        elements.game.comboCount.style.fontSize = '28px';
+        elements.game.comboRank.style.fontSize = '20px';
+    } else {
+        // 通常時：数字表示、通常のサイズ
+        elements.game.comboCount.style.visibility = 'visible';
+        elements.game.comboCount.textContent = combo;
+        elements.game.comboCount.style.color = 'var(--gold)'; // 通常の金色
+        
+        // スタイルをリセットして、CSSで定義されたサイズを使用
+        elements.game.comboCount.style.fontSize = '28px';
+        elements.game.comboRank.style.fontSize = '20px';
+    }
+    
+    // 共通の高さと配置を設定
+    elements.game.comboRank.style.height = '30px';
+    elements.game.comboRank.style.marginTop = '0px';
+    
+    // ランクテキストを更新
+    elements.game.comboRank.textContent = rankText;
+    
+    // クラスをリセットして新しいクラスを追加
+    removeAllRankClasses(elements.game.comboRank);
+    
+    // ウェーブエフェクト更新
+    updateWaveEffect(combo, rankText);
+    
+    // コンボ波紋エフェクト
+    const comboRipple = document.querySelector('.combo-ripple');
+    
+    // ランクが変わった場合やコンボが上がった場合に波紋エフェクトをトリガー
+    if (rankChanged && combo > 0) {
+        if (comboRipple) {
+            // 現在のアニメーションをリセット
+            comboRipple.classList.remove('active');
+            void comboRipple.offsetWidth; // 強制的に再フロー
+            comboRipple.classList.add('active');
+        }
+    }
+    
+    // コンボ数に応じたクラスを追加
+    if (combo === -1) {
+        elements.game.comboRank.classList.add('oops');
+    } else if (combo <= 2 && combo > 0) {
+        elements.game.comboRank.classList.add('good');
+    } else if (combo <= 4) {
+        elements.game.comboRank.classList.add('nice');
+    } else if (combo <= 6) {
+        elements.game.comboRank.classList.add('great');
+    } else if (combo <= 8) {
+        elements.game.comboRank.classList.add('awesome');
+    } else if (combo <= 10) {
+        elements.game.comboRank.classList.add('excellent');
+    } else if (combo <= 15) {
+        elements.game.comboRank.classList.add('unstoppable');
+    } else if (combo <= 20) {
+        elements.game.comboRank.classList.add('legendary');
+    } else if (combo > 20) {
+        elements.game.comboRank.classList.add('godlike');
+    }
+    
+    // 表示をアクティブにする（Ready!のときは非表示）
+    if (combo === -1 || combo > 0) {
+        elements.game.comboDisplay.classList.add('active');
+    } else {
+        // コンボが0の場合は非表示
+        elements.game.comboDisplay.classList.remove('active');
     }
 }
 
