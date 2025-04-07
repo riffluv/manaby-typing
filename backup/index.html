@@ -6,10 +6,7 @@
   <meta name="description" content="マナビー・ドットアドベンチャー - 楽しく学べるレトロスタイルタイピングゲーム">
   <title>マナビータイピング</title>
   <link rel="icon" href="png/favicon01.png" type="image/png">
-  <!-- 基本スタイルシート：変数定義、ローディング画面、メニュー画面、ゲーム画面のスタイルを含む -->
   <link rel="stylesheet" href="style.css" id="base-stylesheet" charset="UTF-8">
-  <!-- 新しいリザルト画面専用スタイル -->
-  <link rel="stylesheet" href="result.css" id="result-stylesheet" charset="UTF-8">
   <!-- レトロ感のあるフォントとより読みやすい日本語フォントを組み合わせる -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+JP:wght@400;500;700&family=Pixelify+Sans&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@mogamoga1024/typing-jp@latest/dist/cdn/typing-jp.js"></script>
@@ -98,8 +95,6 @@
         </div>
         
         <div class="typing-area" role="textbox" aria-label="タイピング入力エリア">
-          <div class="arcade-frame"></div>
-          <div class="grid-lines"></div>
           <div class="combo-effect"></div>
           <div class="combo-ripple"></div>
           <div class="combo-dot-grid"></div>
@@ -111,8 +106,6 @@
             </div>
             <div class="wave-overlay"></div>
           </div>
-          <div class="stage-light left"></div>
-          <div class="stage-light right"></div>
           <div class="combo-display" aria-live="polite">
             <div class="combo-container">
               <div class="combo-count">0</div>
@@ -145,28 +138,17 @@
     <div class="result-content">
       <div class="result-header">
         <h2 class="result-title">RESULT</h2>
-        <div class="title-glow"></div>
       </div>
       
       <div class="result-inner">
-        <div class="arcade-frame"></div>
-        <div class="grid-lines"></div>
-        <div class="stage-light left"></div>
-        <div class="stage-light right"></div>
-        <div class="result-scanlines"></div>
-        <div class="result-glare"></div>
-        
         <div class="result-content-wrapper">
           <div class="result-score">
             <div class="score-label">YOUR SCORE</div>
-            <div class="score-container">
-              <div id="final-score" class="final-score" aria-live="polite">0</div>
-            </div>
+            <div id="final-score" class="final-score" aria-live="polite">0</div>
             <div id="new-record" class="new-record" aria-live="polite">NEW RECORD!</div>
           </div>
           
           <div class="result-stats">
-            <div class="stats-header">STATS</div>
             <table class="stats-table">
               <tr>
                 <td class="stat-label">打鍵数：</td>
@@ -178,14 +160,15 @@
               </tr>
             </table>
           </div>
-          
-          <div class="pixel-decoration left"></div>
-          <div class="pixel-decoration right"></div>
+        </div>
+        
+        <div class="achievement-icons" aria-label="実績">
+          <!-- 実績アイコンがここに表示されます -->
         </div>
         
         <div class="action-buttons">
+          <button id="show-ranking" class="pixel-button">ランキング</button>
           <button id="play-again" class="pixel-button">もう一度プレイ</button>
-          <button id="ranking-button" class="pixel-button">ランキングを見る</button>
           <button id="back-to-menu" class="pixel-button">メニューに戻る</button>
         </div>
       </div>

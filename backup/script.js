@@ -4,7 +4,7 @@
 // 定数とグローバル変数の定義 -----------------
 // マスターテキストリスト
 const masterTextList = [
-    '写真', 'こんにちは', '寿司', '東京タワー', '今日', 
+    '写真', 'こんにちは', '寿司', '東京タワー', 'きょうと', 
     'さくら', 'ラーメン', '新幹線', '富士山', 'かわいい',
     'ハロウィンパーティー', 'ドコサヘキサエン酸', '獅子座流星群',
     '石油ファンヒーター', 'コンビニエンスストア', 'アナゴ一本握り',
@@ -15,22 +15,22 @@ const masterTextList = [
     '高気圧と低気圧', '女心と秋の空', 
     '味噌バターコーンラーメン', 'ワレワレハウチュウジンダ', 'スモモも桃も桃のうち',
     '穴あきジーパンは寒い', '人を呪わば穴二つ', 'ホップ、ステップ、ジャンプ',
-    '我思う、故に我あり', '生麦生米生卵', '細麺太麺ちぢれ麺',
-    '一を聞いて十を知る', '晴れた青空、輝く星空', 'ロイヤルストレートフラッシュ',
+    '我思う、故に我あり', '生むぎ生ごめ生たまご', '細麺太麺ちぢれ麺',
+    'うまい話にゃ裏がある', '晴れた青空、輝く星空', 'ロイヤルストレートフラッシュ',
     'スリジャヤワルダナプラコッテ', 'おじいさんは山へ柴刈りに', 'おばあさんは川へ洗濯に',
     '金の斧ですか銀の斧ですか', '隣の客はよく柿食う客だ', '壁に耳あり障子に目あり',
     '赤巻紙青巻紙黄巻紙', '財布、携帯、鍵、定期', '赤パジャマ青パジャマ黄パジャマ',
     '逆転サヨナラ満塁ホームラン', 'ハイドロプレーニング現象', '天は人の上に人を作らず',
-    '抹茶白玉クリームあんみつ', '趣味はお茶とお花とお琴です', '死して屍拾うものなし',
+    '抹茶白玉クリームあんみつ', '趣味はお茶とお花とお琴です', '死して屍ひろうものなし',
     '水酸化ナトリウム水溶液', 'タンスの角に小指をぶつけた'
 ];
 
 const masterHiraTextList = [
-    'しゃしん', 'こんにちは', 'すし', 'とうきょうたわー', 'きょう', 
+    'しゃしん', 'こんにちは', 'すし', 'とうきょうたわー', 'きょうと', 
     'さくら', 'らーめん', 'しんかんせん', 'ふじさん', 'かわいい',
     'はろうぃんぱーてぃー', 'どこさへきさえんさん', 'ししざりゅうせいぐん',
     'せきゆふぁんひーたー', 'こんびにえんすすとあ', 'あなごいっぽんにぎり',
-    'ずいずいずっころばし', 'かりふぉるにあろーる', 'しんがぽーるすりんぐ',
+    'ずいずいずっころばし', 'かりふぉルにあろーる', 'しんがぽーるすりんぐ',
     'りょうりのさしすせそ', 'ぬいだらぬぎっぱなし', 'みそらーめんおおもり',
     'ねったいうりんきこう', 'いせえびたべほうだい', 'じぶらるたるかいきょう',
     'おにはそと、ふくはうち', 'たつとりあとをにごさず', 'しぇふのきまぐれらんち',
@@ -38,10 +38,10 @@ const masterHiraTextList = [
     'みそばたーこーんらーめん', 'われわれはうちゅうじんだ', 'すもももももももものうち',
     'あなあきじーぱんはさむい', 'ひとをのろわばあなふたつ', 'ほっぷ、すてっぷ、じゃんぷ',
     'われおもう、ゆえにわれあり', 'なまむぎなまごめなまたまご', 'ほそめんふとめんちぢれめん',
-    'いちをきいてじゅうをしる', 'はれたあおぞら、かがやくほしぞら', 'ろいやるすとれーとふらっしゅ',
+    'うまいはなしにゃうらがある', 'はれたあおぞら、かがやくほしぞら', 'ろいやるすとれーとふらっしゅ',
     'すりじゃやわるだなぷらこって', 'おじいさんはやまへしばかりに', 'おばあさんはかわへせんたくに',
     'きんのおのですかぎんのおのですか', 'となりのきゃくはよくかきくうきゃくだ', 'かべにみみありしょうじにめあり',
-    'あかまきがみあおまきがみきまきがみ', 'さいふ、けいたい、かぎ、ていき', 'あかぱじゃまあおぱじゃまきぱじゃま',
+    'あかまきがみあおまきがみ', 'さいふ、けいたい、かぎ、ていき', 'あかぱじゃまあおぱじゃまきぱじゃま',
     'ぎゃくてんさよならまんるいほーむらん', 'はいどろぷれーにんぐげんしょう', 'てんはひとのうえにひとをつくらず',
     'まっちゃしらたまくりーむあんみつ', 'しゅみはおちゃとおはなとおことです', 'ししてしかばねひろうものなし',
     'すいさんかなとりうむすいようえき', 'たんすのかどにこゆびをぶつけた'
@@ -66,7 +66,7 @@ let comboCount = 0; // コンボカウント追加
 // ゲームモード設定
 const gameModes = {
     standard: {
-        questionCount: 20, // 標準モードを20問に設定
+        questionCount: 15, // 標準モードを15問に設定
         timeLimit: Infinity, // 時間制限なし
         showElapsedTime: true // 経過時間表示フラグ
     },
@@ -123,8 +123,7 @@ const elements = {
         playAgainButton: document.getElementById('play-again'),
         backToMenuButton: document.getElementById('back-to-menu'),
         modeButtons: document.querySelectorAll('.mode-button'),
-        backToMenuFromMode: document.getElementById('back-to-menu-from-mode'),
-        rankingButton: document.getElementById('ranking-button')
+        backToMenuFromMode: document.getElementById('back-to-menu-from-mode')
     }
 };
 
@@ -132,7 +131,7 @@ const elements = {
 // ライブラリのロード確認
 if (typeof TypingText === 'undefined') {
     console.error('TypingText library is not loaded correctly!');
-    alert('タイピングライブラリの読み込みに失敗しました。ページをリ読み込みしてください');
+    alert('タイピングライブラリの読み込みに失敗しました。ページを再読み込みしてください。');
 }
 
 // ユーティリティ関数 -----------------------
@@ -162,7 +161,7 @@ const audio = {
     },
     
     playSound(audioElement) {
-        // 音量設定・適用
+        // 音量設定の適用
         if (audioElement) {
             // ローカルストレージから音量とミュート状態を取得
             const volume = localStorage.getItem('soundVolume') || 80;
@@ -186,13 +185,13 @@ window.audio = audio;
 const screenManager = {
     // 画面切り替え関数
     switchToScreen(screen) {
-        // ランキング画面が存在する場合、先に処理済み
+        // ランキング画面が存在する場合、先に処理する
         if (typeof Manaby !== 'undefined' && Manaby.UI && typeof Manaby.UI.switchToScreen === 'function') {
-            console.log('新モジュールの画面切替えを使用');
+            console.log('新モジュールの画面切り替えを使用');
             return;
         }
         
-        console.log('従来の画面切替え関数を使用');
+        console.log('従来の画面切り替え関数を使用');
         // すべての画面を非アクティブにする
         document.querySelectorAll('.screen').forEach(el => {
             el.classList.remove('active');
@@ -496,7 +495,7 @@ const screenManager = {
         if (currentGameMode === 'standard') {
             timeStatsRow.innerHTML = `
                 <td class="stat-label">クリア時間：</td>
-                <td class="stat-value"><span id="clear-time">${timeString}</span></td>
+                <td class="stat-value" id="clear-time">${timeString}</td>
             `;
             timeStatsRow.style.display = 'table-row';
             statsTable.appendChild(timeStatsRow);
@@ -896,19 +895,6 @@ const uiManager = {
             screenManager.initGame(); // 現在のモードで再初期化
         });
         
-        // ランキングボタン
-        const rankingButton = document.getElementById('ranking-button');
-        if (rankingButton) {
-            rankingButton.addEventListener('click', () => {
-                audio.playButtonSound();
-                if (typeof Manaby !== 'undefined' && Manaby.Firebase && typeof Manaby.Firebase.showLeaderboard === 'function') {
-                    Manaby.Firebase.showLeaderboard();
-                } else {
-                    console.error('ランキング機能を読み込めませんでした');
-                }
-            });
-        }
-        
         // メニューに戻るボタン
         elements.buttons.backToMenuButton.addEventListener('click', () => {
             audio.playButtonSound();
@@ -1168,7 +1154,7 @@ const popup = {
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div style="flex: 1;">
               <h4>まなびーくん</h4>
-              <p>ここはマナビー！僕はみんなのIT学習をサポートするヒーロー、まなびーくんだよ！</p>
+              <p>ここはマナビー王国！僕はみんなのIT学習をサポートするヒーロー、まなびーくんだよ！</p>
               <p>就労移行支援manabyの世界で、楽しく学びながらスキルアップしていこう！</p>
               <p>困ったことがあったら、いつでも僕を呼んでね！</p>
             </div>
@@ -1182,7 +1168,7 @@ const popup = {
           <div class="mascot-profile" style="margin-top: 12px;">
             <div class="profile-item" style="margin-bottom: 8px; display: flex;">
               <span class="profile-label" style="color: var(--primary); display: inline-block; width: 100px; text-align: right; padding-right: 15px;">特技:</span>
-              <span class="profile-value" style="flex: 1;">コーヒー一気飲み、タイピング、PC操作のサポート</span>
+              <span class="profile-value" style="flex: 1;">ジャンプ、タイピング、PC操作のサポート</span>
             </div>
             <div class="profile-item" style="margin-bottom: 8px; display: flex;">
               <span class="profile-label" style="color: var(--primary); display: inline-block; width: 100px; text-align: right; padding-right: 15px;">好きなもの:</span>
@@ -1190,7 +1176,7 @@ const popup = {
             </div>
             <div class="profile-item" style="display: flex;">
               <span class="profile-label" style="color: var(--primary); display: inline-block; width: 100px; text-align: right; padding-right: 15px;">口癖:</span>
-              <span class="profile-value" style="flex: 1;">ほげええええええええ！！</span>
+              <span class="profile-value" style="flex: 1;">「死ぬ～」</span>
             </div>
           </div>
         </div>
@@ -1556,12 +1542,6 @@ function updateComboDisplay(combo) {
         // スタイルをリセットして、CSSで定義されたサイズを使用
         elements.game.comboCount.style.fontSize = '28px';
         elements.game.comboRank.style.fontSize = '20px';
-        
-        // ミス時はタイピングエリアの背景効果をリセット
-        const typingArea = document.querySelector('.typing-area');
-        if (typingArea) {
-            typingArea.classList.remove('combo-effect-active', 'effect-excellent', 'effect-unstoppable', 'effect-legendary', 'effect-godlike');
-        }
     } else {
         // 通常時：数字表示、通常のサイズ
         elements.game.comboCount.style.visibility = 'visible';
@@ -1583,7 +1563,7 @@ function updateComboDisplay(combo) {
     // クラスをリセットして新しいクラスを追加
     removeAllRankClasses(elements.game.comboRank);
     
-    // 星エフェクト更新
+    // ウェーブエフェクト更新
     updateWaveEffect(combo, rankText);
     
     // コンボ波紋エフェクト
@@ -1618,14 +1598,6 @@ function updateComboDisplay(combo) {
                 comboRipple.classList.remove('active');
                 void comboRipple.offsetWidth; // 強制的に再フロー
                 comboRipple.classList.add('active');
-                
-                // ランクが変わった時にパーティクルを追加（高ランクのみ）
-                if (combo > 8) {
-                    createParticleEffect(combo);
-                }
-                
-                // タイピングエリアの背景エフェクトを更新
-                updateTypingAreaEffect(combo);
             } else if (!comboRipple.classList.contains('active')) {
                 // アクティブでない場合はアクティブにする
                 comboRipple.classList.add('active');
@@ -2330,6 +2302,131 @@ function updateStarEffect(combo, rankText) {
     }
 }
 
+// コンボ表示を更新する関数
+function updateComboDisplay(combo) {
+    // 前回のランク
+    const prevRankText = elements.game.comboRank.textContent || 'Ready!';
+    
+    // ランクテキストを取得
+    const rankText = getRankText(combo);
+    
+    // ランクが変わったかチェック
+    const rankChanged = prevRankText !== rankText;
+    
+    if (combo === -1) {
+        // ミス時：マイナススコアを表示して構造を維持
+        elements.game.comboCount.style.visibility = 'visible';
+        elements.game.comboCount.textContent = "-10";
+        elements.game.comboCount.style.color = '#ff5252'; // 赤色でマイナスを強調
+        
+        // スタイルをリセットして、CSSで定義されたサイズを使用
+        elements.game.comboCount.style.fontSize = '28px';
+        elements.game.comboRank.style.fontSize = '20px';
+    } else {
+        // 通常時：数字表示、通常のサイズ
+        elements.game.comboCount.style.visibility = 'visible';
+        elements.game.comboCount.textContent = combo;
+        elements.game.comboCount.style.color = 'var(--gold)'; // 通常の金色
+        
+        // スタイルをリセットして、CSSで定義されたサイズを使用
+        elements.game.comboCount.style.fontSize = '28px';
+        elements.game.comboRank.style.fontSize = '20px';
+    }
+    
+    // 共通の高さと配置を設定
+    elements.game.comboRank.style.height = '30px';
+    elements.game.comboRank.style.marginTop = '0px';
+    
+    // ランクテキストを更新
+    elements.game.comboRank.textContent = rankText;
+    
+    // クラスをリセットして新しいクラスを追加
+    removeAllRankClasses(elements.game.comboRank);
+    
+    // 星エフェクト更新
+    updateStarEffect(combo, rankText);
+    
+    // コンボ波紋エフェクト
+    const comboRipple = document.querySelector('.combo-ripple');
+    
+    if (comboRipple) {
+        // まずすべてのランククラスを削除
+        comboRipple.classList.remove('good', 'nice', 'great', 'awesome', 'excellent', 'unstoppable', 'legendary', 'godlike');
+        
+        // コンボに応じたクラスを追加
+        if (combo > 0) {
+            if (combo <= 2) {
+                comboRipple.classList.add('good');
+            } else if (combo <= 4) {
+                comboRipple.classList.add('nice');
+            } else if (combo <= 6) {
+                comboRipple.classList.add('great');
+            } else if (combo <= 8) {
+                comboRipple.classList.add('awesome');
+            } else if (combo <= 10) {
+                comboRipple.classList.add('excellent');
+            } else if (combo <= 15) {
+                comboRipple.classList.add('unstoppable');
+            } else if (combo <= 20) {
+                comboRipple.classList.add('legendary');
+            } else {
+                comboRipple.classList.add('godlike');
+            }
+            
+            // ランクが変わった場合にアニメーションをリセット
+            if (rankChanged) {
+                comboRipple.classList.remove('active');
+                void comboRipple.offsetWidth; // 強制的に再フロー
+                comboRipple.classList.add('active');
+            } else if (!comboRipple.classList.contains('active')) {
+                // アクティブでない場合はアクティブにする
+                comboRipple.classList.add('active');
+            }
+            
+            // コンボごとに新しい波紋を作成
+            const newRipple = comboRipple.cloneNode(true);
+            comboRipple.parentNode.appendChild(newRipple);
+            
+            // 古い波紋を削除（最大5個まで保持）
+            const ripples = document.querySelectorAll('.combo-ripple');
+            if (ripples.length > 5) {
+                for (let i = 0; i < ripples.length - 5; i++) {
+                    ripples[i].remove();
+                }
+            }
+        }
+    }
+    
+    // コンボ数に応じたクラスを追加
+    if (combo === -1) {
+        elements.game.comboRank.classList.add('oops');
+    } else if (combo <= 2 && combo > 0) {
+        elements.game.comboRank.classList.add('good');
+    } else if (combo <= 4) {
+        elements.game.comboRank.classList.add('nice');
+    } else if (combo <= 6) {
+        elements.game.comboRank.classList.add('great');
+    } else if (combo <= 8) {
+        elements.game.comboRank.classList.add('awesome');
+    } else if (combo <= 10) {
+        elements.game.comboRank.classList.add('excellent');
+    } else if (combo <= 15) {
+        elements.game.comboRank.classList.add('unstoppable');
+    } else if (combo <= 20) {
+        elements.game.comboRank.classList.add('legendary');
+    } else if (combo > 20) {
+        elements.game.comboRank.classList.add('godlike');
+    }
+    
+    // 表示をアクティブにする（Ready!のときは非表示）
+    if (combo === -1 || combo > 0) {
+        elements.game.comboDisplay.classList.add('active');
+    } else {
+        // コンボが0の場合は非表示
+        elements.game.comboDisplay.classList.remove('active');
+    }
+}
+
 // 初期化後に星エフェクトを作成
 document.addEventListener('DOMContentLoaded', function() {
     // 既存の初期化コード...
@@ -2494,79 +2591,4 @@ function showResult(score, keystrokesCount, wpm) {
   
   // NEW RECORDの表示処理
   // ... existing code ...
-}
-
-// パーティクルエフェクトを作成する関数
-function createParticleEffect(combo) {
-    const comboDisplay = elements.game.comboDisplay;
-    const particleCount = Math.min(Math.floor(combo / 2), 20); // コンボに応じて粒子数を増やす（最大20個）
-    
-    for (let i = 0; i < particleCount; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'combo-particle';
-        
-        // ランダムな色を選択（高コンボほど金色が増える）
-        const colorRandom = Math.random();
-        if (combo > 20 || colorRandom > 0.7) {
-            // ゴールド
-            particle.style.background = 'rgba(255, 215, 0, 0.8)';
-        } else if (combo > 15 || colorRandom > 0.4) {
-            // レッド
-            particle.style.background = 'rgba(255, 0, 0, 0.8)';
-        } else {
-            // オレンジ
-            particle.style.background = 'rgba(255, 165, 0, 0.8)';
-        }
-        
-        // ランダムなサイズ（高コンボほど大きく）
-        const sizeBase = Math.min(combo / 10, 2);
-        const size = 2 + Math.random() * sizeBase;
-        particle.style.width = `${size}px`;
-        particle.style.height = `${size}px`;
-        
-        // ランダムな位置
-        particle.style.top = `${50 + (Math.random() * 20 - 10)}%`;
-        particle.style.left = `${50 + (Math.random() * 20 - 10)}%`;
-        
-        // ランダムな方向
-        particle.style.setProperty('--x-dir', Math.random() * 2 - 1);
-        particle.style.setProperty('--y-dir', Math.random() * 2 - 1);
-        
-        comboDisplay.appendChild(particle);
-        
-        // アニメーションを開始
-        setTimeout(() => {
-            particle.classList.add('active');
-            
-            // アニメーション終了後に削除
-            setTimeout(() => {
-                if (particle.parentNode) {
-                    particle.parentNode.removeChild(particle);
-                }
-            }, 1500);
-        }, Math.random() * 100);
-    }
-}
-
-// タイピングエリアの背景エフェクトを更新する関数
-function updateTypingAreaEffect(combo) {
-    const typingArea = document.querySelector('.typing-area');
-    if (!typingArea) return;
-    
-    // まず既存のエフェクトクラスを削除
-    typingArea.classList.remove('effect-excellent', 'effect-unstoppable', 'effect-legendary', 'effect-godlike');
-    
-    // コンボ数に応じたエフェクトクラスを追加
-    if (combo > 20) {
-        typingArea.classList.add('combo-effect-active', 'effect-godlike');
-    } else if (combo > 15) {
-        typingArea.classList.add('combo-effect-active', 'effect-legendary');
-    } else if (combo > 10) {
-        typingArea.classList.add('combo-effect-active', 'effect-unstoppable');
-    } else if (combo > 8) {
-        typingArea.classList.add('combo-effect-active', 'effect-excellent');
-    } else {
-        // コンボが低い場合はエフェクトを削除
-        typingArea.classList.remove('combo-effect-active');
-    }
 }

@@ -1,7 +1,6 @@
 /**
  * Firebase統合ランキングシステム
  * 全てのランキング関連機能を一元管理
- * @charset UTF-8
  */
 
 // Manabyオブジェクトがなければ初期化
@@ -15,7 +14,7 @@ Manaby.Firebase = (function() {
     authDomain: "manaby-typing.firebaseapp.com",
     databaseURL: "https://manaby-typing-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "manaby-typing",
-    storageBucket: "manaby-typing.firebasestorage.app",
+    storageBucket: "manaby-typing.appspot.com",
     messagingSenderId: "58110409261",
     appId: "1:58110409261:web:1f23739378545fab9196a4",
     measurementId: "G-FSD7ECC1B0"
@@ -24,10 +23,22 @@ Manaby.Firebase = (function() {
   // Firebase初期化ステータスの追跡
   let isInitialized = false;
   let database = null;
-  
-  // 管理者設定
-  const ADMIN_PASSWORD = "manabyAdmin2023"; // 実際の環境では、より強力なパスワードを使用してください
-  let isAdminMode = false;
+
+  // セッション変数の追加 - 現在のスコア登録セッションを追跡
+  let currentScoreSessionId = null;
+  let registeredScoreSessions = [];
+
+  // セッションIDを生成する関数
+  function _generateSessionId() {
+    return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+  }
+
+  // 結果画面表示時に新しいセッションIDを生成する
+  function _generateNewScoreSession() {
+    currentScoreSessionId = _generateSessionId();
+    console.log('新しいスコアセッションを生成しました:', currentScoreSessionId);
+    return currentScoreSessionId;
+  }
 
   // Firebase初期化関数
   function _initializeFirebase() {
@@ -430,7 +441,8 @@ Manaby.Firebase = (function() {
         score: score,
         gameMode: gameMode,
         timestamp: new Date().toISOString(),
-        stats: { wpm, keystrokes }
+        stats: { wpm, keystrokes },
+        sessionId: currentScoreSessionId
       };
       
       // ユーザー名を保存
@@ -439,6 +451,12 @@ Manaby.Firebase = (function() {
       // スコアを送信
       _submitScore(scoreData)
         .then(() => {
+          // 登録済みセッションに追加
+          if (currentScoreSessionId) {
+            registeredScoreSessions.push(currentScoreSessionId);
+            console.log('スコアを登録済みとして記録:', currentScoreSessionId);
+          }
+          
           _showSuccessMessage();
           
           // 現在のタブのランキングを再読み込み
@@ -455,6 +473,12 @@ Manaby.Firebase = (function() {
           
           if (error.message === 'Firebase未初期化') {
             _showFormMessage('サーバーに接続できません。オフラインで保存しました。', true);
+            
+            // 登録済みセッションに追加（オフライン保存でも登録済みとする）
+            if (currentScoreSessionId) {
+              registeredScoreSessions.push(currentScoreSessionId);
+              console.log('オフラインスコアを登録済みとして記録:', currentScoreSessionId);
+            }
             
             // オフライン保存成功通知
             setTimeout(() => {
@@ -677,6 +701,12 @@ Manaby.Firebase = (function() {
       return;
     }
     
+    // 既に登録済みか確認
+    if (currentScoreSessionId && registeredScoreSessions.includes(currentScoreSessionId)) {
+      alert('このスコアは既に登録済みです');
+      return;
+    }
+    
     // アクティブなゲームモードを取得（タブから）
     const activeTab = document.querySelector('.ranking-tab.active');
     const gameMode = activeTab ? activeTab.dataset.mode : 'standard';
@@ -726,334 +756,13 @@ Manaby.Firebase = (function() {
   // 遅延実行を追加（フォールバック対策）
   setTimeout(setupEventListeners, 1000);
 
-  /**
-   * 管理者メニューを表示する関数
-   */
-  function _showAdminPanel() {
-    // すでに管理者パネルが表示されている場合は何もしない
-    if (document.getElementById('admin-panel')) return;
-    
-    // 管理者パネルを作成
-    const adminPanel = document.createElement('div');
-    adminPanel.id = 'admin-panel';
-    adminPanel.className = 'retro-popup admin-panel';
-    adminPanel.innerHTML = `
-      <div class="popup-header">
-        <h3>管理者メニュー</h3>
-        <button id="admin-panel-close" class="popup-close-btn">×</button>
-      </div>
-      <div class="popup-content">
-        <div class="admin-section">
-          <h4>ランキングリセット</h4>
-          <div class="admin-warning">注意: リセットすると元に戻せません!</div>
-          <div class="admin-buttons">
-            <button id="reset-standard" class="pixel-button danger-button">スタンダードモードをリセット</button>
-            <button id="reset-timeAttack" class="pixel-button danger-button">タイムアタックモードをリセット</button>
-            <button id="reset-endless" class="pixel-button danger-button">エンドレスモードをリセット</button>
-            <button id="reset-all" class="pixel-button danger-button">全ランキングをリセット</button>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    // 管理者パネルのスタイルを追加
-    const style = document.createElement('style');
-    style.textContent = `
-      .admin-panel {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1000;
-        width: 80%;
-        max-width: 500px;
-        background-color: #1a1a1a;
-        border: 3px solid #ff8c00;
-        box-shadow: 0 0 15px rgba(255, 140, 0, 0.5);
-      }
-      .admin-section {
-        margin-bottom: 20px;
-      }
-      .admin-warning {
-        color: #ff3333;
-        margin: 10px 0;
-        font-weight: bold;
-        text-align: center;
-      }
-      .admin-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .danger-button {
-        background-color: #b71c1c;
-        border-color: #ff3333;
-      }
-      .danger-button:hover {
-        background-color: #f44336;
-      }
-    `;
-    
-    // ドキュメントに追加
-    document.head.appendChild(style);
-    document.body.appendChild(adminPanel);
-    
-    // イベントリスナーを追加
-    document.getElementById('admin-panel-close').addEventListener('click', () => {
-      adminPanel.remove();
-    });
-    
-    // ランキングリセットボタンにイベントリスナーを追加
-    document.getElementById('reset-standard').addEventListener('click', () => _resetRankings('standard'));
-    document.getElementById('reset-timeAttack').addEventListener('click', () => _resetRankings('timeAttack'));
-    document.getElementById('reset-endless').addEventListener('click', () => _resetRankings('endless'));
-    document.getElementById('reset-all').addEventListener('click', () => _resetRankings('all'));
-  }
-  
-  /**
-   * 管理者認証を表示する関数
-   */
-  function _showAdminAuth() {
-    // すでに管理者モードなら直接パネルを表示
-    if (isAdminMode) {
-      _showAdminPanel();
-      return;
-    }
-    
-    // すでに認証パネルが表示されている場合は何もしない
-    if (document.getElementById('admin-auth')) return;
-    
-    // 認証パネルを作成
-    const authPanel = document.createElement('div');
-    authPanel.id = 'admin-auth';
-    authPanel.className = 'retro-popup admin-auth';
-    authPanel.innerHTML = `
-      <div class="popup-header">
-        <h3>管理者認証</h3>
-        <button id="admin-auth-close" class="popup-close-btn">×</button>
-      </div>
-      <div class="popup-content">
-        <div class="auth-form">
-          <label for="admin-password">管理者パスワード:</label>
-          <input type="password" id="admin-password" class="retro-input">
-          <div class="auth-message" id="auth-message"></div>
-          <button id="auth-submit" class="pixel-button">認証</button>
-        </div>
-      </div>
-    `;
-    
-    // 認証パネルのスタイルを追加
-    const style = document.createElement('style');
-    style.textContent = `
-      .admin-auth {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1000;
-        width: 80%;
-        max-width: 400px;
-        background-color: #1a1a1a;
-        border: 3px solid #4caf50;
-        box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
-      }
-      .auth-form {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-      }
-      .retro-input {
-        background-color: #111;
-        border: 2px solid #444;
-        color: #0f0;
-        padding: 8px;
-        font-family: 'Press Start 2P', 'Noto Sans JP', monospace;
-        font-size: 14px;
-      }
-      .auth-message {
-        color: #ff3333;
-        height: 20px;
-        text-align: center;
-      }
-      .auth-message.success {
-        color: #4caf50;
-      }
-    `;
-    
-    // ドキュメントに追加
-    document.head.appendChild(style);
-    document.body.appendChild(authPanel);
-    
-    // イベントリスナーを追加
-    document.getElementById('admin-auth-close').addEventListener('click', () => {
-      authPanel.remove();
-    });
-    
-    document.getElementById('auth-submit').addEventListener('click', () => {
-      const password = document.getElementById('admin-password').value;
-      _verifyAdminPassword(password);
-    });
-    
-    // Enter キーでも送信できるようにする
-    document.getElementById('admin-password').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const password = document.getElementById('admin-password').value;
-        _verifyAdminPassword(password);
-      }
-    });
-  }
-  
-  /**
-   * 管理者パスワードを検証する関数
-   * @param {string} password 入力されたパスワード
-   */
-  function _verifyAdminPassword(password) {
-    const messageElement = document.getElementById('auth-message');
-    
-    if (password === ADMIN_PASSWORD) {
-      messageElement.textContent = '認証成功！';
-      messageElement.classList.add('success');
-      
-      // 管理者モードを有効化
-      isAdminMode = true;
-      
-      // 短い遅延後に管理者パネルを表示
-      setTimeout(() => {
-        document.getElementById('admin-auth').remove();
-        _showAdminPanel();
-      }, 1000);
-    } else {
-      messageElement.textContent = 'パスワードが間違っています';
-      messageElement.classList.remove('success');
-      
-      // パスワードフィールドをクリア
-      document.getElementById('admin-password').value = '';
-    }
-  }
-  
-  /**
-   * ランキングをリセットする関数
-   * @param {string} mode リセットするモード ('standard', 'timeAttack', 'endless', 'all')
-   */
-  function _resetRankings(mode) {
-    if (!_initializeFirebase()) {
-      alert('Firebase接続エラー: ランキングをリセットできません');
-      return;
-    }
-    
-    // 再確認ダイアログ
-    const modeName = mode === 'all' ? '全ての' : `${_getModeName(mode)}モードの`;
-    if (!confirm(`本当に${modeName}ランキングをリセットしますか？この操作は取り消せません！`)) {
-      return;
-    }
-    
-    let resetPromise;
-    
-    if (mode === 'all') {
-      // 全てのスコアを削除
-      resetPromise = database.ref('scores').remove();
-    } else {
-      // 特定のモードのスコアだけを削除するためには、一度全てのスコアを取得し、
-      // 該当するモードのスコアのみを削除する必要がある
-      resetPromise = database.ref('scores').once('value')
-        .then((snapshot) => {
-          if (!snapshot.exists()) return Promise.resolve();
-          
-          const updates = {};
-          snapshot.forEach((childSnapshot) => {
-            const data = childSnapshot.val();
-            if (data && data.gameMode === mode) {
-              updates[childSnapshot.key] = null; // nullを設定することで削除
-            }
-          });
-          
-          // 一括更新
-          return database.ref('scores').update(updates);
-        });
-    }
-    
-    resetPromise
-      .then(() => {
-        alert(`${modeName}ランキングを正常にリセットしました。`);
-        
-        // ランキング表示を更新
-        if (document.querySelector('.ranking-tab-content.active')) {
-          const activeMode = document.querySelector('.ranking-tab.active').dataset.mode;
-          _loadRanking(activeMode)
-            .then(rankings => _displayRankings(rankings, activeMode))
-            .catch(error => _displayLocalRankings(activeMode));
-        }
-      })
-      .catch((error) => {
-        console.error('ランキングリセットエラー:', error);
-        alert(`エラー: ${modeName}ランキングのリセットに失敗しました。`);
-      });
-  }
-
-  // マナビーくんロゴに隠しクリックイベントを設定
-  function _setupAdminTrigger() {
-    const logo = document.querySelector('.logo-container .logo');
-    if (!logo) return;
-    
-    let clickCount = 0;
-    let clickTimer = null;
-    
-    logo.addEventListener('click', (e) => {
-      clickCount++;
-      
-      // 5秒以内に7回クリックで管理者メニューを表示
-      clearTimeout(clickTimer);
-      clickTimer = setTimeout(() => {
-        clickCount = 0;
-      }, 5000);
-      
-      if (clickCount === 7) {
-        clickCount = 0;
-        _showAdminAuth();
-        e.stopPropagation(); // 通常のロゴクリック動作を防止
-      }
-    });
-  }
-
-  // 初期化時に実行
-  function init() {
-    // オフラインスコアの同期を試みる
-    _syncOfflineScores();
-    
-    // 管理者モードの有効化
-    _setupAdminTrigger();
-    
-    // Ctrl+Alt+A ショートカットの追加
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.altKey && e.key === 'a') {
-        _showAdminAuth();
-      }
-    });
-    
-    // イベントリスナーを設定
-    setupEventListeners();
-  }
-
   // パブリックAPI
   return {
     showLeaderboard: showLeaderboard,
     registerScore: registerScore,
+    generateNewScoreSession: _generateNewScoreSession,
     // テスト用に一部の内部関数を公開
     loadRanking: _loadRanking,
-    displayRankings: _displayRankings,
-    
-    // 管理者向け機能
-    resetRankings: _resetRankings,
-    showAdminPanel: _showAdminAuth,
-    
-    // 初期化
-    init: init
+    displayRankings: _displayRankings
   };
-})();
-
-// ページロード時に初期化
-document.addEventListener('DOMContentLoaded', function() {
-  if (Manaby.Firebase && typeof Manaby.Firebase.init === 'function') {
-    Manaby.Firebase.init();
-  }
-}); 
+})(); 

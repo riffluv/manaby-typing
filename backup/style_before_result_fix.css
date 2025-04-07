@@ -627,11 +627,11 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  border: 3px solid rgba(0, 150, 255, 0.2);
+  border: 3px solid rgba(0, 150, 255, 0.1);
   border-radius: 6px;
   box-shadow: 
-    inset 0 0 12px rgba(0, 150, 255, 0.3),
-    0 0 15px rgba(0, 150, 255, 0.2);
+    inset 0 0 8px rgba(0, 150, 255, 0.2),
+    0 0 10px rgba(0, 150, 255, 0.1);
   z-index: 2;
   pointer-events: none;
   transition: all 0.5s ease;
@@ -645,12 +645,12 @@ body {
   right: 0;
   bottom: 0;
   background-image: 
-    linear-gradient(rgba(50, 130, 240, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(50, 130, 240, 0.12) 1px, transparent 1px);
+    linear-gradient(rgba(50, 130, 240, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(50, 130, 240, 0.05) 1px, transparent 1px);
   background-size: 20px 20px;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 0.7;
 }
 
 /* ステージライト効果 */
@@ -1078,26 +1078,18 @@ body {
   box-shadow: none;
 }
 
-/* リザルト画面以外での適用を明確にする */
-#game-screen .stats-table td,
-.popup-content .stats-table td,
-body:not(#result-screen) .stats-table td {
+.stats-table td {
   padding: 8px var(--spacing-sm);
   border-bottom: none;
   vertical-align: middle;
   line-height: 1.4;
 }
 
-#game-screen .stats-table tr:last-child td,
-.popup-content .stats-table tr:last-child td,
-body:not(#result-screen) .stats-table tr:last-child td {
+.stats-table tr:last-child td {
   border-bottom: none;
 }
 
-/* リザルト画面以外のスタイルを明確にする */
-#game-screen .stat-label,
-.popup-content .stat-label,
-body:not(#result-screen) .stat-label {
+.stat-label {
   text-align: right;
   color: var(--text-light);
   font-size: 14px;
@@ -1107,9 +1099,7 @@ body:not(#result-screen) .stat-label {
   font-weight: normal;
 }
 
-#game-screen .stat-value,
-.popup-content .stat-value,
-body:not(#result-screen) .stat-value {
+.stat-value {
   text-align: left;
   font-weight: bold;
   color: var(--gold);
@@ -1882,1172 +1872,99 @@ body:not(#result-screen) .stat-value {
 
 /* --------- Ug */
 #result-screen {
-  background: radial-gradient(circle, var(--primary-dark), var(--secondary));
+  background: radial-gradient(circle at center, rgba(10, 12, 20, 0.8) 0%, rgba(5, 5, 10, 0.95) 100%);
   overflow: hidden;
   z-index: 70;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 0;
-}
-
-/* Ug Ri */
-.result-content {
-  background: linear-gradient(135deg, var(--secondary), var(--primary-dark), var(--secondary));
-  text-align: center;
-  position: relative;
-  align-items: center;
-  justify-content: center;
-  max-height: 650px;
-  width: 90%;
-  max-width: 550px;
-  padding: var(--spacing-sm);
-  border-radius: 8px;
-}
-
-/* Ug Ri pwb_ */
-.result-inner {
-  background-color: var(--bg-dark);
-  padding: var(--spacing-sm);
-  border-radius: 8px;
-  box-shadow: var(--shadow-inset);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  gap: var(--spacing-sm);
-}
-
-/* Ug Ri pwb_[ */
-.result-header {
-  background-color: var(--secondary);
-  color: var(--primary);
-  padding: var(--spacing-xs);
-  margin: 0 0 var(--spacing-xs) 0;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-  height: auto;
-  min-height: 40px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  image-rendering: pixelated;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: grayscale;
-  width: 100%;
-}
-
-/* Ug Ri ^Cg */
-.result-title {
-  color: var(--gold);
-  font-size: 24px;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
-  text-align: center;
-  margin: 0;
-  padding: var(--spacing-xs) 0;
-  line-height: 1.2;
-  font-weight: bold;
-  letter-spacing: 2px;
-  animation: pulse 2s infinite ease-in-out;
-}
-
-/* uACRZNV - \ */
-.result-inner .achievement-icons {
-  display: none;
-  height: 0;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-/* XRZA\ZNV */
-.result-inner .result-score {
-  margin: var(--spacing-xs) auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 85%;
-  max-width: 400px;
-  padding: var(--spacing-sm);
-  background-color: rgba(26, 34, 56, 0.4);
-  border-radius: 8px;
-  border: 1px solid var(--secondary);
-  justify-content: center;
-  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3);
   position: relative;
 }
 
-/* p[tFNgNA\ - \ */
-.clear-status {
+#result-screen::before {
+  content: "";
   position: absolute;
-  top: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--accent);
-  color: var(--text-light);
-  font-size: 12px;
-  padding: 3px 12px;
-  border-radius: 12px;
-  font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  z-index: 1;
-  white-space: nowrap;
-  animation: pulse 1.5s infinite ease-in-out;
-}
-
-.result-score .score-label {
-  font-size: 14px;
-  margin-bottom: var(--spacing-xs);
-  color: var(--text-light);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  order: 1;
-}
-
-.result-score .final-score {
-  font-size: 42px;
-  color: var(--gold);
-  text-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
-  margin: 0;
-  line-height: 1.2;
-  text-align: center;
-  display: block;
   width: 100%;
-  order: 2;
+  height: 100%;
+  background-image: 
+    radial-gradient(rgba(100, 100, 255, 0.1) 1px, transparent 1px),
+    radial-gradient(rgba(100, 100, 255, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+  animation: float 120s infinite linear;
+  opacity: 0.3;
 }
 
-.result-score .new-record {
-  color: var(--accent);
-  font-size: 10px;
-  animation: blink 1s infinite;
-  letter-spacing: 1px;
-  margin-top: var(--spacing-xs);
-}
-
-/* vZNV */
-.result-inner .result-stats {
-  display: flex;
-  justify-content: center;
-  width: 85%;
-  max-width: 400px;
-  padding: var(--spacing-sm);
-  margin: 0 auto;
-  background-color: rgba(26, 34, 56, 0.4);
-  border-radius: 8px;
-  border: 1px solid var(--secondary);
-  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3);
-}
-
-/* ANV{^ZNV */
-.result-inner .action-buttons {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-  width: 100%;
-  margin: var(--spacing-sm) 0 0 0;
-  padding: 0;
-}
-
-.action-buttons .pixel-button {
-  /* 基本スタイルと合わせて水平・垂直方向のパディングを設定 */
-  padding: var(--spacing-xs) var(--spacing-sm);
-  min-height: 36px;
-  font-size: 12px;
-  background-color: var(--primary);
-  color: var(--text-light);
-  text-shadow: 2px 2px 0 var(--primary-dark);
-  box-shadow: 0 4px 0 var(--primary-dark),
-              0 0 10px rgba(255, 140, 0, 0.4);
-  min-width: 160px;
-  /* ここではマージンを指定せず、親要素のgapを使用 */
-  margin: 0;
-}
-
-/* ^CsOG */
-.typing-area {
+/* リザルト画面コンテンツ */
+.result-content.arcade-bezel {
+  background: linear-gradient(135deg, #2c2c44, #1a1a2e, #2c2c44);
   position: relative;
-  width: 100%;
-  height: 130px;
-  background-color: rgba(10, 15, 30, 0.8);
-  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 700px;
+  border: 6px solid #444;
+  border-radius: 12px;
+  padding: var(--spacing-md);
   box-shadow: 
-    inset 0 0 30px rgba(0, 0, 0, 0.8),
-    0 0 15px rgba(0, 0, 255, 0.15);
-  margin: var(--spacing-xs) 0;
-  padding: var(--spacing-sm);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+    0 0 30px rgba(0, 0, 255, 0.2),
+    inset 0 0 20px rgba(0, 0, 0, 0.7);
   overflow: hidden;
-  border: 2px solid var(--secondary);
-  transition: all 0.3s ease;
+}
+
+/* リザルト画面のアーケードキャビネット装飾 */
+.result-content.arcade-bezel::before,
+.result-content.arcade-bezel::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #333;
+  border-radius: 50%;
+  border: 2px solid #555;
+  box-shadow: inset 0 0 3px #111;
   z-index: 5;
 }
 
-/* vO[N */
-.progress-bar-container {
-  width: 100%;
-  background-color: rgba(26, 34, 56, 0.4);
-  height: 16px;
-  border-radius: 4px;
-  overflow: hidden;
+.result-content.arcade-bezel::before {
+  top: 10px;
+  left: 10px;
+}
+
+.result-content.arcade-bezel::after {
+  top: 10px;
+  right: 10px;
+}
+
+.result-content.arcade-bezel .result-inner::before,
+.result-content.arcade-bezel .result-inner::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #333;
+  border-radius: 50%;
+  border: 2px solid #555;
+  box-shadow: inset 0 0 3px #111;
+  z-index: 5;
+}
+
+.result-content.arcade-bezel .result-inner::before {
+  bottom: 10px;
+  left: 10px;
+}
+
+.result-content.arcade-bezel .result-inner::after {
+  bottom: 10px;
+  right: 10px;
+}
+
+/* リザルト画面ヘッダー */
+.result-header {
+  background: linear-gradient(90deg, #2a0b3a, #4a1072, #2a0b3a);
+  color: var(--primary);
+  padding: var(--spacing-xs);
   margin: 0 0 var(--spacing-xs) 0;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-  border: 2px solid var(--secondary);
-  image-rendering: pixelated;
-  padding: 2px;
-  position: relative;
-}
-
-/* [hI wb_[^Cg */
-.mode-title {
-  color: var(--gold);
-  font-size: 18px;
-  text-shadow: var(--text-shadow);
-  text-align: center;
-  margin: 0;
-  padding: 0;
-  line-height: 1;
-  font-weight: normal;
-}
-
-/* R\X^Cg */
-.combo-display {
-  position: absolute;
-  z-index: 15;
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: 80px;
-  top: 50%;
-  transform: translateY(-50%); /* 中央揃え */
-  margin: 0 auto;
-  text-align: center;
-  font-family: 'Press Start 2P', cursive, monospace;
-  pointer-events: none; /* クリックを透過させる */
-}
-
-.combo-display.active {
-  display: flex;
-}
-
-.combo-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 60px;
-  width: 100%;
-}
-
-/* R\X^Cg - -100T */
-.combo-count {
-  font-size: 32px !important;
-  font-weight: bold;
-  margin-bottom: 5px;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8),
-               0 0 10px rgba(255, 255, 255, 0.3);
-  animation: pulse 1.5s infinite ease-in-out;
-  height: 32px;
-  line-height: 32px;
-  transition: color 0.2s ease;
-  font-family: 'Press Start 2P', cursive, monospace;
-  transform: scale(1);
-  letter-spacing: 1px;
-}
-
-/* R\X^Cg - SẴeL */
-.combo-rank {
-  font-size: 22px !important;
-  font-weight: bold;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8),
-               0 0 15px rgba(255, 255, 255, 0.2);
-  animation: combo-color-change 3s infinite;
-  height: 30px;
-  line-height: 30px;
-  font-family: 'Press Start 2P', cursive, monospace;
-}
-
-/* ~X^Cg */
-.combo-rank.oops {
-  color: #ff5252;
-  text-shadow: 0 0 12px #ff5252;
-  animation: blink 0.8s infinite;
-  letter-spacing: 3px;
-  font-size: 20px !important;
-}
-
-/* CSS validation time: checked and fixed */
-
-/* Q[ƃUgX^Cg */
-#game-screen, #result-screen {
-  transition: opacity 0.3s ease;
-}
-
-/* X|Vu */
-.game-container, .arcade-bezel, .result-content {
-  border: 4px solid var(--secondary);
-  box-shadow: 0 0 20px rgba(255, 140, 0, 0.3),
-              inset 0 0 10px rgba(0, 0, 0, 0.5);
-  transition: all 0.3s ease;
-}
-
-/* j[E[hI */
-.menu-content, .mode-select-content {
-  box-shadow: none;
-  transition: all 0.3s ease;
-  border: none;
-}
-
-/* L}O */
-#ranking-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(18, 18, 18, 0.95);
-  z-index: 2000;
-  display: none;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-#ranking-screen.active {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-/* L}Owb_ */
-.ranking-header {
-  background-color: var(--secondary);
-  color: var(--primary);
-  padding: 10px 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  text-align: center;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
-  width: 100%;
-  max-width: 700px;
-}
-
-.ranking-header h2 {
-  color: var(--gold);
-  margin: 0;
-  font-size: 28px;
-  letter-spacing: 2px;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
-}
-
-/* L}O^u */
-.ranking-mode-tabs {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-  background-color: var(--secondary);
-  border-radius: 8px;
-  padding: 5px;
-  width: 100%;
-  max-width: 700px;
-}
-
-.ranking-tab {
-  padding: 10px 20px;
-  cursor: pointer;
-  font-size: 16px;
-  font-family: 'Press Start 2P', cursive;
-  color: var(--text-light);
-  background-color: rgba(0, 0, 0, 0.2);
-  margin: 0 5px;
-  border-radius: 5px;
-  transition: all 0.2s ease;
-}
-
-.ranking-tab:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  color: var(--primary);
-}
-
-.ranking-tab.active {
-  background-color: var(--primary);
-  color: var(--text-light);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-/* L}OR]e */
-.ranking-content {
-  width: 100%;
-  max-width: 700px;
-  margin-bottom: 20px;
-}
-
-.ranking-tab-content {
-  display: none;
-  background-color: var(--secondary);
-  border-radius: 8px;
-  padding: 10px;
-}
-
-.ranking-tab-content.active {
-  display: block;
-}
-
-.ranking-table-container {
-  max-height: 400px;
-  overflow-y: auto;
-  border-radius: 5px;
-  background-color: rgba(0, 0, 0, 0.3);
-  padding: 5px;
-}
-
-/* L}Oe[ */
-.ranking-table {
-  width: 100%;
-  border-collapse: collapse;
-  color: var(--text-light);
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 12px;
-}
-
-.ranking-table th {
-  background-color: var(--primary-dark);
-  color: var(--text-light);
-  padding: 10px;
-  text-align: center;
-  border-bottom: 2px solid var(--secondary);
-  font-family: 'Press Start 2P', cursive;
-}
-
-.ranking-table td {
-  padding: 10px;
-  text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-/* s̔wiF */
-.ranking-table tr:nth-child(even) {
-  background-color: rgba(0, 0, 0, 0.2);
-}
-
-/* s̔wiF */
-.ranking-table tr:nth-child(odd) {
-  background-color: rgba(0, 0, 0, 0.3);
-}
-
-/* 1ʁA2ʁA3ʂ̃X^Cg */
-.ranking-table tr.rank-1 td {
-  background-color: rgba(255, 215, 0, 0.2);
-  color: var(--gold);
-  font-weight: bold;
-}
-
-.ranking-table tr.rank-2 td {
-  background-color: rgba(192, 192, 192, 0.2);
-  color: #C0C0C0;
-  font-weight: bold;
-}
-
-.ranking-table tr.rank-3 td {
-  background-color: rgba(205, 127, 50, 0.2);
-  color: #CD7F32;
-  font-weight: bold;
-}
-
-/* L}O{^ */
-#ranking-screen .action-buttons {
-  margin-top: 20px;
-  display: flex;
-  gap: var(--spacing-sm);
-}
-
-#ranking-screen .pixel-button {
-  min-width: 120px;
-  /* 基本スタイルと合わせる */
-  padding: var(--spacing-xs) var(--spacing-sm);
-  margin: 0;
-}
-
-/* L}Oǂ */
-.ranking-table .loading-row {
-  text-align: center;
-  height: 100px;
-}
-
-.ranking-table .loading-row td {
-  font-size: 14px;
-  color: var(--primary);
-  background-color: rgba(0, 0, 0, 0.2);
-  vertical-align: middle;
-  animation: pulse 1.5s infinite ease-in-out;
-}
-
-/* ランキングテーブルのローディング表示 */
-.ranking-table .loading-row {
-  text-align: center;
-}
-
-.ranking-table .loading-row td {
-  padding: 20px;
-  color: var(--text-secondary);
-}
-
-.highlight-rank {
-  color: var(--gold);
-  font-size: 1.2em;
-  font-weight: bold;
-  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-}
-
-/* ランキング登録フォームのスコア表示 */
-.score-display .highlight {
-  color: var(--gold);
-  font-size: 16px; /* 1.2emから16pxに変更して他のテキストに合わせる */
-  font-weight: bold;
-  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-  font-family: Arial, Helvetica, sans-serif; /* ドットフォントではなく通常のフォントを使用 */
-  text-rendering: auto; /* ピクセルレンダリングをオフに */
-  -webkit-font-smoothing: antialiased; /* フォントスムージングを有効に */
-  -moz-osx-font-smoothing: grayscale;
-  image-rendering: auto; /* ピクセル化をオフに */
-  vertical-align: baseline; /* 位置を調整して「:」が上にいかないようにする */
-}
-
-/* ランキング登録フォーム内のpタグも調整 */
-.popup-content .score-display p {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
-  margin: 6px 0;
-  vertical-align: baseline;
-}
-
-#ranking-register-popup .popup-content p {
-  margin-bottom: 15px;
-  line-height: 1.4;
-}
-
-#ranking-register-popup .score-display {
-  margin-bottom: 20px;
-  font-size: 16px; /* 18pxから16pxに変更して他のテキストに合わせる */
-  color: var(--gold);
-  text-align: center;
-  padding: 10px;
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  border: 1px solid var(--primary);
-}
-
-.gold-button {
-  background-color: #FFD700 !important;
-  color: #111 !important;
-  border-color: #B8860B !important;
-  box-shadow: 0 4px 0 #B8860B, 0 0 10px rgba(255, 215, 0, 0.5) !important;
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3) !important;
-  font-weight: bold;
-}
-
-.gold-button:hover {
-  background-color: #FFC800 !important;
-  box-shadow: 0 4px 0 #A67C00, 0 0 15px rgba(255, 215, 0, 0.7) !important;
-}
-
-.gold-button:active {
-  box-shadow: 0 2px 0 #A67C00, 0 0 10px rgba(255, 215, 0, 0.5) !important;
-  transform: translateY(2px);
-}
-
-.register-form-container {
-  background-color: var(--bg-dark);
-  border: 4px solid var(--primary);
-  border-radius: 8px;
-  padding: 15px;
-  margin: 10px auto 20px;
-  max-width: 500px;
-  width: 90%;
-}
-
-.register-form-container h3 {
-  text-align: center;
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: var(--primary);
-  font-size: 1.2em;
-}
-
-.register-form-container .input-group {
-  margin-bottom: 15px;
-}
-
-.register-form-container label {
-  display: block;
-  margin-bottom: 5px;
-}
-
-.register-form-container input {
-  width: 100%;
-  padding: 8px;
-  background-color: rgba(0, 0, 0, 0.2);
-  border: 2px solid var(--primary);
-  border-radius: 4px;
-  color: white;
-}
-
-.register-form-container .score-display {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 15px;
-  background-color: rgba(0, 0, 0, 0.2);
-  padding: 10px;
-  border-radius: 4px;
-  border: 1px solid var(--primary);
-}
-
-.register-form-container .score-display span {
-  color: var(--gold);
-  font-weight: bold;
-}
-
-.register-form-container .form-buttons {
-  display: flex;
-  justify-content: space-between;
-}
-
-/* ランキング登録フォームオーバーレイ */
-.register-form-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  animation: popup-appear 0.3s ease-out forwards;
-}
-
-.register-form-container {
-  background-color: var(--bg-primary);
-  border: 4px solid var(--primary);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
-  padding: 20px;
-  width: 90%;
-  max-width: 400px;
-  border-radius: 4px;
-  position: relative;
-  color: var(--text-primary);
-}
-
-.register-form-container h3 {
-  text-align: center;
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: var(--primary);
-  font-family: 'Press Start 2P', cursive;
-  font-size: 16px;
-  text-transform: uppercase;
-}
-
-.register-form-container .input-group {
-  margin-bottom: 15px;
-}
-
-.register-form-container label {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 14px;
-}
-
-.register-form-container input {
-  width: 100%;
-  padding: 8px;
-  background-color: var(--bg-secondary);
-  border: 2px solid var(--border-color);
-  color: var(--text-primary);
-  font-size: 14px;
-}
-
-.register-form-container .score-display {
-  background-color: var(--bg-secondary);
-  padding: 10px;
-  margin-bottom: 15px;
-  border: 2px solid var(--border-color);
-  text-align: center;
-}
-
-.register-form-container .score-display span {
-  display: block;
-  margin: 5px 0;
-}
-
-.register-form-container .form-buttons {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-
-.register-form-container .form-buttons button {
-  padding: 8px 15px;
-  font-size: 14px;
-  min-width: 120px;
-}
-
-/* エラーメッセージ */
-.form-error-message {
-  background-color: rgba(255, 50, 50, 0.2);
-  border: 1px solid #f44;
-  color: #f66;
-  padding: 8px;
-  margin: 10px 0;
-  font-size: 13px;
-  text-align: center;
-  border-radius: 3px;
-}
-
-/* 成功通知 */
-.register-success {
-  text-align: center;
-  padding: 10px 0;
-}
-
-.register-success .success-icon {
-  font-size: 60px;
-  color: #4CAF50;
-  margin: 15px 0;
-  animation: success-pulse 1s infinite alternate;
-}
-
-.register-success p {
-  margin: 15px 0;
-  line-height: 1.5;
-}
-
-.register-success button {
-  margin-top: 15px;
-  min-width: 120px;
-}
-
-@keyframes success-pulse {
-  from {
-    transform: scale(1);
-    opacity: 0.8;
-  }
-  to {
-    transform: scale(1.1);
-    opacity: 1;
-  }
-}
-
-/* 結果画面のコンテンツのフレキシブルレイアウト */
-.result-content-wrapper {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  gap: var(--spacing-sm);
-  width: 100%;
-  margin: var(--spacing-xs) 0;
-}
-
-/* スコアと統計情報のスタイル調整 */
-.result-inner .result-score,
-.result-inner .result-stats {
-  flex: 1;
-  min-width: 0;
-  margin: var(--spacing-xs) 0;
-}
-
-/* モバイル表示では縦並びに */
-@media (max-width: 768px) {
-  .result-content-wrapper {
-    flex-direction: column;
-  }
-  
-  .result-inner .result-score,
-  .result-inner .result-stats {
-    width: 100%;
-    max-width: none;
-    margin: var(--spacing-xs) auto;
-  }
-}
-
-/* --------- ボタンスタイル --------- */
-.pixel-button {
-  background-color: var(--primary);
-  color: var(--text-light);
-  border: none;
-  font-family: 'Press Start 2P', cursive;
-  /* パディングを水平と垂直方向で区別して設定 */
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: 16px;
-  position: relative;
-  cursor: pointer;
-  transition: all 0.1s ease;
-  text-shadow: 2px 2px 0 var(--primary-dark);
-  box-shadow: 0 4px 0 var(--primary-dark), 
-              0 0 10px rgba(255, 140, 0, 0.4);
-  overflow: hidden;
-  /* マージンも上下左右で均等に設定 */
-  margin: var(--spacing-xs);
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 44px;
-  border-radius: 5px;
-}
-
-.pixel-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-.pixel-button::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 4px;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.3);
-}
-
-.pixel-button:hover {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--primary-dark), 
-              0 0 15px rgba(255, 140, 0, 0.6);
-}
-
-.pixel-button:active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0 var(--primary-dark), 
-              0 0 5px rgba(255, 140, 0, 0.4);
-}
-
-.mini-button {
-  font-size: 12px;
-  /* 水平・垂直方向で均等に設定 */
-  padding: var(--spacing-xs) var(--spacing-sm);
-  margin: var(--spacing-xs);
-  background-color: var(--secondary);
-  color: var(--text-light);
-  font-family: 'Press Start 2P', cursive;
-  border: none;
-  cursor: pointer;
-  box-shadow: var(--shadow-normal);
-  transition: all 0.1s ease;
-  border-radius: 2px;
-  min-width: 85px; /* ボタンの最小幅設定 */
-}
-
-.mini-button:hover {
-  background-color: var(--accent);
-  transform: translateY(1px);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
-}
-
-/* アニメーション適用クラス */
-.pulse {
-  animation: pulse 2s infinite ease-in-out;
-}
-
-.blink {
-  animation: blink 1s infinite;
-}
-
-/* パーフェクトクリア表示 - 非表示に設定 */
-.clear-status {
-  display: none;
-}
-
-/* コンボ波紋エフェクト - プロ仕様 */
-.combo-ripple {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0);
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: transparent;
-  border: 2px solid rgba(255,215,0,0.5);
-  opacity: 0;
-  z-index: 9;
-  pointer-events: none;
-  mix-blend-mode: screen;
-}
-
-/* コンボランクに応じた波紋エフェクト */
-.combo-ripple.active {
-  animation: ripple 1.2s cubic-bezier(0.1, 0.5, 0.1, 1);
-  animation-iteration-count: 1;
-}
-
-/* ランク別の波紋スタイル */
-.combo-ripple.good {
-  border: 2px solid rgba(0, 255, 255, 0.6);
-  filter: drop-shadow(0 0 2px cyan);
-}
-
-.combo-ripple.nice {
-  border: 2px solid rgba(0, 255, 0, 0.6);
-  filter: drop-shadow(0 0 3px lime);
-}
-
-.combo-ripple.great {
-  border: 2px solid rgba(255, 255, 0, 0.7);
-  background: rgba(255, 255, 0, 0.05);
-  filter: drop-shadow(0 0 4px yellow);
-}
-
-.combo-ripple.awesome {
-  border: 3px solid rgba(255, 165, 0, 0.8);
-  background: rgba(255, 165, 0, 0.1);
-  filter: drop-shadow(0 0 5px orange);
-}
-
-.combo-ripple.excellent {
-  border: 3px solid rgba(255, 140, 0, 0.8);
-  background: rgba(255, 140, 0, 0.15);
-  filter: drop-shadow(0 0 6px orange) brightness(1.2);
-}
-
-.combo-ripple.unstoppable {
-  border: 3px solid rgba(255, 69, 0, 0.8);
-  background: rgba(255, 69, 0, 0.2);
-  box-shadow: 0 0 10px rgba(255, 69, 0, 0.5), inset 0 0 10px rgba(255, 69, 0, 0.3);
-  filter: drop-shadow(0 0 8px orangered);
-}
-
-.combo-ripple.legendary {
-  border: 4px solid rgba(255, 0, 0, 0.9);
-  background: rgba(255, 0, 0, 0.25);
-  box-shadow: 0 0 15px rgba(255, 0, 0, 0.6), inset 0 0 15px rgba(255, 0, 0, 0.4);
-  filter: drop-shadow(0 0 10px red) brightness(1.3);
-}
-
-.combo-ripple.godlike {
-  border: 5px solid rgba(255, 215, 0, 0.9);
-  background: rgba(255, 215, 0, 0.3);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.7), inset 0 0 20px rgba(255, 215, 0, 0.5);
-  filter: drop-shadow(0 0 15px gold) brightness(1.5) contrast(1.2);
-}
-
-/* セカンダリ波紋（二重エフェクト） */
-.combo-ripple.legendary::before,
-.combo-ripple.godlike::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  transform: translate(-50%, -50%) scale(0.6);
-  border: 3px solid rgba(255, 255, 255, 0.6);
-  box-sizing: border-box;
-  animation: pulse-ring 2s infinite;
-}
-
-.combo-ripple.godlike::before {
-  border-color: rgba(255, 255, 255, 0.8);
-  animation-duration: 1.5s;
-}
-
-/* パーティクル効果 */
-.combo-particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: rgba(255, 215, 0, 0.8);
-  border-radius: 50%;
-  pointer-events: none;
-  opacity: 0;
-}
-
-.combo-particle.active {
-  animation: particle-float 1.5s ease-out forwards;
-}
-
-/* 新しいリップルアニメーション */
-@keyframes ripple {
-  0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 0.5;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(3.5);
-    opacity: 0;
-  }
-}
-
-/* 内側リングの脈動アニメーション */
-@keyframes pulse-ring {
-  0% {
-    transform: translate(-50%, -50%) scale(0.6);
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 0.3;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(0.8);
-    opacity: 0.6;
-  }
-}
-
-/* パーティクルが浮遊するアニメーション */
-@keyframes particle-float {
-  0% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate(
-      calc(var(--x-dir) * 60px), 
-      calc(var(--y-dir) * 60px)
-    ) scale(0);
-    opacity: 0;
-  }
-}
-
-/* 高コンボ時の背景エフェクト */
-.typing-area.combo-effect-active {
-  transition: box-shadow 0.3s ease;
-}
-
-.typing-area.effect-excellent {
-  box-shadow: inset 0 0 20px rgba(255, 140, 0, 0.3);
-}
-
-.typing-area.effect-unstoppable {
-  box-shadow: inset 0 0 30px rgba(255, 69, 0, 0.4);
-}
-
-.typing-area.effect-legendary {
-  box-shadow: inset 0 0 40px rgba(255, 0, 0, 0.5);
-}
-
-.typing-area.effect-godlike {
-  animation: godlike-pulse 2s infinite;
-  box-shadow: inset 0 0 50px rgba(255, 215, 0, 0.5);
-}
-
-@keyframes godlike-pulse {
-  0% {
-    box-shadow: inset 0 0 30px rgba(255, 215, 0, 0.3);
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-  }
-  50% {
-    box-shadow: inset 0 0 50px rgba(255, 215, 0, 0.6);
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-  }
-  100% {
-    box-shadow: inset 0 0 30px rgba(255, 215, 0, 0.3);
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-  }
-}
-
-/* コンボ波紋エフェクトを表示するようにする（他のエフェクトは非表示のままにする） */
-.combo-effect, .combo-dot-grid, .pixel-effect-container {
-  display: none;
-}
-
-/* .combo-rippleは表示する */
-.combo-ripple {
-  display: block;
-}
-
-/* ランキング登録フォームのスコア表示レイアウト */
-.score-info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  margin: 10px 0;
-  padding: 5px 0;
-}
-
-.score-info-item {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 16px;
-  padding: 5px 10px;
-  flex: 0 0 48%;
-  max-width: 48%;
-}
-
-/* レスポンシブ対応 */
-@media (max-width: 480px) {
-  .score-info-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .score-info-item {
-    max-width: 100%;
-    margin-bottom: 8px;
-  }
-}
-
-/* CRTモニターのスキャンライン効果 */
-.game-area::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 50%,
-    rgba(0, 0, 0, 0.15) 50%
-  );
-  background-size: 100% 4px;
-  pointer-events: none;
-  opacity: 0.3;
-  z-index: 2;
-  mix-blend-mode: multiply;
-}
-
-/* 画面の淵に微かな光沢を追加 */
-.game-header::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.15),
-    rgba(255, 255, 255, 0)
-  );
-}
-
-/* ゲームヘッダーをよりアーケード風に */
-.game-header {
-  background-color: var(--secondary);
-  color: var(--primary);
   display: flex;
   justify-content: space-between;
   align-items: center;

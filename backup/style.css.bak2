@@ -519,204 +519,22 @@ body {
   background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--primary-dark));
   max-height: 750px;
   border-color: var(--secondary);
-  position: relative;
-  border-radius: 12px;
-  box-shadow: 
-    0 0 20px rgba(255, 140, 0, 0.4),
-    inset 0 0 15px rgba(0, 0, 0, 0.6);
-  padding: var(--spacing-md);
-  overflow: hidden;
 }
 
-/* アーケードベゼルの装飾ねじ */
-.arcade-bezel::before,
-.arcade-bezel::after,
-.arcade-bezel .game-area::before,
-.arcade-bezel .game-area::after {
-  content: "";
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  background: #333;
-  border-radius: 50%;
-  border: 2px solid #555;
-  box-shadow: inset 0 0 3px #111;
-  z-index: 5;
-}
-
-.arcade-bezel::before {
-  top: 10px;
-  left: 10px;
-}
-
-.arcade-bezel::after {
-  top: 10px;
-  right: 10px;
-}
-
-.arcade-bezel .game-area::before {
-  bottom: 10px;
-  left: 10px;
-}
-
-.arcade-bezel .game-area::after {
-  bottom: 10px;
-  right: 10px;
-}
-
-/* ゲームエリア - CRTモニター風 */
+/* ゲームエリア */
 .game-area {
-  background-color: #0a0a12;
-  border: 3px solid var(--secondary);
-  border-radius: 10px;
+  background-color: var(--bg-dark);
+  border: 2px solid var(--secondary);
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: var(--spacing-sm);
-  box-shadow: 
-    inset 0 0 20px rgba(0, 0, 0, 0.8),
-    0 0 10px rgba(255, 140, 0, 0.2);
+  box-shadow: var(--shadow-inset);
   position: relative;
   min-height: 280px;
   width: 100%;
   gap: var(--spacing-xs);
-  overflow: hidden;
-}
-
-/* CRT画面の湾曲効果 */
-.game-area::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(ellipse at center, 
-                rgba(255, 255, 255, 0.02) 0%, 
-                rgba(0, 0, 0, 0.2) 100%);
-  pointer-events: none;
-  border-radius: 8px;
-  z-index: 1;
-}
-
-/* タイピングエリア - ステージのような演出 */
-.typing-area {
-  position: relative;
-  width: 100%;
-  height: 130px;
-  background-color: rgba(10, 15, 30, 0.8);
-  border-radius: 8px;
-  box-shadow: 
-    inset 0 0 30px rgba(0, 0, 0, 0.8),
-    0 0 15px rgba(0, 0, 255, 0.15);
-  margin: var(--spacing-xs) 0;
-  padding: var(--spacing-sm);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  border: 2px solid var(--secondary);
-  transition: all 0.3s ease;
-  z-index: 5;
-}
-
-/* アーケードフレームエフェクト */
-.arcade-frame {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border: 3px solid rgba(0, 150, 255, 0.2);
-  border-radius: 6px;
-  box-shadow: 
-    inset 0 0 12px rgba(0, 150, 255, 0.3),
-    0 0 15px rgba(0, 150, 255, 0.2);
-  z-index: 2;
-  pointer-events: none;
-  transition: all 0.5s ease;
-}
-
-/* グリッドライン */
-.grid-lines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    linear-gradient(rgba(50, 130, 240, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(50, 130, 240, 0.12) 1px, transparent 1px);
-  background-size: 20px 20px;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.9;
-}
-
-/* ステージライト効果 */
-.stage-light {
-  position: absolute;
-  width: 150px;
-  height: 150px;
-  background: radial-gradient(ellipse at center, 
-               rgba(0, 150, 255, 0.15) 0%, 
-               rgba(0, 0, 0, 0) 70%);
-  pointer-events: none;
-  opacity: 0.7;
-  z-index: 2;
-}
-
-.stage-light.left {
-  left: -50px;
-  bottom: -50px;
-}
-
-.stage-light.right {
-  right: -50px;
-  bottom: -50px;
-}
-
-/* 高コンボ時のフレーム効果強化 */
-.typing-area.effect-excellent .arcade-frame {
-  border-color: rgba(255, 140, 0, 0.3);
-  box-shadow: 
-    inset 0 0 10px rgba(255, 140, 0, 0.3),
-    0 0 15px rgba(255, 140, 0, 0.2);
-}
-
-.typing-area.effect-unstoppable .arcade-frame {
-  border-color: rgba(255, 69, 0, 0.4);
-  box-shadow: 
-    inset 0 0 15px rgba(255, 69, 0, 0.3),
-    0 0 20px rgba(255, 69, 0, 0.3);
-}
-
-.typing-area.effect-legendary .arcade-frame {
-  border-color: rgba(255, 0, 0, 0.5);
-  box-shadow: 
-    inset 0 0 20px rgba(255, 0, 0, 0.4),
-    0 0 25px rgba(255, 0, 0, 0.3);
-}
-
-.typing-area.effect-godlike .arcade-frame {
-  border-color: rgba(255, 215, 0, 0.6);
-  box-shadow: 
-    inset 0 0 25px rgba(255, 215, 0, 0.5),
-    0 0 30px rgba(255, 215, 0, 0.4);
-  animation: glow-pulse 2s infinite alternate;
-}
-
-@keyframes glow-pulse {
-  0% {
-    box-shadow: 
-      inset 0 0 25px rgba(255, 215, 0, 0.4),
-      0 0 20px rgba(255, 215, 0, 0.3);
-  }
-  100% {
-    box-shadow: 
-      inset 0 0 35px rgba(255, 215, 0, 0.6),
-      0 0 30px rgba(255, 215, 0, 0.5);
-  }
 }
 
 /* ゲームヘッダー */
@@ -727,20 +545,17 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: 6px 6px 0 0;
+  border-radius: 4px;
   margin-bottom: var(--spacing-xs);
   font-size: 10px;
   letter-spacing: 1px;
-  box-shadow: 
-    0 4px 0 rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
   position: relative;
   height: auto;
   min-height: 36px;
   width: 100%;
   border: 2px solid rgba(255, 255, 255, 0.1);
-  font-family: 'Press Start 2P', cursive;
 }
 
 /* リスタート表示 */
@@ -1078,26 +893,18 @@ body {
   box-shadow: none;
 }
 
-/* リザルト画面以外での適用を明確にする */
-#game-screen .stats-table td,
-.popup-content .stats-table td,
-body:not(#result-screen) .stats-table td {
+.stats-table td {
   padding: 8px var(--spacing-sm);
   border-bottom: none;
   vertical-align: middle;
   line-height: 1.4;
 }
 
-#game-screen .stats-table tr:last-child td,
-.popup-content .stats-table tr:last-child td,
-body:not(#result-screen) .stats-table tr:last-child td {
+.stats-table tr:last-child td {
   border-bottom: none;
 }
 
-/* リザルト画面以外のスタイルを明確にする */
-#game-screen .stat-label,
-.popup-content .stat-label,
-body:not(#result-screen) .stat-label {
+.stat-label {
   text-align: right;
   color: var(--text-light);
   font-size: 14px;
@@ -1107,9 +914,7 @@ body:not(#result-screen) .stat-label {
   font-weight: normal;
 }
 
-#game-screen .stat-value,
-.popup-content .stat-value,
-body:not(#result-screen) .stat-value {
+.stat-value {
   text-align: left;
   font-weight: bold;
   color: var(--gold);
@@ -2071,12 +1876,10 @@ body:not(#result-screen) .stat-value {
 .typing-area {
   position: relative;
   width: 100%;
-  height: 130px;
-  background-color: rgba(10, 15, 30, 0.8);
-  border-radius: 8px;
-  box-shadow: 
-    inset 0 0 30px rgba(0, 0, 0, 0.8),
-    0 0 15px rgba(0, 0, 255, 0.15);
+  height: 120px; /* 135pxから120pxに戻す */
+  background-color: rgba(26, 34, 56, 0.6);
+  border-radius: 6px;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
   margin: var(--spacing-xs) 0;
   padding: var(--spacing-sm);
   display: flex;
@@ -2084,8 +1887,6 @@ body:not(#result-screen) .stat-value {
   align-items: center;
   overflow: hidden;
   border: 2px solid var(--secondary);
-  transition: all 0.3s ease;
-  z-index: 5;
 }
 
 /* vO[N */
@@ -2150,28 +1951,24 @@ body:not(#result-screen) .stat-value {
 
 /* R\X^Cg - -100T */
 .combo-count {
-  font-size: 32px !important;
+  font-size: 28px !important;
   font-weight: bold;
   margin-bottom: 5px;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8),
-               0 0 10px rgba(255, 255, 255, 0.3);
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
   animation: pulse 1.5s infinite ease-in-out;
-  height: 32px;
-  line-height: 32px;
+  height: 30px;
+  line-height: 30px;
   transition: color 0.2s ease;
   font-family: 'Press Start 2P', cursive, monospace;
-  transform: scale(1);
-  letter-spacing: 1px;
 }
 
 /* R\X^Cg - SẴeL */
 .combo-rank {
-  font-size: 22px !important;
+  font-size: 20px !important;
   font-weight: bold;
   letter-spacing: 2px;
   text-transform: uppercase;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8),
-               0 0 15px rgba(255, 255, 255, 0.2);
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
   animation: combo-color-change 3s infinite;
   height: 30px;
   line-height: 30px;
@@ -2956,15 +2753,12 @@ body:not(#result-screen) .stat-value {
 @keyframes godlike-pulse {
   0% {
     box-shadow: inset 0 0 30px rgba(255, 215, 0, 0.3);
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
   }
   50% {
     box-shadow: inset 0 0 50px rgba(255, 215, 0, 0.6);
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
   }
   100% {
     box-shadow: inset 0 0 30px rgba(255, 215, 0, 0.3);
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
   }
 }
 
@@ -2976,139 +2770,4 @@ body:not(#result-screen) .stat-value {
 /* .combo-rippleは表示する */
 .combo-ripple {
   display: block;
-}
-
-/* ランキング登録フォームのスコア表示レイアウト */
-.score-info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  margin: 10px 0;
-  padding: 5px 0;
-}
-
-.score-info-item {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 16px;
-  padding: 5px 10px;
-  flex: 0 0 48%;
-  max-width: 48%;
-}
-
-/* レスポンシブ対応 */
-@media (max-width: 480px) {
-  .score-info-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .score-info-item {
-    max-width: 100%;
-    margin-bottom: 8px;
-  }
-}
-
-/* CRTモニターのスキャンライン効果 */
-.game-area::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 50%,
-    rgba(0, 0, 0, 0.15) 50%
-  );
-  background-size: 100% 4px;
-  pointer-events: none;
-  opacity: 0.3;
-  z-index: 2;
-  mix-blend-mode: multiply;
-}
-
-/* 画面の淵に微かな光沢を追加 */
-.game-header::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.15),
-    rgba(255, 255, 255, 0)
-  );
-}
-
-/* ゲームヘッダーをよりアーケード風に */
-.game-header {
-  background-color: var(--secondary);
-  color: var(--primary);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: 6px 6px 0 0;
-  margin-bottom: var(--spacing-xs);
-  font-size: 10px;
-  letter-spacing: 1px;
-  box-shadow: 
-    0 4px 0 rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
-  position: relative;
-  height: auto;
-  min-height: 36px;
-  width: 100%;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  font-family: 'Press Start 2P', cursive;
-}
-
-/* コンボ表示とランクの強化 */
-.combo-count {
-  font-size: 32px !important;
-  font-weight: bold;
-  margin-bottom: 5px;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8),
-               0 0 10px rgba(255, 255, 255, 0.3);
-  animation: pulse 1.5s infinite ease-in-out;
-  height: 32px;
-  line-height: 32px;
-  transition: color 0.2s ease;
-  font-family: 'Press Start 2P', cursive, monospace;
-  transform: scale(1);
-  letter-spacing: 1px;
-}
-
-.combo-rank {
-  font-size: 22px !important;
-  font-weight: bold;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8),
-               0 0 15px rgba(255, 255, 255, 0.2);
-  animation: combo-color-change 3s infinite;
-  height: 30px;
-  line-height: 30px;
-  font-family: 'Press Start 2P', cursive, monospace;
-}
-
-/* 高コンボ時の全体効果強化 */
-@keyframes godlike-pulse {
-  0% {
-    box-shadow: inset 0 0 30px rgba(255, 215, 0, 0.3);
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-  }
-  50% {
-    box-shadow: inset 0 0 50px rgba(255, 215, 0, 0.6);
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-  }
-  100% {
-    box-shadow: inset 0 0 30px rgba(255, 215, 0, 0.3);
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-  }
 }

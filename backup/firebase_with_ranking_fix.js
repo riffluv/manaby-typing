@@ -355,8 +355,10 @@ Manaby.Firebase = (function() {
                   <input type="text" id="register-username" maxlength="15" value="${savedUsername}" placeholder="ニックネーム（15文字まで）" required autocomplete="off">
                 </div>
                 <div class="score-display">
-                  <p>モード: <span class="highlight">${_getModeName(gameMode)}</span></p>
-                  <p>スコア: <span class="highlight">${score}</span></p>
+                  <div class="score-info-row">
+                    <div class="score-info-item">モード: <span class="highlight">${_getModeName(gameMode)}</span></div>
+                    <div class="score-info-item">スコア: <span class="highlight">${score}</span></div>
+                  </div>
                 </div>
                 <div id="register-message" class="register-message"></div>
               </div>

@@ -1,0 +1,355 @@
+/**
+ * マナビータイピング - リザルト画面専用スタイル
+ * スタイルシートの分離によるバグ防止と競合回避
+ */
+
+/* ===== リザルト画面の基本スタイル ===== */
+#result-screen {
+  background-color: #000;
+  position: relative;
+  overflow: hidden;
+  z-index: 10;
+}
+
+#result-screen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 50, 150, 0.2) 0%, rgba(0, 0, 0, 0.5) 70%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ===== リザルトコンテンツ ===== */
+.result-content,
+.result__content {
+  width: 90%;
+  max-width: 650px;
+  margin: 20px auto;
+  background-color: rgba(15, 15, 40, 0.7);
+  border: 4px solid #3a3a8c;
+  border-radius: 8px;
+  box-shadow: 0 0 30px rgba(0, 100, 255, 0.2);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== ヘッダー ===== */
+.result-header,
+.result__header {
+  text-align: center;
+  margin-bottom: 25px;
+  position: relative;
+}
+
+.result-title,
+.result__title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 32px;
+  color: #fff;
+  text-shadow: 
+    0 0 10px rgba(50, 150, 255, 0.8),
+    0 0 15px rgba(50, 150, 255, 0.5);
+  letter-spacing: 2px;
+  margin: 0;
+  padding: 10px 0;
+}
+
+/* ===== 内部コンテンツ ===== */
+.result-inner,
+.result__inner {
+  background-color: rgba(20, 30, 80, 0.4);
+  border-radius: 6px;
+  padding: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* コンテンツラッパー */
+.result-content-wrapper,
+.result__content-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ===== スコア表示 ===== */
+.result-score,
+.result__score {
+  background: linear-gradient(to bottom, #1a1a60, #0a0a30);
+  border: 2px solid #4a4aa0;
+  border-radius: 8px;
+  padding: 20px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 0 15px rgba(100, 150, 255, 0.3);
+  box-sizing: border-box;
+}
+
+.score-label,
+.result__score-label {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 18px;
+  color: #8080ff;
+  margin-bottom: 10px;
+}
+
+.final-score,
+.result__final-score {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 40px;
+  color: #ffcc00;
+  text-shadow: 
+    0 0 5px rgba(255, 200, 0, 0.8),
+    0 0 10px rgba(255, 150, 0, 0.5);
+  margin: 10px 0;
+}
+
+.new-record,
+.result__new-record {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 14px;
+  color: #ff5050;
+  text-shadow: 0 0 10px rgba(255, 80, 80, 0.7);
+  margin-top: 10px;
+  display: none; /* 新記録でないときは非表示 */
+}
+
+/* 新記録時に表示 */
+.new-record.visible,
+.result__new-record.visible {
+  display: block;
+  animation: pulse-record 1.5s infinite alternate;
+}
+
+@keyframes pulse-record {
+  from { opacity: 0.7; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1.02); }
+}
+
+/* ===== 統計情報 ===== */
+.result-stats,
+.result__stats {
+  background: linear-gradient(to bottom, #202060, #101040);
+  border: 2px solid #4a4aa0;
+  border-radius: 8px;
+  padding: 20px;
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+}
+
+.stats-header {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 16px;
+  color: #8080ff;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  padding: 0;
+}
+
+.stats-table tr {
+  border-bottom: 1px solid rgba(80, 100, 180, 0.3);
+  width: 100%;
+  display: table-row;
+}
+
+.stats-table tr:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 14px;
+  color: #a0a0ff;
+  text-align: right;
+  padding: 8px 10px;
+  width: 40%;
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.stat-value {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffffff;
+  text-align: left;
+  padding: 8px 10px;
+  width: 60%;
+  display: table-cell;
+  vertical-align: middle;
+}
+
+/* ===== アクションボタン ===== */
+.action-buttons,
+.result__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  margin: 20px 0;
+  width: 100%;
+  padding: 0;
+  max-width: 500px;
+  z-index: 100; /* 高いz-indexでボタンが必ず前面に */
+  position: relative;
+}
+
+/* ボタンのスタイルを明示的に定義（ボタン機能を確保） */
+.action-buttons .pixel-button,
+.result__actions .pixel-button,
+.action-buttons .button--pixel,
+.result__actions .button--pixel {
+  min-width: 150px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 12px;
+  padding: 12px 20px;
+  background: linear-gradient(to bottom, #2a2a80, #1a1a60);
+  color: #ffffff;
+  border: 2px solid #5050a0;
+  border-radius: 4px;
+  box-shadow: 0 4px 0 #3a3a80;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  display: inline-block;
+  position: relative;
+  z-index: 101; /* ボタン自体にも高いz-index */
+  pointer-events: auto; /* クリック可能性を確保 */
+}
+
+/* ランキングボタン専用スタイル */
+#ranking-button {
+  background: linear-gradient(to bottom, #2a6080, #1a4060);
+  border-color: #5080a0;
+  box-shadow: 0 4px 0 #3a6080;
+  z-index: 102; /* 最高のz-index */
+}
+
+.action-buttons .pixel-button:hover,
+.result__actions .pixel-button:hover,
+.action-buttons .button--pixel:hover,
+.result__actions .button--pixel:hover {
+  background: linear-gradient(to bottom, #3a3aa0, #2a2a80);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #3a3a80;
+}
+
+#ranking-button:hover {
+  background: linear-gradient(to bottom, #3a80a0, #2a6080);
+  box-shadow: 0 6px 0 #3a6080;
+}
+
+.action-buttons .pixel-button:active,
+.result__actions .pixel-button:active,
+.action-buttons .button--pixel:active,
+.result__actions .button--pixel:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #3a3a80;
+}
+
+#ranking-button:active {
+  box-shadow: 0 2px 0 #3a6080;
+}
+
+/* 視覚効果 - オプション */
+.pixel-decoration {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: rgba(100, 150, 255, 0.7);
+  box-shadow: 0 0 8px rgba(100, 150, 255, 0.5);
+  z-index: 5;
+}
+
+.pixel-decoration.left {
+  top: 50px;
+  left: 30px;
+  animation: blink-pixel 3s infinite alternate;
+}
+
+.pixel-decoration.right {
+  top: 50px;
+  right: 30px;
+  animation: blink-pixel 2.5s infinite alternate-reverse;
+}
+
+@keyframes blink-pixel {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+/* コンテンツの可視性を確保 */
+.result-inner > *,
+.result__inner > * {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+  .result-title,
+  .result__title {
+    font-size: 24px;
+  }
+  
+  .final-score,
+  .result__final-score {
+    font-size: 32px;
+  }
+  
+  .action-buttons .pixel-button,
+  .result__actions .pixel-button,
+  .action-buttons .button--pixel,
+  .result__actions .button--pixel {
+    min-width: 120px;
+    font-size: 10px;
+    padding: 10px 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .result-title,
+  .result__title {
+    font-size: 20px;
+  }
+  
+  .final-score,
+  .result__final-score {
+    font-size: 28px;
+  }
+  
+  .action-buttons,
+  .result__actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .action-buttons .pixel-button,
+  .result__actions .pixel-button,
+  .action-buttons .button--pixel,
+  .result__actions .button--pixel {
+    width: 80%;
+  }
+}
