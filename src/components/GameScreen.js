@@ -203,9 +203,9 @@ const GameScreen = () => {
 
     // ESCキーが押されたらメインメニューに戻る
     if (e.key === 'Escape') {
-      soundSystem.play('button');
+      // 音声再生もgoToScreen関数に委譲する
       setTimeout(() => {
-        goToScreen(SCREENS.MAIN_MENU);
+        goToScreen(SCREENS.MAIN_MENU, { playSound: true, soundType: 'button' });
       }, 100);
       return;
     }

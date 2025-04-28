@@ -62,6 +62,35 @@ const ResultScreen = () => {
   // 画面が退場中かどうかを追跡
   const [isExiting, setIsExiting] = useState(false);
 
+  // ESCキー対応の追加
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // ESCキーでメインメニューに戻る
+      if (e.key === 'Escape' && !isTransitioning && !isExiting) {
+        e.preventDefault();
+        
+        // ボタン音を即座に再生
+        soundSystem.playSound('Button');
+        
+        // 退場中フラグを立てる
+        setIsExiting(true);
+        
+        // 退場アニメーションの後に画面遷移
+        setTimeout(() => {
+          goToScreen(SCREENS.MAIN_MENU, { playSound: false });
+        }, 300);
+      }
+    };
+    
+    // キーボードイベントをリスン
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // クリーンアップ関数
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isTransitioning, isExiting, goToScreen]);
+
   // KPM（Keys Per Minute）の計算 - Weather Typing風
   const calculateKPM = () => {
     // 必要なデータを確認
@@ -207,13 +236,16 @@ const ResultScreen = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
 
+    // ボタン音を即座に再生
+    soundSystem.playSound('Button');
+
     // 退場中フラグを立てる
     setIsExiting(true);
 
     // 退場アニメーションの後に画面遷移
     setTimeout(() => {
       // 新しい画面遷移システムを使用
-      goToScreen(SCREENS.GAME);
+      goToScreen(SCREENS.GAME, { playSound: false }); // 音はすでに再生したので不要
     }, 300); // アニメーション時間と同期
   };
 
@@ -222,13 +254,16 @@ const ResultScreen = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
 
+    // ボタン音を即座に再生
+    soundSystem.playSound('Button');
+
     // 退場中フラグを立てる
     setIsExiting(true);
 
     // 退場アニメーションの後に画面遷移
     setTimeout(() => {
       // 新しい画面遷移システムを使用
-      goToScreen(SCREENS.MAIN_MENU);
+      goToScreen(SCREENS.MAIN_MENU, { playSound: false }); // 音はすでに再生したので不要
     }, 300); // アニメーション時間と同期
   };
 
@@ -237,13 +272,16 @@ const ResultScreen = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
 
+    // ボタン音を即座に再生
+    soundSystem.playSound('Button');
+
     // 退場中フラグを立てる
     setIsExiting(true);
 
     // 退場アニメーションの後に画面遷移
     setTimeout(() => {
       // 新しい画面遷移システムを使用
-      goToScreen(SCREENS.RANKING);
+      goToScreen(SCREENS.RANKING, { playSound: false }); // 音はすでに再生したので不要
     }, 300); // アニメーション時間と同期
   };
 

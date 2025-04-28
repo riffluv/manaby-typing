@@ -169,14 +169,17 @@ const RankingScreen = () => {
   const handleBack = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
+    
+    // ボタン音を即座に再生
+    soundSystem.playSound('Button');
 
     // 退場中フラグを立てる
     setIsExiting(true);
     
-    // 退場アニメーションの後に画面遷移（効果音は画面遷移システムで再生）
+    // 退場アニメーションの後に画面遷移
     setTimeout(() => {
       // リザルト画面から来た場合はリザルト画面に戻る、それ以外はメインメニューに戻る
-      goToScreen(SCREENS.RESULT);
+      goToScreen(SCREENS.RESULT, { playSound: false }); // 音はすでに再生したので不要
     }, 300); // アニメーション時間と同期
   };
 
@@ -184,13 +187,16 @@ const RankingScreen = () => {
   const handleMainMenu = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
+    
+    // ボタン音を即座に再生
+    soundSystem.playSound('Button');
 
     // 退場中フラグを立てる
     setIsExiting(true);
     
-    // 退場アニメーションの後に画面遷移（効果音は画面遷移システムで再生）
+    // 退場アニメーションの後に画面遷移
     setTimeout(() => {
-      goToScreen(SCREENS.MAIN_MENU);
+      goToScreen(SCREENS.MAIN_MENU, { playSound: false }); // 音はすでに再生したので不要
     }, 300); // アニメーション時間と同期
   };
 
@@ -326,6 +332,50 @@ const RankingScreen = () => {
     setShowDebug(false);
   };
 
+  // 登録モーダルのESCキー対応
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // モーダルが開いている場合、ESCキーで閉じる
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        
+        if (showDebug) {
+          // デバッグモーダルを閉じる
+          soundSystem.playSound('Button');
+          closeDebug();
+        } else if (showRegisterModal) {
+          // 登録モーダルを閉じる
+          soundSystem.playSound('Button');
+          handleCloseModal();
+        } else if (!isTransitioning && !isExiting) {
+          // モーダルが開いていない場合は一つ前の画面に戻る
+          soundSystem.playSound('Button');
+          setIsExiting(true);
+          
+          setTimeout(() => {
+            goToScreen(SCREENS.RESULT, { playSound: false });
+          }, 300);
+        }
+      }
+    };
+    
+    // キーボードイベントをリスン
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // クリーンアップ関数
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showRegisterModal, showDebug, isTransitioning, isExiting]);
+
+  // リザルト画面からのアクセスかどうかを判定してESC押下時の戻り先を決定
+  const handleEscKeyNavigation = () => {
+    // 前の画面がリザルト画面ならリザルト画面に戻る
+    // そうでなければメインメニューに戻る
+    const destination = SCREENS.RESULT;
+    goToScreen(destination, { playSound: false });
+  };
+
   return (
     <div className={styles.rankingContainer}>
       <motion.div
@@ -437,9 +487,11 @@ const RankingScreen = () => {
                   <motion.tr key={record.id || index} variants={itemVariants}>
                     <td>{index + 1}</td>
                     <td>{record.playerName || record.username || 'Anonymous'}</td>
-                    <td>{(record.kpm || record.score || 0).toFixed(1)}</td>
-                    <td style={{ color: TypingUtils.getRankColor(record.rank || TypingUtils.getKPMRank(record.kpm || record.score || 0)) }}>
-                      {record.rank || TypingUtils.getKPMRank(record.kpm || record.score || 0)}
+                    <td>{Math.floor(record.kpm) === record.kpm 
+                        ? Math.floor(record.kpm) 
+                        : record.kpm.toFixed(1)}</td>
+                    <td style={{ color: TypingUtils.getRankColor(record.rank || TypingUtils.getKPMRank(record.kpm)) }}>
+                      {record.rank || TypingUtils.getKPMRank(record.kpm)}
                     </td>
                     <td>{((record.accuracy !== undefined ? record.accuracy : 
                           record.stats?.accuracy !== undefined ? record.stats.accuracy : 0)).toFixed(1)}%</td>
@@ -477,7 +529,9 @@ const RankingScreen = () => {
                 {getKpmSortedData().map((record, index) => (
                   <motion.tr key={index} variants={itemVariants}>
                     <td>{index + 1}</td>
-                    <td>{record.kpm.toFixed(1)}</td>
+                    <td>{Math.floor(record.kpm) === record.kpm 
+                        ? Math.floor(record.kpm) 
+                        : record.kpm.toFixed(1)}</td>
                     <td style={{ color: TypingUtils.getRankColor(record.rank || TypingUtils.getKPMRank(record.kpm)) }}>
                       {record.rank || TypingUtils.getKPMRank(record.kpm)}
                     </td>

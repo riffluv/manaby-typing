@@ -335,6 +335,36 @@ const MainMenu = () => {
     );
   };
 
+  // キーボードイベントリスナーを追加（スペースキーでスタート機能）
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // スペースキーが押されたらゲームを開始
+      if (e.key === ' ' || e.code === 'Space') {
+        // モーダルが開いている場合はゲーム開始しない
+        if (showSettingsModal || showCredits) {
+          return;
+        }
+        
+        // トランジション中は操作を無効化
+        if (isTransitioning) return;
+        
+        // ボタン音を再生
+        playButtonSound();
+        
+        // ゲームを開始
+        goToScreen(SCREENS.GAME);
+      }
+    };
+    
+    // キーボードイベントリスナーを登録
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // クリーンアップ関数
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isTransitioning, showSettingsModal, showCredits, goToScreen]);
+
   return (
     <div className={styles.mainContainer}>
       {/* マスコットキャラクター - アニメーション付き */}
@@ -408,7 +438,7 @@ const MainMenu = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 1.2, duration: 0.5 }}
         >
-          <p>ロゴをクリックしてスタート！</p>
+          <p>ロゴをクリックまたはスペースキーでスタート！</p>
         </motion.div>
       </div>
 

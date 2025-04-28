@@ -212,8 +212,9 @@ export const usePageTransition = () => {
    * @param {string} screen - 遷移先の画面
    * @param {object} options - 遷移オプション
    * @param {boolean} options.playSound - 効果音を再生するかどうか（デフォルト：true）
+   * @param {string} options.soundType - 再生する効果音のタイプ（デフォルト：'button'）
    */
-  const goToScreen = (screen, options = { playSound: true }) => {
+  const goToScreen = (screen, options = { playSound: true, soundType: 'button' }) => {
     // トランジション中は操作を無効化
     if (isTransitioning) return;
 
@@ -228,7 +229,7 @@ export const usePageTransition = () => {
 
         // 効果音を再生（オプションでオフにできる）
         if (options.playSound !== false) {
-          soundSystem.play('button');
+          soundSystem.play(options.soundType || 'button');
         }
       } catch (err) {
         console.error('音声再生でエラーが発生しました:', err);
@@ -258,8 +259,8 @@ export const usePageTransition = () => {
       if (options.playSound !== false) {
         // リザルト画面への遷移時は効果音を再生しない（ResultScreenで再生される）
         if (screen !== SCREENS.RESULT) {
-          // buttonサウンドをすぐに再生する
-          soundSystem.play('button');
+          // 指定されたサウンドをすぐに再生する（デフォルトはbutton）
+          soundSystem.play(options.soundType || 'button');
         }
       }
 
@@ -267,7 +268,7 @@ export const usePageTransition = () => {
         '画面遷移を実行します:',
         screen,
         'サウンド:',
-        options.playSound !== false ? '有効' : '無効'
+        options.playSound !== false ? `有効 (${options.soundType || 'button'})` : '無効'
       );
     } catch (err) {
       console.error('音声再生でエラーが発生しました:', err);
