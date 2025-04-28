@@ -181,50 +181,65 @@ const RankingScreen = () => {
     });
   };
 
-  // ソート切り替え処理
-  const handleSort = (key) => {
-    soundSystem.play('button');
-    setSortConfig((prevConfig) => {
-      const newDirection = 
-        prevConfig.key === key 
-          ? prevConfig.direction === 'asc' ? 'desc' : 'asc'
-          : 'desc';
-      
-      return { key, direction: newDirection };
-    });
-    
-    // オンラインモードではソート状態を適用
-    if (isOnlineMode) {
-      setOnlineRankings(prevRankings => {
-        const sortedData = sortData([...prevRankings]);
-        // 順位情報を更新
-        return sortedData.map((record, index) => ({
-          ...record,
-          position: index + 1
-        }));
-      });
-    }
-  };
-
   // オンラインモード切替処理
   const toggleOnlineMode = () => {
-    soundSystem.play('button');
-    // オンラインモード ⇔ ローカルモードの切り替え
-    const newMode = !isOnlineMode;
-    setIsOnlineMode(newMode);
+    // 音声を即時再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
     
-    // モード変更時にサウンドを再生
-    if (newMode) {
-      console.log('オンラインモードに切り替えました');
-    } else {
-      console.log('ローカルモードに切り替えました');
-    }
+    // UIの更新とデータ処理を遅延実行
+    setTimeout(() => {
+      // オンラインモード ⇔ ローカルモードの切り替え
+      const newMode = !isOnlineMode;
+      setIsOnlineMode(newMode);
+      
+      // モード変更時のログ出力
+      if (newMode) {
+        console.log('オンラインモードに切り替えました');
+      } else {
+        console.log('ローカルモードに切り替えました');
+      }
+    }, 10);
   };
 
   // 難易度切り替え処理
   const handleDifficultyChange = (difficulty) => {
-    soundSystem.play('button');
-    setActiveDifficulty(difficulty);
+    // 音声を即時再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
+    
+    // 難易度変更を遅延実行
+    setTimeout(() => {
+      setActiveDifficulty(difficulty);
+    }, 10);
+  };
+
+  // ソート切り替え処理
+  const handleSort = (key) => {
+    // 音声を即時再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
+    
+    // ソート処理を遅延実行
+    setTimeout(() => {
+      setSortConfig((prevConfig) => {
+        const newDirection = 
+          prevConfig.key === key 
+            ? prevConfig.direction === 'asc' ? 'desc' : 'asc'
+            : 'desc';
+        
+        return { key, direction: newDirection };
+      });
+      
+      // オンラインモードではソート状態を適用
+      if (isOnlineMode) {
+        setOnlineRankings(prevRankings => {
+          const sortedData = sortData([...prevRankings]);
+          // 順位情報を更新
+          return sortedData.map((record, index) => ({
+            ...record,
+            position: index + 1
+          }));
+        });
+      }
+    }, 10);
   };
 
   // ソートされたローカルデータを取得（順位付き）
@@ -287,13 +302,16 @@ const RankingScreen = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
 
+    // 即時に音を再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
+    
     // 退場中フラグを立てる
     setIsExiting(true);
     
-    // 退場アニメーションの後に画面遷移（効果音は画面遷移システムで再生）
+    // 退場アニメーションの後に画面遷移（画面遷移システムでの音再生はオフに）
     setTimeout(() => {
       // リザルト画面から来た場合はリザルト画面に戻る、それ以外はメインメニューに戻る
-      goToScreen(SCREENS.RESULT);
+      goToScreen(SCREENS.RESULT, { playSound: false });
     }, 300); // アニメーション時間と同期
   };
 
@@ -302,12 +320,15 @@ const RankingScreen = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
 
+    // 即時に音を再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
+    
     // 退場中フラグを立てる
     setIsExiting(true);
     
-    // 退場アニメーションの後に画面遷移（効果音は画面遷移システムで再生）
+    // 退場アニメーションの後に画面遷移（画面遷移システムでの音再生はオフに）
     setTimeout(() => {
-      goToScreen(SCREENS.MAIN_MENU);
+      goToScreen(SCREENS.MAIN_MENU, { playSound: false });
     }, 300); // アニメーション時間と同期
   };
 
@@ -324,15 +345,56 @@ const RankingScreen = () => {
 
   // 登録モーダルを表示
   const handleShowRegisterModal = () => {
-    soundSystem.play('button');
-    setShowRegisterModal(true);
-    setRegistrationStatus({ success: false, message: '' });
+    // 音声を即時再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
+    
+    // UI更新は遅延実行
+    setTimeout(() => {
+      setShowRegisterModal(true);
+      setRegistrationStatus({ success: false, message: '' });
+    }, 10);
   };
 
   // 登録モーダルを閉じる
   const handleCloseModal = () => {
-    soundSystem.play('button');
-    setShowRegisterModal(false);
+    // 音声を即時再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
+    
+    // UI更新は遅延実行
+    setTimeout(() => {
+      setShowRegisterModal(false);
+    }, 10);
+  };
+  
+  // デバッグモードを閉じる
+  const closeDebug = () => {
+    // 音声を即時再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
+    
+    // UI更新は遅延実行
+    setTimeout(() => {
+      setShowDebug(false);
+    }, 10);
+  };
+  
+  // デバッグ機能 - Firebase接続テスト
+  const handleDebugFirebase = async () => {
+    // 音声を即時再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
+    
+    console.log('Testing Firebase connection...');
+    setIsLoading(true);
+    try {
+      // Firebaseに直接アクセスして全データを確認
+      const allData = await debugCheckAllRankings();
+      setDebugData(allData);
+      setShowDebug(true);
+      console.log('Debug data loaded:', allData);
+    } catch (error) {
+      console.error('Debug error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // プレイヤー名の変更処理
@@ -342,6 +404,10 @@ const RankingScreen = () => {
 
   // オンラインランキングに登録
   const handleRegisterScore = async () => {
+    // 音声を即時再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
+
+    // 検証処理
     if (!gameState || !gameState.correctKeyCount) {
       setRegistrationStatus({ 
         success: false, 
@@ -375,13 +441,10 @@ const RankingScreen = () => {
       }
 
       // 正解率を計算
-      // gameState.accuracyが存在しない場合は、正解キー数と間違いから計算
       let accuracyValue = 0;
       if (typeof gameState.accuracy === 'number' && !isNaN(gameState.accuracy)) {
-        // すでにaccuracyが計算されている場合はその値を使用
         accuracyValue = gameState.accuracy;
       } else if (gameState.correctKeyCount >= 0 && (gameState.mistakes >= 0 || gameState.mistakes === 0)) {
-        // correctKeyCountとmistakesから計算
         const totalKeystrokes = gameState.correctKeyCount + gameState.mistakes;
         if (totalKeystrokes > 0) {
           accuracyValue = (gameState.correctKeyCount / totalKeystrokes) * 100;
@@ -389,11 +452,6 @@ const RankingScreen = () => {
       }
       
       console.log("送信する正確率データ:", accuracyValue, "%");
-      console.log("gameState:", {
-        correctKeyCount: gameState.correctKeyCount,
-        mistakes: gameState.mistakes,
-        accuracy: gameState.accuracy
-      });
 
       // オンラインランキングに保存
       const recordId = await saveOnlineRanking(
@@ -406,6 +464,9 @@ const RankingScreen = () => {
       );
 
       if (recordId) {
+        // 登録成功音を再生
+        setTimeout(() => soundSystem.play('success'), 0);
+        
         setRegistrationStatus({ 
           success: true, 
           message: 'ランキングに登録しました！' 
@@ -419,6 +480,10 @@ const RankingScreen = () => {
       }
     } catch (error) {
       console.error('スコア登録エラー:', error);
+      
+      // エラー音を再生
+      setTimeout(() => soundSystem.play('error'), 0);
+      
       setRegistrationStatus({ 
         success: false, 
         message: 'ランキング登録中にエラーが発生しました。ネットワーク接続を確認してください。' 
@@ -426,28 +491,6 @@ const RankingScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // デバッグ機能 - Firebase接続テスト
-  const handleDebugFirebase = async () => {
-    console.log('Testing Firebase connection...');
-    setIsLoading(true);
-    try {
-      // Firebaseに直接アクセスして全データを確認
-      const allData = await debugCheckAllRankings();
-      setDebugData(allData);
-      setShowDebug(true);
-      console.log('Debug data loaded:', allData);
-    } catch (error) {
-      console.error('Debug error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // デバッグモードを閉じる
-  const closeDebug = () => {
-    setShowDebug(false);
   };
 
   return (

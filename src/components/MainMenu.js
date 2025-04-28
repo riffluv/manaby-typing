@@ -57,20 +57,26 @@ const MainMenu = () => {
     soundSystem.setEnabled(settings.soundEnabled);
   }, [settings.soundEnabled]);
 
-  // ボタン音を再生する関数
+  // ボタン音を再生する関数 - 即時再生
   const playButtonSound = () => {
     if (settings.soundEnabled && settings.sfxEnabled) {
-      soundSystem.playSound('Button');
+      // 最優先で音を再生
+      setTimeout(() => soundSystem.playSound('button'), 0);
     }
   };
 
   // 難易度を変更する関数
   const handleDifficultyChange = (difficulty) => {
+    // 即時に音を再生
     playButtonSound();
-    setSettings({
-      ...settings,
-      difficulty,
-    });
+    
+    // 状態更新は遅延させる
+    setTimeout(() => {
+      setSettings({
+        ...settings,
+        difficulty,
+      });
+    }, 10);
   };
 
   // サウンド全体の有効/無効を切り替える関数
@@ -78,6 +84,7 @@ const MainMenu = () => {
     // サウンドOFF→ONの場合のみ、切り替え後に音を鳴らす
     const willBeEnabled = !settings.soundEnabled;
 
+    // 状態更新を即時実行
     setSettings({
       ...settings,
       soundEnabled: willBeEnabled,
@@ -88,8 +95,8 @@ const MainMenu = () => {
 
     if (willBeEnabled && settings.sfxEnabled) {
       setTimeout(() => {
-        soundSystem.playSound('Button');
-      }, 100);
+        soundSystem.playSound('button');
+      }, 0);
     }
   };
 
@@ -97,6 +104,7 @@ const MainMenu = () => {
   const toggleSfx = () => {
     const willBeEnabled = !settings.sfxEnabled;
 
+    // 状態更新を即時実行
     setSettings({
       ...settings,
       sfxEnabled: willBeEnabled,
@@ -107,8 +115,8 @@ const MainMenu = () => {
 
     if (willBeEnabled && settings.soundEnabled) {
       setTimeout(() => {
-        soundSystem.playSound('Button');
-      }, 100);
+        soundSystem.playSound('button');
+      }, 0);
     }
   };
 

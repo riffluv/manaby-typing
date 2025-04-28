@@ -174,15 +174,8 @@ class SoundUtils {
       return;
     }
 
+    // 即時再生のため、直接非同期で再生する
     this._playBuffer(this.sfxBuffers[lowerName]);
-  }
-
-  /**
-   * 効果音を再生する (playSound のエイリアス - 互換性のため)
-   * @param {string} name - 再生する効果音の名前
-   */
-  play(name) {
-    return this.playSound(name);
   }
 
   /**
@@ -202,60 +195,34 @@ class SoundUtils {
     }
 
     try {
-      // AudioContextが停止状態なら確実に再開
+      // AudioContextが停止状態なら一度だけ再開試行
       if (this.context.state === 'suspended') {
-        console.log('[DEBUG] AudioContextが停止中です。再開を試みます...');
-        this.context
-          .resume()
-          .then(() => {
-            console.log('[DEBUG] AudioContext再開成功');
-            this._playBufferInternal(buffer);
-          })
-          .catch((err) => {
-            console.error('AudioContextの再開に失敗:', err);
-            // 失敗しても一応再生を試みる
-            this._playBufferInternal(buffer);
-          });
-      } else {
-        // 通常の再生
-        this._playBufferInternal(buffer);
+        this.context.resume().catch(err => console.error('AudioContext再開エラー:', err));
       }
+      
+      // 即時再生のため非同期で処理
+      setTimeout(() => {
+        try {
+          // 新しいバッファソースノードを作成
+          const sourceNode = this.context.createBufferSource();
+          sourceNode.buffer = buffer;
+          sourceNode.connect(this.gainNode);
+          sourceNode.start(0);
+        } catch (error) {
+          console.error(`効果音の即時再生に失敗しました:`, error);
+        }
+      }, 0);
     } catch (error) {
       console.error(`効果音の再生処理中にエラーが発生しました:`, error);
     }
   }
 
   /**
-   * 実際の音声再生処理を行う内部メソッド
-   * @param {AudioBuffer} buffer - 再生するオーディオバッファ
+   * 効果音を再生する (playSound のエイリアス - 互換性のため)
+   * @param {string} name - 再生する効果音の名前
    */
-  _playBufferInternal(buffer) {
-    try {
-      // 新しいバッファソースノードを作成（Web Audio APIでは一度再生したノードは再利用できない）
-      const sourceNode = this.context.createBufferSource();
-      sourceNode.buffer = buffer;
-
-      // ゲインノードに接続（音量調整のため）
-      sourceNode.connect(this.gainNode);
-
-      // コンソールにデバッグ情報を出力
-      console.log(
-        `[DEBUG] 効果音を再生します - バッファ長: ${buffer.duration}秒`
-      );
-
-      // エラー処理を追加
-      sourceNode.onended = () =>
-        console.log('[DEBUG] 効果音の再生が完了しました');
-      sourceNode.onerror = (err) =>
-        console.error('[DEBUG] 効果音の再生中にエラー:', err);
-
-      // 再生開始
-      sourceNode.start(0);
-      return true;
-    } catch (error) {
-      console.error(`効果音の再生に失敗しました:`, error);
-      return false;
-    }
+  play(name) {
+    return this.playSound(name);
   }
 
   /**

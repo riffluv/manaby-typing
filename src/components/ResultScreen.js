@@ -194,14 +194,17 @@ const ResultScreen = () => {
   const handlePlayAgain = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
+    
+    // 即時に音を再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
 
     // 退場中フラグを立てる
     setIsExiting(true);
 
-    // 退場アニメーションの後に画面遷移
+    // 退場アニメーションの後に画面遷移（画面遷移システムでの音再生はオフに）
     setTimeout(() => {
-      // 新しい画面遷移システムを使用
-      goToScreen(SCREENS.GAME);
+      // 画面遷移時の音声再生をオフにして二重再生を防止
+      goToScreen(SCREENS.GAME, { playSound: false });
     }, 300); // アニメーション時間と同期
   };
 
@@ -209,14 +212,17 @@ const ResultScreen = () => {
   const handleMainMenu = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
+    
+    // 即時に音を再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
 
     // 退場中フラグを立てる
     setIsExiting(true);
 
-    // 退場アニメーションの後に画面遷移
+    // 退場アニメーションの後に画面遷移（画面遷移システムでの音再生はオフに）
     setTimeout(() => {
-      // 新しい画面遷移システムを使用
-      goToScreen(SCREENS.MAIN_MENU);
+      // 画面遷移時の音声再生をオフにして二重再生を防止
+      goToScreen(SCREENS.MAIN_MENU, { playSound: false });
     }, 300); // アニメーション時間と同期
   };
 
@@ -224,14 +230,17 @@ const ResultScreen = () => {
   const handleRanking = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
+    
+    // 即時に音を再生（最優先）
+    setTimeout(() => soundSystem.play('button'), 0);
 
     // 退場中フラグを立てる
     setIsExiting(true);
 
-    // 退場アニメーションの後に画面遷移
+    // 退場アニメーションの後に画面遷移（画面遷移システムでの音再生はオフに）
     setTimeout(() => {
-      // 新しい画面遷移システムを使用
-      goToScreen(SCREENS.RANKING);
+      // 画面遷移時の音声再生をオフにして二重再生を防止
+      goToScreen(SCREENS.RANKING, { playSound: false });
     }, 300); // アニメーション時間と同期
   };
 
