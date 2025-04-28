@@ -534,3 +534,78 @@
   transform: scale(1.1);
   box-shadow: 0 0 8px rgba(255, 140, 0, 1);
 }
+
+/* ショートカットヘルプ関連のスタイル */
+.shortcutHelp {
+  margin-top: 15px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  padding: 8px 15px;
+  border: 1px solid rgba(255, 140, 0, 0.4);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.shortcutList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.shortcutItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Press Start 2P', cursive, system-ui;
+  font-size: 9px;
+  color: #fff;
+}
+
+.shortcutItem kbd {
+  background-color: rgba(255, 140, 0, 0.3);
+  border: 1px solid rgba(255, 140, 0, 0.6);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 8px;
+  font-family: 'Press Start 2P', monospace;
+  box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
+  color: #fff;
+  min-width: 24px;
+  text-align: center;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 850px) {
+  .shortcutHelp {
+    padding: 5px 10px;
+  }
+  
+  .shortcutList {
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
+  
+  .shortcutItem {
+    font-size: 8px;
+  }
+  
+  .shortcutItem kbd {
+    font-size: 7px;
+    padding: 1px 3px;
+  }
+}
+
+/* キーボードフォーカス用スタイル - アクセシビリティ向上 */
+.startButton:focus-visible,
+.menuButton:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.6), 
+              inset 0 0 0 1px rgba(255, 140, 0, 0.5);
+}
+
+/* キーボードフォーカス用のグローバルスタイルは別途グローバルCSSに記述する必要があります */

@@ -60,9 +60,18 @@ const RankingScreen = () => {
   const [registrationStatus, setRegistrationStatus] = useState({ success: false, message: '' });
   const [debugData, setDebugData] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
+  const [previousScreen, setPreviousScreen] = useState(SCREENS.MAIN_MENU);
 
-  // コンポーネントマウント時にデータを取得
+  // コンポーネントマウント時に前の画面情報を取得
   useEffect(() => {
+    // ページ遷移時に渡された情報から遷移元を取得
+    if (window.history.state && window.history.state.options && window.history.state.options.from) {
+      setPreviousScreen(window.history.state.options.from);
+    } else {
+      // 情報がない場合はデフォルトでメインメニューからと見なす
+      setPreviousScreen(SCREENS.MAIN_MENU);
+    }
+
     // サウンドを初期化
     soundSystem.resume();
 
@@ -178,8 +187,9 @@ const RankingScreen = () => {
     
     // 退場アニメーションの後に画面遷移
     setTimeout(() => {
-      // リザルト画面から来た場合はリザルト画面に戻る、それ以外はメインメニューに戻る
-      goToScreen(SCREENS.RESULT, { playSound: false }); // 音はすでに再生したので不要
+      // previousScreenが設定されていればその画面に、なければメインメニューに戻る
+      const destination = previousScreen || SCREENS.MAIN_MENU;
+      goToScreen(destination, { playSound: false }); // 音はすでに再生したので不要
     }, 300); // アニメーション時間と同期
   };
 
@@ -353,7 +363,7 @@ const RankingScreen = () => {
           setIsExiting(true);
           
           setTimeout(() => {
-            goToScreen(SCREENS.RESULT, { playSound: false });
+            goToScreen(previousScreen, { playSound: false });
           }, 300);
         }
       }

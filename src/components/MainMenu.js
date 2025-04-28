@@ -335,24 +335,40 @@ const MainMenu = () => {
     );
   };
 
-  // キーボードイベントリスナーを追加（スペースキーでスタート機能）
+  // キーボードイベントリスナーを追加（ショートカット機能拡充）
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // モーダルが開いている場合はゲームコントロールを無効化
+      if (showSettingsModal || showCredits) {
+        return;
+      }
+      
+      // トランジション中は操作を無効化
+      if (isTransitioning) return;
+      
       // スペースキーが押されたらゲームを開始
       if (e.key === ' ' || e.code === 'Space') {
-        // モーダルが開いている場合はゲーム開始しない
-        if (showSettingsModal || showCredits) {
-          return;
-        }
-        
-        // トランジション中は操作を無効化
-        if (isTransitioning) return;
-        
-        // ボタン音を再生
+        e.preventDefault(); // デフォルト動作を抑制
         playButtonSound();
-        
-        // ゲームを開始
         goToScreen(SCREENS.GAME);
+      }
+      // Sキーで設定画面を開く
+      else if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        playButtonSound();
+        openSettingsModal();
+      }
+      // Cキーでクレジット画面を開く
+      else if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        playButtonSound();
+        setShowCredits(true);
+      }
+      // Rキーでランキング画面へ移動（実装されている場合）
+      else if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        playButtonSound();
+        goToScreen(SCREENS.RANKING);
       }
     };
     
@@ -439,6 +455,32 @@ const MainMenu = () => {
           transition={{ delay: 1.2, duration: 0.5 }}
         >
           <p>ロゴをクリックまたはスペースキーでスタート！</p>
+          
+          {/* ショートカットヘルプ - アニメーション付き */}
+          <motion.div
+            className={styles.shortcutHelp}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.8 }}
+            transition={{ delay: 2.0, duration: 0.7 }}
+          >
+            <div className={styles.shortcutList}>
+              <div className={styles.shortcutItem}>
+                <kbd>Space</kbd> <span>ゲーム開始</span>
+              </div>
+              <div className={styles.shortcutItem}>
+                <kbd>S</kbd> <span>設定</span>
+              </div>
+              <div className={styles.shortcutItem}>
+                <kbd>C</kbd> <span>クレジット</span>
+              </div>
+              <div className={styles.shortcutItem}>
+                <kbd>R</kbd> <span>ランキング</span>
+              </div>
+              <div className={styles.shortcutItem}>
+                <kbd>ESC</kbd> <span>戻る/閉じる</span>
+              </div>
+            </div>
+          </motion.div>
         </motion.div>
       </div>
 
