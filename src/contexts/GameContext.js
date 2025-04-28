@@ -49,27 +49,32 @@ export const GameProvider = ({ children }) => {
       try {
         // 管理者モードかどうかを確認
         const isAdmin = localStorage.getItem('isAdmin') === 'true';
-        
+
         // 管理者モードの場合のみ背景を適用
         if (isAdmin) {
           // localStorageから背景画像を読み込む
-          const savedBackgroundImage = localStorage.getItem('savedBackgroundImage');
-          
+          const savedBackgroundImage = localStorage.getItem(
+            'savedBackgroundImage'
+          );
+
           // localStorageからCSSスタイル情報を読み込む
           let savedStyleInfo = null;
           try {
             const savedStyleStr = localStorage.getItem('savedBackgroundStyle');
             if (savedStyleStr) {
               savedStyleInfo = JSON.parse(savedStyleStr);
-              console.log('管理者モード: 保存されたスタイル情報を読み込みました', savedStyleInfo);
+              console.log(
+                '管理者モード: 保存されたスタイル情報を読み込みました',
+                savedStyleInfo
+              );
             }
           } catch (styleError) {
             console.error('スタイル情報の読み込みエラー:', styleError);
           }
-          
+
           if (savedBackgroundImage || savedStyleInfo) {
             console.log('管理者モード: 保存された背景情報を読み込みました');
-            
+
             // メインコンテナ要素を取得して背景を適用
             setTimeout(() => {
               const mainContainer = document.querySelector('#__next > div');
@@ -83,17 +88,21 @@ export const GameProvider = ({ children }) => {
                     }
                   });
                 }
-                
+
                 // 背景画像を設定（存在する場合）
                 if (savedBackgroundImage) {
                   mainContainer.style.backgroundImage = `url(${savedBackgroundImage})`;
                   mainContainer.style.backgroundSize = 'cover';
                   mainContainer.style.backgroundPosition = 'center';
                 }
-                
-                console.log('管理者モード: 保存された背景とスタイルを適用しました');
+
+                console.log(
+                  '管理者モード: 保存された背景とスタイルを適用しました'
+                );
               } else {
-                console.warn('メインコンテナ要素が見つからないため背景を適用できませんでした');
+                console.warn(
+                  'メインコンテナ要素が見つからないため背景を適用できませんでした'
+                );
               }
             }, 100); // DOM要素が確実に存在するよう少し遅延を設ける
           }
@@ -101,7 +110,10 @@ export const GameProvider = ({ children }) => {
           console.log('管理者モードではないため、カスタム背景を適用しません');
         }
       } catch (error) {
-        console.error('保存された背景の読み込み中にエラーが発生しました:', error);
+        console.error(
+          '保存された背景の読み込み中にエラーが発生しました:',
+          error
+        );
       }
     }
   }, []);

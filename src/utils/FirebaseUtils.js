@@ -429,9 +429,9 @@ export const debugCheckAllRankings = async () => {
  * @returns {Promise<string|null>} 保存に成功した場合はデータのID、失敗した場合はnull
  */
 export const saveBackgroundToFirebase = async (
-  playerName, 
-  imageData, 
-  title = '', 
+  playerName,
+  imageData,
+  title = '',
   metadata = {},
   styleInfo = null
 ) => {
@@ -444,7 +444,7 @@ export const saveBackgroundToFirebase = async (
     // 保存先参照の作成
     const backgroundsRef = ref(database, 'backgrounds');
     const newBackgroundRef = push(backgroundsRef);
-    
+
     // 現在の日時
     const timestamp = new Date().toISOString();
     const timestampNum = Date.now();
@@ -470,7 +470,7 @@ export const saveBackgroundToFirebase = async (
         console.error('背景スタイル情報の取得に失敗しました:', styleError);
       }
     }
-    
+
     // 保存データの構造
     const backgroundData = {
       playerName: playerName || 'Anonymous',
@@ -484,11 +484,13 @@ export const saveBackgroundToFirebase = async (
       timestamp: timestamp,
       timestamp_num: timestampNum,
     };
-    
+
     // Firebase Realtime Databaseに保存
     await set(newBackgroundRef, backgroundData);
-    console.log(`背景画像とスタイル情報を保存しました - 保存者: ${playerName}, タイトル: ${title}`);
-    
+    console.log(
+      `背景画像とスタイル情報を保存しました - 保存者: ${playerName}, タイトル: ${title}`
+    );
+
     return newBackgroundRef.key; // 保存されたデータのIDを返す
   } catch (error) {
     console.error('Error saving background to Firebase:', error);
@@ -510,24 +512,24 @@ export const getBackgroundsFromFirebase = async (limit = 20) => {
   try {
     // データ参照の作成
     const backgroundsRef = ref(database, 'backgrounds');
-    
+
     // データの取得
     const snapshot = await get(backgroundsRef);
-    
+
     if (!snapshot.exists()) {
       console.log('保存された背景画像データがありません');
       return [];
     }
-    
+
     // データを配列に変換
     const backgroundData = [];
     snapshot.forEach((childSnapshot) => {
       backgroundData.push({
         id: childSnapshot.key,
-        ...childSnapshot.val()
+        ...childSnapshot.val(),
       });
     });
-    
+
     // 新しい順にソートして返す
     return backgroundData
       .sort((a, b) => b.timestamp_num - a.timestamp_num)
@@ -552,10 +554,10 @@ export const deleteBackgroundFromFirebase = async (backgroundId) => {
   try {
     // 背景データの参照を取得
     const backgroundRef = ref(database, `backgrounds/${backgroundId}`);
-    
+
     // データを削除
     await set(backgroundRef, null);
-    
+
     console.log(`背景画像を削除しました - ID: ${backgroundId}`);
     return true;
   } catch (error) {
@@ -574,10 +576,10 @@ export const deleteBackgroundFromFirebase = async (backgroundId) => {
  * @returns {Promise<string|null>} 保存に成功した場合はデータのID、失敗した場合はnull
  */
 export const saveScreenBackgroundToFirebase = async (
-  screenId, 
-  playerName, 
-  imageData, 
-  title = '', 
+  screenId,
+  playerName,
+  imageData,
+  title = '',
   cssStyleInfo = null
 ) => {
   if (!initializeFirebase() || !database) {
@@ -589,11 +591,11 @@ export const saveScreenBackgroundToFirebase = async (
     // 保存先参照の作成
     const backgroundsRef = ref(database, 'backgrounds');
     const newBackgroundRef = push(backgroundsRef);
-    
+
     // 現在の日時
     const timestamp = new Date().toISOString();
     const timestampNum = Date.now();
-    
+
     // スクリーンIDが渡されない場合はデフォルト値を設定
     const targetScreen = screenId || 'ALL';
 
@@ -618,10 +620,14 @@ export const saveScreenBackgroundToFirebase = async (
         console.error('背景スタイル情報の取得に失敗しました:', styleError);
       }
     }
-    
+
     // 保存するタイトルを設定
-    const displayTitle = title || `${playerName || 'Anonymous'}の${getScreenDisplayName(targetScreen)}用背景`;
-    
+    const displayTitle =
+      title ||
+      `${playerName || 'Anonymous'}の${getScreenDisplayName(
+        targetScreen
+      )}用背景`;
+
     // 保存データの構造
     const backgroundData = {
       playerName: playerName || 'Anonymous',
@@ -632,16 +638,20 @@ export const saveScreenBackgroundToFirebase = async (
       metadata: {
         createdAt: timestamp,
         type: 'screen-specific-background',
-        targetScreen: targetScreen
+        targetScreen: targetScreen,
       },
       timestamp: timestamp,
       timestamp_num: timestampNum,
     };
-    
+
     // Firebase Realtime Databaseに保存
     await set(newBackgroundRef, backgroundData);
-    console.log(`画面「${getScreenDisplayName(targetScreen)}」用の背景を保存しました - 保存者: ${playerName}, タイトル: ${displayTitle}`);
-    
+    console.log(
+      `画面「${getScreenDisplayName(
+        targetScreen
+      )}」用の背景を保存しました - 保存者: ${playerName}, タイトル: ${displayTitle}`
+    );
+
     return newBackgroundRef.key; // 保存されたデータのIDを返す
   } catch (error) {
     console.error('Error saving screen background to Firebase:', error);
@@ -656,15 +666,15 @@ export const saveScreenBackgroundToFirebase = async (
  */
 const getScreenDisplayName = (screenId) => {
   const screenNames = {
-    'MAIN_MENU': 'メインメニュー',
-    'GAME': 'ゲーム画面',
-    'RESULT': 'リザルト画面',
-    'RANKING': 'ランキング画面',
-    'SETTINGS': '設定画面',
-    'CREDITS': 'クレジット画面',
-    'ALL': '全画面'
+    MAIN_MENU: 'メインメニュー',
+    GAME: 'ゲーム画面',
+    RESULT: 'リザルト画面',
+    RANKING: 'ランキング画面',
+    SETTINGS: '設定画面',
+    CREDITS: 'クレジット画面',
+    ALL: '全画面',
   };
-  
+
   return screenNames[screenId] || screenId;
 };
 
@@ -674,7 +684,10 @@ const getScreenDisplayName = (screenId) => {
  * @param {number} limit - 取得する最大数
  * @returns {Promise<Array>} 背景データの配列
  */
-export const getScreenBackgroundsFromFirebase = async (screenId = null, limit = 20) => {
+export const getScreenBackgroundsFromFirebase = async (
+  screenId = null,
+  limit = 20
+) => {
   if (!initializeFirebase() || !database) {
     console.error('Firebase not initialized');
     return [];
@@ -683,29 +696,35 @@ export const getScreenBackgroundsFromFirebase = async (screenId = null, limit = 
   try {
     // データ参照の作成
     const backgroundsRef = ref(database, 'backgrounds');
-    
+
     // データの取得
     const snapshot = await get(backgroundsRef);
-    
+
     if (!snapshot.exists()) {
       console.log('保存された背景画像データがありません');
       return [];
     }
-    
+
     // データを配列に変換
     const backgroundData = [];
     snapshot.forEach((childSnapshot) => {
       const data = childSnapshot.val();
-      
+
       // screenIdが指定されている場合は、その画面用の背景または全画面用('ALL')の背景のみをフィルタリング
-      if (!screenId || data.screenId === screenId || data.screenId === 'ALL' || data.metadata?.targetScreen === screenId || !data.screenId) {
+      if (
+        !screenId ||
+        data.screenId === screenId ||
+        data.screenId === 'ALL' ||
+        data.metadata?.targetScreen === screenId ||
+        !data.screenId
+      ) {
         backgroundData.push({
           id: childSnapshot.key,
-          ...data
+          ...data,
         });
       }
     });
-    
+
     // 新しい順にソートして返す
     return backgroundData
       .sort((a, b) => b.timestamp_num - a.timestamp_num)

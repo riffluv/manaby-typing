@@ -33,9 +33,17 @@ export const designTypes = {
  */
 export const designTemplates = [
   { id: 'template1', name: 'シンプルデザイン', type: designTypes.PRESENTATION },
-  { id: 'template2', name: 'ビジネステンプレート', type: designTypes.PRESENTATION },
+  {
+    id: 'template2',
+    name: 'ビジネステンプレート',
+    type: designTypes.PRESENTATION,
+  },
   { id: 'template3', name: 'カラフルポスター', type: designTypes.POSTER },
-  { id: 'template4', name: 'ソーシャルメディア投稿', type: designTypes.SOCIAL_MEDIA },
+  {
+    id: 'template4',
+    name: 'ソーシャルメディア投稿',
+    type: designTypes.SOCIAL_MEDIA,
+  },
 ];
 
 /**
@@ -45,8 +53,10 @@ export const designTemplates = [
 export const getCanvaAuthUrl = () => {
   const { clientId, redirectUri } = canvaApiConfig;
   const scope = 'design:read design:write';
-  
-  return `https://www.canva.com/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+
+  return `https://www.canva.com/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
+    redirectUri
+  )}&scope=${encodeURIComponent(scope)}`;
 };
 
 /**
@@ -57,25 +67,25 @@ export const getCanvaAuthUrl = () => {
 export const getAccessToken = async (code) => {
   try {
     const { clientId, clientSecret, redirectUri } = canvaApiConfig;
-    
+
     const response = await fetch('https://api.canva.com/oauth/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
         code,
         client_id: clientId,
         client_secret: clientSecret,
         redirect_uri: redirectUri,
-        grant_type: 'authorization_code'
-      })
+        grant_type: 'authorization_code',
+      }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to get access token: ${response.statusText}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error getting access token:', error);
@@ -94,22 +104,22 @@ export const uploadImageToCanva = async (accessToken, imageBase64) => {
     // Base64からBlobに変換
     const fetchResponse = await fetch(imageBase64);
     const blob = await fetchResponse.blob();
-    
+
     const formData = new FormData();
     formData.append('image', blob);
-    
+
     const response = await fetch(`${CANVA_API_ENDPOINT}/images/upload`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`
+        Authorization: `Bearer ${accessToken}`,
       },
-      body: formData
+      body: formData,
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to upload image: ${response.statusText}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error uploading image to Canva:', error);
@@ -129,10 +139,10 @@ export const sendDoodleToCanva = async (sketchCanvasRef) => {
     if (!accessToken) {
       throw new Error('Canva access token not found');
     }
-    
+
     // SketchCanvasから画像をエクスポート
     const imageBase64 = await sketchCanvasRef.current.exportImage('png');
-    
+
     // Canvaにアップロード
     return await uploadImageToCanva(accessToken, imageBase64);
   } catch (error) {

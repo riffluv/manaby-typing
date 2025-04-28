@@ -15,7 +15,8 @@
   touch-action: none; /* モバイルでのスクロールを防止 */
 }
 
-.toolbarTop, .toolbarBottom {
+.toolbarTop,
+.toolbarBottom {
   display: flex;
   padding: 8px;
   background-color: #f0f0f0;
@@ -129,21 +130,23 @@
 
 /* モバイル対応 */
 @media (max-width: 768px) {
-  .toolbarTop, .toolbarBottom {
+  .toolbarTop,
+  .toolbarBottom {
     padding: 6px;
     gap: 4px;
   }
-  
-  .colorButton, .sizeIndicator {
+
+  .colorButton,
+  .sizeIndicator {
     width: 20px;
     height: 20px;
   }
-  
+
   .toolButton {
     min-width: 32px;
     height: 32px;
   }
-  
+
   .actionButton {
     min-width: 60px;
     height: 32px;

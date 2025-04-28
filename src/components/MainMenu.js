@@ -39,7 +39,7 @@ const MainMenu = () => {
 
   // モーダル表示状態を管理するstate
   const [showCredits, setShowCredits] = useState(false);
-  
+
   // グローバル設定モーダル状態を使用
   const {
     showSettingsModal,

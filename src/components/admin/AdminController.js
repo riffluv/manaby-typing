@@ -26,11 +26,11 @@ const AdminController = () => {
       if ((e.ctrlKey || e.metaKey) && (e.keyCode === 64 || e.key === '@')) {
         e.preventDefault(); // デフォルトの動作をキャンセル
         console.log('[管理者モード] Ctrl + @ キーが検出されました');
-        
+
         // 管理者モードを有効化
         localStorage.setItem('isAdmin', 'true');
         console.log('[管理者モード] 有効化されました');
-        
+
         setIsAdminModalOpen(true); // 管理者モーダルを表示
       }
     };
