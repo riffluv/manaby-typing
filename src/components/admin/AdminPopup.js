@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styles from '../../styles/admin/AdminPopup.module.css';
-import { useGameContext } from '../../contexts/GameContext';
+import { useGameContext, SCREENS } from '../../contexts/GameContext';
 import html2canvas from 'html2canvas';
 import FirebaseUtils from '../../utils/FirebaseUtils';
 import Image from 'next/image';
 
 const AdminPopup = ({ isOpen, onClose }) => {
-  const { gameState, setGameState } = useGameContext();
+  const { gameState, setGameState, currentScreen } = useGameContext();
   const [problemCount, setProblemCount] = useState(5); // デフォルト値は5問
   const [activeTab, setActiveTab] = useState('settings'); // 'settings'、'background'、または 'gallery'
   const [isSavingBackground, setIsSavingBackground] = useState(false); // 保存中状態
@@ -17,6 +17,18 @@ const AdminPopup = ({ isOpen, onClose }) => {
   const [savedBackgrounds, setSavedBackgrounds] = useState([]); // 保存された背景の一覧
   const [isLoading, setIsLoading] = useState(false); // 背景読み込み中状態
   const [showRestoreSuccess, setShowRestoreSuccess] = useState(false); // 復元成功メッセージ表示状態
+  const [selectedScreen, setSelectedScreen] = useState('ALL'); // 背景を保存/適用する画面
+  
+  // 画面一覧の定義
+  const screenOptions = [
+    { id: 'ALL', name: '全ての画面' },
+    { id: 'MAIN_MENU', name: 'メインメニュー' },
+    { id: 'GAME', name: 'ゲーム画面' },
+    { id: 'RESULT', name: 'リザルト画面' },
+    { id: 'RANKING', name: 'ランキング画面' },
+    { id: 'SETTINGS', name: '設定画面' },
+    { id: 'CREDITS', name: 'クレジット画面' },
+  ];
 
   // コンポーネントがマウントされたときに現在のお題数を取得
   useEffect(() => {
@@ -24,7 +36,10 @@ const AdminPopup = ({ isOpen, onClose }) => {
     const currentRequiredCount = gameState.requiredProblemCount || 5;
     console.log('[管理者モード] 現在のお題数設定:', currentRequiredCount);
     setProblemCount(currentRequiredCount);
-  }, [gameState, isOpen]); // isOpenが変わった時も再取得
+    
+    // 初期の選択画面を現在表示中の画面にする
+    setSelectedScreen(currentScreen || 'ALL');
+  }, [gameState, isOpen, currentScreen]); // isOpenが変わった時も再取得
 
   // モーダルが開かれた時に背景の一覧を取得
   useEffect(() => {
@@ -33,18 +48,32 @@ const AdminPopup = ({ isOpen, onClose }) => {
     }
   }, [isOpen, activeTab]);
 
+  // 画面選択が変わったときに対応する背景を取得
+  useEffect(() => {
+    if (isOpen && activeTab === 'gallery' && selectedScreen) {
+      fetchSavedBackgrounds();
+    }
+  }, [selectedScreen]);
+
   // 保存された背景を取得
   const fetchSavedBackgrounds = async () => {
     setIsLoading(true);
     try {
-      const backgrounds = await FirebaseUtils.getBackgroundsFromFirebase(10); // 最新10件を取得
-      console.log('保存された背景を取得しました:', backgrounds.length);
+      // 選択されている画面用の背景を取得（ScreenId指定）
+      const backgrounds = await FirebaseUtils.getScreenBackgroundsFromFirebase(selectedScreen, 20);
+      console.log(`${getScreenDisplayName(selectedScreen)}用の背景を取得しました:`, backgrounds.length);
       setSavedBackgrounds(backgrounds);
     } catch (error) {
       console.error('背景の取得中にエラーが発生しました:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // 画面IDから表示名を取得する関数
+  const getScreenDisplayName = (screenId) => {
+    const screen = screenOptions.find(s => s.id === screenId);
+    return screen ? screen.name : screenId;
   };
 
   // エスケープキーでポップアップを閉じる
@@ -125,12 +154,12 @@ const AdminPopup = ({ isOpen, onClose }) => {
       // Base64形式の画像データに変換
       const imageData = canvas.toDataURL('image/png');
       
-      // Firebaseに保存
-      const backgroundId = await FirebaseUtils.saveBackgroundToFirebase(
+      // Firebaseに画面指定で保存
+      const backgroundId = await FirebaseUtils.saveScreenBackgroundToFirebase(
+        selectedScreen,
         playerName || '管理者',
         imageData,
-        `${playerName || '管理者'}の保存した背景`,
-        { type: 'admin-saved-background' }
+        `${playerName || '管理者'}の${getScreenDisplayName(selectedScreen)}用背景`
       );
       
       if (backgroundId) {
@@ -169,8 +198,11 @@ const AdminPopup = ({ isOpen, onClose }) => {
       // 背景スタイル情報を取得
       const cssStyleInfo = background.cssStyleInfo || null;
       
+      // 適用する画面のID
+      const targetScreen = background.screenId || 'ALL';
+      
       if (cssStyleInfo) {
-        console.log('CSSスタイル情報を適用します:', cssStyleInfo);
+        console.log(`${getScreenDisplayName(targetScreen)}用のCSSスタイル情報を適用します:`, cssStyleInfo);
         
         // CSS情報を適用
         Object.entries(cssStyleInfo).forEach(([key, value]) => {
@@ -186,17 +218,25 @@ const AdminPopup = ({ isOpen, onClose }) => {
       mainContainer.style.backgroundSize = 'cover';
       mainContainer.style.backgroundPosition = 'center';
       
-      // localStorage にスタイル情報を含めて保存
+      // localStorage に管理者フラグと背景を保存（画面IDごと）
       try {
         localStorage.setItem('isAdmin', 'true'); // 管理者フラグを設定
-        localStorage.setItem('savedBackgroundImage', backgroundImageData);
+        localStorage.setItem(`savedBackgroundImage_${targetScreen}`, backgroundImageData);
         
         // スタイル情報も保存
         if (cssStyleInfo) {
-          localStorage.setItem('savedBackgroundStyle', JSON.stringify(cssStyleInfo));
+          localStorage.setItem(`savedBackgroundStyle_${targetScreen}`, JSON.stringify(cssStyleInfo));
         }
         
-        console.log('背景画像とスタイル情報をlocalStorageに保存しました (管理者モード)');
+        // 画面IDも保存
+        const activeBackgrounds = JSON.parse(localStorage.getItem('activeBackgrounds') || '{}');
+        activeBackgrounds[targetScreen] = {
+          id: background.id,
+          timestamp: new Date().toISOString()
+        };
+        localStorage.setItem('activeBackgrounds', JSON.stringify(activeBackgrounds));
+        
+        console.log(`${getScreenDisplayName(targetScreen)}用の背景をlocalStorageに保存しました (管理者モード)`);
       } catch (storageError) {
         console.error('背景情報をlocalStorageに保存できませんでした:', storageError);
       }
@@ -207,7 +247,7 @@ const AdminPopup = ({ isOpen, onClose }) => {
         setShowRestoreSuccess(false);
       }, 3000);
       
-      console.log('保存された背景を適用しました');
+      console.log(`${getScreenDisplayName(targetScreen)}用の背景を適用しました`);
     } catch (error) {
       console.error('背景の適用中にエラーが発生しました:', error);
     }
@@ -239,9 +279,20 @@ const AdminPopup = ({ isOpen, onClose }) => {
       // 背景をリセット（backgroundImageプロパティを削除）
       mainContainer.style.backgroundImage = '';
       
-      // 保存されていた背景画像データを削除
-      localStorage.removeItem('savedBackgroundImage');
-      console.log('背景をリセットしました');
+      // 選択されている画面の保存済み背景を削除
+      try {
+        localStorage.removeItem(`savedBackgroundImage_${selectedScreen}`);
+        localStorage.removeItem(`savedBackgroundStyle_${selectedScreen}`);
+        
+        // アクティブ背景情報も更新
+        const activeBackgrounds = JSON.parse(localStorage.getItem('activeBackgrounds') || '{}');
+        delete activeBackgrounds[selectedScreen];
+        localStorage.setItem('activeBackgrounds', JSON.stringify(activeBackgrounds));
+      } catch (e) {
+        console.error('localStorageの操作中にエラーが発生しました:', e);
+      }
+      
+      console.log(`${getScreenDisplayName(selectedScreen)}の背景をリセットしました`);
       
       // 成功メッセージを表示
       setShowRestoreSuccess(true);
@@ -276,6 +327,12 @@ const AdminPopup = ({ isOpen, onClose }) => {
     } catch (error) {
       console.error('背景の削除中にエラーが発生しました:', error);
     }
+  };
+  
+  // 画面選択の変更を処理
+  const handleScreenChange = (e) => {
+    const newScreen = e.target.value;
+    setSelectedScreen(newScreen);
   };
 
   if (!isOpen) return null;
@@ -312,7 +369,7 @@ const AdminPopup = ({ isOpen, onClose }) => {
             className={`${styles.adminPopup__tab} ${activeTab === 'gallery' ? styles['adminPopup__tab--active'] : ''}`}
             onClick={() => handleTabChange('gallery')}
           >
-            背景一覧
+            着せ替え
           </button>
         </div>
         
@@ -357,12 +414,33 @@ const AdminPopup = ({ isOpen, onClose }) => {
               </div>
               
               <div className={styles.adminPopup__formGroup}>
+                <label className={styles.adminPopup__label} htmlFor="screenSelector">
+                  背景を適用する画面
+                </label>
+                <select
+                  className={styles.adminPopup__select}
+                  id="screenSelector"
+                  value={selectedScreen}
+                  onChange={handleScreenChange}
+                >
+                  {screenOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+                <p className={styles.adminPopup__info}>
+                  背景を適用する画面を選択します。「全ての画面」を選ぶとすべての画面に適用されます。
+                </p>
+              </div>
+              
+              <div className={styles.adminPopup__formGroup}>
                 <button
                   className={`${styles.adminPopup__button} ${styles['adminPopup__button--special']}`}
                   onClick={captureAndSaveBackground}
                   disabled={isSavingBackground}
                 >
-                  {isSavingBackground ? '保存中...' : '現在の背景を保存'}
+                  {isSavingBackground ? '保存中...' : `現在の背景を${getScreenDisplayName(selectedScreen)}用に保存`}
                 </button>
                 <p className={styles.adminPopup__info}>
                   現在表示されている背景をキャプチャして保存します。保存した背景は後で再利用できます。
@@ -379,21 +457,39 @@ const AdminPopup = ({ isOpen, onClose }) => {
           
           {activeTab === 'gallery' && (
             <div className={styles.adminPopup__backgroundGallery}>
-              <h3 className={styles.adminPopup__subTitle}>保存された背景一覧</h3>
+              <h3 className={styles.adminPopup__subTitle}>着せ替えギャラリー</h3>
+              
+              <div className={styles.adminPopup__formGroup}>
+                <label className={styles.adminPopup__label} htmlFor="screenSelectorGallery">
+                  表示する画面
+                </label>
+                <select
+                  className={styles.adminPopup__select}
+                  id="screenSelectorGallery"
+                  value={selectedScreen}
+                  onChange={handleScreenChange}
+                >
+                  {screenOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}用
+                    </option>
+                  ))}
+                </select>
+              </div>
               
               <div className={styles.adminPopup__resetContainer}>
                 <button
                   className={`${styles.adminPopup__button} ${styles['adminPopup__button--reset']}`}
                   onClick={resetBackground}
                 >
-                  元の背景に戻す
+                  {getScreenDisplayName(selectedScreen)}をデフォルトに戻す
                 </button>
               </div>
               
               {isLoading ? (
                 <div className={styles.adminPopup__loading}>読み込み中...</div>
               ) : savedBackgrounds.length === 0 ? (
-                <p className={styles.adminPopup__info}>保存された背景がありません</p>
+                <p className={styles.adminPopup__info}>{getScreenDisplayName(selectedScreen)}用の保存された背景がありません</p>
               ) : (
                 <div className={styles.adminPopup__grid}>
                   {savedBackgrounds.map((background) => (
@@ -410,21 +506,24 @@ const AdminPopup = ({ isOpen, onClose }) => {
                           {background.title || '無題の背景'}
                         </p>
                         <p className={styles.adminPopup__backgroundMeta}>
-                          {background.playerName || '匿名'} - 
+                          {background.playerName || '匿名'} | 
+                          {background.screenId ? ` ${getScreenDisplayName(background.screenId)}用` : '全画面用'} | 
                           {new Date(background.timestamp).toLocaleDateString('ja-JP')}
                         </p>
-                        <button
-                          className={`${styles.adminPopup__button} ${styles['adminPopup__button--apply']}`}
-                          onClick={() => applyBackground(background)}
-                        >
-                          適用
-                        </button>
-                        <button
-                          className={`${styles.adminPopup__button} ${styles['adminPopup__button--delete']}`}
-                          onClick={() => deleteBackground(background.id)}
-                        >
-                          削除
-                        </button>
+                        <div className={styles.adminPopup__buttonGroup}>
+                          <button
+                            className={`${styles.adminPopup__button} ${styles['adminPopup__button--apply']}`}
+                            onClick={() => applyBackground(background)}
+                          >
+                            適用
+                          </button>
+                          <button
+                            className={`${styles.adminPopup__button} ${styles['adminPopup__button--delete']}`}
+                            onClick={() => deleteBackground(background.id)}
+                          >
+                            削除
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
