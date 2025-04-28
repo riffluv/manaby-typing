@@ -295,37 +295,55 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-/* IMEガイド表示のスタイル */
-.imeGuide {
-  margin-top: 20px;
-  padding: 8px 12px;
-  background-color: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 140, 0, 0.6);
-  border-radius: 6px;
-  color: #fff;
-  font-size: 0.9rem;
-  text-align: center;
-  animation: fadeInUp 0.5s ease-out;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.keyboardShortcut {
-  margin-left: 8px;
-  color: #ff8c00;
+/* IME状態警告表示 */
+.imeWarning {
+  background-color: rgba(255, 60, 60, 0.9);
+  color: white;
+  font-size: 16px;
   font-weight: bold;
-  padding: 2px 5px;
-  border-radius: 3px;
-  background-color: rgba(0, 0, 0, 0.3);
-  font-size: 0.8rem;
+  padding: 8px 16px;
+  border-radius: 5px;
+  margin-top: 10px;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  animation: pulse 1s infinite alternate;
+  transition: all 0.3s ease;
+  max-width: 100%;
 }
 
-@keyframes fadeInUp {
+/* IME状態インジケーター */
+.imeIndicator {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #66ff66;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 15px;
+  border: 1px solid #66ff66;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.imeIndicatorWarning {
+  background-color: rgba(150, 0, 0, 0.8);
+  color: white;
+  border-color: #ff6666;
+  opacity: 1;
+  animation: pulse 1s infinite alternate;
+}
+
+/* 点滅アニメーション */
+@keyframes pulse {
   from {
-    opacity: 0;
-    transform: translateY(10px);
+    transform: scale(1);
+    opacity: 0.9;
   }
   to {
+    transform: scale(1.05);
     opacity: 1;
-    transform: translateY(0);
   }
 }
