@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../styles/GameScreen.module.css';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
 import TypingUtils from '../utils/TypingUtils';
@@ -29,7 +29,6 @@ const GameScreen = () => {
     currentInputLength: 0,
   });
   const [soundsLoaded, setSoundsLoaded] = useState(false);
-  const inputRef = useRef(null);
 
   // 問題クリアに必要なお題数
   const requiredProblemCount = gameState.requiredProblemCount || 5;
@@ -82,6 +81,17 @@ const GameScreen = () => {
     };
   }, []);
 
+  // document全体で物理キー入力を受け付ける
+  useEffect(() => {
+    const handleDocumentKeyDown = (e) => {
+      handleKeyDown(e);
+    };
+    document.addEventListener('keydown', handleDocumentKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleDocumentKeyDown);
+    };
+  }, [gameState, typingSession, soundsLoaded, errorCount, coloringInfo]);
+
   // ゲームクリア時に即座にリザルト画面へ遷移する強化版useEffect
   useEffect(() => {
     // 明示的な型チェックと即時遷移
@@ -114,10 +124,6 @@ const GameScreen = () => {
           currentProblemStartTime: null, // 最初のキー入力時に設定される
           currentProblemKeyCount: 0, // この問題での正しいキー入力数をリセット
         }));
-
-        if (inputRef.current) {
-          inputRef.current.focus();
-        }
       }
     }
   }, [gameState.currentProblem, gameState.isGameClear]);
@@ -345,14 +351,11 @@ const GameScreen = () => {
     return null;
   }
 
-  // 通常のゲーム画面のみ表示（ゲームクリア時の条件分岐を完全に除去）
+  // 通常のゲーム画面のみ表示
   return (
     <div
       className={styles.gameContainer}
-      onClick={() => {
-        inputRef.current && inputRef.current.focus();
-        soundSystem.resume();
-      }}
+      // onClickでfocus制御も不要
     >
       <motion.div
         className={styles.gameHeader}
@@ -396,31 +399,6 @@ const GameScreen = () => {
             </motion.p>
             {typingTextElement}
           </div>
-          <input
-            ref={inputRef}
-            className={styles.hiddenInput}
-            onKeyDown={handleKeyDown}
-            onCompositionEnd={(e) => {
-              const convertedText = TypingUtils.handleIMEInput(e);
-              if (convertedText && typingSession) {
-                for (const char of convertedText) {
-                  typingSession.processInput(char);
-                }
-                setColoringInfo(typingSession.getColoringInfo());
-              }
-            }}
-            onInput={(e) => {
-              if (!e.isComposing) {
-                const convertedText = TypingUtils.handleIMEInput(e);
-                if (convertedText && typingSession) {
-                  // すでにkeydownで処理されているので何もしない
-                }
-              }
-            }}
-            value=""
-            onChange={() => {}}
-            autoFocus
-          />
         </div>
       </motion.div>
 
