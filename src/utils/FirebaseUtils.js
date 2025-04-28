@@ -4,6 +4,7 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, push, get, query, orderByChild, limitToLast, equalTo, child } from "firebase/database";
 import { getAnalytics } from "firebase/analytics";
+import TypingUtils from "./TypingUtils"; // KPMランク計算のために追加
 
 // Firebaseの設定
 const firebaseConfig = {
@@ -52,9 +53,10 @@ export const initializeFirebase = () => {
  * @param {number} time - プレイ時間（秒）
  * @param {number} mistakes - ミス入力回数
  * @param {string} difficulty - 難易度
+ * @param {string} rank - KPMに基づくランク (GOD, DIVINE, ...)
  * @returns {Promise<string|null>} 保存に成功した場合は記録のID、失敗した場合はnull
  */
-export const saveOnlineRanking = async (playerName, kpm, accuracy, time, mistakes, difficulty) => {
+export const saveOnlineRanking = async (playerName, kpm, accuracy, time, mistakes, difficulty, rank) => {
   if (!initializeFirebase() || !database) {
     console.error('Firebase not initialized');
     return null;
@@ -65,6 +67,9 @@ export const saveOnlineRanking = async (playerName, kpm, accuracy, time, mistake
     const kpmValue = Math.floor(kpm);
     const accuracyValue = parseFloat(accuracy.toFixed(1));
     const timestampStr = new Date().toISOString();
+
+    // KPMからランクを計算（渡されていない場合）
+    const rankValue = rank || (typeof TypingUtils !== 'undefined' ? TypingUtils.getKPMRank(kpmValue) : '');
 
     // インデックスエラーを回避するため、全データを一度に取得
     const rankingRef = ref(database, 'scores');
@@ -123,11 +128,12 @@ export const saveOnlineRanking = async (playerName, kpm, accuracy, time, mistake
       mistakes: mistakes || 0,
       difficulty: difficulty || 'normal',
       date: timestampStr,
-      timestamp_num: Date.now() // 数値形式のタイムスタンプも保存
+      timestamp_num: Date.now(), // 数値形式のタイムスタンプも保存
+      rank: rankValue // ランク情報を保存
     };
     
     await set(newRankingRef, rankingData);
-    console.log(`オンラインランキングを保存しました - KPM: ${kpmValue}, 正解率: ${accuracyValue}%`);
+    console.log(`オンラインランキングを保存しました - KPM: ${kpmValue}, ランク: ${rankValue}, 正解率: ${accuracyValue}%`);
     return newRankingRef.key;
   } catch (error) {
     console.error('Error saving online ranking:', error);

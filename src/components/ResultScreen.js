@@ -52,6 +52,8 @@ const ResultScreen = () => {
   // スコア値を固定するためのステート（トランジション中に値が変わるのを防止）
   const [fixedStats, setFixedStats] = useState({
     kpm: '-',
+    rank: '-',
+    rankColor: '#ffffff',
     accuracy: '0.0%',
     time: '0:00',
     mistakes: 0,
@@ -158,16 +160,24 @@ const ResultScreen = () => {
     // コンポーネントがマウントされた時点でリザルト完了音を鳴らす
     soundSystem.play('complete');
 
+    // KPM値を計算
+    const kpmValue = calculateKPM();
+    
+    // KPM値からランクを取得
+    const rank = TypingUtils.getKPMRank(kpmValue);
+    const rankColor = TypingUtils.getRankColor(rank);
+
     // スコア値を固定
     setFixedStats({
-      kpm: calculateKPM(),
+      kpm: kpmValue,
+      rank: rank,
+      rankColor: rankColor,
       accuracy: calculateAccuracy(),
       time: formatTime(),
       mistakes: mistakeCount,
     });
 
-    // ゲーム記録を保存する
-    const kpmValue = calculateKPM();
+    // 正確率と時間を計算
     const accuracyValue = parseFloat(calculateAccuracy().replace('%', ''));
     const timeValue = gameState.playTime || 0;
 
@@ -178,10 +188,12 @@ const ResultScreen = () => {
         accuracyValue,
         timeValue,
         mistakeCount,
-        settings.difficulty
+        settings.difficulty,
+        rank  // ランク情報も保存
       );
       console.log('ゲーム記録を保存しました:', {
         kpm: kpmValue,
+        rank: rank,
         accuracy: accuracyValue,
         time: timeValue,
         mistakes: mistakeCount,
@@ -194,17 +206,14 @@ const ResultScreen = () => {
   const handlePlayAgain = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
-    
-    // 即時に音を再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
 
     // 退場中フラグを立てる
     setIsExiting(true);
 
-    // 退場アニメーションの後に画面遷移（画面遷移システムでの音再生はオフに）
+    // 退場アニメーションの後に画面遷移
     setTimeout(() => {
-      // 画面遷移時の音声再生をオフにして二重再生を防止
-      goToScreen(SCREENS.GAME, { playSound: false });
+      // 新しい画面遷移システムを使用
+      goToScreen(SCREENS.GAME);
     }, 300); // アニメーション時間と同期
   };
 
@@ -212,17 +221,14 @@ const ResultScreen = () => {
   const handleMainMenu = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
-    
-    // 即時に音を再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
 
     // 退場中フラグを立てる
     setIsExiting(true);
 
-    // 退場アニメーションの後に画面遷移（画面遷移システムでの音再生はオフに）
+    // 退場アニメーションの後に画面遷移
     setTimeout(() => {
-      // 画面遷移時の音声再生をオフにして二重再生を防止
-      goToScreen(SCREENS.MAIN_MENU, { playSound: false });
+      // 新しい画面遷移システムを使用
+      goToScreen(SCREENS.MAIN_MENU);
     }, 300); // アニメーション時間と同期
   };
 
@@ -230,17 +236,14 @@ const ResultScreen = () => {
   const handleRanking = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
-    
-    // 即時に音を再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
 
     // 退場中フラグを立てる
     setIsExiting(true);
 
-    // 退場アニメーションの後に画面遷移（画面遷移システムでの音再生はオフに）
+    // 退場アニメーションの後に画面遷移
     setTimeout(() => {
-      // 画面遷移時の音声再生をオフにして二重再生を防止
-      goToScreen(SCREENS.RANKING, { playSound: false });
+      // 新しい画面遷移システムを使用
+      goToScreen(SCREENS.RANKING);
     }, 300); // アニメーション時間と同期
   };
 
@@ -269,14 +272,19 @@ const ResultScreen = () => {
             <div className={styles.statValue}>{fixedStats.kpm}</div>
           </motion.div>
 
-          <motion.div variants={cardVariants} className={styles.statCard}>
-            <div className={styles.statLabel}>正解率</div>
-            <div className={styles.statValue}>{fixedStats.accuracy}</div>
+          <motion.div variants={cardVariants} className={`${styles.statCard} ${styles.rankCard}`}>
+            <div className={styles.statLabel}>ランク</div>
+            <div 
+              className={styles.statValue} 
+              style={{ color: fixedStats.rankColor }}
+            >
+              {fixedStats.rank}
+            </div>
           </motion.div>
 
           <motion.div variants={cardVariants} className={styles.statCard}>
-            <div className={styles.statLabel}>タイム</div>
-            <div className={styles.statValue}>{fixedStats.time}</div>
+            <div className={styles.statLabel}>正解率</div>
+            <div className={styles.statValue}>{fixedStats.accuracy}</div>
           </motion.div>
 
           <motion.div variants={cardVariants} className={styles.statCard}>

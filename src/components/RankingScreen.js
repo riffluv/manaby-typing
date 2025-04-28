@@ -6,6 +6,7 @@ import { useGameContext, SCREENS } from '../contexts/GameContext';
 import { getGameRecords, getHighScores } from '../utils/RecordUtils';
 import { initializeFirebase, getTopRankings, getRecentRankings, saveOnlineRanking, debugCheckAllRankings } from '../utils/FirebaseUtils';
 import soundSystem from '../utils/SoundUtils';
+import TypingUtils from '../utils/TypingUtils';
 import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 
@@ -245,6 +246,9 @@ const RankingScreen = () => {
         kpmValue = Math.floor(gameState.correctKeyCount / minutes);
       }
 
+      // KPMからランクを計算
+      const rankValue = TypingUtils.getKPMRank(kpmValue);
+
       // 正解率を計算
       // gameState.accuracyが存在しない場合は、正解キー数と間違いから計算
       let accuracyValue = 0;
@@ -273,7 +277,8 @@ const RankingScreen = () => {
         accuracyValue,
         gameState.playTime || 0,
         gameState.mistakes || 0,
-        settings.difficulty || 'normal'
+        settings.difficulty || 'normal',
+        rankValue // ランク情報を追加
       );
 
       if (recordId) {
@@ -421,8 +426,8 @@ const RankingScreen = () => {
                   <th>順位</th>
                   <th>プレイヤー</th>
                   <th>KPM</th>
+                  <th>ランク</th>
                   <th>正解率</th>
-                  <th>タイム</th>
                   <th>ミス</th>
                   <th>日付</th>
                 </tr>
@@ -433,9 +438,11 @@ const RankingScreen = () => {
                     <td>{index + 1}</td>
                     <td>{record.playerName || record.username || 'Anonymous'}</td>
                     <td>{(record.kpm || record.score || 0).toFixed(1)}</td>
+                    <td style={{ color: TypingUtils.getRankColor(record.rank || TypingUtils.getKPMRank(record.kpm || record.score || 0)) }}>
+                      {record.rank || TypingUtils.getKPMRank(record.kpm || record.score || 0)}
+                    </td>
                     <td>{((record.accuracy !== undefined ? record.accuracy : 
                           record.stats?.accuracy !== undefined ? record.stats.accuracy : 0)).toFixed(1)}%</td>
-                    <td>{Math.floor((record.time || 0) / 60)}:{String((record.time || 0) % 60).padStart(2, '0')}</td>
                     <td>{record.mistakes || record.stats?.mistakes || 0}</td>
                     <td>{formatDate(record.date || record.timestamp || new Date().toISOString())}</td>
                   </motion.tr>
@@ -460,8 +467,8 @@ const RankingScreen = () => {
                 <tr>
                   <th>順位</th>
                   <th>KPM</th>
+                  <th>ランク</th>
                   <th>正解率</th>
-                  <th>タイム</th>
                   <th>ミス</th>
                   <th>日付</th>
                 </tr>
@@ -471,8 +478,10 @@ const RankingScreen = () => {
                   <motion.tr key={index} variants={itemVariants}>
                     <td>{index + 1}</td>
                     <td>{record.kpm.toFixed(1)}</td>
+                    <td style={{ color: TypingUtils.getRankColor(record.rank || TypingUtils.getKPMRank(record.kpm)) }}>
+                      {record.rank || TypingUtils.getKPMRank(record.kpm)}
+                    </td>
                     <td>{record.accuracy.toFixed(1)}%</td>
-                    <td>{Math.floor(record.time / 60)}:{String(record.time % 60).padStart(2, '0')}</td>
                     <td>{record.mistakes}</td>
                     <td>{formatDate(record.date)}</td>
                   </motion.tr>
@@ -593,6 +602,20 @@ const RankingScreen = () => {
                       ? Math.floor(gameState.problemKPMs.filter(kpm => kpm > 0).reduce((sum, kpm) => sum + kpm, 0) / 
                           gameState.problemKPMs.filter(kpm => kpm > 0).length)
                       : 0}</span>
+                  </div>
+                  <div className={styles.previewItem}>
+                    <span>ランク:</span> 
+                    <span style={{ 
+                      color: TypingUtils.getRankColor(TypingUtils.getKPMRank(gameState.problemKPMs && gameState.problemKPMs.length > 0 
+                        ? Math.floor(gameState.problemKPMs.filter(kpm => kpm > 0).reduce((sum, kpm) => sum + kpm, 0) / 
+                            gameState.problemKPMs.filter(kpm => kpm > 0).length)
+                        : 0))
+                    }}>
+                      {TypingUtils.getKPMRank(gameState.problemKPMs && gameState.problemKPMs.length > 0 
+                        ? Math.floor(gameState.problemKPMs.filter(kpm => kpm > 0).reduce((sum, kpm) => sum + kpm, 0) / 
+                            gameState.problemKPMs.filter(kpm => kpm > 0).length)
+                        : 0)}
+                    </span>
                   </div>
                   <div className={styles.previewItem}>
                     <span>正解率:</span> 

@@ -208,7 +208,7 @@ const romajiMap = {
   っと: ['tto'],
   っぱ: ['ppa'],
   っぴ: ['ppi'],
-  っぷ: ['ppu'],
+  っぷ: ['pu'],
   っぺ: ['ppe'],
   っぽ: ['ppo'],
   // 記号類も追加
@@ -662,6 +662,70 @@ export default class TypingUtils {
     
     console.log(`【KPM計算】計算結果: ${keyCount} / ${minutes.toFixed(2)} = ${kpm}`);
     return kpm;
+  }
+
+  /**
+   * KPM値に基づいてランクを返す
+   * @param {number} kpm - KPM値
+   * @returns {string} ランク (GOD, DIVINE, LEGEND, SSS+, ... F)
+   */
+  static getKPMRank(kpm) {
+    // 数値として扱うために変換
+    const kpmValue = typeof kpm === 'string' ? parseFloat(kpm) : kpm;
+    
+    if (kpmValue >= 1000) return 'GOD';
+    if (kpmValue >= 950) return 'DIVINE';
+    if (kpmValue >= 900) return 'LEGEND';
+    if (kpmValue >= 850) return 'SSS+';
+    if (kpmValue >= 800) return 'SSS';
+    if (kpmValue >= 750) return 'SS+';
+    if (kpmValue >= 700) return 'SS';
+    if (kpmValue >= 650) return 'S+';
+    if (kpmValue >= 600) return 'S';
+    if (kpmValue >= 550) return 'A+';
+    if (kpmValue >= 500) return 'A';
+    if (kpmValue >= 450) return 'B+';
+    if (kpmValue >= 400) return 'B';
+    if (kpmValue >= 350) return 'C+';
+    if (kpmValue >= 300) return 'C';
+    if (kpmValue >= 250) return 'D+';
+    if (kpmValue >= 200) return 'D';
+    if (kpmValue >= 150) return 'E+';
+    if (kpmValue >= 100) return 'E';
+    if (kpmValue >= 50) return 'F+';
+    return 'F';
+  }
+  
+  /**
+   * ランクに応じた色を返す
+   * @param {string} rank - ランク
+   * @returns {string} 色のHEXコード
+   */
+  static getRankColor(rank) {
+    switch (rank) {
+      case 'GOD': return '#ff00ff'; // マゼンタ
+      case 'DIVINE': return '#ff00cc'; // 明るい紫
+      case 'LEGEND': return '#9900ff'; // 紫
+      case 'SSS+': return '#6600ff'; // 濃い紫
+      case 'SSS': return '#0033ff'; // 青
+      case 'SS+': return '#0099ff'; // 明るい青
+      case 'SS': return '#00ccff'; // 水色
+      case 'S+': return '#00ffcc'; // ターコイズ
+      case 'S': return '#00ff66'; // 明るい緑
+      case 'A+': return '#33ff00'; // 黄緑
+      case 'A': return '#99ff00'; // ライムグリーン
+      case 'B+': return '#ccff00'; // 明るい黄色
+      case 'B': return '#ffff00'; // 黄色
+      case 'C+': return '#ffcc00'; // オレンジ黄色
+      case 'C': return '#ff9900'; // オレンジ
+      case 'D+': return '#ff6600'; // 明るい橙
+      case 'D': return '#ff3300'; // 赤橙
+      case 'E+': return '#ff0000'; // 赤
+      case 'E': return '#cc0000'; // 暗い赤
+      case 'F+': return '#990000'; // より暗い赤
+      case 'F': return '#660000'; // 最も暗い赤
+      default: return '#ffffff'; // 白
+    }
   }
 
   /**

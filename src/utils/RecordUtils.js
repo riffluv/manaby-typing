@@ -1,6 +1,7 @@
 /**
  * タイピングゲームの記録管理ユーティリティ
  */
+import TypingUtils from './TypingUtils';
 
 /**
  * ゲーム記録をローカルストレージに保存する
@@ -9,9 +10,10 @@
  * @param {number} time - プレイ時間（秒）
  * @param {number} mistakes - ミス入力回数
  * @param {string} difficulty - 難易度
+ * @param {string} rank - ランク (GOD, DIVINE, LEGEND, ...)
  * @returns {boolean} 保存に成功したかどうか
  */
-export const saveGameRecord = (kpm, accuracy, time, mistakes, difficulty) => {
+export const saveGameRecord = (kpm, accuracy, time, mistakes, difficulty, rank) => {
   try {
     // 既存の記録を取得
     let existingRecords = getGameRecords();
@@ -26,6 +28,7 @@ export const saveGameRecord = (kpm, accuracy, time, mistakes, difficulty) => {
     // 新しい記録を作成
     const newRecord = {
       kpm: parseFloat(kpm) || 0,
+      rank: rank || TypingUtils.getKPMRank(kpm), // ランクが渡されなかった場合は計算
       accuracy: parseFloat(accuracy) || 0,
       time: time || 0,
       mistakes: mistakes || 0,
