@@ -396,8 +396,8 @@ export default class TypingUtils {
       const value = event.target.value;
       event.target.value = ''; // 入力をクリア
       
-      // 全角→半角変換を適用
-      return Array.from(value).map(convertFullWidthToHalfWidth).join('');
+      // 全角→半角変換を適用（各文字に変換を適用）
+      return Array.from(value).map(char => this.convertFullWidthToHalfWidth(char)).join('');
     }
     return null;
   }
