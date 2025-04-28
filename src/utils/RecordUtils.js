@@ -13,14 +13,21 @@ import TypingUtils from './TypingUtils';
  * @param {string} rank - ランク (GOD, DIVINE, LEGEND, ...)
  * @returns {boolean} 保存に成功したかどうか
  */
-export const saveGameRecord = (kpm, accuracy, time, mistakes, difficulty, rank) => {
+export const saveGameRecord = (
+  kpm,
+  accuracy,
+  time,
+  mistakes,
+  difficulty,
+  rank
+) => {
   try {
     // 既存の記録を取得
     let existingRecords = getGameRecords();
 
     // 今日の日付のデータが既に存在するか確認（同一難易度、同一プレイヤーで）
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
-    const existingTodayRecordIndex = existingRecords.findIndex(record => {
+    const existingTodayRecordIndex = existingRecords.findIndex((record) => {
       const recordDate = new Date(record.date).toISOString().split('T')[0];
       return recordDate === today && record.difficulty === difficulty;
     });
@@ -33,16 +40,21 @@ export const saveGameRecord = (kpm, accuracy, time, mistakes, difficulty, rank) 
       time: time || 0,
       mistakes: mistakes || 0,
       difficulty: difficulty || 'normal',
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
     };
 
     // 既存の記録がある場合、KPMが高い方を保持
     if (existingTodayRecordIndex >= 0) {
       const existingRecord = existingRecords[existingTodayRecordIndex];
       // KPMが同じなら正確性で比較、それも同じならミス数の少ない方を優先
-      if (newRecord.kpm > existingRecord.kpm || 
-         (newRecord.kpm === existingRecord.kpm && newRecord.accuracy > existingRecord.accuracy) ||
-         (newRecord.kpm === existingRecord.kpm && newRecord.accuracy === existingRecord.accuracy && newRecord.mistakes < existingRecord.mistakes)) {
+      if (
+        newRecord.kpm > existingRecord.kpm ||
+        (newRecord.kpm === existingRecord.kpm &&
+          newRecord.accuracy > existingRecord.accuracy) ||
+        (newRecord.kpm === existingRecord.kpm &&
+          newRecord.accuracy === existingRecord.accuracy &&
+          newRecord.mistakes < existingRecord.mistakes)
+      ) {
         // 新記録の場合は上書き
         existingRecords[existingTodayRecordIndex] = newRecord;
       }
@@ -50,16 +62,16 @@ export const saveGameRecord = (kpm, accuracy, time, mistakes, difficulty, rank) 
       // 既存の記録がなければ追加
       existingRecords.push(newRecord);
     }
-    
+
     // 最大20件まで保存（古い順に削除）
     const limitedRecords = existingRecords.slice(-20);
-    
+
     // ローカルストレージに保存
     localStorage.setItem('typingGameRecords', JSON.stringify(limitedRecords));
-    
+
     // ハイスコア更新確認
     updateHighScores(newRecord);
-    
+
     return true;
   } catch (error) {
     console.error('記録の保存中にエラーが発生しました:', error);
@@ -89,29 +101,29 @@ const updateHighScores = (record) => {
   try {
     // 現在のハイスコアを取得
     const highScores = getHighScores();
-    
+
     const difficulty = record.difficulty;
     let updated = false;
-    
+
     // 特定の難易度のハイスコアを更新
     if (record.kpm > (highScores[difficulty]?.kpm || 0)) {
       highScores[difficulty] = {
         ...highScores[difficulty],
         kpm: record.kpm,
-        date: record.date
+        date: record.date,
       };
       updated = true;
     }
-    
+
     if (record.accuracy > (highScores[difficulty]?.accuracy || 0)) {
       highScores[difficulty] = {
         ...highScores[difficulty],
         accuracy: record.accuracy,
-        date: record.date
+        date: record.date,
       };
       updated = true;
     }
-    
+
     if (updated) {
       localStorage.setItem('typingGameHighScores', JSON.stringify(highScores));
     }

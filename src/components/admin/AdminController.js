@@ -11,6 +11,13 @@ const AdminController = () => {
   // モーダルの表示状態を管理
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
+  // コンポーネントマウント時に現在の管理者状態を確認
+  useEffect(() => {
+    // localStorageから管理者状態を読み込む
+    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+    console.log('[管理者モード] 現在の状態:', isAdmin ? '有効' : '無効');
+  }, []);
+
   // キーボードショートカットのイベントハンドラー
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -19,6 +26,11 @@ const AdminController = () => {
       if ((e.ctrlKey || e.metaKey) && (e.keyCode === 64 || e.key === '@')) {
         e.preventDefault(); // デフォルトの動作をキャンセル
         console.log('[管理者モード] Ctrl + @ キーが検出されました');
+        
+        // 管理者モードを有効化
+        localStorage.setItem('isAdmin', 'true');
+        console.log('[管理者モード] 有効化されました');
+        
         setIsAdminModalOpen(true); // 管理者モーダルを表示
       }
     };

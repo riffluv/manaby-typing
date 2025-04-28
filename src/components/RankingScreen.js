@@ -4,7 +4,13 @@ import React, { useState, useEffect } from 'react';
 import styles from '../styles/RankingScreen.module.css';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
 import { getGameRecords, getHighScores } from '../utils/RecordUtils';
-import { initializeFirebase, getTopRankings, getRecentRankings, saveOnlineRanking, debugCheckAllRankings } from '../utils/FirebaseUtils';
+import {
+  initializeFirebase,
+  getTopRankings,
+  getRecentRankings,
+  saveOnlineRanking,
+  debugCheckAllRankings,
+} from '../utils/FirebaseUtils';
 import soundSystem from '../utils/SoundUtils';
 import TypingUtils from '../utils/TypingUtils';
 import { motion } from 'framer-motion';
@@ -21,8 +27,8 @@ const containerVariants = {
   },
   exit: {
     opacity: 0,
-    transition: { duration: 0.3 }
-  }
+    transition: { duration: 0.3 },
+  },
 };
 
 const itemVariants = {
@@ -39,8 +45,8 @@ const itemVariants = {
   exit: {
     opacity: 0,
     y: 20,
-    transition: { duration: 0.2 }
-  }
+    transition: { duration: 0.2 },
+  },
 };
 
 const RankingScreen = () => {
@@ -50,14 +56,17 @@ const RankingScreen = () => {
   const [highScores, setHighScores] = useState({});
   const [activeDifficulty, setActiveDifficulty] = useState('normal');
   const [isExiting, setIsExiting] = useState(false);
-  
+
   // オンラインランキング関連の状態
   const [onlineRankings, setOnlineRankings] = useState([]);
   const [isOnlineMode, setIsOnlineMode] = useState(true); // デフォルトでオンラインモード
   const [isLoading, setIsLoading] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [playerName, setPlayerName] = useState('');
-  const [registrationStatus, setRegistrationStatus] = useState({ success: false, message: '' });
+  const [registrationStatus, setRegistrationStatus] = useState({
+    success: false,
+    message: '',
+  });
   const [debugData, setDebugData] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
   const [previousScreen, setPreviousScreen] = useState(SCREENS.MAIN_MENU);
@@ -65,7 +74,11 @@ const RankingScreen = () => {
   // コンポーネントマウント時に前の画面情報を取得
   useEffect(() => {
     // ページ遷移時に渡された情報から遷移元を取得
-    if (window.history.state && window.history.state.options && window.history.state.options.from) {
+    if (
+      window.history.state &&
+      window.history.state.options &&
+      window.history.state.options.from
+    ) {
       setPreviousScreen(window.history.state.options.from);
     } else {
       // 情報がない場合はデフォルトでメインメニューからと見なす
@@ -80,10 +93,10 @@ const RankingScreen = () => {
 
     // 記録データの取得
     loadRankingData();
-    
+
     // デフォルトで現在の難易度をアクティブに
     setActiveDifficulty(settings.difficulty);
-    
+
     // ローカルストレージから前回使用したプレイヤー名を取得
     const savedName = localStorage.getItem('playerName');
     if (savedName) {
@@ -130,7 +143,9 @@ const RankingScreen = () => {
     try {
       // 常にトップランキングを取得
       const rankings = await getTopRankings(activeDifficulty, 20);
-      console.log(`Loaded ${rankings.length} online rankings for difficulty: ${activeDifficulty}`);
+      console.log(
+        `Loaded ${rankings.length} online rankings for difficulty: ${activeDifficulty}`
+      );
       setOnlineRankings(rankings);
     } catch (error) {
       console.error('オンラインランキングの取得に失敗しました:', error);
@@ -145,7 +160,7 @@ const RankingScreen = () => {
     // オンラインモード ⇔ ローカルモードの切り替え
     const newMode = !isOnlineMode;
     setIsOnlineMode(newMode);
-    
+
     // モード変更時にサウンドを再生
     if (newMode) {
       console.log('オンラインモードに切り替えました');
@@ -163,7 +178,7 @@ const RankingScreen = () => {
   // KPM順にソートされたデータを取得
   const getKpmSortedData = () => {
     return [...rankingData]
-      .filter(record => record.difficulty === activeDifficulty)
+      .filter((record) => record.difficulty === activeDifficulty)
       .sort((a, b) => b.kpm - a.kpm)
       .slice(0, 20); // 上位20件のみ表示
   };
@@ -171,20 +186,22 @@ const RankingScreen = () => {
   // 日付をフォーマット
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    return `${date.getMonth() + 1}/${date.getDate()} ${String(
+      date.getHours()
+    ).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   };
 
   // 戻るボタンのクリック処理
   const handleBack = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
-    
+
     // ボタン音を即座に再生
     soundSystem.playSound('Button');
 
     // 退場中フラグを立てる
     setIsExiting(true);
-    
+
     // 退場アニメーションの後に画面遷移
     setTimeout(() => {
       // previousScreenが設定されていればその画面に、なければメインメニューに戻る
@@ -197,13 +214,13 @@ const RankingScreen = () => {
   const handleMainMenu = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
-    
+
     // ボタン音を即座に再生
     soundSystem.playSound('Button');
 
     // 退場中フラグを立てる
     setIsExiting(true);
-    
+
     // 退場アニメーションの後に画面遷移
     setTimeout(() => {
       goToScreen(SCREENS.MAIN_MENU, { playSound: false }); // 音はすでに再生したので不要
@@ -231,15 +248,18 @@ const RankingScreen = () => {
   // オンラインランキングに登録
   const handleRegisterScore = async () => {
     if (!gameState || !gameState.correctKeyCount) {
-      setRegistrationStatus({ 
-        success: false, 
-        message: '登録するスコアがありません。プレイ後に再度お試しください。' 
+      setRegistrationStatus({
+        success: false,
+        message: '登録するスコアがありません。プレイ後に再度お試しください。',
       });
       return;
     }
 
     if (!playerName.trim()) {
-      setRegistrationStatus({ success: false, message: '名前を入力してください。' });
+      setRegistrationStatus({
+        success: false,
+        message: '名前を入力してください。',
+      });
       return;
     }
 
@@ -251,12 +271,16 @@ const RankingScreen = () => {
       // Weather Typing風の計算方法でのKPM
       let kpmValue = 0;
       if (gameState.problemKPMs && gameState.problemKPMs.length > 0) {
-        const validKPMs = gameState.problemKPMs.filter(kpm => kpm > 0);
+        const validKPMs = gameState.problemKPMs.filter((kpm) => kpm > 0);
         if (validKPMs.length > 0) {
           const totalKPM = validKPMs.reduce((sum, kpm) => sum + kpm, 0);
           kpmValue = Math.floor(totalKPM / validKPMs.length);
         }
-      } else if (gameState.startTime && gameState.endTime && gameState.correctKeyCount) {
+      } else if (
+        gameState.startTime &&
+        gameState.endTime &&
+        gameState.correctKeyCount
+      ) {
         const elapsedMs = gameState.endTime - gameState.startTime;
         const minutes = elapsedMs / 60000;
         kpmValue = Math.floor(gameState.correctKeyCount / minutes);
@@ -268,22 +292,28 @@ const RankingScreen = () => {
       // 正解率を計算
       // gameState.accuracyが存在しない場合は、正解キー数と間違いから計算
       let accuracyValue = 0;
-      if (typeof gameState.accuracy === 'number' && !isNaN(gameState.accuracy)) {
+      if (
+        typeof gameState.accuracy === 'number' &&
+        !isNaN(gameState.accuracy)
+      ) {
         // すでにaccuracyが計算されている場合はその値を使用
         accuracyValue = gameState.accuracy;
-      } else if (gameState.correctKeyCount >= 0 && (gameState.mistakes >= 0 || gameState.mistakes === 0)) {
+      } else if (
+        gameState.correctKeyCount >= 0 &&
+        (gameState.mistakes >= 0 || gameState.mistakes === 0)
+      ) {
         // correctKeyCountとmistakesから計算
         const totalKeystrokes = gameState.correctKeyCount + gameState.mistakes;
         if (totalKeystrokes > 0) {
           accuracyValue = (gameState.correctKeyCount / totalKeystrokes) * 100;
         }
       }
-      
-      console.log("送信する正確率データ:", accuracyValue, "%");
-      console.log("gameState:", {
+
+      console.log('送信する正確率データ:', accuracyValue, '%');
+      console.log('gameState:', {
         correctKeyCount: gameState.correctKeyCount,
         mistakes: gameState.mistakes,
-        accuracy: gameState.accuracy
+        accuracy: gameState.accuracy,
       });
 
       // オンラインランキングに保存
@@ -298,11 +328,11 @@ const RankingScreen = () => {
       );
 
       if (recordId) {
-        setRegistrationStatus({ 
-          success: true, 
-          message: 'ランキングに登録しました！' 
+        setRegistrationStatus({
+          success: true,
+          message: 'ランキングに登録しました！',
         });
-        
+
         // オンラインモードに切り替えて最新データを表示
         setIsOnlineMode(true);
         await loadOnlineRankings();
@@ -311,9 +341,10 @@ const RankingScreen = () => {
       }
     } catch (error) {
       console.error('スコア登録エラー:', error);
-      setRegistrationStatus({ 
-        success: false, 
-        message: 'ランキング登録中にエラーが発生しました。ネットワーク接続を確認してください。' 
+      setRegistrationStatus({
+        success: false,
+        message:
+          'ランキング登録中にエラーが発生しました。ネットワーク接続を確認してください。',
       });
     } finally {
       setIsLoading(false);
@@ -336,7 +367,7 @@ const RankingScreen = () => {
       setIsLoading(false);
     }
   };
-  
+
   // デバッグモードを閉じる
   const closeDebug = () => {
     setShowDebug(false);
@@ -348,7 +379,7 @@ const RankingScreen = () => {
       // モーダルが開いている場合、ESCキーで閉じる
       if (e.key === 'Escape') {
         e.preventDefault();
-        
+
         if (showDebug) {
           // デバッグモーダルを閉じる
           soundSystem.playSound('Button');
@@ -361,17 +392,17 @@ const RankingScreen = () => {
           // モーダルが開いていない場合は一つ前の画面に戻る
           soundSystem.playSound('Button');
           setIsExiting(true);
-          
+
           setTimeout(() => {
             goToScreen(previousScreen, { playSound: false });
           }, 300);
         }
       }
     };
-    
+
     // キーボードイベントをリスン
     document.addEventListener('keydown', handleKeyDown);
-    
+
     // クリーンアップ関数
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -399,17 +430,22 @@ const RankingScreen = () => {
       </motion.div>
 
       {/* オンライン/ローカル切り替えボタン */}
-      <div className={styles.onlineModeToggle} style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '10px',
-        marginBottom: '15px',
-        zIndex: 10,
-        position: 'relative'
-      }}>
+      <div
+        className={styles.onlineModeToggle}
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '10px',
+          marginBottom: '15px',
+          zIndex: 10,
+          position: 'relative',
+        }}
+      >
         <button
           style={{
-            backgroundColor: !isOnlineMode ? 'rgba(255, 140, 0, 0.4)' : 'rgba(0, 0, 0, 0.7)',
+            backgroundColor: !isOnlineMode
+              ? 'rgba(255, 140, 0, 0.4)'
+              : 'rgba(0, 0, 0, 0.7)',
             color: '#ffffff',
             fontFamily: "'Press Start 2P', cursive, system-ui",
             fontSize: '12px',
@@ -417,8 +453,10 @@ const RankingScreen = () => {
             border: '2px solid #ff8c00',
             borderRadius: '20px',
             cursor: isOnlineMode ? 'pointer' : 'default',
-            boxShadow: !isOnlineMode ? '0 0 10px rgba(255, 140, 0, 0.8)' : 'none',
-            transition: 'all 0.3s'
+            boxShadow: !isOnlineMode
+              ? '0 0 10px rgba(255, 140, 0, 0.8)'
+              : 'none',
+            transition: 'all 0.3s',
           }}
           onClick={() => {
             if (isOnlineMode) toggleOnlineMode();
@@ -428,7 +466,9 @@ const RankingScreen = () => {
         </button>
         <button
           style={{
-            backgroundColor: isOnlineMode ? 'rgba(255, 140, 0, 0.4)' : 'rgba(0, 0, 0, 0.7)',
+            backgroundColor: isOnlineMode
+              ? 'rgba(255, 140, 0, 0.4)'
+              : 'rgba(0, 0, 0, 0.7)',
             color: '#ffffff',
             fontFamily: "'Press Start 2P', cursive, system-ui",
             fontSize: '12px',
@@ -436,8 +476,10 @@ const RankingScreen = () => {
             border: '2px solid #ff8c00',
             borderRadius: '20px',
             cursor: !isOnlineMode ? 'pointer' : 'default',
-            boxShadow: isOnlineMode ? '0 0 10px rgba(255, 140, 0, 0.8)' : 'none',
-            transition: 'all 0.3s'
+            boxShadow: isOnlineMode
+              ? '0 0 10px rgba(255, 140, 0, 0.8)'
+              : 'none',
+            transition: 'all 0.3s',
           }}
           onClick={() => {
             if (!isOnlineMode) toggleOnlineMode();
@@ -449,19 +491,25 @@ const RankingScreen = () => {
 
       <div className={styles.difficultyNav}>
         <button
-          className={`${styles.difficultyButton} ${activeDifficulty === 'easy' ? styles.difficultyButton__active : ''}`}
+          className={`${styles.difficultyButton} ${
+            activeDifficulty === 'easy' ? styles.difficultyButton__active : ''
+          }`}
           onClick={() => handleDifficultyChange('easy')}
         >
           やさしい
         </button>
         <button
-          className={`${styles.difficultyButton} ${activeDifficulty === 'normal' ? styles.difficultyButton__active : ''}`}
+          className={`${styles.difficultyButton} ${
+            activeDifficulty === 'normal' ? styles.difficultyButton__active : ''
+          }`}
           onClick={() => handleDifficultyChange('normal')}
         >
           普通
         </button>
         <button
-          className={`${styles.difficultyButton} ${activeDifficulty === 'hard' ? styles.difficultyButton__active : ''}`}
+          className={`${styles.difficultyButton} ${
+            activeDifficulty === 'hard' ? styles.difficultyButton__active : ''
+          }`}
           onClick={() => handleDifficultyChange('hard')}
         >
           むずかしい
@@ -473,11 +521,11 @@ const RankingScreen = () => {
           <div className={styles.loadingSpinner}>読み込み中...</div>
         ) : isOnlineMode ? (
           // オンラインランキング表示
-          <motion.div 
+          <motion.div
             className={styles.tableContainer}
             variants={containerVariants}
             initial="hidden"
-            animate={isExiting ? "exit" : "show"}
+            animate={isExiting ? 'exit' : 'show'}
             exit="exit"
           >
             <table className={styles.rankingTable}>
@@ -496,32 +544,57 @@ const RankingScreen = () => {
                 {onlineRankings.map((record, index) => (
                   <motion.tr key={record.id || index} variants={itemVariants}>
                     <td>{index + 1}</td>
-                    <td>{record.playerName || record.username || 'Anonymous'}</td>
-                    <td>{Math.floor(record.kpm) === record.kpm 
-                        ? Math.floor(record.kpm) 
-                        : record.kpm.toFixed(1)}</td>
-                    <td style={{ color: TypingUtils.getRankColor(record.rank || TypingUtils.getKPMRank(record.kpm)) }}>
+                    <td>
+                      {record.playerName || record.username || 'Anonymous'}
+                    </td>
+                    <td>
+                      {Math.floor(record.kpm) === record.kpm
+                        ? Math.floor(record.kpm)
+                        : record.kpm.toFixed(1)}
+                    </td>
+                    <td
+                      style={{
+                        color: TypingUtils.getRankColor(
+                          record.rank || TypingUtils.getKPMRank(record.kpm)
+                        ),
+                      }}
+                    >
                       {record.rank || TypingUtils.getKPMRank(record.kpm)}
                     </td>
-                    <td>{((record.accuracy !== undefined ? record.accuracy : 
-                          record.stats?.accuracy !== undefined ? record.stats.accuracy : 0)).toFixed(1)}%</td>
+                    <td>
+                      {(record.accuracy !== undefined
+                        ? record.accuracy
+                        : record.stats?.accuracy !== undefined
+                        ? record.stats.accuracy
+                        : 0
+                      ).toFixed(1)}
+                      %
+                    </td>
                     <td>{record.mistakes || record.stats?.mistakes || 0}</td>
-                    <td>{formatDate(record.date || record.timestamp || new Date().toISOString())}</td>
+                    <td>
+                      {formatDate(
+                        record.date ||
+                          record.timestamp ||
+                          new Date().toISOString()
+                      )}
+                    </td>
                   </motion.tr>
                 ))}
               </tbody>
             </table>
             {onlineRankings.length === 0 && (
-              <div className={styles.noRecords}>オンラインの記録がありません</div>
+              <div className={styles.noRecords}>
+                オンラインの記録がありません
+              </div>
             )}
           </motion.div>
         ) : (
           // ローカルランキング表示
-          <motion.div 
+          <motion.div
             className={styles.tableContainer}
             variants={containerVariants}
             initial="hidden"
-            animate={isExiting ? "exit" : "show"}
+            animate={isExiting ? 'exit' : 'show'}
             exit="exit"
           >
             <table className={styles.rankingTable}>
@@ -539,10 +612,18 @@ const RankingScreen = () => {
                 {getKpmSortedData().map((record, index) => (
                   <motion.tr key={index} variants={itemVariants}>
                     <td>{index + 1}</td>
-                    <td>{Math.floor(record.kpm) === record.kpm 
-                        ? Math.floor(record.kpm) 
-                        : record.kpm.toFixed(1)}</td>
-                    <td style={{ color: TypingUtils.getRankColor(record.rank || TypingUtils.getKPMRank(record.kpm)) }}>
+                    <td>
+                      {Math.floor(record.kpm) === record.kpm
+                        ? Math.floor(record.kpm)
+                        : record.kpm.toFixed(1)}
+                    </td>
+                    <td
+                      style={{
+                        color: TypingUtils.getRankColor(
+                          record.rank || TypingUtils.getKPMRank(record.kpm)
+                        ),
+                      }}
+                    >
                       {record.rank || TypingUtils.getKPMRank(record.kpm)}
                     </td>
                     <td>{record.accuracy.toFixed(1)}%</td>
@@ -576,7 +657,7 @@ const RankingScreen = () => {
         >
           ランキング登録
         </motion.button>
-        
+
         <motion.button
           className={styles.backButton}
           onClick={handleBack}
@@ -598,7 +679,7 @@ const RankingScreen = () => {
         >
           メインメニュー
         </motion.button>
-        
+
         {/* デバッグボタン - 開発用 */}
         <motion.button
           className={styles.debugButton}
@@ -622,7 +703,7 @@ const RankingScreen = () => {
             transition={{
               type: 'spring',
               stiffness: 400,
-              damping: 30
+              damping: 30,
             }}
           >
             <div className={styles.modalHeader}>
@@ -633,13 +714,19 @@ const RankingScreen = () => {
             </div>
             <div className={styles.modalBody}>
               <p>名前を入力してオンラインランキングに登録しましょう！</p>
-              
+
               {registrationStatus.message && (
-                <div className={`${styles.statusMessage} ${registrationStatus.success ? styles.successMessage : styles.errorMessage}`}>
+                <div
+                  className={`${styles.statusMessage} ${
+                    registrationStatus.success
+                      ? styles.successMessage
+                      : styles.errorMessage
+                  }`}
+                >
                   {registrationStatus.message}
                 </div>
               )}
-              
+
               <div className={styles.inputGroup}>
                 <label htmlFor="playerName">プレイヤー名：</label>
                 <input
@@ -653,48 +740,95 @@ const RankingScreen = () => {
                   className={styles.nameInput}
                 />
               </div>
-              
+
               {gameState && (
                 <div className={styles.scorePreview}>
                   <div className={styles.previewItem}>
-                    <span>難易度:</span> 
-                    <span>{settings.difficulty === 'easy' ? 'やさしい' : settings.difficulty === 'normal' ? '普通' : 'むずかしい'}</span>
-                  </div>
-                  <div className={styles.previewItem}>
-                    <span>KPM:</span> 
-                    <span>{gameState.problemKPMs && gameState.problemKPMs.length > 0 
-                      ? Math.floor(gameState.problemKPMs.filter(kpm => kpm > 0).reduce((sum, kpm) => sum + kpm, 0) / 
-                          gameState.problemKPMs.filter(kpm => kpm > 0).length)
-                      : 0}</span>
-                  </div>
-                  <div className={styles.previewItem}>
-                    <span>ランク:</span> 
-                    <span style={{ 
-                      color: TypingUtils.getRankColor(TypingUtils.getKPMRank(gameState.problemKPMs && gameState.problemKPMs.length > 0 
-                        ? Math.floor(gameState.problemKPMs.filter(kpm => kpm > 0).reduce((sum, kpm) => sum + kpm, 0) / 
-                            gameState.problemKPMs.filter(kpm => kpm > 0).length)
-                        : 0))
-                    }}>
-                      {TypingUtils.getKPMRank(gameState.problemKPMs && gameState.problemKPMs.length > 0 
-                        ? Math.floor(gameState.problemKPMs.filter(kpm => kpm > 0).reduce((sum, kpm) => sum + kpm, 0) / 
-                            gameState.problemKPMs.filter(kpm => kpm > 0).length)
-                        : 0)}
+                    <span>難易度:</span>
+                    <span>
+                      {settings.difficulty === 'easy'
+                        ? 'やさしい'
+                        : settings.difficulty === 'normal'
+                        ? '普通'
+                        : 'むずかしい'}
                     </span>
                   </div>
                   <div className={styles.previewItem}>
-                    <span>正解率:</span> 
-                    <span>{gameState.correctKeyCount && (gameState.mistakes || gameState.mistakes === 0)
-                      ? ((gameState.correctKeyCount / (gameState.correctKeyCount + gameState.mistakes)) * 100).toFixed(1)
-                      : 0}%</span>
+                    <span>KPM:</span>
+                    <span>
+                      {gameState.problemKPMs && gameState.problemKPMs.length > 0
+                        ? Math.floor(
+                            gameState.problemKPMs
+                              .filter((kpm) => kpm > 0)
+                              .reduce((sum, kpm) => sum + kpm, 0) /
+                              gameState.problemKPMs.filter((kpm) => kpm > 0)
+                                .length
+                          )
+                        : 0}
+                    </span>
+                  </div>
+                  <div className={styles.previewItem}>
+                    <span>ランク:</span>
+                    <span
+                      style={{
+                        color: TypingUtils.getRankColor(
+                          TypingUtils.getKPMRank(
+                            gameState.problemKPMs &&
+                              gameState.problemKPMs.length > 0
+                              ? Math.floor(
+                                  gameState.problemKPMs
+                                    .filter((kpm) => kpm > 0)
+                                    .reduce((sum, kpm) => sum + kpm, 0) /
+                                    gameState.problemKPMs.filter(
+                                      (kpm) => kpm > 0
+                                    ).length
+                                )
+                              : 0
+                          )
+                        ),
+                      }}
+                    >
+                      {TypingUtils.getKPMRank(
+                        gameState.problemKPMs &&
+                          gameState.problemKPMs.length > 0
+                          ? Math.floor(
+                              gameState.problemKPMs
+                                .filter((kpm) => kpm > 0)
+                                .reduce((sum, kpm) => sum + kpm, 0) /
+                                gameState.problemKPMs.filter((kpm) => kpm > 0)
+                                  .length
+                            )
+                          : 0
+                      )}
+                    </span>
+                  </div>
+                  <div className={styles.previewItem}>
+                    <span>正解率:</span>
+                    <span>
+                      {gameState.correctKeyCount &&
+                      (gameState.mistakes || gameState.mistakes === 0)
+                        ? (
+                            (gameState.correctKeyCount /
+                              (gameState.correctKeyCount +
+                                gameState.mistakes)) *
+                            100
+                          ).toFixed(1)
+                        : 0}
+                      %
+                    </span>
                   </div>
                 </div>
               )}
-              
+
               <div className={styles.modalActions}>
                 <button
                   className={styles.registerActionButton}
                   onClick={handleRegisterScore}
-                  disabled={isLoading || !playerName.trim() || registrationStatus.success}
+                  disabled={
+                    isLoading ||
+                    !playerName.trim() ||
+                    registrationStatus.success
+                  }
                 >
                   {isLoading ? '登録中...' : '登録する'}
                 </button>
@@ -721,7 +855,7 @@ const RankingScreen = () => {
             transition={{
               type: 'spring',
               stiffness: 400,
-              damping: 30
+              damping: 30,
             }}
           >
             <div className={styles.modalHeader}>
@@ -734,10 +868,7 @@ const RankingScreen = () => {
               <pre>{JSON.stringify(debugData, null, 2)}</pre>
             </div>
             <div className={styles.modalActions}>
-              <button
-                className={styles.cancelButton}
-                onClick={closeDebug}
-              >
+              <button className={styles.cancelButton} onClick={closeDebug}>
                 閉じる
               </button>
             </div>

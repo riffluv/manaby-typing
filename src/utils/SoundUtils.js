@@ -208,7 +208,7 @@ class SoundUtils {
           console.error('AudioContextの再開に失敗:', err);
         });
       }
-      
+
       // 状態チェックを待たずに即座に再生を試みる（遅延を解消）
       this._playBufferInternal(buffer);
     } catch (error) {

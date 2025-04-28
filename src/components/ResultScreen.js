@@ -68,23 +68,23 @@ const ResultScreen = () => {
       // ESCキーでメインメニューに戻る
       if (e.key === 'Escape' && !isTransitioning && !isExiting) {
         e.preventDefault();
-        
+
         // ボタン音を即座に再生
         soundSystem.playSound('Button');
-        
+
         // 退場中フラグを立てる
         setIsExiting(true);
-        
+
         // 退場アニメーションの後に画面遷移
         setTimeout(() => {
           goToScreen(SCREENS.MAIN_MENU, { playSound: false });
         }, 300);
       }
     };
-    
+
     // キーボードイベントをリスン
     document.addEventListener('keydown', handleKeyDown);
-    
+
     // クリーンアップ関数
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -191,7 +191,7 @@ const ResultScreen = () => {
 
     // KPM値を計算
     const kpmValue = calculateKPM();
-    
+
     // KPM値からランクを取得
     const rank = TypingUtils.getKPMRank(kpmValue);
     const rankColor = TypingUtils.getRankColor(rank);
@@ -218,7 +218,7 @@ const ResultScreen = () => {
         timeValue,
         mistakeCount,
         settings.difficulty,
-        rank  // ランク情報も保存
+        rank // ランク情報も保存
       );
       console.log('ゲーム記録を保存しました:', {
         kpm: kpmValue,
@@ -310,10 +310,13 @@ const ResultScreen = () => {
             <div className={styles.statValue}>{fixedStats.kpm}</div>
           </motion.div>
 
-          <motion.div variants={cardVariants} className={`${styles.statCard} ${styles.rankCard}`}>
+          <motion.div
+            variants={cardVariants}
+            className={`${styles.statCard} ${styles.rankCard}`}
+          >
             <div className={styles.statLabel}>ランク</div>
-            <div 
-              className={styles.statValue} 
+            <div
+              className={styles.statValue}
               style={{ color: fixedStats.rankColor }}
             >
               {fixedStats.rank}

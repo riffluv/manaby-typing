@@ -215,13 +215,16 @@ export const usePageTransition = () => {
    * @param {string} options.soundType - 再生する効果音のタイプ（デフォルト：'button'）
    * @param {string} options.from - 遷移元の画面（履歴管理に使用）
    */
-  const goToScreen = (screen, options = { playSound: true, soundType: 'button' }) => {
+  const goToScreen = (
+    screen,
+    options = { playSound: true, soundType: 'button' }
+  ) => {
     // トランジション中は操作を無効化
     if (isTransitioning) return;
 
     // 現在の画面情報を取得
     const currentScreen = window.history.state?.screen || SCREENS.MAIN_MENU;
-    
+
     // 設定画面への遷移をモーダル表示に変更
     if (screen === SCREENS.SETTINGS) {
       // 効果音を先に確実に鳴らす（オプションでオフにしない限り）
@@ -272,8 +275,11 @@ export const usePageTransition = () => {
         '画面遷移を実行します:',
         screen,
         'サウンド:',
-        options.playSound !== false ? `有効 (${options.soundType || 'button'})` : '無効',
-        '遷移元:', options.from || currentScreen
+        options.playSound !== false
+          ? `有効 (${options.soundType || 'button'})`
+          : '無効',
+        '遷移元:',
+        options.from || currentScreen
       );
     } catch (err) {
       console.error('音声再生でエラーが発生しました:', err);
@@ -283,12 +289,12 @@ export const usePageTransition = () => {
     setIsTransitioning(true);
 
     // 画面遷移履歴の更新 - 現在の画面を遷移元として記録
-    const historyState = { 
+    const historyState = {
       screen: screen,
       options: {
         ...options,
-        from: options.from || currentScreen // 遷移元を記録
-      }
+        from: options.from || currentScreen, // 遷移元を記録
+      },
     };
     window.history.replaceState(historyState, '', window.location.pathname);
 

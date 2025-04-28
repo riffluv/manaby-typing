@@ -15,7 +15,14 @@ import styles from '../../styles/common/Modal.module.css';
  * @param {boolean} [props.disableEscKey=false] - ESCキーでの閉じる機能を無効にするかどうか
  * @returns {React.ReactElement}
  */
-const Modal = ({ isOpen, onClose, title, children, size = 'medium', disableEscKey = false }) => {
+const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = 'medium',
+  disableEscKey = false,
+}) => {
   // サイズに応じたクラス名を設定
   const sizeClass = size !== 'medium' ? `modal--${size}` : '';
 

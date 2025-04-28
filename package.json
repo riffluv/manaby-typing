@@ -13,9 +13,12 @@
   "dependencies": {
     "firebase": "^11.6.1",
     "framer-motion": "^12.9.2",
+    "html2canvas": "^1.4.1",
     "next": "15.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-sketch-canvas": "^6.2.0",
+    "roughjs": "^4.6.6",
     "wanakana": "^5.3.1"
   },
   "devDependencies": {

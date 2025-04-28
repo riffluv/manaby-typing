@@ -582,17 +582,17 @@
   .shortcutHelp {
     padding: 5px 10px;
   }
-  
+
   .shortcutList {
     flex-direction: column;
     gap: 6px;
     align-items: center;
   }
-  
+
   .shortcutItem {
     font-size: 8px;
   }
-  
+
   .shortcutItem kbd {
     font-size: 7px;
     padding: 1px 3px;
@@ -604,8 +604,66 @@
 .menuButton:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 3px;
-  box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.6), 
-              inset 0 0 0 1px rgba(255, 140, 0, 0.5);
+  box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 140, 0, 0.5);
 }
 
 /* キーボードフォーカス用のグローバルスタイルは別途グローバルCSSに記述する必要があります */
+
+/* 名前入力モーダルのスタイル */
+.nameInputContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.nameInput {
+  padding: 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.nameInput:focus {
+  border-color: #4a90e2;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
+}
+
+.modalButtonContainer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* 保存成功メッセージのスタイル */
+.saveSuccessMessage {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(40, 167, 69, 0.9);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.successIcon {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+/* 背景保存ボタンの無効状態 */
+.menuButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

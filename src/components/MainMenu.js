@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/MainMenu.module.css';
 import Image from 'next/image';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
@@ -35,9 +35,11 @@ export const useSettingsModal = () => {
 const MainMenu = () => {
   const { settings, setSettings } = useGameContext();
   const { goToScreen, isTransitioning } = usePageTransition();
+  const mainContainerRef = useRef(null);
 
   // モーダル表示状態を管理するstate
   const [showCredits, setShowCredits] = useState(false);
+  
   // グローバル設定モーダル状態を使用
   const {
     showSettingsModal,
@@ -342,10 +344,10 @@ const MainMenu = () => {
       if (showSettingsModal || showCredits) {
         return;
       }
-      
+
       // トランジション中は操作を無効化
       if (isTransitioning) return;
-      
+
       // スペースキーが押されたらゲームを開始
       if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault(); // デフォルト動作を抑制
@@ -371,10 +373,10 @@ const MainMenu = () => {
         goToScreen(SCREENS.RANKING);
       }
     };
-    
+
     // キーボードイベントリスナーを登録
     document.addEventListener('keydown', handleKeyDown);
-    
+
     // クリーンアップ関数
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -382,7 +384,7 @@ const MainMenu = () => {
   }, [isTransitioning, showSettingsModal, showCredits, goToScreen]);
 
   return (
-    <div className={styles.mainContainer}>
+    <div className={styles.mainContainer} ref={mainContainerRef}>
       {/* マスコットキャラクター - アニメーション付き */}
       <motion.div
         className={styles.mascotContainer}
@@ -455,7 +457,7 @@ const MainMenu = () => {
           transition={{ delay: 1.2, duration: 0.5 }}
         >
           <p>ロゴをクリックまたはスペースキーでスタート！</p>
-          
+
           {/* ショートカットヘルプ - アニメーション付き */}
           <motion.div
             className={styles.shortcutHelp}
@@ -484,12 +486,11 @@ const MainMenu = () => {
         </motion.div>
       </div>
 
-      {/* 設定モーダル - 共通モーダルコンポーネントを使用 */}
+      {/* 設定モーダルと他のモーダル - 既存コード */}
       <Modal isOpen={showSettingsModal} onClose={handleCloseModal} title="設定">
         {renderSettingsContent()}
       </Modal>
 
-      {/* クレジットモーダル - 共通モーダルコンポーネントを使用 */}
       <Modal isOpen={showCredits} onClose={handleCloseModal} title="クレジット">
         {renderCreditsContent()}
       </Modal>

@@ -1,0 +1,153 @@
+.doodleCanvasContainer {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #f5f5f5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 1rem 0;
+}
+
+.canvas {
+  border: 1px solid #ddd;
+  background-color: #ffffff;
+  touch-action: none; /* モバイルでのスクロールを防止 */
+}
+
+.toolbarTop, .toolbarBottom {
+  display: flex;
+  padding: 8px;
+  background-color: #f0f0f0;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.toolbarTop {
+  border-bottom: 1px solid #ddd;
+}
+
+.toolbarBottom {
+  border-top: 1px solid #ddd;
+  justify-content: space-between;
+}
+
+.colorPalette {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.colorButton {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.colorButton:hover {
+  transform: scale(1.1);
+}
+
+.activeColor {
+  box-shadow: 0 0 0 2px #333;
+}
+
+.brushSizes {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.sizeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sizeButton:hover {
+  background-color: #f0f0f0;
+}
+
+.activeSize {
+  background-color: #e0e0e0;
+  border-color: #999;
+}
+
+.sizeIndicator {
+  background-color: #000;
+  border-radius: 50%;
+}
+
+.toolButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0 8px;
+}
+
+.toolButton:hover {
+  background-color: #f0f0f0;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  height: 36px;
+  border-radius: 4px;
+  border: none;
+  background-color: #4a90e2;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0 16px;
+}
+
+.actionButton:hover {
+  background-color: #3a80d2;
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+  .toolbarTop, .toolbarBottom {
+    padding: 6px;
+    gap: 4px;
+  }
+  
+  .colorButton, .sizeIndicator {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .toolButton {
+    min-width: 32px;
+    height: 32px;
+  }
+  
+  .actionButton {
+    min-width: 60px;
+    height: 32px;
+    padding: 0 12px;
+    font-size: 0.85rem;
+  }
+}

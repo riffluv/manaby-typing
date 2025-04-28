@@ -473,8 +473,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* レスポンシブデザイン */
@@ -511,11 +515,11 @@
   .modalContent {
     width: 80%;
   }
-  
+
   .modalTitle {
     font-size: 14px;
   }
-  
+
   .registerButton {
     font-size: 10px;
     padding: 8px 10px;

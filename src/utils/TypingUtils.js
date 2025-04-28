@@ -254,40 +254,40 @@ const vowelsAndY = {
 // Weather Typing風の特殊組み合わせ処理のためのマッピング
 // 最短入力パターンを優先的に選択するために使用
 const specialCombinations = {
-  'っか': 'kka',
-  'っき': 'kki',
-  'っく': 'kku',
-  'っけ': 'kke',
-  'っこ': 'kko',
-  'っさ': 'ssa',
-  'っし': 'ssi', // shiよりsiを優先
-  'っす': 'ssu',
-  'っせ': 'sse',
-  'っそ': 'sso',
-  'った': 'tta',
-  'っち': 'tti', // cchiよりttiを優先
-  'っつ': 'ttu', // ttsuよりttuを優先
-  'って': 'tte',
-  'っと': 'tto',
-  'っぱ': 'ppa',
-  'っぴ': 'ppi',
-  'っぷ': 'ppu',
-  'っぺ': 'ppe',
-  'っぽ': 'ppo',
-  'し': 'si', // shiよりsiを優先
-  'ち': 'ti', // chiよりtiを優先
-  'つ': 'tu', // tsuよりtuを優先
-  'ふ': 'hu', // fuよりhuを優先
-  'じ': 'zi', // jiよりziを優先
-  'しゃ': 'sya', // shaよりsyaを優先
-  'しゅ': 'syu', // shuよりsyuを優先
-  'しょ': 'syo', // shoよりsyoを優先
-  'ちゃ': 'tya', // chaよりtyaを優先
-  'ちゅ': 'tyu', // chuよりtyuを優先
-  'ちょ': 'tyo', // choよりtyoを優先
-  'じゃ': 'zya', // jaよりzyaを優先
-  'じゅ': 'zyu', // juよりzyuを優先
-  'じょ': 'zyo', // joよりzyoを優先
+  っか: 'kka',
+  っき: 'kki',
+  っく: 'kku',
+  っけ: 'kke',
+  っこ: 'kko',
+  っさ: 'ssa',
+  っし: 'ssi', // shiよりsiを優先
+  っす: 'ssu',
+  っせ: 'sse',
+  っそ: 'sso',
+  った: 'tta',
+  っち: 'tti', // cchiよりttiを優先
+  っつ: 'ttu', // ttsuよりttuを優先
+  って: 'tte',
+  っと: 'tto',
+  っぱ: 'ppa',
+  っぴ: 'ppi',
+  っぷ: 'ppu',
+  っぺ: 'ppe',
+  っぽ: 'ppo',
+  し: 'si', // shiよりsiを優先
+  ち: 'ti', // chiよりtiを優先
+  つ: 'tu', // tsuよりtuを優先
+  ふ: 'hu', // fuよりhuを優先
+  じ: 'zi', // jiよりziを優先
+  しゃ: 'sya', // shaよりsyaを優先
+  しゅ: 'syu', // shuよりsyuを優先
+  しょ: 'syo', // shoよりsyoを優先
+  ちゃ: 'tya', // chaよりtyaを優先
+  ちゅ: 'tyu', // chuよりtyuを優先
+  ちょ: 'tyo', // choよりtyoを優先
+  じゃ: 'zya', // jaよりzyaを優先
+  じゅ: 'zyu', // juよりzyuを優先
+  じょ: 'zyo', // joよりzyoを優先
 };
 
 export default class TypingUtils {
@@ -606,7 +606,7 @@ export default class TypingUtils {
    */
   static getMinimalRomaji(kanaText) {
     const romaji = [];
-    for (let i = 0; i < kanaText.length;) {
+    for (let i = 0; i < kanaText.length; ) {
       // 文字の組み合わせを検出し最短のパターンを選択
       if (i < kanaText.length - 1) {
         const combination = kanaText.substr(i, 2);
@@ -617,25 +617,26 @@ export default class TypingUtils {
           continue;
         }
       }
-      
+
       // 単文字の場合、最短パターンを選択
       const char = kanaText[i];
       if (specialCombinations[char]) {
         romaji.push(specialCombinations[char]);
       } else {
         const patterns = romajiMap[char] || [wanakana.toRomaji(char)];
-        
+
         // 最短のパターンを取得
         const shortestPattern = patterns.reduce(
-          (shortest, current) => current.length < shortest.length ? current : shortest,
+          (shortest, current) =>
+            current.length < shortest.length ? current : shortest,
           patterns[0]
         );
-        
+
         romaji.push(shortestPattern);
       }
       i++;
     }
-    
+
     return romaji.join('');
   }
 
@@ -647,20 +648,22 @@ export default class TypingUtils {
    */
   static calculateWeatherTypingKPM(keyCount, elapsedTimeMs) {
     console.log(`【KPM計算】キー数: ${keyCount}, 経過時間: ${elapsedTimeMs}ms`);
-    
+
     // ミリ秒を分に変換
     const minutes = elapsedTimeMs / 60000;
-    
+
     // 0除算防止
     if (minutes <= 0) {
       console.log('【KPM計算】経過時間が0分以下のため、KPM=0を返します');
       return 0;
     }
-    
+
     // Weather Typingと同じ方法（Math.floorで切り捨て）
     const kpm = Math.floor(keyCount / minutes);
-    
-    console.log(`【KPM計算】計算結果: ${keyCount} / ${minutes.toFixed(2)} = ${kpm}`);
+
+    console.log(
+      `【KPM計算】計算結果: ${keyCount} / ${minutes.toFixed(2)} = ${kpm}`
+    );
     return kpm;
   }
 
@@ -672,7 +675,7 @@ export default class TypingUtils {
   static getKPMRank(kpm) {
     // 数値として扱うために変換
     const kpmValue = typeof kpm === 'string' ? parseFloat(kpm) : kpm;
-    
+
     if (kpmValue >= 1000) return 'GOD';
     if (kpmValue >= 950) return 'DIVINE';
     if (kpmValue >= 900) return 'LEGEND';
@@ -695,7 +698,7 @@ export default class TypingUtils {
     if (kpmValue >= 50) return 'F+';
     return 'F';
   }
-  
+
   /**
    * ランクに応じた色を返す
    * @param {string} rank - ランク
@@ -703,28 +706,50 @@ export default class TypingUtils {
    */
   static getRankColor(rank) {
     switch (rank) {
-      case 'GOD': return '#ff00ff'; // マゼンタ
-      case 'DIVINE': return '#ff00cc'; // 明るい紫
-      case 'LEGEND': return '#9900ff'; // 紫
-      case 'SSS+': return '#6600ff'; // 濃い紫
-      case 'SSS': return '#0033ff'; // 青
-      case 'SS+': return '#0099ff'; // 明るい青
-      case 'SS': return '#00ccff'; // 水色
-      case 'S+': return '#00ffcc'; // ターコイズ
-      case 'S': return '#00ff66'; // 明るい緑
-      case 'A+': return '#33ff00'; // 黄緑
-      case 'A': return '#99ff00'; // ライムグリーン
-      case 'B+': return '#ccff00'; // 明るい黄色
-      case 'B': return '#ffff00'; // 黄色
-      case 'C+': return '#ffcc00'; // オレンジ黄色
-      case 'C': return '#ff9900'; // オレンジ
-      case 'D+': return '#ff6600'; // 明るい橙
-      case 'D': return '#ff3300'; // 赤橙
-      case 'E+': return '#ff0000'; // 赤
-      case 'E': return '#cc0000'; // 暗い赤
-      case 'F+': return '#990000'; // より暗い赤
-      case 'F': return '#660000'; // 最も暗い赤
-      default: return '#ffffff'; // 白
+      case 'GOD':
+        return '#ff00ff'; // マゼンタ
+      case 'DIVINE':
+        return '#ff00cc'; // 明るい紫
+      case 'LEGEND':
+        return '#9900ff'; // 紫
+      case 'SSS+':
+        return '#6600ff'; // 濃い紫
+      case 'SSS':
+        return '#0033ff'; // 青
+      case 'SS+':
+        return '#0099ff'; // 明るい青
+      case 'SS':
+        return '#00ccff'; // 水色
+      case 'S+':
+        return '#00ffcc'; // ターコイズ
+      case 'S':
+        return '#00ff66'; // 明るい緑
+      case 'A+':
+        return '#33ff00'; // 黄緑
+      case 'A':
+        return '#99ff00'; // ライムグリーン
+      case 'B+':
+        return '#ccff00'; // 明るい黄色
+      case 'B':
+        return '#ffff00'; // 黄色
+      case 'C+':
+        return '#ffcc00'; // オレンジ黄色
+      case 'C':
+        return '#ff9900'; // オレンジ
+      case 'D+':
+        return '#ff6600'; // 明るい橙
+      case 'D':
+        return '#ff3300'; // 赤橙
+      case 'E+':
+        return '#ff0000'; // 赤
+      case 'E':
+        return '#cc0000'; // 暗い赤
+      case 'F+':
+        return '#990000'; // より暗い赤
+      case 'F':
+        return '#660000'; // 最も暗い赤
+      default:
+        return '#ffffff'; // 白
     }
   }
 
@@ -748,14 +773,19 @@ export default class TypingUtils {
       const patterns = this.parseTextToRomajiPatterns(kana);
 
       // Weather Typing風の最短ローマ字パターンを優先
-      const displayRomaji = patterns.map((pattern) => {
-        // 複数のパターンがある場合は最短のものを選ぶ
-        if (pattern.length > 1) {
-          return pattern.reduce((shortest, current) => 
-            current.length < shortest.length ? current : shortest, pattern[0]);
-        }
-        return pattern[0];
-      }).join('');
+      const displayRomaji = patterns
+        .map((pattern) => {
+          // 複数のパターンがある場合は最短のものを選ぶ
+          if (pattern.length > 1) {
+            return pattern.reduce(
+              (shortest, current) =>
+                current.length < shortest.length ? current : shortest,
+              pattern[0]
+            );
+          }
+          return pattern[0];
+        })
+        .join('');
 
       console.log(
         `【タイピングセッション】最終表示ローマ字(最短パターン優先): "${displayRomaji}"`
@@ -804,12 +834,12 @@ export default class TypingUtils {
       const patternLengths = patterns.map((patternArray) => {
         // Weather Typing風の最短パターン優先
         if (patternArray.length > 1) {
-          const lengths = patternArray.map(p => p.length);
+          const lengths = patternArray.map((p) => p.length);
           // 最短の長さを先頭に
           lengths.sort((a, b) => a - b);
           return lengths;
         }
-        return patternArray.map(pattern => pattern.length);
+        return patternArray.map((pattern) => pattern.length);
       });
 
       // 各かな文字が表示上どこから始まるかのインデックスを計算
@@ -818,10 +848,13 @@ export default class TypingUtils {
 
       for (let i = 0; i < patterns.length; i++) {
         displayIndices.push(currentIndex);
-        
+
         // Weather Typing風の最短パターン選択
-        const shortestPattern = patterns[i].reduce((shortest, current) => 
-          current.length < shortest.length ? current : shortest, patterns[i][0]);
+        const shortestPattern = patterns[i].reduce(
+          (shortest, current) =>
+            current.length < shortest.length ? current : shortest,
+          patterns[i][0]
+        );
         currentIndex += shortestPattern.length;
       }
 
@@ -868,7 +901,7 @@ export default class TypingUtils {
           let matchingPatterns = currentPatterns.filter((pattern) =>
             pattern.startsWith(newInput)
           );
-          
+
           // パターンを長さでソートし、短いものを優先
           matchingPatterns.sort((a, b) => a.length - b.length);
 
@@ -877,8 +910,10 @@ export default class TypingUtils {
             this.currentInput = newInput;
 
             // パターンの中で最短のものと完全一致するか確認
-            const exactMatch = matchingPatterns.find((pattern) => pattern === newInput);
-            
+            const exactMatch = matchingPatterns.find(
+              (pattern) => pattern === newInput
+            );
+
             if (exactMatch) {
               // この文字の入力が完了
               this.typedRomaji += exactMatch;

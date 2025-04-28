@@ -42,7 +42,71 @@ export const GameProvider = ({ children }) => {
     // 他の設定項目をここに追加
   });
 
-  // 現在の難易度に基づいた問題リスト
+  // localStorage から保存された背景を読み込み適用する
+  useEffect(() => {
+    // クライアントサイドでのみ実行（Next.js用）
+    if (typeof window !== 'undefined') {
+      try {
+        // 管理者モードかどうかを確認
+        const isAdmin = localStorage.getItem('isAdmin') === 'true';
+        
+        // 管理者モードの場合のみ背景を適用
+        if (isAdmin) {
+          // localStorageから背景画像を読み込む
+          const savedBackgroundImage = localStorage.getItem('savedBackgroundImage');
+          
+          // localStorageからCSSスタイル情報を読み込む
+          let savedStyleInfo = null;
+          try {
+            const savedStyleStr = localStorage.getItem('savedBackgroundStyle');
+            if (savedStyleStr) {
+              savedStyleInfo = JSON.parse(savedStyleStr);
+              console.log('管理者モード: 保存されたスタイル情報を読み込みました', savedStyleInfo);
+            }
+          } catch (styleError) {
+            console.error('スタイル情報の読み込みエラー:', styleError);
+          }
+          
+          if (savedBackgroundImage || savedStyleInfo) {
+            console.log('管理者モード: 保存された背景情報を読み込みました');
+            
+            // メインコンテナ要素を取得して背景を適用
+            setTimeout(() => {
+              const mainContainer = document.querySelector('#__next > div');
+              if (mainContainer) {
+                // スタイル情報を適用（存在する場合）
+                if (savedStyleInfo) {
+                  Object.entries(savedStyleInfo).forEach(([key, value]) => {
+                    // backgroundImageは別途設定するので除外
+                    if (key !== 'backgroundImage' && value) {
+                      mainContainer.style[key] = value;
+                    }
+                  });
+                }
+                
+                // 背景画像を設定（存在する場合）
+                if (savedBackgroundImage) {
+                  mainContainer.style.backgroundImage = `url(${savedBackgroundImage})`;
+                  mainContainer.style.backgroundSize = 'cover';
+                  mainContainer.style.backgroundPosition = 'center';
+                }
+                
+                console.log('管理者モード: 保存された背景とスタイルを適用しました');
+              } else {
+                console.warn('メインコンテナ要素が見つからないため背景を適用できませんでした');
+              }
+            }, 100); // DOM要素が確実に存在するよう少し遅延を設ける
+          }
+        } else {
+          console.log('管理者モードではないため、カスタム背景を適用しません');
+        }
+      } catch (error) {
+        console.error('保存された背景の読み込み中にエラーが発生しました:', error);
+      }
+    }
+  }, []);
+
+  // 難易度が変更されたら問題リストを更新
   const [problems, setProblems] = useState(getProblemsByDifficulty('normal'));
 
   // 難易度が変更されたら問題リストを更新
