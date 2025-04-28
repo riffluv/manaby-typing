@@ -1,0 +1,169 @@
+/* 共通ボタンスタイル - BEM記法に従って命名 */
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 15px;
+  border: 2px solid #ff8c00;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-family: 'Press Start 2P', cursive, system-ui;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 5px;
+  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
+    inset 0 0 10px rgba(255, 140, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.button:hover {
+  background-color: rgba(255, 140, 0, 0.2);
+  box-shadow: 0 0 15px rgba(255, 140, 0, 0.8),
+    inset 0 0 15px rgba(255, 140, 0, 0.5);
+}
+
+.button:active {
+  transform: scale(0.95);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ボタンバリエーション */
+.button--primary {
+  background-color: rgba(255, 140, 0, 0.3);
+}
+
+.button--secondary {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.button--danger {
+  background-color: rgba(255, 0, 0, 0.3);
+  border-color: #ff3333;
+}
+
+.button--success {
+  background-color: rgba(0, 255, 0, 0.3);
+  border-color: #33ff33;
+}
+
+/* ボタンサイズ */
+.button--small {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.button--large {
+  font-size: 16px;
+  padding: 12px 20px;
+}
+
+.button--round {
+  border-radius: 30px;
+}
+
+/* ボタンアイコン */
+.button__icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+/* アクティブ状態 */
+.button--active {
+  background-color: rgba(255, 140, 0, 0.4);
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.8);
+}
+
+/* トグルボタン */
+.toggle {
+  width: 100px;
+  text-align: center;
+  font-size: 16px;
+  padding: 10px 0;
+  border-radius: 30px;
+}
+
+.toggle--on {
+  background-color: rgba(0, 255, 0, 0.3);
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.toggle--off {
+  background-color: rgba(255, 0, 0, 0.3);
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+/* メインメニュー用のボタンスタイル */
+.button--menu {
+  flex-direction: row;
+  padding: 6px 14px;
+  width: 130px;
+  height: 36px;
+  font-size: 10px;
+  border-radius: 30px;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.button--menu .button__icon {
+  font-size: 16px;
+  margin-right: 8px;
+  margin-bottom: 0;
+}
+
+.button--menu:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(255, 140, 0, 0.8),
+    inset 0 0 15px rgba(255, 140, 0, 0.5);
+  border-color: #ffaa33;
+}
+
+.button--menu:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 5px rgba(255, 140, 0, 0.5),
+    inset 0 0 5px rgba(255, 140, 0, 0.3);
+}
+
+/* 難易度ボタン用のスタイル */
+.button--difficulty {
+  flex: 1;
+  font-size: 12px;
+  padding: 10px 5px;
+  border-radius: 5px;
+  background-color: rgba(0, 0, 0, 0.7);
+  width: auto;
+}
+
+.button--difficulty:hover {
+  background-color: rgba(255, 140, 0, 0.2);
+}
+
+.button--difficulty.button--active {
+  background-color: rgba(255, 140, 0, 0.4);
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.6);
+}
+
+/* メディアクエリ対応 */
+@media (max-width: 850px) {
+  .button--menu {
+    width: 120px;
+    height: 34px;
+    padding: 5px 10px;
+  }
+  
+  .button--menu .button__icon {
+    font-size: 14px;
+    margin-right: 6px;
+  }
+  
+  .button--menu {
+    font-size: 9px;
+  }
+}

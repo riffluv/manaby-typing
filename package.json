@@ -1,0 +1,24 @@
+{
+  "name": "typing-game",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "dev:nodemon": "nodemon --exec \"npx next dev\"",
+    "dev:bash": "npx nodemon"
+  },
+  "dependencies": {
+    "firebase": "^11.6.1",
+    "framer-motion": "^12.9.2",
+    "next": "15.3.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "wanakana": "^5.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

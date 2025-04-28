@@ -1,0 +1,120 @@
+.adminPopup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  padding: 20px;
+  font-family: 'Arial', sans-serif;
+}
+
+.adminPopup__overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 999;
+}
+
+.adminPopup__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+}
+
+.adminPopup__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.adminPopup__closeButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+}
+
+.adminPopup__closeButton:hover {
+  color: #000;
+}
+
+.adminPopup__content {
+  margin-bottom: 20px;
+}
+
+.adminPopup__formGroup {
+  margin-bottom: 15px;
+}
+
+.adminPopup__label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #555;
+}
+
+.adminPopup__input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.adminPopup__input:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.adminPopup__footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+
+.adminPopup__button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.adminPopup__button--primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.adminPopup__button--primary:hover {
+  background-color: #0069d9;
+}
+
+.adminPopup__button--secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.adminPopup__button--secondary:hover {
+  background-color: #5a6268;
+}
+
+.adminPopup__info {
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+}

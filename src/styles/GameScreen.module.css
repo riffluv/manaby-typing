@@ -1,0 +1,331 @@
+.gameContainer {
+  display: flex;
+  flex-direction: column;
+  width: 800px;
+  height: 600px;
+  margin: 0 auto;
+  background-color: #121212;
+  border: 4px solid #ff8c00;
+  box-shadow: 0 0 10px #ff8c00, inset 0 0 20px rgba(255, 140, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+  color: #ffffff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.gameContainer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: linear-gradient(rgba(255, 140, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 140, 0, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  z-index: 0;
+}
+
+.gameHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1;
+}
+
+.gameScore,
+.gameLevel {
+  font-size: 1.2rem;
+  font-weight: bold;
+  font-family: 'Press Start 2P', cursive, system-ui;
+  color: #ff8c00;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.gameArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  z-index: 1;
+}
+
+.typingArea {
+  width: 90%;
+  max-width: 700px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  border: 2px solid rgba(255, 140, 0, 0.5);
+}
+
+.problemContainer {
+  margin-bottom: 1.5rem;
+}
+
+.typingProblem {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.typingRomaji {
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  font-family: 'Courier New', Courier, monospace;
+  height: 2rem;
+  margin-top: 1rem;
+}
+
+.completed {
+  color: #4cca50;
+  font-weight: bold;
+}
+
+.current {
+  color: #4c9ed9;
+  font-weight: bold;
+  border-bottom: 2px solid #4c9ed9;
+  animation: blink 1s infinite;
+}
+
+.error {
+  color: #ff4545;
+  animation: shake 0.3s;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.hiddenInput {
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.gameControls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1;
+}
+
+.controlButton {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: 2px solid #ff8c00;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.9rem;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Press Start 2P', cursive, system-ui;
+  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
+    inset 0 0 10px rgba(255, 140, 0, 0.3);
+}
+
+.controlButton:hover {
+  background-color: rgba(255, 140, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.controlButton:active {
+  transform: translateY(1px);
+}
+
+/* ゲーム結果のスタイル強化 */
+.clearStats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 20px auto;
+  max-width: 300px;
+}
+
+.statRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 140, 0, 0.3);
+  padding-bottom: 5px;
+}
+
+.statIcon {
+  width: 40px;
+  text-align: center;
+}
+
+.statLabel {
+  flex: 1;
+  text-align: left;
+  font-family: 'Press Start 2P', cursive, system-ui;
+  font-size: 0.9rem;
+  color: #ffffff;
+}
+
+.statValue {
+  min-width: 80px;
+  text-align: right;
+  font-weight: bold;
+  font-family: 'Press Start 2P', cursive, system-ui;
+  font-size: 1.1rem;
+  color: #ffcc00;
+}
+
+.statEmoji {
+  font-size: 1.5rem;
+}
+
+.clearRank {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+  margin: 20px 0;
+  font-family: 'Press Start 2P', cursive, system-ui;
+  position: relative;
+}
+
+.rankLabel {
+  font-size: 1rem;
+  display: block;
+  margin-top: 5px;
+  color: #ffffff;
+}
+
+.buttonContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.buttonIcon {
+  font-size: 1.2rem;
+}
+
+.buttonText {
+  font-size: 0.9rem;
+}
+
+/* ローディングコンテナのスタイル */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+.loadingText {
+  font-family: 'Press Start 2P', cursive, system-ui;
+  color: #ff8c00;
+  font-size: 18px;
+  text-align: center;
+  margin-top: 20px;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.escGuide {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  font-size: 14px;
+  color: #ff8c00; /* オレンジ色 */
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 10px 15px;
+  border-radius: 8px;
+  border-left: 3px solid #ff8c00;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-shadow: 0px 0px 5px rgba(255, 140, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(0);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.escGuide:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* IMEガイド表示のスタイル */
+.imeGuide {
+  margin-top: 20px;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 140, 0, 0.6);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.9rem;
+  text-align: center;
+  animation: fadeInUp 0.5s ease-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.keyboardShortcut {
+  margin-left: 8px;
+  color: #ff8c00;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.3);
+  font-size: 0.8rem;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
