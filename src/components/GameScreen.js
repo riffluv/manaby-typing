@@ -29,7 +29,6 @@ const GameScreen = () => {
     currentInputLength: 0,
   });
   const [soundsLoaded, setSoundsLoaded] = useState(false);
-  const [imeStateWarning, setImeStateWarning] = useState(false); // IME警告状態
   const inputRef = useRef(null);
 
   // 問題クリアに必要なお題数
@@ -206,7 +205,7 @@ const GameScreen = () => {
     if (e.key === 'Escape') {
       soundSystem.play('button');
       setTimeout(() => {
-        goToScreen(SCREENS.MAIN_MENU, { playSound: false });
+        goToScreen(SCREENS.MAIN_MENU);
       }, 100);
       return;
     }
@@ -284,16 +283,6 @@ const GameScreen = () => {
         ...prevState,
         mistakes: (prevState.mistakes || 0) + 1,
       }));
-
-      // 全角入力と半角入力が異なる場合にエラーメッセージを表示
-      if (e.key !== halfWidthChar) {
-        // 全角入力と推測される場合は視覚的フィードバックを強化
-        setImeStateWarning(true);
-        // 数秒後に警告を消す
-        setTimeout(() => {
-          setImeStateWarning(false);
-        }, 2000);
-      }
 
       // エラー音を再生
       if (soundsLoaded) {
@@ -406,13 +395,6 @@ const GameScreen = () => {
               {gameState.currentProblem?.displayText || ''}
             </motion.p>
             {typingTextElement}
-            
-            {/* IME状態警告表示 - 全角入力時のみ表示 */}
-            {imeStateWarning && (
-              <div className={styles.imeWarning}>
-                全角入力モードです！半角英数に自動変換しています
-              </div>
-            )}
           </div>
           <input
             ref={inputRef}

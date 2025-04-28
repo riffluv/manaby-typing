@@ -2,7 +2,7 @@
  * Firebase関連のユーティリティ
  */
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, push, get, query, orderByChild, limitToLast } from "firebase/database";
+import { getDatabase, ref, set, push, get, query, orderByChild, limitToLast, equalTo, child } from "firebase/database";
 import { getAnalytics } from "firebase/analytics";
 
 // Firebaseの設定
@@ -45,14 +45,14 @@ export const initializeFirebase = () => {
 };
 
 /**
- * オンラインランキングにスコアを登録する
+ * オンラインランキングにスコアを保存する
  * @param {string} playerName - プレイヤー名
- * @param {number} kpm - 1分あたりのキー入力数
- * @param {number} accuracy - 正解率（パーセント）
+ * @param {number} kpm - KPM値
+ * @param {number} accuracy - 正解率
  * @param {number} time - プレイ時間（秒）
- * @param {number} mistakes - ミス入力数
+ * @param {number} mistakes - ミス入力回数
  * @param {string} difficulty - 難易度
- * @returns {Promise<string|null>} - 成功時はレコードIDを返す
+ * @returns {Promise<string|null>} 保存に成功した場合は記録のID、失敗した場合はnull
  */
 export const saveOnlineRanking = async (playerName, kpm, accuracy, time, mistakes, difficulty) => {
   if (!initializeFirebase() || !database) {
@@ -61,28 +61,54 @@ export const saveOnlineRanking = async (playerName, kpm, accuracy, time, mistake
   }
   
   try {
-    // パスをscoresに変更
-    const rankingRef = ref(database, 'scores');
-    const newRankingRef = push(rankingRef);
-    
-    // KPM値または0
-    const kpmValue = parseFloat(kpm) || 0;
-    // 正解率の値（パーセント）
-    const accuracyValue = parseFloat(accuracy) || 0;
-    
-    console.log(`保存する正解率: ${accuracyValue}%`);
-    
-    // 既存の形式に合わせたタイムスタンプ（ISO文字列形式）
+    // 小数点以下を適切に処理
+    const kpmValue = Math.floor(kpm);
+    const accuracyValue = parseFloat(accuracy.toFixed(1));
     const timestampStr = new Date().toISOString();
+
+    // インデックスエラーを回避するため、全データを一度に取得
+    const rankingRef = ref(database, 'scores');
+    const snapshot = await get(rankingRef);
     
-    // 既存データと互換性を持たせるためのデータ構造
+    // 既存エントリー検索（クライアント側でフィルタリング）
+    let existingEntryId = null;
+    let existingData = null;
+    
+    if (snapshot.exists()) {
+      snapshot.forEach((childSnapshot) => {
+        const data = childSnapshot.val();
+        // 同じプレイヤー名と難易度の組み合わせを検索
+        if (data.playerName === playerName && data.difficulty === difficulty) {
+          existingEntryId = childSnapshot.key;
+          existingData = data;
+        }
+      });
+    }
+
+    let newRankingRef;
+    
+    // 既存エントリーがある場合は更新、なければ新規作成
+    if (existingEntryId && kpmValue > 0) {
+      newRankingRef = child(rankingRef, existingEntryId);
+      
+      // スコアが以前より良い場合のみ更新（KPMを優先）
+      if (existingData && (kpmValue > existingData.kpm || 
+         (kpmValue === existingData.kpm && accuracyValue > existingData.accuracy))) {
+        console.log('既存のエントリーを更新します:', existingEntryId);
+      } else {
+        console.log('既存のエントリーの方が良いスコアなので更新しません');
+        return existingEntryId; // 既存のIDを返す
+      }
+    } else {
+      // 新しいエントリーを作成
+      newRankingRef = push(rankingRef);
+    }
+    
+    // 保存するデータ
     const rankingData = {
-      // 既存データと互換性を持たせるフィールド
-      gameMode: difficulty, // 難易度をgameModeに設定（互換性のため）
-      score: kpmValue, // スコアとしてKPM値を使用
+      score: kpmValue, // 下位互換性のため
       stats: {
-        keystrokes: time ? Math.floor(kpmValue * time / 60) : 0,
-        wpm: Math.floor(kpmValue / 5), // 一般的に1単語=5キー入力として計算
+        kpm: kpmValue,
         accuracy: accuracyValue, // 正解率もstatsに保存
         mistakes: mistakes || 0
       },
@@ -101,7 +127,7 @@ export const saveOnlineRanking = async (playerName, kpm, accuracy, time, mistake
     };
     
     await set(newRankingRef, rankingData);
-    console.log(`Online ranking saved with accuracy: ${accuracyValue}%`);
+    console.log(`オンラインランキングを保存しました - KPM: ${kpmValue}, 正解率: ${accuracyValue}%`);
     return newRankingRef.key;
   } catch (error) {
     console.error('Error saving online ranking:', error);
@@ -122,15 +148,11 @@ export const getTopRankings = async (difficulty = 'normal', limit = 10) => {
   }
   
   try {
-    // 特定の難易度のランキングを取得し、KPMで降順ソート
+    // インデックスエラーを回避するため、ルートから全データを取得
     const rankingRef = ref(database, 'scores');
-    const rankingQuery = query(
-      rankingRef,
-      orderByChild('score'),
-      limitToLast(100) // より多くのデータを取得して後でフィルタリング
-    );
     
-    const snapshot = await get(rankingQuery);
+    // データ取得
+    const snapshot = await get(rankingRef);
     console.log(`Firebase data retrieved for difficulty ${difficulty}:`, snapshot.exists());
     
     if (!snapshot.exists()) {
@@ -161,13 +183,41 @@ export const getTopRankings = async (difficulty = 'normal', limit = 10) => {
     
     console.log(`Retrieved ${allRankings.length} total records, filtered to ${filteredRankings.length} records for difficulty: ${difficulty}`);
     
-    // KPMまたはscoreの降順でソート
-    return filteredRankings
+    // プレイヤー名でグループ化して、各プレイヤーの最高スコアのみを残す
+    const playerBestScores = {};
+    filteredRankings.forEach(record => {
+      const playerName = record.playerName || record.username || 'Anonymous';
+      const kpm = record.kpm !== undefined ? record.kpm : record.score || 0;
+      const accuracy = record.accuracy !== undefined ? record.accuracy : 
+                      (record.stats?.accuracy !== undefined ? record.stats.accuracy : 0);
+      
+      // 既存のスコアがなければ追加、あれば比較して高いほうを保持
+      if (!playerBestScores[playerName] || kpm > playerBestScores[playerName].kpm ||
+          (kpm === playerBestScores[playerName].kpm && accuracy > playerBestScores[playerName].accuracy)) {
+        playerBestScores[playerName] = record;
+      }
+    });
+    
+    // オブジェクトを配列に戻す
+    const uniqueRankings = Object.values(playerBestScores);
+    
+    // KPMまたはscoreの降順でソート、同点の場合は正解率で比較
+    return uniqueRankings
       .sort((a, b) => {
         // KPMかscoreのいずれかで比較（KPMを優先）
-        const scoreA = a.kpm !== undefined ? a.kpm : a.score;
-        const scoreB = b.kpm !== undefined ? b.kpm : b.score;
-        return scoreB - scoreA;
+        const scoreA = a.kpm !== undefined ? a.kpm : a.score || 0;
+        const scoreB = b.kpm !== undefined ? b.kpm : b.score || 0;
+        
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
+        } else {
+          // KPMが同じなら正解率で判定
+          const accuracyA = a.accuracy !== undefined ? a.accuracy : 
+                          (a.stats?.accuracy !== undefined ? a.stats.accuracy : 0);
+          const accuracyB = b.accuracy !== undefined ? b.accuracy : 
+                          (b.stats?.accuracy !== undefined ? b.stats.accuracy : 0);
+          return accuracyB - accuracyA;
+        }
       })
       .slice(0, limit);
   } catch (error) {
@@ -189,15 +239,11 @@ export const getRecentRankings = async (limit = 10, difficulty = null) => {
   }
   
   try {
-    // タイムスタンプで降順ソートされた最新のランキングを取得
+    // インデックスエラーを回避するため、ルートから全データを取得
     const rankingRef = ref(database, 'scores');
-    const rankingQuery = query(
-      rankingRef,
-      orderByChild('timestamp'),
-      limitToLast(50) // より多くのデータを取得して後でフィルタリング
-    );
     
-    const snapshot = await get(rankingQuery);
+    // インデックスのないクエリではなく全データ取得に変更
+    const snapshot = await get(rankingRef);
     console.log('Recent Firebase data retrieved:', snapshot.exists());
     
     if (!snapshot.exists()) {
@@ -229,13 +275,31 @@ export const getRecentRankings = async (limit = 10, difficulty = null) => {
     
     console.log(`Filtered to ${filteredRankings.length} records for difficulty: ${difficulty || 'all'}`);
     
+    // 各プレイヤーの最新のスコアだけを保持（重複登録防止のため）
+    const playerLatestScores = {};
+    filteredRankings.forEach(record => {
+      const playerName = record.playerName || record.username || 'Anonymous';
+      // timestamp_numまたはtimestampから日付を取得
+      const timestamp = record.timestamp_num || (record.timestamp ? new Date(record.timestamp).getTime() : 
+                        (record.date ? new Date(record.date).getTime() : 0));
+      
+      // そのプレイヤーの記録がまだないか、もしくはより新しい記録なら更新
+      if (!playerLatestScores[playerName] || timestamp > playerLatestScores[playerName].timestamp) {
+        // タイムスタンプを数値として保存して比較を容易にする
+        playerLatestScores[playerName] = { 
+          ...record,
+          timestamp: timestamp
+        };
+      }
+    });
+    
+    // オブジェクトを配列に戻す
+    const uniqueRecentRankings = Object.values(playerLatestScores);
+    
     // 日付の降順でソート（最新順）
-    // タイムスタンプが数値か文字列かによって適切に比較
-    return filteredRankings.sort((a, b) => {
-      const timeA = a.timestamp_num || new Date(a.timestamp).getTime();
-      const timeB = b.timestamp_num || new Date(b.timestamp).getTime();
-      return timeB - timeA;
-    }).slice(0, limit);
+    return uniqueRecentRankings
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, limit);
   } catch (error) {
     console.error('Error fetching recent rankings:', error);
     return [];

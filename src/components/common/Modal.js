@@ -18,6 +18,10 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
   // サイズに応じたクラス名を設定
   const sizeClass = size !== 'medium' ? `modal--${size}` : '';
 
+  if (!isOpen) {
+    return null;
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -26,7 +30,6 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
         >
           <motion.div
             className={styles.modal__overlay}
@@ -34,7 +37,6 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={onClose} // オーバーレイクリックでモーダルを閉じる
           >
             <motion.div
               className={styles.modal__content}
@@ -48,7 +50,6 @@ const Modal = ({ isOpen, onClose, title, children, size = 'medium' }) => {
                 mass: 1,
                 velocity: 0,
               }}
-              onClick={(e) => e.stopPropagation()} // 内部クリックはバブリングさせない
             >
               <div className={styles.modal__header}>
                 <h2 className={styles.modal__title}>{title}</h2>

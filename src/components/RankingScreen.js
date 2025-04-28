@@ -59,12 +59,6 @@ const RankingScreen = () => {
   const [registrationStatus, setRegistrationStatus] = useState({ success: false, message: '' });
   const [debugData, setDebugData] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
-  
-  // ソート関連の状態
-  const [sortConfig, setSortConfig] = useState({
-    key: 'date', // デフォルトでは日付でソート
-    direction: 'desc' // 降順（新しい順）
-  });
 
   // コンポーネントマウント時にデータを取得
   useEffect(() => {
@@ -91,6 +85,9 @@ const RankingScreen = () => {
   useEffect(() => {
     if (isOnlineMode) {
       loadOnlineRankings();
+    } else {
+      // ローカルモードに切り替えたときもランキングを再ロード
+      loadRankingData();
     }
   }, [isOnlineMode, activeDifficulty]);
 
@@ -99,9 +96,16 @@ const RankingScreen = () => {
     // 過去の記録を取得
     const records = getGameRecords();
 
-    // 新しい順に並べ替え
+    // KPM順にデータをソート
     const sortedRecords = [...records].sort((a, b) => {
-      return new Date(b.date) - new Date(a.date);
+      // KPMで降順ソート、同じ場合は正確性、その次はミス数で判断
+      if (b.kpm !== a.kpm) {
+        return b.kpm - a.kpm;
+      } else if (b.accuracy !== a.accuracy) {
+        return b.accuracy - a.accuracy;
+      } else {
+        return a.mistakes - b.mistakes; // ミスが少ない方が上位
+      }
     });
 
     setRankingData(sortedRecords);
@@ -114,23 +118,10 @@ const RankingScreen = () => {
   const loadOnlineRankings = async () => {
     setIsLoading(true);
     try {
-      let rankings = [];
-      console.log(`Fetching online rankings - Difficulty: ${activeDifficulty}`);
-      
-      // 全てのランキングデータを取得（最近のデータ優先）
-      rankings = await getRecentRankings(30, activeDifficulty);
+      // 常にトップランキングを取得
+      const rankings = await getTopRankings(activeDifficulty, 20);
       console.log(`Loaded ${rankings.length} online rankings for difficulty: ${activeDifficulty}`);
-      
-      // 取得後にソート
-      const sortedRankings = sortData(rankings);
-      
-      // 順位情報を追加
-      const rankingsWithPosition = sortedRankings.map((record, index) => ({
-        ...record,
-        position: index + 1
-      }));
-      
-      setOnlineRankings(rankingsWithPosition);
+      setOnlineRankings(rankings);
     } catch (error) {
       console.error('オンラインランキングの取得に失敗しました:', error);
     } finally {
@@ -138,157 +129,33 @@ const RankingScreen = () => {
     }
   };
 
-  // ソート処理関数
-  const sortData = (data) => {
-    return [...data].sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortConfig.key) {
-        case 'playerName':
-          aValue = a.playerName || a.username || '';
-          bValue = b.playerName || b.username || '';
-          break;
-        case 'kpm':
-          aValue = a.kpm || a.score || 0;
-          bValue = b.kpm || b.score || 0;
-          break;
-        case 'accuracy':
-          aValue = a.accuracy !== undefined ? a.accuracy : (a.stats?.accuracy !== undefined ? a.stats.accuracy : 0);
-          bValue = b.accuracy !== undefined ? b.accuracy : (b.stats?.accuracy !== undefined ? b.stats.accuracy : 0);
-          break;
-        case 'time':
-          aValue = a.time || 0;
-          bValue = b.time || 0;
-          break;
-        case 'mistakes':
-          aValue = a.mistakes || a.stats?.mistakes || 0;
-          bValue = b.mistakes || b.stats?.mistakes || 0;
-          break;
-        case 'date':
-          aValue = new Date(a.date || a.timestamp || 0);
-          bValue = new Date(b.date || b.timestamp || 0);
-          break;
-        default:
-          aValue = 0;
-          bValue = 0;
-      }
-      
-      if (sortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-  };
-
   // オンラインモード切替処理
   const toggleOnlineMode = () => {
-    // 音声を即時再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
+    soundSystem.playSound('Button');
+    // オンラインモード ⇔ ローカルモードの切り替え
+    const newMode = !isOnlineMode;
+    setIsOnlineMode(newMode);
     
-    // UIの更新とデータ処理を遅延実行
-    setTimeout(() => {
-      // オンラインモード ⇔ ローカルモードの切り替え
-      const newMode = !isOnlineMode;
-      setIsOnlineMode(newMode);
-      
-      // モード変更時のログ出力
-      if (newMode) {
-        console.log('オンラインモードに切り替えました');
-      } else {
-        console.log('ローカルモードに切り替えました');
-      }
-    }, 10);
+    // モード変更時にサウンドを再生
+    if (newMode) {
+      console.log('オンラインモードに切り替えました');
+    } else {
+      console.log('ローカルモードに切り替えました');
+    }
   };
 
   // 難易度切り替え処理
   const handleDifficultyChange = (difficulty) => {
-    // 音声を即時再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
-    
-    // 難易度変更を遅延実行
-    setTimeout(() => {
-      setActiveDifficulty(difficulty);
-    }, 10);
+    soundSystem.playSound('Button');
+    setActiveDifficulty(difficulty);
   };
 
-  // ソート切り替え処理
-  const handleSort = (key) => {
-    // 音声を即時再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
-    
-    // ソート処理を遅延実行
-    setTimeout(() => {
-      setSortConfig((prevConfig) => {
-        const newDirection = 
-          prevConfig.key === key 
-            ? prevConfig.direction === 'asc' ? 'desc' : 'asc'
-            : 'desc';
-        
-        return { key, direction: newDirection };
-      });
-      
-      // オンラインモードではソート状態を適用
-      if (isOnlineMode) {
-        setOnlineRankings(prevRankings => {
-          const sortedData = sortData([...prevRankings]);
-          // 順位情報を更新
-          return sortedData.map((record, index) => ({
-            ...record,
-            position: index + 1
-          }));
-        });
-      }
-    }, 10);
-  };
-
-  // ソートされたローカルデータを取得（順位付き）
-  const getSortedLocalData = () => {
-    const filteredData = rankingData.filter(record => 
-      activeDifficulty === 'all' || record.difficulty === activeDifficulty
-    );
-    
-    const sortedData = [...filteredData].sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortConfig.key) {
-        case 'kpm':
-          aValue = a.kpm || 0;
-          bValue = b.kpm || 0;
-          break;
-        case 'accuracy':
-          aValue = a.accuracy || 0;
-          bValue = b.accuracy || 0;
-          break;
-        case 'time':
-          aValue = a.time || 0;
-          bValue = b.time || 0;
-          break;
-        case 'mistakes':
-          aValue = a.mistakes || 0;
-          bValue = b.mistakes || 0;
-          break;
-        case 'date':
-          aValue = new Date(a.date || 0);
-          bValue = new Date(b.date || 0);
-          break;
-        default:
-          aValue = 0;
-          bValue = 0;
-      }
-      
-      if (sortConfig.direction === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    }).slice(0, 15); // 上位15件を表示
-    
-    // 順位情報を追加
-    return sortedData.map((record, index) => ({
-      ...record,
-      position: index + 1
-    }));
+  // KPM順にソートされたデータを取得
+  const getKpmSortedData = () => {
+    return [...rankingData]
+      .filter(record => record.difficulty === activeDifficulty)
+      .sort((a, b) => b.kpm - a.kpm)
+      .slice(0, 20); // 上位20件のみ表示
   };
 
   // 日付をフォーマット
@@ -302,16 +169,13 @@ const RankingScreen = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
 
-    // 即時に音を再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
-    
     // 退場中フラグを立てる
     setIsExiting(true);
     
-    // 退場アニメーションの後に画面遷移（画面遷移システムでの音再生はオフに）
+    // 退場アニメーションの後に画面遷移（効果音は画面遷移システムで再生）
     setTimeout(() => {
       // リザルト画面から来た場合はリザルト画面に戻る、それ以外はメインメニューに戻る
-      goToScreen(SCREENS.RESULT, { playSound: false });
+      goToScreen(SCREENS.RESULT);
     }, 300); // アニメーション時間と同期
   };
 
@@ -320,81 +184,26 @@ const RankingScreen = () => {
     // トランジション中は操作を無効化
     if (isTransitioning || isExiting) return;
 
-    // 即時に音を再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
-    
     // 退場中フラグを立てる
     setIsExiting(true);
     
-    // 退場アニメーションの後に画面遷移（画面遷移システムでの音再生はオフに）
+    // 退場アニメーションの後に画面遷移（効果音は画面遷移システムで再生）
     setTimeout(() => {
-      goToScreen(SCREENS.MAIN_MENU, { playSound: false });
+      goToScreen(SCREENS.MAIN_MENU);
     }, 300); // アニメーション時間と同期
-  };
-
-  // ソートインジケーターを表示するヘルパー関数
-  const renderSortIndicator = (columnKey) => {
-    if (sortConfig.key !== columnKey) return null;
-    
-    return (
-      <span className={styles.sortIndicator}>
-        {sortConfig.direction === 'asc' ? '▲' : '▼'}
-      </span>
-    );
   };
 
   // 登録モーダルを表示
   const handleShowRegisterModal = () => {
-    // 音声を即時再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
-    
-    // UI更新は遅延実行
-    setTimeout(() => {
-      setShowRegisterModal(true);
-      setRegistrationStatus({ success: false, message: '' });
-    }, 10);
+    soundSystem.playSound('Button');
+    setShowRegisterModal(true);
+    setRegistrationStatus({ success: false, message: '' });
   };
 
   // 登録モーダルを閉じる
   const handleCloseModal = () => {
-    // 音声を即時再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
-    
-    // UI更新は遅延実行
-    setTimeout(() => {
-      setShowRegisterModal(false);
-    }, 10);
-  };
-  
-  // デバッグモードを閉じる
-  const closeDebug = () => {
-    // 音声を即時再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
-    
-    // UI更新は遅延実行
-    setTimeout(() => {
-      setShowDebug(false);
-    }, 10);
-  };
-  
-  // デバッグ機能 - Firebase接続テスト
-  const handleDebugFirebase = async () => {
-    // 音声を即時再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
-    
-    console.log('Testing Firebase connection...');
-    setIsLoading(true);
-    try {
-      // Firebaseに直接アクセスして全データを確認
-      const allData = await debugCheckAllRankings();
-      setDebugData(allData);
-      setShowDebug(true);
-      console.log('Debug data loaded:', allData);
-    } catch (error) {
-      console.error('Debug error:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    soundSystem.playSound('Button');
+    setShowRegisterModal(false);
   };
 
   // プレイヤー名の変更処理
@@ -404,10 +213,6 @@ const RankingScreen = () => {
 
   // オンラインランキングに登録
   const handleRegisterScore = async () => {
-    // 音声を即時再生（最優先）
-    setTimeout(() => soundSystem.play('button'), 0);
-
-    // 検証処理
     if (!gameState || !gameState.correctKeyCount) {
       setRegistrationStatus({ 
         success: false, 
@@ -441,10 +246,13 @@ const RankingScreen = () => {
       }
 
       // 正解率を計算
+      // gameState.accuracyが存在しない場合は、正解キー数と間違いから計算
       let accuracyValue = 0;
       if (typeof gameState.accuracy === 'number' && !isNaN(gameState.accuracy)) {
+        // すでにaccuracyが計算されている場合はその値を使用
         accuracyValue = gameState.accuracy;
       } else if (gameState.correctKeyCount >= 0 && (gameState.mistakes >= 0 || gameState.mistakes === 0)) {
+        // correctKeyCountとmistakesから計算
         const totalKeystrokes = gameState.correctKeyCount + gameState.mistakes;
         if (totalKeystrokes > 0) {
           accuracyValue = (gameState.correctKeyCount / totalKeystrokes) * 100;
@@ -452,6 +260,11 @@ const RankingScreen = () => {
       }
       
       console.log("送信する正確率データ:", accuracyValue, "%");
+      console.log("gameState:", {
+        correctKeyCount: gameState.correctKeyCount,
+        mistakes: gameState.mistakes,
+        accuracy: gameState.accuracy
+      });
 
       // オンラインランキングに保存
       const recordId = await saveOnlineRanking(
@@ -464,9 +277,6 @@ const RankingScreen = () => {
       );
 
       if (recordId) {
-        // 登録成功音を再生
-        setTimeout(() => soundSystem.play('success'), 0);
-        
         setRegistrationStatus({ 
           success: true, 
           message: 'ランキングに登録しました！' 
@@ -480,10 +290,6 @@ const RankingScreen = () => {
       }
     } catch (error) {
       console.error('スコア登録エラー:', error);
-      
-      // エラー音を再生
-      setTimeout(() => soundSystem.play('error'), 0);
-      
       setRegistrationStatus({ 
         success: false, 
         message: 'ランキング登録中にエラーが発生しました。ネットワーク接続を確認してください。' 
@@ -491,6 +297,28 @@ const RankingScreen = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // デバッグ機能 - Firebase接続テスト
+  const handleDebugFirebase = async () => {
+    console.log('Testing Firebase connection...');
+    setIsLoading(true);
+    try {
+      // Firebaseに直接アクセスして全データを確認
+      const allData = await debugCheckAllRankings();
+      setDebugData(allData);
+      setShowDebug(true);
+      console.log('Debug data loaded:', allData);
+    } catch (error) {
+      console.error('Debug error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // デバッグモードを閉じる
+  const closeDebug = () => {
+    setShowDebug(false);
   };
 
   return (
@@ -506,24 +334,54 @@ const RankingScreen = () => {
       </motion.div>
 
       {/* オンライン/ローカル切り替えボタン */}
-      <div className={styles.onlineModeToggle}>
+      <div className={styles.onlineModeToggle} style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '10px',
+        marginBottom: '15px',
+        zIndex: 10,
+        position: 'relative'
+      }}>
         <button
-          className={`${styles.modeButton} ${!isOnlineMode ? styles.modeButton__active : ''}`}
-          onClick={toggleOnlineMode}
-          disabled={!isOnlineMode}
+          style={{
+            backgroundColor: !isOnlineMode ? 'rgba(255, 140, 0, 0.4)' : 'rgba(0, 0, 0, 0.7)',
+            color: '#ffffff',
+            fontFamily: "'Press Start 2P', cursive, system-ui",
+            fontSize: '12px',
+            padding: '8px 15px',
+            border: '2px solid #ff8c00',
+            borderRadius: '20px',
+            cursor: isOnlineMode ? 'pointer' : 'default',
+            boxShadow: !isOnlineMode ? '0 0 10px rgba(255, 140, 0, 0.8)' : 'none',
+            transition: 'all 0.3s'
+          }}
+          onClick={() => {
+            if (isOnlineMode) toggleOnlineMode();
+          }}
         >
           ローカル
         </button>
         <button
-          className={`${styles.modeButton} ${isOnlineMode ? styles.modeButton__active : ''}`}
-          onClick={toggleOnlineMode}
-          disabled={isOnlineMode}
+          style={{
+            backgroundColor: isOnlineMode ? 'rgba(255, 140, 0, 0.4)' : 'rgba(0, 0, 0, 0.7)',
+            color: '#ffffff',
+            fontFamily: "'Press Start 2P', cursive, system-ui",
+            fontSize: '12px',
+            padding: '8px 15px',
+            border: '2px solid #ff8c00',
+            borderRadius: '20px',
+            cursor: !isOnlineMode ? 'pointer' : 'default',
+            boxShadow: isOnlineMode ? '0 0 10px rgba(255, 140, 0, 0.8)' : 'none',
+            transition: 'all 0.3s'
+          }}
+          onClick={() => {
+            if (!isOnlineMode) toggleOnlineMode();
+          }}
         >
           オンライン
         </button>
       </div>
 
-      {/* 難易度切り替えボタン */}
       <div className={styles.difficultyNav}>
         <button
           className={`${styles.difficultyButton} ${activeDifficulty === 'easy' ? styles.difficultyButton__active : ''}`}
@@ -560,31 +418,19 @@ const RankingScreen = () => {
             <table className={styles.rankingTable}>
               <thead>
                 <tr>
-                  <th className={styles.rankColumn}>順位</th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('playerName')}>
-                    プレイヤー {renderSortIndicator('playerName')}
-                  </th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('kpm')}>
-                    KPM {renderSortIndicator('kpm')}
-                  </th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('accuracy')}>
-                    正解率 {renderSortIndicator('accuracy')}
-                  </th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('time')}>
-                    タイム {renderSortIndicator('time')}
-                  </th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('mistakes')}>
-                    ミス {renderSortIndicator('mistakes')}
-                  </th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('date')}>
-                    日付 {renderSortIndicator('date')}
-                  </th>
+                  <th>順位</th>
+                  <th>プレイヤー</th>
+                  <th>KPM</th>
+                  <th>正解率</th>
+                  <th>タイム</th>
+                  <th>ミス</th>
+                  <th>日付</th>
                 </tr>
               </thead>
               <tbody>
                 {onlineRankings.map((record, index) => (
                   <motion.tr key={record.id || index} variants={itemVariants}>
-                    <td className={styles.rankCell}>{record.position}</td>
+                    <td>{index + 1}</td>
                     <td>{record.playerName || record.username || 'Anonymous'}</td>
                     <td>{(record.kpm || record.score || 0).toFixed(1)}</td>
                     <td>{((record.accuracy !== undefined ? record.accuracy : 
@@ -601,7 +447,7 @@ const RankingScreen = () => {
             )}
           </motion.div>
         ) : (
-          // ローカルのスコア表示（タブ機能削除後）
+          // ローカルランキング表示
           <motion.div 
             className={styles.tableContainer}
             variants={containerVariants}
@@ -612,47 +458,34 @@ const RankingScreen = () => {
             <table className={styles.rankingTable}>
               <thead>
                 <tr>
-                  <th className={styles.rankColumn}>順位</th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('date')}>
-                    日付 {renderSortIndicator('date')}
-                  </th>
-                  <th>難易度</th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('kpm')}>
-                    KPM {renderSortIndicator('kpm')}
-                  </th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('accuracy')}>
-                    正解率 {renderSortIndicator('accuracy')}
-                  </th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('time')}>
-                    タイム {renderSortIndicator('time')}
-                  </th>
-                  <th className={styles.sortableHeader} onClick={() => handleSort('mistakes')}>
-                    ミス {renderSortIndicator('mistakes')}
-                  </th>
+                  <th>順位</th>
+                  <th>KPM</th>
+                  <th>正解率</th>
+                  <th>タイム</th>
+                  <th>ミス</th>
+                  <th>日付</th>
                 </tr>
               </thead>
               <tbody>
-                {getSortedLocalData().map((record, index) => (
+                {getKpmSortedData().map((record, index) => (
                   <motion.tr key={index} variants={itemVariants}>
-                    <td className={styles.rankCell}>{record.position}</td>
-                    <td>{formatDate(record.date)}</td>
-                    <td>{record.difficulty === 'easy' ? 'やさしい' : record.difficulty === 'normal' ? '普通' : 'むずかしい'}</td>
+                    <td>{index + 1}</td>
                     <td>{record.kpm.toFixed(1)}</td>
                     <td>{record.accuracy.toFixed(1)}%</td>
                     <td>{Math.floor(record.time / 60)}:{String(record.time % 60).padStart(2, '0')}</td>
                     <td>{record.mistakes}</td>
+                    <td>{formatDate(record.date)}</td>
                   </motion.tr>
                 ))}
               </tbody>
             </table>
-            {getSortedLocalData().length === 0 && (
-              <div className={styles.noRecords}>ローカルの記録がありません</div>
+            {getKpmSortedData().length === 0 && (
+              <div className={styles.noRecords}>記録がありません</div>
             )}
           </motion.div>
         )}
       </div>
 
-      {/* ボタン類 */}
       <motion.div
         className={styles.buttonContainer}
         initial={{ opacity: 0, y: 30 }}

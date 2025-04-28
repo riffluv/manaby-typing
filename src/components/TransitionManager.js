@@ -219,9 +219,19 @@ export const usePageTransition = () => {
 
     // 設定画面への遷移をモーダル表示に変更
     if (screen === SCREENS.SETTINGS) {
-      // 効果音を最優先で再生（setTimeout使用）
-      if (options.playSound !== false) {
-        setTimeout(() => soundSystem.play('button'), 0);
+      // 効果音を先に確実に鳴らす（オプションでオフにしない限り）
+      try {
+        // 音声コンテキストの状態を確認
+        if (soundSystem.context && soundSystem.context.state === 'suspended') {
+          soundSystem.context.resume();
+        }
+
+        // 効果音を再生（オプションでオフにできる）
+        if (options.playSound !== false) {
+          soundSystem.play('button');
+        }
+      } catch (err) {
+        console.error('音声再生でエラーが発生しました:', err);
       }
 
       // メインメニューにいない場合は一旦メインメニューに遷移
@@ -237,34 +247,44 @@ export const usePageTransition = () => {
       return;
     }
 
-    // 効果音を最優先で確実に鳴らす（オプションでオフにしない限り）
-    if (options.playSound !== false) {
-      // リザルト画面への遷移時は効果音を再生しない（ResultScreenで再生される）
-      if (screen !== SCREENS.RESULT) {
-        // buttonサウンドを最優先で即時再生
-        setTimeout(() => soundSystem.play('button'), 0);
+    // 効果音を先に確実に鳴らす（オプションでオフにしない限り）
+    try {
+      // 音声コンテキストの状態を確認
+      if (soundSystem.context && soundSystem.context.state === 'suspended') {
+        soundSystem.context.resume();
       }
-    }
 
-    console.log(
-      '画面遷移を実行します:',
-      screen,
-      'サウンド:',
-      options.playSound !== false ? '有効' : '無効'
-    );
+      // 効果音を再生（オプションでオフにできる）
+      if (options.playSound !== false) {
+        // リザルト画面への遷移時は効果音を再生しない（ResultScreenで再生される）
+        if (screen !== SCREENS.RESULT) {
+          // buttonサウンドをすぐに再生する
+          soundSystem.play('button');
+        }
+      }
+
+      console.log(
+        '画面遷移を実行します:',
+        screen,
+        'サウンド:',
+        options.playSound !== false ? '有効' : '無効'
+      );
+    } catch (err) {
+      console.error('音声再生でエラーが発生しました:', err);
+    }
 
     // トランジションフラグをセット
     setIsTransitioning(true);
 
-    // 画面遷移処理は音声再生の後に実行（わずかに遅延）
-    const delay = screen === SCREENS.RESULT ? 10 : 30;
+    // 画面遷移実行（リザルト画面への遷移は遅延なし、それ以外は最小限の遅延）
+    const delay = screen === SCREENS.RESULT ? 0 : 20;
     setTimeout(() => {
       navigateTo(screen);
 
       // 遷移後にフラグをリセット（タイミングを最適化）
       setTimeout(() => {
         setIsTransitioning(false);
-      }, 200);
+      }, 200); // 300msから200msに短縮
     }, delay);
   };
 

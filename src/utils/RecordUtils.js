@@ -3,19 +3,27 @@
  */
 
 /**
- * 新しいゲーム記録を保存する
- * @param {number} kpm - 1分あたりのタイピング数 (Keys Per Minute)
- * @param {number} accuracy - 正解率（パーセント）
+ * ゲーム記録をローカルストレージに保存する
+ * @param {number} kpm - 1分あたりの入力キー数
+ * @param {number} accuracy - 正確性（%）
  * @param {number} time - プレイ時間（秒）
- * @param {number} mistakes - ミス入力数
+ * @param {number} mistakes - ミス入力回数
  * @param {string} difficulty - 難易度
+ * @returns {boolean} 保存に成功したかどうか
  */
 export const saveGameRecord = (kpm, accuracy, time, mistakes, difficulty) => {
   try {
     // 既存の記録を取得
-    const existingRecords = getGameRecords();
-    
-    // 新しい記録を追加
+    let existingRecords = getGameRecords();
+
+    // 今日の日付のデータが既に存在するか確認（同一難易度、同一プレイヤーで）
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
+    const existingTodayRecordIndex = existingRecords.findIndex(record => {
+      const recordDate = new Date(record.date).toISOString().split('T')[0];
+      return recordDate === today && record.difficulty === difficulty;
+    });
+
+    // 新しい記録を作成
     const newRecord = {
       kpm: parseFloat(kpm) || 0,
       accuracy: parseFloat(accuracy) || 0,
@@ -24,10 +32,23 @@ export const saveGameRecord = (kpm, accuracy, time, mistakes, difficulty) => {
       difficulty: difficulty || 'normal',
       date: new Date().toISOString()
     };
+
+    // 既存の記録がある場合、KPMが高い方を保持
+    if (existingTodayRecordIndex >= 0) {
+      const existingRecord = existingRecords[existingTodayRecordIndex];
+      // KPMが同じなら正確性で比較、それも同じならミス数の少ない方を優先
+      if (newRecord.kpm > existingRecord.kpm || 
+         (newRecord.kpm === existingRecord.kpm && newRecord.accuracy > existingRecord.accuracy) ||
+         (newRecord.kpm === existingRecord.kpm && newRecord.accuracy === existingRecord.accuracy && newRecord.mistakes < existingRecord.mistakes)) {
+        // 新記録の場合は上書き
+        existingRecords[existingTodayRecordIndex] = newRecord;
+      }
+    } else {
+      // 既存の記録がなければ追加
+      existingRecords.push(newRecord);
+    }
     
-    existingRecords.push(newRecord);
-    
-    // 最大20件まで保存
+    // 最大20件まで保存（古い順に削除）
     const limitedRecords = existingRecords.slice(-20);
     
     // ローカルストレージに保存
