@@ -1,21 +1,29 @@
 /* モーダル関連のスタイル - BEM記法に従って命名 */
 .modal {
   /* このブロックはモーダル全体を表します */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000; /* 最も高いz-indexを設定 */
+  isolation: isolate; /* 新しいスタッキングコンテキストを作成 */
 }
 
-/* モーダルオーバーレイ - 画面全体を覆う半透明の背景 */
+/* モーダルオーバーレイ - 画面全体を覆う背景 */
 .modal__overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: rgba(0, 0, 0, 0.9); /* 不透明度を上げて背景を暗く */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999; /* z-indexを高くして確実に前面に表示 */
-  backdrop-filter: blur(3px);
+  z-index: 1001; /* モーダル自体より高いz-indexを設定 */
+  backdrop-filter: blur(5px); /* ぼかし効果を強化 */
+  -webkit-backdrop-filter: blur(5px); /* Safari対応 */
   padding: 20px;
   overflow: hidden;
 }
@@ -24,7 +32,7 @@
 .modal__content {
   width: 500px;
   max-width: 90%;
-  max-height: 500px; 
+  max-height: 500px;
   background-color: #121212;
   border: 4px solid #ff8c00;
   border-radius: 8px;
@@ -33,6 +41,7 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  z-index: 1002; /* オーバーレイより上に表示 */
 }
 
 /* モーダルヘッダー */
@@ -42,7 +51,7 @@
   align-items: center;
   padding: 15px 20px;
   border-bottom: 2px solid #ff8c00;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.8); /* 背景をより不透明に */
   flex-shrink: 0;
   z-index: 2;
   min-height: 60px; /* ヘッダーの最小高さを確保 */
@@ -57,9 +66,10 @@
   max-height: calc(500px - 70px);
   scrollbar-width: thin;
   scrollbar-color: #ff8c00 rgba(0, 0, 0, 0.3);
+  background-color: #121212; /* 明示的に背景色を設定 */
 }
 
-/* モーダル内のスクロールバースタイル */
+/* 他のスタイルは変更なし */
 .modal__body::-webkit-scrollbar {
   width: 8px;
 }
@@ -147,7 +157,7 @@
   .modal__content {
     max-width: 95%;
   }
-  
+
   .modal__title {
     font-size: 20px;
   }

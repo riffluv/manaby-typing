@@ -566,3 +566,47 @@
     padding: 8px;
   }
 }
+
+/* ソート可能なヘッダーのスタイル */
+.sortableHeader {
+  cursor: pointer;
+  position: relative;
+  padding-right: 20px !important; /* ソートインジケーターのスペースを確保 */
+  transition: background-color 0.2s;
+}
+
+.sortableHeader:hover {
+  background-color: rgba(255, 140, 0, 0.5);
+}
+
+/* ソートインジケーターのスタイル */
+.sortIndicator {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ffffff;
+  font-size: 10px;
+  text-shadow: 0 0 3px rgba(255, 140, 0, 0.8);
+}
+
+/* ホバー時のカーソルスタイル */
+.rankingTable th.sortableHeader:hover {
+  cursor: pointer;
+}
+
+/* 順位列のスタイル */
+.rankColumn {
+  width: 50px;
+  background-color: rgba(255, 140, 0, 0.4) !important;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.rankCell {
+  background-color: rgba(255, 140, 0, 0.2);
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}

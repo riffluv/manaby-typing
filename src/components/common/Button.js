@@ -32,37 +32,37 @@ const Button = ({
 }) => {
   // スタイルクラスを組み立て
   let buttonClass = styles.button;
-  
+
   // バリアント
   if (variant !== 'default') {
     buttonClass += ` ${styles[`button--${variant}`]}`;
   }
-  
+
   // サイズ
   if (size !== 'medium') {
     buttonClass += ` ${styles[`button--${size}`]}`;
   }
-  
+
   // 丸みを帯びたスタイル
   if (round) {
     buttonClass += ` ${styles['button--round']}`;
   }
-  
+
   // アクティブ状態
   if (active) {
     buttonClass += ` ${styles['button--active']}`;
   }
-  
+
   // メニュー用ボタン
   if (className === 'button--menu') {
     buttonClass += ` ${styles['button--menu']}`;
   }
-  
+
   // 難易度選択用ボタン
   if (className === 'button--difficulty') {
     buttonClass += ` ${styles['button--difficulty']}`;
   }
-  
+
   return (
     <motion.button
       className={buttonClass}
@@ -88,8 +88,10 @@ const Button = ({
  * @returns {React.ReactElement}
  */
 export const ToggleButton = ({ isOn, onToggle, disabled = false }) => {
-  const toggleClass = `${styles.toggle} ${isOn ? styles['toggle--on'] : styles['toggle--off']}`;
-  
+  const toggleClass = `${styles.toggle} ${
+    isOn ? styles['toggle--on'] : styles['toggle--off']
+  }`;
+
   return (
     <motion.button
       className={`${styles.button} ${toggleClass}`}

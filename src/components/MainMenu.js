@@ -239,10 +239,7 @@ const MainMenu = () => {
         <div className={styles.settingSection}>
           <h3 className={styles.sectionTitle}>サウンド（全体）</h3>
           <div className={styles.soundToggle}>
-            <ToggleButton
-              isOn={settings.soundEnabled}
-              onToggle={toggleSound}
-            />
+            <ToggleButton isOn={settings.soundEnabled} onToggle={toggleSound} />
           </div>
         </div>
 
@@ -329,12 +326,8 @@ const MainMenu = () => {
         <div className={styles.creditSection}>
           <h3 className={styles.sectionTitle}>素材</h3>
           <ul className={styles.creditsList}>
-            <li className={styles.creditsItem}>
-              アイコン素材：素材提供元
-            </li>
-            <li className={styles.creditsItem}>
-              フォント：フォント提供元
-            </li>
+            <li className={styles.creditsItem}>アイコン素材：素材提供元</li>
+            <li className={styles.creditsItem}>フォント：フォント提供元</li>
             <li className={styles.creditsItem}>効果音：効果音提供元</li>
           </ul>
         </div>
@@ -420,20 +413,12 @@ const MainMenu = () => {
       </div>
 
       {/* 設定モーダル - 共通モーダルコンポーネントを使用 */}
-      <Modal
-        isOpen={showSettingsModal}
-        onClose={handleCloseModal}
-        title="設定"
-      >
+      <Modal isOpen={showSettingsModal} onClose={handleCloseModal} title="設定">
         {renderSettingsContent()}
       </Modal>
 
       {/* クレジットモーダル - 共通モーダルコンポーネントを使用 */}
-      <Modal
-        isOpen={showCredits}
-        onClose={handleCloseModal}
-        title="クレジット"
-      >
+      <Modal isOpen={showCredits} onClose={handleCloseModal} title="クレジット">
         {renderCreditsContent()}
       </Modal>
     </div>

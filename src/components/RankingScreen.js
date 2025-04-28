@@ -47,7 +47,6 @@ const RankingScreen = () => {
   const { goToScreen, isTransitioning } = usePageTransition();
   const [rankingData, setRankingData] = useState([]);
   const [highScores, setHighScores] = useState({});
-  const [activeTab, setActiveTab] = useState('recent');
   const [activeDifficulty, setActiveDifficulty] = useState('normal');
   const [isExiting, setIsExiting] = useState(false);
   
@@ -60,6 +59,12 @@ const RankingScreen = () => {
   const [registrationStatus, setRegistrationStatus] = useState({ success: false, message: '' });
   const [debugData, setDebugData] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
+  
+  // ソート関連の状態
+  const [sortConfig, setSortConfig] = useState({
+    key: 'date', // デフォルトでは日付でソート
+    direction: 'desc' // 降順（新しい順）
+  });
 
   // コンポーネントマウント時にデータを取得
   useEffect(() => {
@@ -87,7 +92,7 @@ const RankingScreen = () => {
     if (isOnlineMode) {
       loadOnlineRankings();
     }
-  }, [isOnlineMode, activeTab, activeDifficulty]);
+  }, [isOnlineMode, activeDifficulty]);
 
   // ランキングデータのロード
   const loadRankingData = () => {
@@ -110,18 +115,22 @@ const RankingScreen = () => {
     setIsLoading(true);
     try {
       let rankings = [];
-      console.log(`Fetching online rankings - Tab: ${activeTab}, Difficulty: ${activeDifficulty}`);
+      console.log(`Fetching online rankings - Difficulty: ${activeDifficulty}`);
       
-      if (activeTab === 'recent') {
-        // 最近の記録を取得（難易度フィルタリングを追加）
-        rankings = await getRecentRankings(10, activeDifficulty);
-      } else {
-        // 難易度別のトップスコアを取得
-        rankings = await getTopRankings(activeDifficulty, 10);
-      }
-      
+      // 全てのランキングデータを取得（最近のデータ優先）
+      rankings = await getRecentRankings(30, activeDifficulty);
       console.log(`Loaded ${rankings.length} online rankings for difficulty: ${activeDifficulty}`);
-      setOnlineRankings(rankings);
+      
+      // 取得後にソート
+      const sortedRankings = sortData(rankings);
+      
+      // 順位情報を追加
+      const rankingsWithPosition = sortedRankings.map((record, index) => ({
+        ...record,
+        position: index + 1
+      }));
+      
+      setOnlineRankings(rankingsWithPosition);
     } catch (error) {
       console.error('オンラインランキングの取得に失敗しました:', error);
     } finally {
@@ -129,9 +138,77 @@ const RankingScreen = () => {
     }
   };
 
+  // ソート処理関数
+  const sortData = (data) => {
+    return [...data].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortConfig.key) {
+        case 'playerName':
+          aValue = a.playerName || a.username || '';
+          bValue = b.playerName || b.username || '';
+          break;
+        case 'kpm':
+          aValue = a.kpm || a.score || 0;
+          bValue = b.kpm || b.score || 0;
+          break;
+        case 'accuracy':
+          aValue = a.accuracy !== undefined ? a.accuracy : (a.stats?.accuracy !== undefined ? a.stats.accuracy : 0);
+          bValue = b.accuracy !== undefined ? b.accuracy : (b.stats?.accuracy !== undefined ? b.stats.accuracy : 0);
+          break;
+        case 'time':
+          aValue = a.time || 0;
+          bValue = b.time || 0;
+          break;
+        case 'mistakes':
+          aValue = a.mistakes || a.stats?.mistakes || 0;
+          bValue = b.mistakes || b.stats?.mistakes || 0;
+          break;
+        case 'date':
+          aValue = new Date(a.date || a.timestamp || 0);
+          bValue = new Date(b.date || b.timestamp || 0);
+          break;
+        default:
+          aValue = 0;
+          bValue = 0;
+      }
+      
+      if (sortConfig.direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  };
+
+  // ソート切り替え処理
+  const handleSort = (key) => {
+    soundSystem.play('button');
+    setSortConfig((prevConfig) => {
+      const newDirection = 
+        prevConfig.key === key 
+          ? prevConfig.direction === 'asc' ? 'desc' : 'asc'
+          : 'desc';
+      
+      return { key, direction: newDirection };
+    });
+    
+    // オンラインモードではソート状態を適用
+    if (isOnlineMode) {
+      setOnlineRankings(prevRankings => {
+        const sortedData = sortData([...prevRankings]);
+        // 順位情報を更新
+        return sortedData.map((record, index) => ({
+          ...record,
+          position: index + 1
+        }));
+      });
+    }
+  };
+
   // オンラインモード切替処理
   const toggleOnlineMode = () => {
-    soundSystem.playSound('Button');
+    soundSystem.play('button');
     // オンラインモード ⇔ ローカルモードの切り替え
     const newMode = !isOnlineMode;
     setIsOnlineMode(newMode);
@@ -144,24 +221,59 @@ const RankingScreen = () => {
     }
   };
 
-  // タブ切り替え処理
-  const handleTabChange = (tab) => {
-    soundSystem.playSound('Button');
-    setActiveTab(tab);
-  };
-
   // 難易度切り替え処理
   const handleDifficultyChange = (difficulty) => {
-    soundSystem.playSound('Button');
+    soundSystem.play('button');
     setActiveDifficulty(difficulty);
   };
 
-  // KPM順にソートされたデータを取得
-  const getKpmSortedData = () => {
-    return [...rankingData]
-      .filter(record => record.difficulty === activeDifficulty)
-      .sort((a, b) => b.kpm - a.kpm)
-      .slice(0, 10); // トップ10のみ表示
+  // ソートされたローカルデータを取得（順位付き）
+  const getSortedLocalData = () => {
+    const filteredData = rankingData.filter(record => 
+      activeDifficulty === 'all' || record.difficulty === activeDifficulty
+    );
+    
+    const sortedData = [...filteredData].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortConfig.key) {
+        case 'kpm':
+          aValue = a.kpm || 0;
+          bValue = b.kpm || 0;
+          break;
+        case 'accuracy':
+          aValue = a.accuracy || 0;
+          bValue = b.accuracy || 0;
+          break;
+        case 'time':
+          aValue = a.time || 0;
+          bValue = b.time || 0;
+          break;
+        case 'mistakes':
+          aValue = a.mistakes || 0;
+          bValue = b.mistakes || 0;
+          break;
+        case 'date':
+          aValue = new Date(a.date || 0);
+          bValue = new Date(b.date || 0);
+          break;
+        default:
+          aValue = 0;
+          bValue = 0;
+      }
+      
+      if (sortConfig.direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    }).slice(0, 15); // 上位15件を表示
+    
+    // 順位情報を追加
+    return sortedData.map((record, index) => ({
+      ...record,
+      position: index + 1
+    }));
   };
 
   // 日付をフォーマット
@@ -199,16 +311,27 @@ const RankingScreen = () => {
     }, 300); // アニメーション時間と同期
   };
 
+  // ソートインジケーターを表示するヘルパー関数
+  const renderSortIndicator = (columnKey) => {
+    if (sortConfig.key !== columnKey) return null;
+    
+    return (
+      <span className={styles.sortIndicator}>
+        {sortConfig.direction === 'asc' ? '▲' : '▼'}
+      </span>
+    );
+  };
+
   // 登録モーダルを表示
   const handleShowRegisterModal = () => {
-    soundSystem.playSound('Button');
+    soundSystem.play('button');
     setShowRegisterModal(true);
     setRegistrationStatus({ success: false, message: '' });
   };
 
   // 登録モーダルを閉じる
   const handleCloseModal = () => {
-    soundSystem.playSound('Button');
+    soundSystem.play('button');
     setShowRegisterModal(false);
   };
 
@@ -357,21 +480,7 @@ const RankingScreen = () => {
         </button>
       </div>
 
-      <div className={styles.tabContainer}>
-        <button
-          className={`${styles.tabButton} ${activeTab === 'recent' ? styles.tabButton__active : ''}`}
-          onClick={() => handleTabChange('recent')}
-        >
-          最近のスコア
-        </button>
-        <button
-          className={`${styles.tabButton} ${activeTab === 'top' ? styles.tabButton__active : ''}`}
-          onClick={() => handleTabChange('top')}
-        >
-          トップスコア
-        </button>
-      </div>
-
+      {/* 難易度切り替えボタン */}
       <div className={styles.difficultyNav}>
         <button
           className={`${styles.difficultyButton} ${activeDifficulty === 'easy' ? styles.difficultyButton__active : ''}`}
@@ -408,19 +517,31 @@ const RankingScreen = () => {
             <table className={styles.rankingTable}>
               <thead>
                 <tr>
-                  {activeTab === 'top' && <th>ランク</th>}
-                  <th>プレイヤー</th>
-                  <th>KPM</th>
-                  <th>正解率</th>
-                  <th>タイム</th>
-                  <th>ミス</th>
-                  <th>日付</th>
+                  <th className={styles.rankColumn}>順位</th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('playerName')}>
+                    プレイヤー {renderSortIndicator('playerName')}
+                  </th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('kpm')}>
+                    KPM {renderSortIndicator('kpm')}
+                  </th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('accuracy')}>
+                    正解率 {renderSortIndicator('accuracy')}
+                  </th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('time')}>
+                    タイム {renderSortIndicator('time')}
+                  </th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('mistakes')}>
+                    ミス {renderSortIndicator('mistakes')}
+                  </th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('date')}>
+                    日付 {renderSortIndicator('date')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {onlineRankings.map((record, index) => (
-                  <motion.tr key={record.id} variants={itemVariants}>
-                    {activeTab === 'top' && <td>{index + 1}</td>}
+                  <motion.tr key={record.id || index} variants={itemVariants}>
+                    <td className={styles.rankCell}>{record.position}</td>
                     <td>{record.playerName || record.username || 'Anonymous'}</td>
                     <td>{(record.kpm || record.score || 0).toFixed(1)}</td>
                     <td>{((record.accuracy !== undefined ? record.accuracy : 
@@ -436,50 +557,8 @@ const RankingScreen = () => {
               <div className={styles.noRecords}>オンラインの記録がありません</div>
             )}
           </motion.div>
-        ) : activeTab === 'recent' ? (
-          // ローカルの最近のスコア表示
-          <motion.div 
-            className={styles.tableContainer}
-            variants={containerVariants}
-            initial="hidden"
-            animate={isExiting ? "exit" : "show"}
-            exit="exit"
-          >
-            <table className={styles.rankingTable}>
-              <thead>
-                <tr>
-                  <th>日付</th>
-                  <th>難易度</th>
-                  <th>KPM</th>
-                  <th>正解率</th>
-                  <th>タイム</th>
-                  <th>ミス</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rankingData
-                  .filter(record => activeDifficulty === 'all' || record.difficulty === activeDifficulty)
-                  .slice(0, 10)
-                  .map((record, index) => (
-                    <motion.tr key={index} variants={itemVariants}>
-                      <td>{formatDate(record.date)}</td>
-                      <td>{record.difficulty === 'easy' ? 'やさしい' : record.difficulty === 'normal' ? '普通' : 'むずかしい'}</td>
-                      <td>{record.kpm.toFixed(1)}</td>
-                      <td>{record.accuracy.toFixed(1)}%</td>
-                      <td>{Math.floor(record.time / 60)}:{String(record.time % 60).padStart(2, '0')}</td>
-                      <td>{record.mistakes}</td>
-                    </motion.tr>
-                  ))}
-              </tbody>
-            </table>
-            {rankingData
-              .filter(record => activeDifficulty === 'all' || record.difficulty === activeDifficulty)
-              .length === 0 && (
-              <div className={styles.noRecords}>ローカルの記録がありません</div>
-            )}
-          </motion.div>
         ) : (
-          // ローカルのトップスコア表示
+          // ローカルのスコア表示（タブ機能削除後）
           <motion.div 
             className={styles.tableContainer}
             variants={containerVariants}
@@ -490,34 +569,47 @@ const RankingScreen = () => {
             <table className={styles.rankingTable}>
               <thead>
                 <tr>
-                  <th>ランク</th>
-                  <th>KPM</th>
-                  <th>正解率</th>
-                  <th>タイム</th>
-                  <th>ミス</th>
-                  <th>日付</th>
+                  <th className={styles.rankColumn}>順位</th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('date')}>
+                    日付 {renderSortIndicator('date')}
+                  </th>
+                  <th>難易度</th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('kpm')}>
+                    KPM {renderSortIndicator('kpm')}
+                  </th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('accuracy')}>
+                    正解率 {renderSortIndicator('accuracy')}
+                  </th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('time')}>
+                    タイム {renderSortIndicator('time')}
+                  </th>
+                  <th className={styles.sortableHeader} onClick={() => handleSort('mistakes')}>
+                    ミス {renderSortIndicator('mistakes')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {getKpmSortedData().map((record, index) => (
+                {getSortedLocalData().map((record, index) => (
                   <motion.tr key={index} variants={itemVariants}>
-                    <td>{index + 1}</td>
+                    <td className={styles.rankCell}>{record.position}</td>
+                    <td>{formatDate(record.date)}</td>
+                    <td>{record.difficulty === 'easy' ? 'やさしい' : record.difficulty === 'normal' ? '普通' : 'むずかしい'}</td>
                     <td>{record.kpm.toFixed(1)}</td>
                     <td>{record.accuracy.toFixed(1)}%</td>
                     <td>{Math.floor(record.time / 60)}:{String(record.time % 60).padStart(2, '0')}</td>
                     <td>{record.mistakes}</td>
-                    <td>{formatDate(record.date)}</td>
                   </motion.tr>
                 ))}
               </tbody>
             </table>
-            {getKpmSortedData().length === 0 && (
-              <div className={styles.noRecords}>記録がありません</div>
+            {getSortedLocalData().length === 0 && (
+              <div className={styles.noRecords}>ローカルの記録がありません</div>
             )}
           </motion.div>
         )}
       </div>
 
+      {/* ボタン類 */}
       <motion.div
         className={styles.buttonContainer}
         initial={{ opacity: 0, y: 30 }}

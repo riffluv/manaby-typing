@@ -205,7 +205,7 @@ const GameScreen = () => {
     if (e.key === 'Escape') {
       soundSystem.play('button');
       setTimeout(() => {
-        goToScreen(SCREENS.MAIN_MENU);
+        goToScreen(SCREENS.MAIN_MENU, { playSound: false });
       }, 100);
       return;
     }
