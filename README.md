@@ -10,6 +10,7 @@
 
    - Block（ブロック）: 独立したコンポーネント `.header`, `.card`
    - Element（要素）: ブロックの一部 `.header__title`, `.card__image`
+
    - Modifier（修飾子）: ブロックや要素のバリエーション `.header--fixed`, `.button--large`
    - 例: `.typing-game__score--highlight`
 
