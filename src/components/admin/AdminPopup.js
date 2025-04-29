@@ -20,7 +20,7 @@ const logError = (message, error) => {
   console.error(message, error);
 };
 
-const AdminPopup = ({ isOpen, onClose }) => {
+const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
   const { gameState, setGameState, currentScreen } = useGameContext();
   const [problemCount, setProblemCount] = useState(5); // デフォルト値は5問
   const [activeTab, setActiveTab] = useState('settings'); // 'settings'、'background'、または 'gallery'
@@ -31,6 +31,7 @@ const AdminPopup = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false); // 背景読み込み中状態
   const [showRestoreSuccess, setShowRestoreSuccess] = useState(false); // 復元成功メッセージ表示状態
   const [selectedScreen, setSelectedScreen] = useState('ALL'); // 背景を保存/適用する画面
+  const [captureMode, setCaptureMode] = useState('spa'); // 'spa'または'container'
 
   // 画面一覧の定義
   const screenOptions = [
@@ -154,13 +155,25 @@ const AdminPopup = ({ isOpen, onClose }) => {
   const captureAndSaveBackground = async () => {
     try {
       setIsSavingBackground(true);
-
-      // メインコンテナ要素を取得
-      const mainContainer = getMainContainer();
-      logDebug('キャプチャするコンテナ要素:', mainContainer);
+      let targetElement;
+      
+      // キャプチャするターゲット要素を決定
+      if (captureMode === 'container') {
+        // 外側のコンテナ（レトロドットパターン背景）をキャプチャ
+        if (backgroundRef?.current) {
+          targetElement = backgroundRef.current;
+          logDebug('背景ドットパターンをキャプチャします:', targetElement);
+        } else {
+          throw new Error('背景要素の参照が取得できません');
+        }
+      } else {
+        // 従来通りSPAのメインコンテナをキャプチャ
+        targetElement = getMainContainer();
+        logDebug('SPAメインコンテナをキャプチャします:', targetElement);
+      }
 
       // キャプチャ実行
-      const canvas = await html2canvas(mainContainer, {
+      const canvas = await html2canvas(targetElement, {
         useCORS: true,
         allowTaint: true,
         backgroundColor: null,
@@ -170,15 +183,17 @@ const AdminPopup = ({ isOpen, onClose }) => {
       // Base64形式の画像データに変換
       const imageData = canvas.toDataURL('image/png');
 
-      // 背景のタイトルを生成
-      const backgroundTitle = `${playerName || '管理者'}の${getScreenDisplayName(selectedScreen)}用背景`;
+      // 背景のタイトルを生成（キャプチャモードを含める）
+      const modeText = captureMode === 'container' ? 'ドット背景' : 'SPA画面';
+      const backgroundTitle = `${playerName || '管理者'}の${getScreenDisplayName(selectedScreen)}用${modeText}`;
 
       // Firebaseに画面指定で保存
       const backgroundId = await FirebaseUtils.saveScreenBackgroundToFirebase(
         selectedScreen,
         playerName || '管理者',
         imageData,
-        backgroundTitle
+        backgroundTitle,
+        { captureMode } // キャプチャモードも保存
       );
 
       if (backgroundId) {
@@ -314,6 +329,7 @@ const AdminPopup = ({ isOpen, onClose }) => {
   const handlePlayerNameChange = (e) => setPlayerName(e.target.value);
   const handleTabChange = (tab) => setActiveTab(tab);
   const handleScreenChange = (e) => setSelectedScreen(e.target.value);
+  const handleCaptureModeChange = (mode) => setCaptureMode(mode);
 
   if (!isOpen) return null;
 
@@ -432,6 +448,41 @@ const AdminPopup = ({ isOpen, onClose }) => {
                 </p>
               </div>
 
+              {/* キャプチャモード選択 */}
+              <div className={styles.adminPopup__formGroup}>
+                <label className={styles.adminPopup__label}>
+                  キャプチャする範囲
+                </label>
+                <div className={styles.adminPopup__radioGroup}>
+                  <label className={styles.adminPopup__radioLabel}>
+                    <input
+                      type="radio"
+                      name="captureMode"
+                      value="spa"
+                      checked={captureMode === 'spa'}
+                      onChange={() => handleCaptureModeChange('spa')}
+                      className={styles.adminPopup__radio}
+                    />
+                    <span>SPA画面全体</span>
+                  </label>
+                  <label className={styles.adminPopup__radioLabel}>
+                    <input
+                      type="radio"
+                      name="captureMode"
+                      value="container"
+                      checked={captureMode === 'container'}
+                      onChange={() => handleCaptureModeChange('container')}
+                      className={styles.adminPopup__radio}
+                    />
+                    <span>オレンジドット背景のみ</span>
+                  </label>
+                </div>
+                <p className={styles.adminPopup__info}>
+                  「SPA画面全体」：ゲーム画面を含むページ全体をキャプチャします。<br />
+                  「オレンジドット背景のみ」：画面外側のドットパターン背景だけをキャプチャします。
+                </p>
+              </div>
+
               <div className={styles.adminPopup__formGroup}>
                 <button
                   className={`${styles.adminPopup__button} ${styles['adminPopup__button--special']}`}
@@ -440,12 +491,12 @@ const AdminPopup = ({ isOpen, onClose }) => {
                 >
                   {isSavingBackground
                     ? '保存中...'
-                    : `現在の背景を${getScreenDisplayName(
+                    : `${captureMode === 'container' ? 'ドット背景' : 'SPA画面'}を${getScreenDisplayName(
                         selectedScreen
                       )}用に保存`}
                 </button>
                 <p className={styles.adminPopup__info}>
-                  現在表示されている背景をキャプチャして保存します。保存した背景は後で再利用できます。
+                  選択した範囲をキャプチャして保存します。保存した背景は後で再利用できます。
                 </p>
               </div>
 
@@ -527,6 +578,7 @@ const AdminPopup = ({ isOpen, onClose }) => {
                             ? ` ${getScreenDisplayName(background.screenId)}用`
                             : '全画面用'}{' '}
                           |
+                          {background.cssStyleInfo?.captureMode === 'container' ? 'ドット背景' : 'SPA画面'} |
                           {new Date(background.timestamp).toLocaleDateString(
                             'ja-JP'
                           )}

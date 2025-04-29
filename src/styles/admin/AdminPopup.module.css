@@ -387,6 +387,53 @@
   box-shadow: 0 0 10px rgba(220, 53, 69, 0.6);
 }
 
+/* ラジオボタングループのスタイル */
+.adminPopup__radioGroup {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.adminPopup__radioLabel {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.adminPopup__radio {
+  margin-right: 8px;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ff8c00;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  position: relative;
+}
+
+.adminPopup__radio:checked {
+  background-color: rgba(255, 140, 0, 0.3);
+}
+
+.adminPopup__radio:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ff8c00;
+}
+
+.adminPopup__radio:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.4);
+}
+
 /* レスポンシブ対応 */
 @media (min-width: 768px) {
   .adminPopup__grid {

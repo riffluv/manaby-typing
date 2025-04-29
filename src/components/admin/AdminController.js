@@ -6,8 +6,11 @@ import AdminPopup from './AdminPopup';
 /**
  * 管理者モードのコントローラーコンポーネント
  * Ctrl + @ キーの組み合わせを監視し、管理者モーダルの表示を制御します
+ * 
+ * @param {Object} props コンポーネントのプロパティ
+ * @param {React.MutableRefObject} props.backgroundRef 背景コンポーネントへの参照
  */
-const AdminController = () => {
+const AdminController = ({ backgroundRef }) => {
   // モーダルの表示状態を管理
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
@@ -52,8 +55,12 @@ const AdminController = () => {
 
   return (
     <>
-      {/* 管理者設定モーダル */}
-      <AdminPopup isOpen={isAdminModalOpen} onClose={closeAdminModal} />
+      {/* 管理者設定モーダル - 背景への参照を渡す */}
+      <AdminPopup 
+        isOpen={isAdminModalOpen} 
+        onClose={closeAdminModal} 
+        backgroundRef={backgroundRef}
+      />
     </>
   );
 };

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, forwardRef } from 'react';
 import styles from '../../styles/backgrounds/RetroBackground.module.css';
 
-const RetroBackground = () => {
+// forwardRefを使用してコンポーネントに参照を渡せるようにする
+const RetroBackground = forwardRef(({ className = '' }, ref) => {
   const [dots, setDots] = useState([]);
   const [isClient, setIsClient] = useState(false);
 
@@ -46,7 +47,11 @@ const RetroBackground = () => {
   }
 
   return (
-    <div className={styles.retroBackground}>
+    <div 
+      ref={ref}
+      className={`${styles.retroBackground} ${className}`}
+      aria-hidden="true"
+    >
       {/* 暗い背景ベース */}
       <div className={styles.backgroundBase} />
       
@@ -72,6 +77,9 @@ const RetroBackground = () => {
       <div className={styles.gridOverlay} />
     </div>
   );
-};
+});
+
+// コンポーネント名を設定
+RetroBackground.displayName = 'RetroBackground';
 
 export default RetroBackground;
