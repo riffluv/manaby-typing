@@ -4,13 +4,13 @@
   width: 800px;
   height: 600px;
   margin: 0 auto;
-  background-color: #121212;
-  border: 4px solid #ff8c00;
-  box-shadow: 0 0 10px #ff8c00, inset 0 0 20px rgba(255, 140, 0, 0.5);
+  background-color: #0d1117;
+  border: 2px solid rgba(255, 140, 0, 0.5);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4), inset 0 0 30px rgba(255, 140, 0, 0.1);
   position: relative;
   overflow: hidden;
-  color: #ffffff;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #e1e1e1;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .gameContainer::before {
@@ -20,29 +20,33 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: linear-gradient(rgba(255, 140, 0, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 140, 0, 0.1) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(255, 140, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 140, 0, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
   z-index: 0;
 }
 
 .gameHeader {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.2rem 2.5rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   z-index: 1;
 }
 
 .gameScore,
 .gameLevel {
-  font-size: 1.2rem;
-  font-weight: bold;
-  font-family: 'Press Start 2P', cursive, system-ui;
-  color: #ff8c00;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #ff9a28;
+  text-shadow: 0px 0px 10px rgba(255, 154, 40, 0.3);
+  padding: 0.5rem 1rem;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 154, 40, 0.3);
 }
 
 .gameArea {
@@ -51,62 +55,91 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 1rem;
+  padding: 1.5rem;
   z-index: 1;
 }
 
 .typingArea {
   width: 90%;
   max-width: 700px;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   text-align: center;
-  border: 2px solid rgba(255, 140, 0, 0.5);
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  position: relative;
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.typingArea:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 140, 0, 0.3);
 }
 
 .problemContainer {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
 .typingProblem {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  font-weight: bold;
+  font-size: 2.25rem;
+  margin-bottom: 1.5rem;
+  font-weight: 700;
   letter-spacing: 1px;
   color: #ffffff;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0px 2px 10px rgba(0, 0, 0, 0.5);
+  line-height: 1.3;
 }
 
 .typingRomaji {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   letter-spacing: 2px;
-  font-family: 'Courier New', Courier, monospace;
-  height: 2rem;
-  margin-top: 1rem;
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  height: 2.2rem;
+  margin-top: 1.5rem;
+  position: relative;
+  padding: 0.5rem 1rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  display: inline-block;
+  min-width: 60%;
+}
+
+.typingRomaji::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background-color: rgba(255, 140, 0, 0.2);
+  border-radius: 50%;
 }
 
 .completed {
-  color: #4cca50;
-  font-weight: bold;
+  color: #6aff8b;
+  font-weight: 600;
+  text-shadow: 0px 0px 8px rgba(106, 255, 139, 0.4);
 }
 
 .current {
-  color: #4c9ed9;
-  font-weight: bold;
-  border-bottom: 2px solid #4c9ed9;
-  animation: blink 1s infinite;
+  color: #4db8ff;
+  font-weight: 600;
+  border-bottom: 2px solid #4db8ff;
+  animation: blink 1.2s infinite;
+  padding-bottom: 2px;
+  text-shadow: 0px 0px 8px rgba(77, 184, 255, 0.4);
 }
 
 .error {
-  color: #ff4545;
+  color: #ff6b6b;
   animation: shake 0.3s;
+  text-shadow: 0px 0px 8px rgba(255, 107, 107, 0.4);
 }
 
 @keyframes shake {
-  0%,
-  100% {
+  0%, 100% {
     transform: translateX(0);
   }
   25% {
@@ -118,8 +151,7 @@
 }
 
 @keyframes blink {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
   50% {
@@ -140,7 +172,7 @@
   justify-content: center;
   align-items: center;
   padding: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   z-index: 1;
 }
 
@@ -153,13 +185,12 @@
   border-radius: 30px;
   cursor: pointer;
   transition: all 0.2s;
-  font-family: 'Press Start 2P', cursive, system-ui;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.3);
+  box-shadow: 0 0 8px rgba(255, 140, 0, 0.3),
+    inset 0 0 10px rgba(255, 140, 0, 0.1);
 }
 
 .controlButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
+  background-color: rgba(255, 140, 0, 0.15);
   transform: translateY(-2px);
 }
 
@@ -180,8 +211,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 140, 0, 0.3);
-  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 140, 0, 0.15);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .statIcon {
@@ -192,16 +224,14 @@
 .statLabel {
   flex: 1;
   text-align: left;
-  font-family: 'Press Start 2P', cursive, system-ui;
   font-size: 0.9rem;
-  color: #ffffff;
+  color: #e1e1e1;
 }
 
 .statValue {
   min-width: 80px;
   text-align: right;
   font-weight: bold;
-  font-family: 'Press Start 2P', cursive, system-ui;
   font-size: 1.1rem;
   color: #ffcc00;
 }
@@ -214,9 +244,8 @@
   font-size: 4rem;
   font-weight: bold;
   color: #ffd700;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
   margin: 20px 0;
-  font-family: 'Press Start 2P', cursive, system-ui;
   position: relative;
 }
 
@@ -253,7 +282,6 @@
 }
 
 .loadingText {
-  font-family: 'Press Start 2P', cursive, system-ui;
   color: #ff8c00;
   font-size: 18px;
   text-align: center;
@@ -262,8 +290,7 @@
 }
 
 @keyframes blink {
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
   50% {
@@ -275,24 +302,38 @@
   position: absolute;
   left: 20px;
   bottom: 20px;
-  font-size: 14px;
-  color: #ff8c00; /* オレンジ色 */
-  background-color: rgba(0, 0, 0, 0.2);
-  padding: 10px 15px;
-  border-radius: 8px;
-  border-left: 3px solid #ff8c00;
-  font-weight: bold;
-  letter-spacing: 1px;
-  text-shadow: 0px 0px 5px rgba(255, 140, 0, 0.4);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(0, 0, 0, 0.4);
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transform: translateY(0);
   transition: all 0.3s ease;
   z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.escGuide::before {
+  content: 'ESC';
+  background-color: rgba(255, 140, 0, 0.2);
+  color: #ff9a28;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border: 1px solid rgba(255, 140, 0, 0.3);
 }
 
 .escGuide:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 /* IMEガイド表示のスタイル */
@@ -300,7 +341,7 @@
   margin-top: 20px;
   padding: 8px 12px;
   background-color: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 140, 0, 0.6);
+  border: 1px solid rgba(255, 140, 0, 0.2);
   border-radius: 6px;
   color: #fff;
   font-size: 0.9rem;
@@ -311,7 +352,7 @@
 
 .keyboardShortcut {
   margin-left: 8px;
-  color: #ff8c00;
+  color: #ff9a28;
   font-weight: bold;
   padding: 2px 5px;
   border-radius: 3px;

@@ -402,12 +402,9 @@ const GameScreen = () => {
         </div>
       </motion.div>
 
-      {/* ESCキーガイドを左下に追加 - 修正版 */}
-      <div
-        className={styles.escGuide}
-        style={{ opacity: 1, position: 'absolute', zIndex: 100 }}
-      >
-        ESCでメニューへ
+      {/* ESCキーガイドを左下に追加 - 洗練されたデザイン */}
+      <div className={styles.escGuide}>
+        メニューへ戻る
       </div>
     </div>
   );
