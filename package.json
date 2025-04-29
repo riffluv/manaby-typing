@@ -24,6 +24,8 @@
     "wanakana": "^5.3.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "@types/react": "19.1.2",
+    "nodemon": "^3.1.10",
+    "typescript": "5.8.3"
   }
 }

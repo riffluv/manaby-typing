@@ -230,6 +230,7 @@
 .keyStatCard .statValue {
   font-size: 32px; /* フォントサイズを小さく (38px→32px) */
   background: linear-gradient(to bottom, #ffffff, #ffd280);
+  background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   text-shadow: none;
