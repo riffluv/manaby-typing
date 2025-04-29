@@ -1153,12 +1153,179 @@ export default class TypingUtils {
     console.log('[最適化] 一般的なローマ字パターンのキャッシュをプリウォーム完了');
   }
 
-  // 静的初期化 - モジュール読み込み時に一度だけ実行
+  /**
+   * パフォーマンス最適化のためのブラウザ互換性ポリフィル
+   * タイピングマニアから学んだ最適化手法
+   */
+  static _setupOptimizations() {
+    if (typeof window !== 'undefined') {
+      // requestIdleCallback のポリフィル
+      window.requestIdleCallback = 
+        window.requestIdleCallback || 
+        function(cb) {
+          return setTimeout(() => {
+            const start = Date.now();
+            cb({
+              didTimeout: false,
+              timeRemaining: () => Math.max(0, 50 - (Date.now() - start))
+            });
+          }, 1);
+        };
+
+      window.cancelIdleCallback = 
+        window.cancelIdleCallback || 
+        function(id) {
+          clearTimeout(id);
+        };
+      
+      console.log('[最適化] パフォーマンスポリフィル初期化完了');
+    }
+  }
+
+  /**
+   * トークン処理の最適化 - typingmania-refから着想
+   * テキストのトークン化処理を効率的に行い、タイピング処理を高速化
+   * @param {string} text - 処理するテキスト
+   * @returns {Array} - 最適化されたトークン配列
+   */
+  static optimizeTokenProcessing(text) {
+    if (!text) return [];
+    
+    // トークン配列
+    const tokens = [];
+    
+    // 1文字ずつ処理するよりもまとめて処理する
+    let currentToken = '';
+    let tokenType = 'unknown';
+    
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      let newType = 'unknown';
+      
+      // 文字のタイプを判定（アルファベット、数字、記号、かな）
+      if (/[a-zA-Z]/.test(char)) {
+        newType = 'alpha';
+      } else if (/[0-9]/.test(char)) {
+        newType = 'numeric';
+      } else if (/[\u3040-\u309F\u30A0-\u30FF]/.test(char)) { // ひらがな・カタカナ
+        newType = 'kana';
+      } else {
+        newType = 'symbol';
+      }
+      
+      // トークンタイプが変わったら新しいトークンを開始
+      if (tokenType !== 'unknown' && tokenType !== newType) {
+        tokens.push({
+          text: currentToken,
+          type: tokenType
+        });
+        currentToken = '';
+      }
+      
+      // 現在の文字を追加
+      currentToken += char;
+      tokenType = newType;
+    }
+    
+    // 最後のトークンを追加
+    if (currentToken) {
+      tokens.push({
+        text: currentToken,
+        type: tokenType
+      });
+    }
+    
+    return tokens;
+  }
+
+  /**
+   * タイプ先行計算による入力予測最適化
+   * @param {string} text - 最適化する対象のテキスト
+   * @returns {Object} - 先読みデータ
+   */
+  static createTypeAheadOptimization(text) {
+    // トークン処理の最適化を利用
+    const tokens = this.optimizeTokenProcessing(text);
+    
+    // 予測マップを作成
+    const predictMap = {};
+    let position = 0;
+    
+    tokens.forEach(token => {
+      const romanji = wanakana.toRomaji(token.text);
+      
+      for (let i = 0; i < romanji.length; i++) {
+        const char = romanji[i].toLowerCase();
+        
+        // 位置ごとに次の文字を予測
+        if (!predictMap[position + i]) {
+          predictMap[position + i] = new Set();
+        }
+        
+        // 次の文字があれば予測に追加
+        if (i < romanji.length - 1) {
+          predictMap[position + i].add(romanji[i + 1].toLowerCase());
+        }
+      }
+      
+      position += romanji.length;
+    });
+    
+    return {
+      predictMap,
+      totalLength: position
+    };
+  }
+
+  /**
+   * レンダリング最適化のためのデバウンス関数
+   * @param {Function} func - 実行する関数
+   * @param {number} wait - 待機時間（ミリ秒）
+   * @returns {Function} - デバウンスされた関数
+   */
+  static debounce(func, wait) {
+    let timeout;
+    
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  /**
+   * パフォーマンスチューニング用の要素にブラウザ最適化を適用
+   * @param {HTMLElement} element - 最適化する要素
+   */
+  static applyElementOptimizations(element) {
+    if (!element || typeof window === 'undefined') return;
+    
+    // will-changeでGPUアクセラレーション
+    element.style.willChange = 'transform';
+    
+    // コンテンツ包含ヒント（レイアウト最適化）
+    element.style.contain = 'content';
+    
+    // トランジション最適化（スムーズな動き）
+    element.style.transition = 'all 0.2s ease-out';
+    
+    // 古いブラウザ用にベンダープレフィックスも追加
+    element.style.webkitTransition = 'all 0.2s ease-out';
+    element.style.mozTransition = 'all 0.2s ease-out';
+    
+    console.log('[最適化] 要素に最適化を適用:', element);
+  }
+
+  // 静的初期化時に最適化セットアップを実行
   static {
     try {
-      this.prepareCommonPatterns();
+      this._setupOptimizations();
     } catch (e) {
-      console.warn('パターンキャッシュの準備中にエラーが発生しました。パフォーマンスに影響する可能性があります。', e);
+      console.warn('最適化セットアップ中にエラーが発生しました。パフォーマンスに影響する可能性があります。', e);
     }
   }
 }

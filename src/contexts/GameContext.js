@@ -36,9 +36,7 @@ export const GameProvider = ({ children }) => {
     difficulty: 'normal',
     soundEnabled: true,
     sfxEnabled: true,
-    bgmEnabled: true,
     sfxVolume: 1.0,
-    bgmVolume: 0.5,
     // 他の設定項目をここに追加
   });
 
@@ -134,16 +132,10 @@ export const GameProvider = ({ children }) => {
     // 効果音の設定を反映
     soundSystem.setSfxEnabled(isSoundEnabled && settings.sfxEnabled);
     soundSystem.setSfxVolume(settings.sfxVolume);
-
-    // BGMの設定を反映
-    soundSystem.setBgmEnabled(isSoundEnabled && settings.bgmEnabled);
-    soundSystem.setBgmVolume(settings.bgmVolume);
   }, [
     settings.soundEnabled,
     settings.sfxEnabled,
-    settings.bgmEnabled,
     settings.sfxVolume,
-    settings.bgmVolume,
   ]);
 
   // ゲームのスコアや進行状態

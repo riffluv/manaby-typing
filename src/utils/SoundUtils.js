@@ -2,7 +2,7 @@
 
 /**
  * Web Audio APIを使用した効果音システム
- * シンプル化したバージョン - キーごとの異なるサウンドを廃止
+ * シンプル化したバージョン - BGM機能を完全に削除
  */
 class SoundUtils {
   constructor() {
@@ -15,10 +15,6 @@ class SoundUtils {
       // Gainノードの作成（効果音の音量調整用）
       this.gainNode = this.context.createGain();
       this.gainNode.connect(this.context.destination);
-
-      // BGM用のGainノードを別途作成
-      this.bgmGainNode = this.context.createGain();
-      this.bgmGainNode.connect(this.context.destination);
     }
 
     // 効果音バッファを保持するオブジェクト
@@ -27,17 +23,8 @@ class SoundUtils {
     // 効果音の音量設定（0.0〜1.0）
     this.volume = 1.0;
 
-    // BGMの音量設定（0.0〜1.0）
-    this.bgmVolume = 0.5;
-
     // 効果音のオン/オフ設定
     this.sfxEnabled = true;
-
-    // BGMのオン/オフ設定
-    this.bgmEnabled = true;
-
-    // 現在再生中のBGM要素
-    this.currentBgm = null;
 
     // サウンドプリセット定義 - シンプル化
     this.soundPresets = {
@@ -47,13 +34,6 @@ class SoundUtils {
       complete: '/sounds/resultsound.mp3', // ゲームクリア音
       button: '/sounds/buttonsound1.mp3', // ボタンクリック音
       level: '/sounds/xylophone-mini-dessert.mp3', // レベルアップ音
-    };
-
-    // BGMプリセット
-    this.bgmPresets = {
-      title: '/sounds/xylophone-mini-dessert.mp3', // タイトル画面BGM
-      game: '/sounds/battle.mp3', // ゲーム中BGM
-      result: '/sounds/Battle of the Emperor.mp3', // リザルト画面BGM
     };
 
     // キャッシュバスティング用のタイムスタンプ
@@ -287,44 +267,6 @@ class SoundUtils {
   }
 
   /**
-   * BGMを再生する (無効化済み: パフォーマンス向上のため)
-   * @param {string} name - 再生するBGMの名前またはURL
-   * @param {boolean} loop - ループ再生するかどうか
-   */
-  playBgm(name, loop = true) {
-    // パフォーマンス最適化のためBGM機能を無効化
-    console.log(`[DEBUG] BGM機能は無効化されています: ${name}`);
-    return false;
-  }
-
-  /**
-   * 現在再生中のBGMを停止する (無効化済み: パフォーマンス向上のため)
-   */
-  stopBgm() {
-    // パフォーマンス最適化のためBGM機能を無効化
-    console.log('[DEBUG] BGM停止機能は無効化されています');
-    return false;
-  }
-
-  /**
-   * 現在再生中のBGMを一時停止する (無効化済み: パフォーマンス向上のため)
-   */
-  pauseBgm() {
-    // パフォーマンス最適化のためBGM機能を無効化
-    console.log('[DEBUG] BGM一時停止機能は無効化されています');
-    return false;
-  }
-
-  /**
-   * 一時停止したBGMを再開する (無効化済み: パフォーマンス向上のため)
-   */
-  resumeBgm() {
-    // パフォーマンス最適化のためBGM機能を無効化
-    console.log('[DEBUG] BGM再開機能は無効化されています');
-    return false;
-  }
-
-  /**
    * 効果音の音量を設定する
    * @param {number} value - 0.0〜1.0の間の値
    */
@@ -345,44 +287,11 @@ class SoundUtils {
   }
 
   /**
-   * BGMの音量を設定する
-   * @param {number} value - 0.0〜1.0の間の値
-   */
-  setBgmVolume(value) {
-    // サーバーサイドレンダリング時は何もしない
-    if (typeof window === 'undefined' || !this.bgmGainNode) {
-      return;
-    }
-
-    this.bgmVolume = Math.max(0, Math.min(1, value));
-
-    // BGMが有効な場合のみ音量を設定
-    if (this.bgmEnabled) {
-      this.bgmGainNode.gain.value = this.bgmVolume;
-    }
-
-    // 現在再生中のBGM要素の音量も設定
-    if (this.currentBgm) {
-      this.currentBgm.volume = this.bgmVolume;
-    }
-
-    console.log(`[DEBUG] BGMの音量を設定: ${this.bgmVolume}`);
-  }
-
-  /**
    * 効果音の現在の音量を取得する
    * @returns {number} 0.0〜1.0の間の値
    */
   getSfxVolume() {
     return this.volume;
-  }
-
-  /**
-   * BGMの現在の音量を取得する
-   * @returns {number} 0.0〜1.0の間の値
-   */
-  getBgmVolume() {
-    return this.bgmVolume;
   }
 
   /**
@@ -401,34 +310,11 @@ class SoundUtils {
   }
 
   /**
-   * BGMを有効/無効に切り替える
-   * @param {boolean} enabled - BGMを有効にするか
-   */
-  setBgmEnabled(enabled) {
-    // サーバーサイドレンダリング時は何もしない
-    if (typeof window === 'undefined' || !this.bgmGainNode) {
-      return;
-    }
-
-    this.bgmEnabled = enabled;
-    this.bgmGainNode.gain.value = enabled ? this.bgmVolume : 0;
-
-    if (!enabled && this.currentBgm) {
-      this.pauseBgm();
-    } else if (enabled && this.currentBgm) {
-      this.resumeBgm();
-    }
-
-    console.log(`[DEBUG] BGMを${enabled ? '有効' : '無効'}にしました`);
-  }
-
-  /**
-   * すべてのサウンド(効果音とBGM両方)を有効/無効に切り替える
+   * すべてのサウンドを有効/無効に切り替える (効果音のみ)
    * @param {boolean} enabled - サウンドを有効にするか
    */
   setEnabled(enabled) {
     this.setSfxEnabled(enabled);
-    this.setBgmEnabled(enabled);
   }
 
   /**
@@ -501,9 +387,6 @@ class SoundUtils {
     console.log('[DEBUG] AudioContextをリセットします...');
 
     try {
-      // BGMを停止
-      this.stopBgm();
-
       // 古いコンテキストを閉じる
       if (this.context) {
         this.context
@@ -519,11 +402,6 @@ class SoundUtils {
       this.gainNode = this.context.createGain();
       this.gainNode.connect(this.context.destination);
       this.gainNode.gain.value = this.sfxEnabled ? this.volume : 0;
-
-      // 新しいBGM用Gainノードを作成
-      this.bgmGainNode = this.context.createGain();
-      this.bgmGainNode.connect(this.context.destination);
-      this.bgmGainNode.gain.value = this.bgmEnabled ? this.bgmVolume : 0;
 
       // バッファをクリア
       this.sfxBuffers = {};
