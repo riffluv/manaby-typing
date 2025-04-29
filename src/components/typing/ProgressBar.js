@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import styles from './ProgressBar.module.css';
 
 /**
@@ -15,6 +15,11 @@ const ProgressBar = ({
   showText = true, 
   label = '進行状況' 
 }) => {
+  // パフォーマンス向上のためコンソール出力を開発環境のみに制限
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('[ProgressBar] レンダリング:', { percentage });
+  }
+  
   // パーセンテージ値のバリデーション
   const validPercentage = Math.max(0, Math.min(100, percentage));
   
@@ -38,4 +43,15 @@ const ProgressBar = ({
   );
 };
 
-export default ProgressBar;
+// プロップの比較関数: 実質的な変更があった場合のみ再レンダリング
+const arePropsEqual = (prevProps, nextProps) => {
+  // 小数点以下を切り捨てた値で比較して、微小な変化での再レンダリングを防止
+  const prevPercentage = Math.floor(prevProps.percentage);
+  const nextPercentage = Math.floor(nextProps.percentage);
+  
+  return prevPercentage === nextPercentage && 
+         prevProps.showText === nextProps.showText && 
+         prevProps.label === nextProps.label;
+};
+
+export default memo(ProgressBar, arePropsEqual);

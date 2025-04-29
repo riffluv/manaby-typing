@@ -41,13 +41,12 @@ const ResultScreen = ({
   // メニューに戻るハンドラー - 再利用可能なコールバックとして定義
   const handleBackToMenu = useCallback(() => {
     console.log('メニューに戻ります');
-    // オプションで音声を再生
-    soundSystem.play('button');
+    // 音声再生はgoToScreenに委譲
     if (typeof onClickMenu === 'function') {
       onClickMenu();
     } else {
       // フォールバックとして直接遷移関数を呼び出し
-      goToScreen(SCREENS.MAIN_MENU, { playSound: false }); // すでに音を鳴らしているので、ここではfalse
+      goToScreen(SCREENS.MAIN_MENU, { playSound: true });
     }
   }, [onClickMenu, goToScreen]);
 
@@ -179,7 +178,6 @@ const ResultScreen = ({
   const handleRetryClick = (e) => {
     e.preventDefault();
     console.log('リトライボタンがクリックされました');
-    soundSystem.play('button'); // 統一されたサウンドシステムで効果音を再生
     if (typeof onClickRetry === 'function') {
       onClickRetry();
     } else {
@@ -197,11 +195,10 @@ const ResultScreen = ({
   const handleRankingClick = (e) => {
     e.preventDefault();
     console.log('ランキングボタンがクリックされました');
-    soundSystem.play('button'); // 統一されたサウンドシステムで効果音を再生
     if (typeof onClickRanking === 'function') {
       onClickRanking();
     } else {
-      goToScreen(SCREENS.RANKING, { playSound: false }); // すでに音を鳴らしているので、ここではfalse
+      goToScreen(SCREENS.RANKING, { playSound: true }); // 音声再生はgoToScreenに委譲
     }
   };
 

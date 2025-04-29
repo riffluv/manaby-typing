@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import styles from '../../styles/GameScreen.module.css';
 
 /**
@@ -19,6 +19,14 @@ const TypingDisplay = ({
   currentInput = '',
   errorAnimation = false
 }) => {
+  // パフォーマンス向上のためコンソール出力を開発環境のみに制限
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('[TypingDisplay] レンダリング:', { 
+      displayRomajiLength: displayRomaji?.length,
+      isCompleted
+    });
+  }
+
   if (!displayRomaji) return null;
 
   // 完了状態の場合
@@ -51,4 +59,27 @@ const TypingDisplay = ({
   );
 };
 
-export default TypingDisplay;
+// カスタム比較関数: プロップが実質的に変わった場合のみ再レンダリング
+const arePropsEqual = (prevProps, nextProps) => {
+  // 完了状態が変わった場合は更新
+  if (prevProps.isCompleted !== nextProps.isCompleted) return false;
+  
+  // エラーアニメーション状態が変わった場合は更新
+  if (prevProps.errorAnimation !== nextProps.errorAnimation) return false;
+  
+  // displayRomaji が変わった場合は更新
+  if (prevProps.displayRomaji !== nextProps.displayRomaji) return false;
+  
+  // currentInput が変わった場合は更新
+  if (prevProps.currentInput !== nextProps.currentInput) return false;
+  
+  // coloringInfo の重要な部分だけを比較
+  if (prevProps.coloringInfo?.typedLength !== nextProps.coloringInfo?.typedLength) return false;
+  if (prevProps.coloringInfo?.currentPosition !== nextProps.coloringInfo?.currentPosition) return false;
+  
+  // それ以外は再レンダリングしない
+  return true;
+};
+
+// React.memo でコンポーネントをラップし、カスタム比較関数を使用
+export default memo(TypingDisplay, arePropsEqual);

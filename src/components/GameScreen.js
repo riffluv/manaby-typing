@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import styles from '../styles/GameScreen.module.css';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
 import soundSystem from '../utils/SoundUtils';
@@ -15,7 +15,7 @@ import ProblemDisplay from './typing/ProblemDisplay';
 
 // デバッグ用コンソールログの追加
 console.log(
-  'DEBUG: UPDATED GameScreen.js has loaded! - ESC機能付き + 戻るボタンなし + useTypingGame対応 + コンポーネント分離'
+  'DEBUG: UPDATED GameScreen.js has loaded! - ESC機能付き + 戻るボタンなし + useTypingGame対応 + コンポーネント分離 + パフォーマンス最適化'
 );
 
 // リファクタリング後のコンポーネント実装
@@ -29,94 +29,23 @@ const GameScreen = () => {
 
   // 一時ローカル状態（互換性のために残す）
   const [soundsLoaded, setSoundsLoaded] = useState(false);
+  
+  // typingの参照を保持するためのref
+  const typingRef = useRef(null);
 
-  // カスタムフックの使用 - 現在の問題に対するタイピングセッションを管理
-  const typing = useTypingGame({
-    initialProblem: gameState.currentProblem,
-    playSound: soundsLoaded,
-    onProblemComplete: (problemStats) => {
-      goToNextProblem(problemStats);
-    }
-  });
-
-  // サウンドの初期化 - 改良版
-  useEffect(() => {
-    const initSound = async () => {
-      try {
-        console.log('[GameScreen] サウンドシステムの初期化を開始します...');
-
-        // AudioContextを確実に再開
-        soundSystem.resume();
-
-        // buttonサウンドが特に重要なのでプリロードを確認
-        if (!soundSystem.sfxBuffers['button']) {
-          console.log(
-            '[GameScreen] ボタン音が読み込まれていません。個別にロードします...'
-          );
-          await soundSystem.loadSound(
-            'button',
-            soundSystem.soundPresets.button
-          );
-        }
-
-        // すべての効果音を読み込み
-        await soundSystem.initializeAllSounds();
-
-        // 音声システムのステータスをコンソールに出力
-        console.log('[GameScreen] サウンド初期化完了:', {
-          contextState: soundSystem.context.state,
-          loadedSounds: Object.keys(soundSystem.sfxBuffers),
-          volume: soundSystem.getSfxVolume(),
-        });
-
-        setSoundsLoaded(true);
-      } catch (err) {
-        console.error('[GameScreen] サウンドシステムの初期化エラー:', err);
-        // エラーがあっても最低限の機能は使えるようにする
-        setSoundsLoaded(true);
-      }
-    };
-
-    initSound();
-
-    // クリーンアップ関数
-    return () => {
-      console.log(
-        '[GameScreen] コンポーネントがアンマウントされます。サウンドシステムの状態を保持します。'
-      );
-    };
-  }, []);
-
-  // document全体で物理キー入力を受け付ける
-  useEffect(() => {
-    const handleDocumentKeyDown = (e) => {
-      handleKeyDown(e);
-    };
-    document.addEventListener('keydown', handleDocumentKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleDocumentKeyDown);
-    };
-  }, [gameState, typing]);
-
-  // ゲーム終了時に即座にリザルト画面へ遷移する強化版useEffect
-  useEffect(() => {
-    // 明示的な型チェックと即時遷移
-    if (gameState.isGameClear === true) {
-      console.log(
-        '【GameScreenNew】ゲームクリア状態を検出 - 即座にリザルト画面へ遷移します'
-      );
-
-      // スムーズな遷移のために最適な遅延
-      setTimeout(() => {
-        goToScreen(SCREENS.RESULT);
-      }, 150);
-    }
-  }, [gameState.isGameClear, goToScreen]);
-
-  // 次の問題へ進む処理
-  const goToNextProblem = (problemStats = {}) => {
+  // 問題完了時のコールバック
+  const handleProblemComplete = useCallback((problemStats) => {
+    console.log('【handleProblemComplete】問題完了コールバック発火:', problemStats);
+    // ここではtypingRefを使用せず、直接goToNextProblemを呼び出す
     const solvedCount = gameState.solvedCount + 1;
     const isGameClear = solvedCount >= requiredProblemCount;
+
+    // デバッグ情報追加
+    console.log('【goToNextProblem】問題切り替え処理実行:', {
+      solvedCount,
+      isGameClear,
+      problemStats
+    });
 
     // problemStatsから問題ごとの情報を取得
     const { problemKPM = 0, updatedProblemKPMs = [] } = problemStats;
@@ -124,30 +53,33 @@ const GameScreen = () => {
     if (isGameClear) {
       // 終了時間を記録
       const endTime = Date.now();
-      const startTime = gameState.startTime || typing.stats.startTime || endTime;
+      const startTime = gameState.startTime || (typingRef.current?.stats?.startTime || endTime);
 
       // 統計情報の計算（typingフックから取得）
-      const stats = {
-        totalTime: typing.stats.elapsedTimeSeconds,
-        correctCount: typing.stats.correctCount,
-        missCount: typing.stats.missCount,
-        accuracy: typing.stats.accuracy,
-        kpm: typing.stats.kpm,
+      const stats = typingRef.current ? {
+        totalTime: typingRef.current.stats.elapsedTimeSeconds,
+        correctCount: typingRef.current.stats.correctCount,
+        missCount: typingRef.current.stats.missCount,
+        accuracy: typingRef.current.stats.accuracy,
+        kpm: typingRef.current.stats.kpm,
+        problemKPMs: updatedProblemKPMs,
+      } : {
+        totalTime: 0,
+        correctCount: 0,
+        missCount: 0,
+        accuracy: 0,
+        kpm: 0,
         problemKPMs: updatedProblemKPMs,
       };
 
       console.log('【ゲームクリア】 統計情報計算結果:', stats);
-      console.log(
-        `【KPM計算】 ${typing.stats.correctCount}キー / ${typing.stats.elapsedTimeSeconds / 60}分 = ${typing.stats.kpm}KPM`
-      );
 
       // 1回のみの状態更新で、すべてのデータを一度に設定
-      // これにより、データの一貫性が保証される
       setGameState((prevState) => ({
         ...prevState,
         solvedCount,
-        typedCount: typing.typingSession?.typedRomaji?.length || 0,
-        playTime: Math.floor(typing.stats.elapsedTimeSeconds),
+        typedCount: typingRef.current?.typingSession?.typedRomaji?.length || 0,
+        playTime: Math.floor(stats.totalTime),
         startTime: startTime,
         endTime: endTime,
         problemKPMs: updatedProblemKPMs,
@@ -157,7 +89,7 @@ const GameScreen = () => {
       }));
 
       // 念のため、少し遅延させてから画面遷移を確認（状態のプロパゲーションを待つ）
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         console.log('【遅延確認】現在のゲーム状態:', {
           isGameClear: gameState.isGameClear,
           stats: gameState.stats,
@@ -185,6 +117,12 @@ const GameScreen = () => {
         (problems.indexOf(gameState.currentProblem) + 1) % problems.length;
       const nextProblem = problems[nextProblemIndex];
 
+      console.log('【次の問題】', {
+        現在の問題: gameState.currentProblem?.displayText,
+        次の問題: nextProblem?.displayText,
+        インデックス: nextProblemIndex
+      });
+
       setGameState({
         ...gameState,
         currentProblem: nextProblem,
@@ -199,10 +137,78 @@ const GameScreen = () => {
     } catch (error) {
       console.error('次の問題の設定中にエラーが発生しました:', error);
     }
-  };
+  }, [gameState, requiredProblemCount, problems, setGameState]);
 
-  // キー入力処理
-  const handleKeyDown = (e) => {
+  // カスタムフックの使用 - 現在の問題に対するタイピングセッションを管理
+  const typing = useTypingGame({
+    initialProblem: gameState.currentProblem,
+    playSound: soundsLoaded,
+    onProblemComplete: handleProblemComplete
+  });
+  
+  // typingオブジェクトの参照を更新
+  useEffect(() => {
+    typingRef.current = typing;
+  }, [typing]);
+
+  // サウンドの初期化 - 改良版
+  useEffect(() => {
+    let isMounted = true; // クリーンアップ用のフラグ
+    
+    const initSound = async () => {
+      try {
+        console.log('[GameScreen] サウンドシステムの初期化を開始します...');
+
+        // AudioContextを確実に再開
+        soundSystem.resume();
+
+        // buttonサウンドが特に重要なのでプリロードを確認
+        if (!soundSystem.sfxBuffers['button']) {
+          console.log(
+            '[GameScreen] ボタン音が読み込まれていません。個別にロードします...'
+          );
+          await soundSystem.loadSound(
+            'button',
+            soundSystem.soundPresets.button
+          );
+        }
+
+        // すべての効果音を読み込み
+        await soundSystem.initializeAllSounds();
+
+        // コンポーネントがアンマウントされていなければ状態を更新
+        if (isMounted) {
+          // 音声システムのステータスをコンソールに出力
+          console.log('[GameScreen] サウンド初期化完了:', {
+            contextState: soundSystem.context.state,
+            loadedSounds: Object.keys(soundSystem.sfxBuffers),
+            volume: soundSystem.getSfxVolume(),
+          });
+  
+          setSoundsLoaded(true);
+        }
+      } catch (err) {
+        console.error('[GameScreen] サウンドシステムの初期化エラー:', err);
+        // エラーがあっても最低限の機能は使えるようにする
+        if (isMounted) {
+          setSoundsLoaded(true);
+        }
+      }
+    };
+
+    initSound();
+
+    // クリーンアップ関数
+    return () => {
+      isMounted = false; // コンポーネントがアンマウントされたことを記録
+      console.log(
+        '[GameScreen] コンポーネントがアンマウントされます。サウンドシステムの状態を保持します。'
+      );
+    };
+  }, []);
+
+  // キー入力ハンドラー - useCallback で最適化
+  const handleKeyDown = useCallback((e) => {
     // ゲームクリア時は何もしない
     if (gameState.isGameClear === true) {
       return;
@@ -248,10 +254,36 @@ const GameScreen = () => {
 
     // カスタムフックを使用して入力処理
     typing.handleInput(e.key);
-  };
+  }, [gameState.isGameClear, gameState.hasStartedTyping, typing, goToScreen, setGameState]);
 
-  // 進行状況の計算（ゲーム全体の進捗を表示するように修正）
-  const progressPercentage = React.useMemo(() => {
+  // document全体で物理キー入力を受け付ける
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]); // handleKeyDown関数が変更された場合のみイベントリスナーを再設定
+
+  // ゲーム終了時に即座にリザルト画面へ遷移する強化版useEffect
+  useEffect(() => {
+    // 明示的な型チェックと即時遷移
+    if (gameState.isGameClear === true) {
+      console.log(
+        '【GameScreenNew】ゲームクリア状態を検出 - 即座にリザルト画面へ遷移します'
+      );
+
+      // スムーズな遷移のために最適な遅延
+      const timeoutId = setTimeout(() => {
+        goToScreen(SCREENS.RESULT);
+      }, 150);
+      
+      // クリーンアップ関数でタイマーをクリア
+      return () => clearTimeout(timeoutId);
+    }
+  }, [gameState.isGameClear, goToScreen]);
+
+  // 進行状況の計算（ゲーム全体の進捗を表示するように修正）- useMemoで最適化
+  const progressPercentage = useMemo(() => {
     // ゲームの全体進捗を計算
     if (!problems || !gameState.currentProblem) return 0;
 
@@ -279,11 +311,37 @@ const GameScreen = () => {
   }, [
     typing.progressPercentage,
     gameState.solvedCount,
-    problems,
-    requiredProblemCount,
     gameState.currentProblem,
     gameState.uiCompletePercent,
+    problems,
+    requiredProblemCount,
   ]);
+
+  // アニメーション用のバリアント - 再レンダリング間で一定に保つために useMemo を使用
+  const animationVariants = useMemo(() => ({
+    header: {
+      initial: { y: -20, opacity: 0 },
+      animate: { y: 0, opacity: 1 },
+      transition: { duration: 0.3 }
+    },
+    gameArea: {
+      initial: { opacity: 0, y: 20 },
+      animate: { opacity: 1, y: 0 },
+      transition: { delay: 0.1, duration: 0.4 }
+    },
+    gameLevelScale: {
+      initial: { scale: 1 },
+      animate: {
+        scale: [1, 1.1, 1],
+      },
+      transition: {
+        duration: 0.5,
+        times: [0, 0.5, 1],
+        repeat: 0,
+        repeatDelay: 1,
+      }
+    }
+  }), []);
 
   // ゲームクリア状態の場合は何も表示しない - 早期リターン
   if (gameState.isGameClear === true) {
@@ -295,28 +353,18 @@ const GameScreen = () => {
 
   // 通常のゲーム画面のみ表示
   return (
-    <div
-      className={styles.gameContainer}
-      // onClickでfocus制御も不要
-    >
+    <div className={styles.gameContainer}>
       <motion.div
         className={styles.gameHeader}
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
+        initial={animationVariants.header.initial}
+        animate={animationVariants.header.animate}
+        transition={animationVariants.header.transition}
       >
         <motion.div
           className={styles.gameLevel}
-          initial={{ scale: 1 }}
-          animate={{
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 0.5,
-            times: [0, 0.5, 1],
-            repeat: 0,
-            repeatDelay: 1,
-          }}
+          initial={animationVariants.gameLevelScale.initial}
+          animate={animationVariants.gameLevelScale.animate}
+          transition={animationVariants.gameLevelScale.transition}
         >
           お題: {gameState.solvedCount + 1}/{requiredProblemCount}
         </motion.div>
@@ -324,9 +372,9 @@ const GameScreen = () => {
 
       <motion.div
         className={styles.gameArea}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.4 }}
+        initial={animationVariants.gameArea.initial}
+        animate={animationVariants.gameArea.animate}
+        transition={animationVariants.gameArea.transition}
       >
         <div className={styles.typingArea}>
           <div className={styles.problemContainer}>

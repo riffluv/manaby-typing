@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import styles from '../../styles/GameScreen.module.css';
 
@@ -11,6 +11,13 @@ import styles from '../../styles/GameScreen.module.css';
  * @param {boolean} props.animate - アニメーション効果を適用するかどうか
  */
 const ProblemDisplay = ({ text = '', animate = true }) => {
+  // パフォーマンス向上のためコンソール出力を開発環境のみに制限
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('[ProblemDisplay] レンダリング:', { 
+      textLength: text?.length
+    });
+  }
+
   // アニメーションなしの場合
   if (!animate) {
     return (
@@ -34,4 +41,11 @@ const ProblemDisplay = ({ text = '', animate = true }) => {
   );
 };
 
-export default ProblemDisplay;
+// シンプルな比較関数: テキストと animate プロパティが変わったときのみ再レンダリング
+const arePropsEqual = (prevProps, nextProps) => {
+  return prevProps.text === nextProps.text && 
+         prevProps.animate === nextProps.animate;
+};
+
+// React.memo でコンポーネントをラップし、カスタム比較関数を使用
+export default memo(ProblemDisplay, arePropsEqual);
