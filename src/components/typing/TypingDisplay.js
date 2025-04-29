@@ -1,108 +1,140 @@
-import React, { memo, useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import styles from '../../styles/GameScreen.module.css';
 
 /**
- * タイピングテキスト表示コンポーネント
- * タイピングゲームの問題文、入力済みテキスト、現在の入力を表示する
- * typingmania-refの実装を参考に最適化
- *
- * @param {Object} props
- * @param {string} props.displayRomaji - 表示するローマ字テキスト
- * @param {Object} props.coloringInfo - 色分け情報
- * @param {boolean} props.isCompleted - タイピング完了フラグ
- * @param {string} props.currentInput - ユーザーの現在の入力
- * @param {boolean} props.errorAnimation - エラーアニメーションフラグ
+ * タイピングの表示を担当するコンポーネント
+ * パフォーマンス最適化のためにメモ化を実装
  */
-const TypingDisplay = ({
+const TypingDisplay = memo(({
   displayRomaji,
   coloringInfo,
   isCompleted,
-  currentInput = '',
-  errorAnimation = false,
+  currentInput,
+  errorAnimation
 }) => {
-  // パフォーマンス向上のためコンソール出力を開発環境のみに制限
-  if (process.env.NODE_ENV === 'development') {
-    console.debug('[TypingDisplay] レンダリング:', {
-      displayRomajiLength: displayRomaji?.length,
-      isCompleted,
-    });
-  }
-
-  if (!displayRomaji) return null;
-
-  // 完了状態の場合
-  if (isCompleted) {
-    return (
-      <div className={styles.typingRomaji}>
-        <span className={styles.completed}>{displayRomaji}</span>
-      </div>
-    );
-  }
-
-  // 文字列の分割をuseMemoで最適化（再レンダリング時に再計算を防ぐ）
-  const { typed, current, remaining } = useMemo(() => {
-    // 現在の入力状態を取得
-    const typedIndex = coloringInfo?.typedLength || 0;
+  // 文字色分け用のスタイルオブジェクト - useMemoでレンダリング最適化
+  const textStyles = useMemo(() => {
+    const { typedLength = 0, currentInputLength = 0 } = coloringInfo || {};
+    
+    // 完了した文字のスタイル
+    const typedStyle = { 
+      color: 'var(--typed-text-color, #4caf50)'
+    };
+    
+    // 入力中の文字のスタイル
+    const currentInputStyle = { 
+      color: 'var(--current-input-color, #2196f3)',
+      textDecoration: 'underline'
+    };
+    
+    // 未入力の文字のスタイル
+    const notTypedStyle = { 
+      color: 'var(--not-typed-color, #757575)'
+    };
+    
+    return {
+      typed: typedStyle,
+      current: currentInputStyle,
+      notTyped: notTypedStyle,
+      typedLength,
+      currentInputLength
+    };
+  }, [coloringInfo]);
+  
+  // 現在の入力を含むテキスト表示 - useMemoでレンダリング最適化
+  const displayText = useMemo(() => {
+    if (!displayRomaji) return null;
+    
+    // 全体が完了した場合
+    if (isCompleted) {
+      return <span style={textStyles.typed}>{displayRomaji}</span>;
+    }
+    
+    const { typedLength, currentInputLength } = textStyles;
     const currentPosition = coloringInfo?.currentPosition || 0;
     
-    // 1. すでに入力済みの部分（緑色で表示）
-    const typed = displayRomaji.substring(0, typedIndex);
-    
-    // 2. 現在入力中の文字（入力中の文字も緑色で表示）
-    const current = displayRomaji.substring(
-      typedIndex, 
-      currentPosition + (currentInput?.length || 0)
+    // テキストを3つのパートに分割
+    const typedText = displayRomaji.substring(0, typedLength);
+    const currentText = displayRomaji.substring(
+      currentPosition, 
+      currentPosition + currentInputLength
+    );
+    const untypedText = displayRomaji.substring(
+      currentPosition + currentInputLength
     );
     
-    // 3. 残りの未入力部分
-    const remaining = displayRomaji.substring(
-      currentPosition + (currentInput?.length || 0)
+    return (
+      <>
+        {/* 入力済み部分 */}
+        {typedText && <span style={textStyles.typed}>{typedText}</span>}
+        
+        {/* 現在の入力中部分 */}
+        {currentInput && (
+          <span style={textStyles.current}>{currentInput}</span>
+        )}
+        
+        {/* 未入力部分 */}
+        {untypedText && <span style={textStyles.notTyped}>{untypedText}</span>}
+      </>
     );
-    
-    return { typed, current, remaining };
-  }, [displayRomaji, coloringInfo, currentInput]);
+  }, [displayRomaji, coloringInfo, currentInput, isCompleted, textStyles]);
 
   return (
-    <div className={styles.typingRomaji} data-testid="typing-display">
-      {/* 入力済みの部分（緑色） */}
-      {typed && <span className={styles.completed}>{typed}</span>}
-      
-      {/* 現在入力中の文字も緑色にする - 1文字目から緑にする */}
-      {current && <span className={styles.completed}>{current}</span>}
-      
-      {/* 残り（未入力）部分 - エラー時は赤色 */}
-      {remaining && <span className={errorAnimation ? styles.error : ''}>{remaining}</span>}
+    <div 
+      className={`${styles.typingText} ${errorAnimation ? styles.errorShake : ''}`}
+      style={{ willChange: 'transform', contain: 'content' }} // GPU高速化
+    >
+      {displayText}
     </div>
   );
-};
-
-// カスタム比較関数: typingmania-refを参考に、より厳密な比較を実装
-const arePropsEqual = (prevProps, nextProps) => {
-  // 完了状態が変わった場合は更新
-  if (prevProps.isCompleted !== nextProps.isCompleted) return false;
-
-  // エラーアニメーション状態が変わった場合は更新
-  if (prevProps.errorAnimation !== nextProps.errorAnimation) return false;
-
-  // displayRomaji が変わった場合は更新
-  if (prevProps.displayRomaji !== nextProps.displayRomaji) return false;
-
-  // currentInput が変わった場合は更新
-  if (prevProps.currentInput !== nextProps.currentInput) return false;
-
-  // coloringInfo の厳密な比較
-  if (!prevProps.coloringInfo && nextProps.coloringInfo) return false;
-  if (prevProps.coloringInfo && !nextProps.coloringInfo) return false;
+}, (prevProps, nextProps) => {
+  // 高度な比較関数でメモ化を最適化
+  // 実際に変更があった場合のみ再レンダリング
   
-  if (prevProps.coloringInfo && nextProps.coloringInfo) {
-    if (prevProps.coloringInfo.typedLength !== nextProps.coloringInfo.typedLength) return false;
-    if (prevProps.coloringInfo.currentPosition !== nextProps.coloringInfo.currentPosition) return false;
-    if (prevProps.coloringInfo.currentInputLength !== nextProps.coloringInfo.currentInputLength) return false;
+  // 完了状態の変化を比較
+  if (prevProps.isCompleted !== nextProps.isCompleted) {
+    return false; // 異なる場合は再レンダリング
   }
-
-  // それ以外は再レンダリングしない
+  
+  // エラーアニメーション状態の変化を比較
+  if (prevProps.errorAnimation !== nextProps.errorAnimation) {
+    return false; // 異なる場合は再レンダリング
+  }
+  
+  // 表示テキストの変化を比較
+  if (prevProps.displayRomaji !== nextProps.displayRomaji) {
+    return false; // 異なる場合は再レンダリング
+  }
+  
+  // 現在の入力テキストの変化を比較
+  if (prevProps.currentInput !== nextProps.currentInput) {
+    return false; // 異なる場合は再レンダリング
+  }
+  
+  // 色分け情報の変化を比較（最も頻繁に変わる部分）
+  const prevColoring = prevProps.coloringInfo || {};
+  const nextColoring = nextProps.coloringInfo || {};
+  
+  // typedLengthの変化
+  if (prevColoring.typedLength !== nextColoring.typedLength) {
+    return false; // 異なる場合は再レンダリング
+  }
+  
+  // currentInputLengthの変化
+  if (prevColoring.currentInputLength !== nextColoring.currentInputLength) {
+    return false; // 異なる場合は再レンダリング
+  }
+  
+  // currentPositionの変化
+  if (prevColoring.currentPosition !== nextColoring.currentPosition) {
+    return false; // 異なる場合は再レンダリング
+  }
+  
+  // 変更がないため再レンダリングしない
   return true;
-};
+});
 
-// React.memo でコンポーネントをラップし、カスタム比較関数を使用
-export default memo(TypingDisplay, arePropsEqual);
+// 表示名を設定（デバッグ用）
+TypingDisplay.displayName = 'TypingDisplay';
+
+export default TypingDisplay;

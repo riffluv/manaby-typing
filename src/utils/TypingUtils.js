@@ -754,6 +754,60 @@ export default class TypingUtils {
   }
 
   /**
+   * 入力先読みキャッシュ
+   * 高速タイピング時のパフォーマンスを向上させるための先読み機能
+   */
+  static _nextCharPredictionCache = new Map();
+  
+  /**
+   * 特定の問題で次に入力される可能性の高い文字をプリキャッシュする
+   * 頻出パターンを先読みすることで高速タイピング時のレスポンスを向上
+   * @param {string} kanaText - かな文字列
+   * @returns {void}
+   */
+  static precomputeNextCharPredictions(kanaText) {
+    if (!kanaText || typeof kanaText !== 'string') return;
+    
+    try {
+      // 先読みキャッシュをクリア
+      this._nextCharPredictionCache.clear();
+      
+      // ローマ字パターンを取得
+      const patterns = this.parseTextToRomajiPatterns(kanaText);
+      
+      // 各文字位置での先読み情報を計算
+      for (let i = 0; i < patterns.length; i++) {
+        const currentPatterns = patterns[i];
+        
+        // 各パターンの最初の文字をキャッシュ
+        const firstChars = new Set();
+        currentPatterns.forEach(pattern => {
+          if (pattern && pattern.length > 0) {
+            firstChars.add(pattern[0]);
+          }
+        });
+        
+        // キャッシュに保存
+        this._nextCharPredictionCache.set(i, firstChars);
+      }
+      
+      console.log('[最適化] 入力先読みキャッシュを準備完了:', 
+        `${patterns.length}文字のかな文字列に対して${this._nextCharPredictionCache.size}エントリーをキャッシュ`);
+    } catch (e) {
+      console.warn('[最適化] 入力先読みキャッシュの準備に失敗:', e);
+    }
+  }
+  
+  /**
+   * 指定位置で次に入力される可能性のある文字を取得（先読み最適化）
+   * @param {number} position - 現在の入力位置
+   * @returns {Set|null} 次の入力として可能性のある文字のセット
+   */
+  static getNextPossibleChars(position) {
+    return this._nextCharPredictionCache.get(position) || null;
+  }
+
+  /**
    * タイピングセッションの管理クラス
    * Weather Typing風の最適化を施した版
    */
@@ -767,6 +821,9 @@ export default class TypingUtils {
 
     // かな文字列を正規化（全て小文字のひらがなに変換）
     const kana = wanakana.toHiragana(problem.kanaText.trim().toLowerCase());
+    
+    // 先読みキャッシュを準備（パフォーマンス向上）
+    this.precomputeNextCharPredictions(kana);
 
     try {
       // かな文字列をローマ字パターンに分解

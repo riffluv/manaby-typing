@@ -215,7 +215,6 @@ const ResultScreen = ({
     >
       <motion.div className={styles.resultHeader} variants={itemVariants}>
         <h1 className={styles.resultTitle}>RESULT</h1>
-        <div className={styles.escHint}>ESCキーでメニューに戻る</div>
       </motion.div>
 
       <motion.div className={styles.resultContent} variants={itemVariants}>
