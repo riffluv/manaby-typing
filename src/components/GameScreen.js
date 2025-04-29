@@ -100,7 +100,7 @@ const GameScreen = () => {
         '【GameScreenNew】ゲームクリア状態を検出 - 即座にリザルト画面へ遷移します'
       );
 
-      // スムーズな遷移のために最適な遅延（150msに短縮）
+      // スムーズな遷移のために最適な遅延（150msに戻す）
       setTimeout(() => {
         goToScreen(SCREENS.RESULT);
       }, 150);
@@ -157,21 +157,26 @@ const GameScreen = () => {
       // 終了時間を記録
       const endTime = Date.now();
 
-      // 最終データを設定（ミス入力は累積値を使用）
-      const finalState = {
-        ...gameState,
+      // 進行状況バーを100%表示するための一時的な状態更新
+      // 将来ゲージバーを削除しても、下のtimeoutが動作して問題なく遷移する
+      setGameState(prevState => ({
+        ...prevState,
         solvedCount,
-        isGameClear: true, // ゲームクリア状態をセット
         typedCount: typingSession?.typedRomaji?.length || 0,
         playTime: Math.floor((endTime - gameState.startTime) / 1000),
-        endTime: endTime, // 終了時間を明示的に保存
-        problemKPMs: updatedProblemKPMs, // 各問題のKPM値の配列を保存
-      };
+        endTime: endTime,
+        problemKPMs: updatedProblemKPMs,
+        uiCompletePercent: 100, // ゲージ表示用の値（将来削除可能）
+      }));
+      
+      // 少し遅延させてからゲームクリア状態をセット（画面遷移のトリガー）
+      setTimeout(() => {
+        setGameState(prevState => ({
+          ...prevState,
+          isGameClear: true // この値が画面遷移のトリガー
+        }));
+      }, 100);
 
-      // ステート更新
-      setGameState(finalState);
-
-      // トランジションの二重実行を避けるため、useEffect側で画面遷移を行う
       return;
     }
 
@@ -343,6 +348,45 @@ const GameScreen = () => {
     errorAnimation,
   ]);
 
+  // 進行状況の計算（ゲーム全体の進捗を表示するように修正）
+  const progressPercentage = React.useMemo(() => {
+    // ゲームの全体進捗を計算
+    if (!problems || !gameState.currentProblem) return 0;
+    
+    // UI表示用の強制100%指定があればそれを優先
+    if (gameState.uiCompletePercent === 100) {
+      return 100;
+    }
+    
+    // 解答済みの問題数
+    const solvedCount = gameState.solvedCount || 0;
+    // 必要な問題総数
+    const totalProblems = requiredProblemCount;
+    
+    // 現在の問題の進捗（0～1の範囲）
+    let currentProblemProgress = 0;
+    
+    if (typingSession && displayRomaji) {
+      const typedLength = coloringInfo.typedLength || 0;
+      const totalLength = displayRomaji.length;
+      
+      // 現在の問題の進捗率（0～1）
+      currentProblemProgress = totalLength > 0 ? typedLength / totalLength : 0;
+      
+      // タイピングが完了している場合は1（100%）に設定
+      if (typingSession.completed) {
+        currentProblemProgress = 1;
+      }
+    }
+    
+    // 全体の進捗率を計算
+    // 既に解いた問題 + 現在の問題の進捗 / 合計問題数
+    const overallProgress = (solvedCount + currentProblemProgress) / totalProblems;
+    
+    // パーセンテージに変換して返す（0～100）
+    return Math.floor(overallProgress * 100);
+  }, [typingSession, displayRomaji, coloringInfo, gameState.solvedCount, problems, requiredProblemCount, gameState.currentProblem, gameState.uiCompletePercent]);
+
   // ゲームクリア状態の場合は何も表示しない - 早期リターン
   if (gameState.isGameClear === true) {
     console.log(
@@ -402,7 +446,20 @@ const GameScreen = () => {
         </div>
       </motion.div>
 
-      {/* ESCキーガイドを左下に追加 - 洗練されたデザイン */}
+      {/* 進行状況バー - アニメーションなしでリアルタイム更新 */}
+      <div className={styles.progressContainer}>
+        <div className={styles.progressBar}>
+          <div 
+            className={styles.progressFill} 
+            style={{ width: `${progressPercentage}%` }}
+          />
+        </div>
+        <div className={styles.progressText}>
+          進行状況: {progressPercentage}%
+        </div>
+      </div>
+
+      {/* ESCキーガイド */}
       <div className={styles.escGuide}>
         メニューへ戻る
       </div>
