@@ -1,11 +1,24 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from '../../styles/admin/AdminPopup.module.css';
-import { useGameContext, SCREENS } from '../../contexts/GameContext';
+import { useGameContext } from '../../contexts/GameContext';
 import html2canvas from 'html2canvas';
 import FirebaseUtils from '../../utils/FirebaseUtils';
-import Image from 'next/image';
+
+// デバッグモード設定（本番環境ではfalseに設定）
+const DEBUG_MODE = process.env.NODE_ENV === 'development';
+
+// ログ出力用ヘルパー関数
+const logDebug = (message, data) => {
+  if (DEBUG_MODE) {
+    console.log(message, data);
+  }
+};
+
+const logError = (message, error) => {
+  console.error(message, error);
+};
 
 const AdminPopup = ({ isOpen, onClose }) => {
   const { gameState, setGameState, currentScreen } = useGameContext();
@@ -30,30 +43,46 @@ const AdminPopup = ({ isOpen, onClose }) => {
     { id: 'CREDITS', name: 'クレジット画面' },
   ];
 
+  // メインコンテナ要素を取得する共通関数（App Router & 従来のPage Router両対応）
+  const getMainContainer = useCallback(() => {
+    const container = 
+      document.querySelector('body > div') || // App Routerの一般的な構造
+      document.querySelector('#__next > div') || // 従来のページルーター
+      document.querySelector('main') || // mainタグ
+      document.body; // どれも見つからなければbody要素を使用
+    
+    if (!container) {
+      throw new Error('メインコンテナ要素が見つかりません');
+    }
+    
+    return container;
+  }, []);
+
+  // 成功メッセージを表示する共通関数
+  const showSuccessMessage = useCallback((setStateFunction) => {
+    setStateFunction(true);
+    setTimeout(() => {
+      setStateFunction(false);
+    }, 3000); // 3秒後に消える
+  }, []);
+
   // コンポーネントがマウントされたときに現在のお題数を取得
   useEffect(() => {
     // gameStateからクリア条件のお題数を取得
     const currentRequiredCount = gameState.requiredProblemCount || 5;
-    console.log('[管理者モード] 現在のお題数設定:', currentRequiredCount);
+    logDebug('[管理者モード] 現在のお題数設定:', currentRequiredCount);
     setProblemCount(currentRequiredCount);
 
     // 初期の選択画面を現在表示中の画面にする
     setSelectedScreen(currentScreen || 'ALL');
   }, [gameState, isOpen, currentScreen]); // isOpenが変わった時も再取得
 
-  // モーダルが開かれた時に背景の一覧を取得
-  useEffect(() => {
-    if (isOpen && activeTab === 'gallery') {
-      fetchSavedBackgrounds();
-    }
-  }, [isOpen, activeTab]);
-
-  // 画面選択が変わったときに対応する背景を取得
+  // モーダルが開かれた時と画面選択が変わった時に背景の一覧を取得
   useEffect(() => {
     if (isOpen && activeTab === 'gallery' && selectedScreen) {
       fetchSavedBackgrounds();
     }
-  }, [selectedScreen]);
+  }, [isOpen, activeTab, selectedScreen]);
 
   // 保存された背景を取得
   const fetchSavedBackgrounds = async () => {
@@ -64,23 +93,20 @@ const AdminPopup = ({ isOpen, onClose }) => {
         selectedScreen,
         20
       );
-      console.log(
-        `${getScreenDisplayName(selectedScreen)}用の背景を取得しました:`,
-        backgrounds.length
-      );
+      logDebug(`${getScreenDisplayName(selectedScreen)}用の背景を取得しました:`, backgrounds.length);
       setSavedBackgrounds(backgrounds);
     } catch (error) {
-      console.error('背景の取得中にエラーが発生しました:', error);
+      logError('背景の取得中にエラーが発生しました:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   // 画面IDから表示名を取得する関数
-  const getScreenDisplayName = (screenId) => {
+  const getScreenDisplayName = useCallback((screenId) => {
     const screen = screenOptions.find((s) => s.id === screenId);
     return screen ? screen.name : screenId;
-  };
+  }, [screenOptions]);
 
   // エスケープキーでポップアップを閉じる
   const handleEscKey = useCallback(
@@ -111,9 +137,7 @@ const AdminPopup = ({ isOpen, onClose }) => {
 
   // 保存ボタンがクリックされたときの処理
   const handleSave = () => {
-    // 現在の値をログに出力
-    console.log('[管理者設定] 保存前のお題数:', gameState.requiredProblemCount);
-    console.log('[管理者設定] 新しいお題数:', problemCount);
+    logDebug('[管理者設定] お題数を変更:', problemCount);
 
     // お題数をgameStateに保存
     const updatedGameState = {
@@ -123,16 +147,6 @@ const AdminPopup = ({ isOpen, onClose }) => {
 
     // 更新
     setGameState(updatedGameState);
-
-    // 保存後の状態を確認
-    setTimeout(() => {
-      console.log(
-        '[管理者設定] 保存後のお題数:',
-        updatedGameState.requiredProblemCount
-      );
-    }, 100);
-
-    console.log(`[管理者設定] お題数を${problemCount}に変更しました`);
     onClose();
   };
 
@@ -141,50 +155,35 @@ const AdminPopup = ({ isOpen, onClose }) => {
     try {
       setIsSavingBackground(true);
 
-      // メインコンテナ要素を取得 (App Routerの構造に対応)
-      // 複数の要素を試して最初に見つかったものを使用
-      const mainContainer = 
-        document.querySelector('body > div') || // App Routerの一般的な構造
-        document.querySelector('#__next > div') || // 従来のページルーター
-        document.querySelector('main') || // mainタグ
-        document.body; // どれも見つからなければbody要素を使用
-        
-      if (!mainContainer) {
-        console.error('メインコンテナ要素が見つかりません');
-        setIsSavingBackground(false);
-        return;
-      }
-
-      console.log('キャプチャするコンテナ要素:', mainContainer);
+      // メインコンテナ要素を取得
+      const mainContainer = getMainContainer();
+      logDebug('キャプチャするコンテナ要素:', mainContainer);
 
       // キャプチャ実行
       const canvas = await html2canvas(mainContainer, {
         useCORS: true,
         allowTaint: true,
         backgroundColor: null,
-        logging: true,
+        logging: DEBUG_MODE,
       });
 
       // Base64形式の画像データに変換
       const imageData = canvas.toDataURL('image/png');
+
+      // 背景のタイトルを生成
+      const backgroundTitle = `${playerName || '管理者'}の${getScreenDisplayName(selectedScreen)}用背景`;
 
       // Firebaseに画面指定で保存
       const backgroundId = await FirebaseUtils.saveScreenBackgroundToFirebase(
         selectedScreen,
         playerName || '管理者',
         imageData,
-        `${playerName || '管理者'}の${getScreenDisplayName(
-          selectedScreen
-        )}用背景`
+        backgroundTitle
       );
 
       if (backgroundId) {
-        // 保存成功メッセージを表示
-        setShowSaveSuccess(true);
-        console.log('背景を保存しました！ ID:', backgroundId);
-        setTimeout(() => {
-          setShowSaveSuccess(false);
-        }, 3000); // 3秒後に消える
+        logDebug('背景を保存しました！ ID:', backgroundId);
+        showSuccessMessage(setShowSaveSuccess);
 
         // 背景一覧を更新
         if (activeTab === 'gallery') {
@@ -192,7 +191,7 @@ const AdminPopup = ({ isOpen, onClose }) => {
         }
       }
     } catch (error) {
-      console.error('背景の保存中にエラーが発生しました:', error);
+      logError('背景の保存中にエラーが発生しました:', error);
     } finally {
       setIsSavingBackground(false);
     }
@@ -201,38 +200,17 @@ const AdminPopup = ({ isOpen, onClose }) => {
   // 背景を適用する関数
   const applyBackground = (background) => {
     try {
-      // メインコンテナ要素を取得 (App Routerの構造に対応)
-      const mainContainer = 
-        document.querySelector('body > div') || // App Routerの一般的な構造
-        document.querySelector('#__next > div') || // 従来のページルーター
-        document.querySelector('main') || // mainタグ
-        document.body; // どれも見つからなければbody要素を使用
+      // メインコンテナ要素を取得
+      const mainContainer = getMainContainer();
+      logDebug('背景を適用するコンテナ要素:', mainContainer);
 
-      if (!mainContainer) {
-        console.error('メインコンテナ要素が見つかりません');
-        return;
-      }
-
-      console.log('背景を適用するコンテナ要素:', mainContainer);
-
-      // 背景画像データを取得
+      // 背景画像データと適用する画面のIDを取得
       const backgroundImageData = background.imageData;
-
-      // 背景スタイル情報を取得
       const cssStyleInfo = background.cssStyleInfo || null;
-
-      // 適用する画面のID
       const targetScreen = background.screenId || 'ALL';
 
+      // CSSスタイル情報を適用
       if (cssStyleInfo) {
-        console.log(
-          `${getScreenDisplayName(
-            targetScreen
-          )}用のCSSスタイル情報を適用します:`,
-          cssStyleInfo
-        );
-
-        // CSS情報を適用
         Object.entries(cssStyleInfo).forEach(([key, value]) => {
           // backgroundImage は画像データから設定するので除外
           if (key !== 'backgroundImage') {
@@ -246,90 +224,44 @@ const AdminPopup = ({ isOpen, onClose }) => {
       mainContainer.style.backgroundSize = 'cover';
       mainContainer.style.backgroundPosition = 'center';
 
-      // localStorage に管理者フラグと背景を保存（画面IDごと）
+      // localStorage に情報を保存
       try {
-        localStorage.setItem('isAdmin', 'true'); // 管理者フラグを設定
-        localStorage.setItem(
-          `savedBackgroundImage_${targetScreen}`,
-          backgroundImageData
-        );
+        // 管理者フラグと背景画像を保存
+        localStorage.setItem('isAdmin', 'true');
+        localStorage.setItem(`savedBackgroundImage_${targetScreen}`, backgroundImageData);
 
         // スタイル情報も保存
         if (cssStyleInfo) {
-          localStorage.setItem(
-            `savedBackgroundStyle_${targetScreen}`,
-            JSON.stringify(cssStyleInfo)
-          );
+          localStorage.setItem(`savedBackgroundStyle_${targetScreen}`, JSON.stringify(cssStyleInfo));
         }
 
-        // 画面IDも保存
-        const activeBackgrounds = JSON.parse(
-          localStorage.getItem('activeBackgrounds') || '{}'
-        );
+        // アクティブな背景情報を更新
+        const activeBackgrounds = JSON.parse(localStorage.getItem('activeBackgrounds') || '{}');
         activeBackgrounds[targetScreen] = {
           id: background.id,
           timestamp: new Date().toISOString(),
         };
-        localStorage.setItem(
-          'activeBackgrounds',
-          JSON.stringify(activeBackgrounds)
-        );
+        localStorage.setItem('activeBackgrounds', JSON.stringify(activeBackgrounds));
 
-        console.log(
-          `${getScreenDisplayName(
-            targetScreen
-          )}用の背景をlocalStorageに保存しました (管理者モード)`
-        );
+        logDebug(`${getScreenDisplayName(targetScreen)}用の背景を適用しました`);
       } catch (storageError) {
-        console.error(
-          '背景情報をlocalStorageに保存できませんでした:',
-          storageError
-        );
+        logError('背景情報をlocalStorageに保存できませんでした:', storageError);
       }
 
       // 保存した背景を適用したメッセージを表示
-      setShowRestoreSuccess(true);
-      setTimeout(() => {
-        setShowRestoreSuccess(false);
-      }, 3000);
+      showSuccessMessage(setShowRestoreSuccess);
 
-      console.log(
-        `${getScreenDisplayName(targetScreen)}用の背景を適用しました`
-      );
     } catch (error) {
-      console.error('背景の適用中にエラーが発生しました:', error);
-    }
-  };
-
-  // プレイヤー名の変更を処理
-  const handlePlayerNameChange = (e) => {
-    setPlayerName(e.target.value);
-  };
-
-  // タブが変更された時の処理
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    if (tab === 'gallery') {
-      fetchSavedBackgrounds();
+      logError('背景の適用中にエラーが発生しました:', error);
     }
   };
 
   // 背景をリセットして元に戻す関数
   const resetBackground = () => {
     try {
-      // メインコンテナ要素を取得 (App Routerの構造に対応)
-      const mainContainer = 
-        document.querySelector('body > div') || // App Routerの一般的な構造
-        document.querySelector('#__next > div') || // 従来のページルーター
-        document.querySelector('main') || // mainタグ
-        document.body; // どれも見つからなければbody要素を使用
-
-      if (!mainContainer) {
-        console.error('メインコンテナ要素が見つかりません');
-        return;
-      }
-
-      console.log('背景をリセットするコンテナ要素:', mainContainer);
+      // メインコンテナ要素を取得
+      const mainContainer = getMainContainer();
+      logDebug('背景をリセットするコンテナ要素:', mainContainer);
 
       // 背景をリセット（backgroundImageプロパティを削除）
       mainContainer.style.backgroundImage = '';
@@ -340,71 +272,52 @@ const AdminPopup = ({ isOpen, onClose }) => {
         localStorage.removeItem(`savedBackgroundStyle_${selectedScreen}`);
 
         // アクティブ背景情報も更新
-        const activeBackgrounds = JSON.parse(
-          localStorage.getItem('activeBackgrounds') || '{}'
-        );
+        const activeBackgrounds = JSON.parse(localStorage.getItem('activeBackgrounds') || '{}');
         delete activeBackgrounds[selectedScreen];
-        localStorage.setItem(
-          'activeBackgrounds',
-          JSON.stringify(activeBackgrounds)
-        );
+        localStorage.setItem('activeBackgrounds', JSON.stringify(activeBackgrounds));
+        
+        logDebug(`${getScreenDisplayName(selectedScreen)}の背景をリセットしました`);
       } catch (e) {
-        console.error('localStorageの操作中にエラーが発生しました:', e);
+        logError('localStorageの操作中にエラーが発生しました:', e);
       }
 
-      console.log(
-        `${getScreenDisplayName(selectedScreen)}の背景をリセットしました`
-      );
-
       // 成功メッセージを表示
-      setShowRestoreSuccess(true);
-      setTimeout(() => {
-        setShowRestoreSuccess(false);
-      }, 3000);
+      showSuccessMessage(setShowRestoreSuccess);
     } catch (error) {
-      console.error('背景のリセット中にエラーが発生しました:', error);
+      logError('背景のリセット中にエラーが発生しました:', error);
     }
   };
 
   // 背景を削除する関数
   const deleteBackground = async (backgroundId) => {
-    if (
-      !window.confirm(
-        'この背景を本当に削除しますか？この操作は取り消せません。'
-      )
-    ) {
+    if (!window.confirm('この背景を本当に削除しますか？この操作は取り消せません。')) {
       return;
     }
 
     try {
       // FirebaseUtilsを使って背景を削除
-      const success = await FirebaseUtils.deleteBackgroundFromFirebase(
-        backgroundId
-      );
+      const success = await FirebaseUtils.deleteBackgroundFromFirebase(backgroundId);
 
       if (success) {
-        // 削除成功メッセージを表示
-        setShowRestoreSuccess(true);
-        setTimeout(() => {
-          setShowRestoreSuccess(false);
-        }, 3000);
-
+        logDebug('背景を削除しました:', backgroundId);
+        showSuccessMessage(setShowRestoreSuccess);
+        
         // 背景一覧を更新
         fetchSavedBackgrounds();
       }
     } catch (error) {
-      console.error('背景の削除中にエラーが発生しました:', error);
+      logError('背景の削除中にエラーが発生しました:', error);
     }
   };
 
-  // 画面選択の変更を処理
-  const handleScreenChange = (e) => {
-    const newScreen = e.target.value;
-    setSelectedScreen(newScreen);
-  };
+  // 各種イベントハンドラー
+  const handlePlayerNameChange = (e) => setPlayerName(e.target.value);
+  const handleTabChange = (tab) => setActiveTab(tab);
+  const handleScreenChange = (e) => setSelectedScreen(e.target.value);
 
   if (!isOpen) return null;
 
+  // JSXレンダリング部分
   return (
     <div className={styles.adminPopup__overlay} onClick={handleOverlayClick}>
       <div className={styles.adminPopup}>
@@ -419,7 +332,7 @@ const AdminPopup = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* タブメニュー追加 */}
+        {/* タブメニュー */}
         <div className={styles.adminPopup__tabs}>
           <button
             className={`${styles.adminPopup__tab} ${
