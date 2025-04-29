@@ -12,6 +12,13 @@ const TypingDisplay = memo(({
   currentInput,
   errorAnimation
 }) => {
+  // ローマ字文字列から末尾の「|」を削除（存在する場合）
+  const cleanDisplayRomaji = useMemo(() => {
+    return displayRomaji && displayRomaji.endsWith('|') 
+      ? displayRomaji.slice(0, -1)
+      : displayRomaji;
+  }, [displayRomaji]);
+  
   // 文字色分け用のスタイルオブジェクト - useMemoでレンダリング最適化
   const textStyles = useMemo(() => {
     const { typedLength = 0, currentInputLength = 0 } = coloringInfo || {};
@@ -38,8 +45,8 @@ const TypingDisplay = memo(({
     
     // 次に入力すべき文字のスタイル（より目立つように）
     const nextCharStyle = {
-      color: 'var(--next-char-color, #b0bec5)', 
-      opacity: 0.95,
+      color: 'var(--next-char-color, #ff9a28)', // #b0bec5から#ff9a28（明るいオレンジ）に変更
+      opacity: 1, // 0.95から1に変更してより鮮明に
       position: 'relative',
       fontWeight: 700
     };
@@ -56,24 +63,24 @@ const TypingDisplay = memo(({
   
   // 現在の入力を含むテキスト表示 - useMemoでレンダリング最適化
   const displayText = useMemo(() => {
-    if (!displayRomaji) return null;
+    if (!cleanDisplayRomaji) return null;
     
     // 全体が完了した場合
     if (isCompleted) {
-      return <span style={textStyles.typed}>{displayRomaji}</span>;
+      return <span style={textStyles.typed}>{cleanDisplayRomaji}</span>;
     }
     
     const { typedLength, currentInputLength } = textStyles;
     const currentPosition = coloringInfo?.currentPosition || 0;
     
     // テキストを複数のパーツに分割（タイピングマニアのアプローチ）
-    const typedText = displayRomaji.substring(0, typedLength);
-    const currentText = displayRomaji.substring(
+    const typedText = cleanDisplayRomaji.substring(0, typedLength);
+    const currentText = cleanDisplayRomaji.substring(
       currentPosition, 
       currentPosition + currentInputLength
     );
-    const nextChar = displayRomaji.charAt(currentPosition + currentInputLength);
-    const restText = displayRomaji.substring(
+    const nextChar = cleanDisplayRomaji.charAt(currentPosition + currentInputLength);
+    const restText = cleanDisplayRomaji.substring(
       currentPosition + currentInputLength + 1
     );
     
@@ -96,7 +103,7 @@ const TypingDisplay = memo(({
         {restText && <span style={textStyles.notTyped}>{restText}</span>}
       </>
     );
-  }, [displayRomaji, coloringInfo, currentInput, isCompleted, textStyles]);
+  }, [cleanDisplayRomaji, coloringInfo, currentInput, isCompleted, textStyles]);
 
   return (
     <div 

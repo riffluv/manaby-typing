@@ -503,3 +503,14 @@
   background-color: rgba(255, 140, 0, 0.6);
   animation: nextCharPulse 1.5s infinite;
 }
+
+@keyframes nextCharPulse {
+  0%, 100% { 
+    opacity: 0.8;
+    width: 100%; 
+  }
+  50% { 
+    opacity: 0.5;
+    width: 90%; 
+  }
+}
