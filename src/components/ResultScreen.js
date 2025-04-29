@@ -1,381 +1,297 @@
-'use client';
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import styles from '../styles/ResultScreen.module.css';
-import { useGameContext, SCREENS } from '../contexts/GameContext';
-import soundSystem from '../utils/SoundUtils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import TypingUtils from '@/utils/TypingUtils';
+import { useGameContext, SCREENS } from '@/contexts/GameContext';
 import { usePageTransition } from './TransitionManager';
-import { saveGameRecord, getHighScores } from '../utils/RecordUtils';
-import TypingUtils from '../utils/TypingUtils';
+import soundSystem from '../utils/SoundUtils'; // サウンドシステムを直接インポート
 
-// スコアカードのアニメーション設定
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.3,
-    },
-  },
-  exit: {
-    opacity: 0,
-    transition: {
-      duration: 0.3,
-      when: 'beforeChildren',
-    },
-  },
-};
-
-const cardVariants = {
-  hidden: { y: 50, opacity: 0 },
-  show: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: 'spring',
-      stiffness: 300,
-      damping: 20,
-    },
-  },
-  exit: {
-    opacity: 0,
-    transition: { duration: 0.2 },
-  },
-};
-
-const ResultScreen = () => {
-  const { gameState, settings } = useGameContext();
-  const { goToScreen, isTransitioning } = usePageTransition();
-
-  // スコア値を固定するためのステート（トランジション中に値が変わるのを防止）
-  const [fixedStats, setFixedStats] = useState({
-    kpm: '-',
-    rank: '-',
-    rankColor: '#ffffff',
-    accuracy: '0.0%',
-    time: '0:00',
-    mistakes: 0,
-  });
-
-  // 画面が退場中かどうかを追跡
-  const [isExiting, setIsExiting] = useState(false);
-
-  // ESCキー対応の追加
+/**
+ * リザルト画面コンポーネント
+ * 
+ * @param {Object} props - コンポーネントのプロパティ
+ * @param {Object} props.stats - 表示する統計情報
+ * @param {Function} props.onClickRetry - リトライボタンクリック時のコールバック
+ * @param {Function} props.onClickMenu - メニューボタンクリック時のコールバック
+ * @param {Function} props.onClickRanking - ランキングボタンクリック時のコールバック
+ * @param {boolean} props.playSound - 効果音を再生するかどうか
+ */
+const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSound = true }) => {
+  const { goToScreen } = usePageTransition();
+  
+  // データ検証と詳細なデバッグログを追加
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      // ESCキーでメインメニューに戻る
-      if (e.key === 'Escape' && !isTransitioning && !isExiting) {
-        e.preventDefault();
+    console.log('ResultScreen: 受け取ったstats', stats);
+    
+    // データが不足している場合は警告を表示
+    if (!stats || stats.kpm === undefined || stats.kpm === 0) {
+      console.warn('ResultScreen: statsデータが不足しているか、KPMが0です', stats);
+    }
+  }, [stats]);
 
-        // ボタン音を即座に再生
-        soundSystem.playSound('Button');
+  // メニューに戻るハンドラー - 再利用可能なコールバックとして定義
+  const handleBackToMenu = useCallback(() => {
+    console.log('メニューに戻ります');
+    // オプションで音声を再生
+    soundSystem.play('button');
+    if (typeof onClickMenu === 'function') {
+      onClickMenu();
+    } else {
+      // フォールバックとして直接遷移関数を呼び出し
+      goToScreen(SCREENS.MAIN_MENU, { playSound: false }); // すでに音を鳴らしているので、ここではfalse
+    }
+  }, [onClickMenu, goToScreen]);
 
-        // 退場中フラグを立てる
-        setIsExiting(true);
-
-        // 退場アニメーションの後に画面遷移
-        setTimeout(() => {
-          goToScreen(SCREENS.MAIN_MENU, { playSound: false });
-        }, 300);
+  // Escキーを押したときのハンドラーを追加
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        console.log('ResultScreen: Escキーが押されました: メニューに戻ります');
+        // イベント伝播を確実に停止する
+        event.preventDefault();
+        event.stopPropagation();
+        handleBackToMenu();
       }
     };
 
-    // キーボードイベントをリスン
-    document.addEventListener('keydown', handleKeyDown);
+    // キャプチャフェーズでイベントをリッスンして、他のハンドラより先に実行されるようにする
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
 
     // クリーンアップ関数
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
-  }, [isTransitioning, isExiting, goToScreen]);
+  }, [handleBackToMenu]); // 依存配列にhandleBackToMenuを追加
 
-  // KPM（Keys Per Minute）の計算 - Weather Typing風
-  const calculateKPM = () => {
-    // 必要なデータを確認
-    if (!gameState.problemKPMs || gameState.problemKPMs.length === 0) {
-      console.log('【KPM計算エラー】problemKPMsがありません', {
-        problemKPMs: gameState.problemKPMs,
-      });
-
-      // 古い計算方法でフォールバック
-      if (gameState.startTime && gameState.correctKeyCount) {
-        const endTime = gameState.endTime || Date.now();
-        const elapsedMs = endTime - gameState.startTime;
-        if (elapsedMs > 0) {
-          return TypingUtils.calculateWeatherTypingKPM(
-            gameState.correctKeyCount,
-            elapsedMs
-          ).toString();
-        }
-      }
-
-      return '0';
-    }
-
-    // Weather Typing風: 各問題のKPMの平均値を計算
-    const validKPMs = gameState.problemKPMs.filter((kpm) => kpm > 0);
-    if (validKPMs.length === 0) {
-      console.log('【KPM計算エラー】有効なKPM値がありません');
-      return '0';
-    }
-
-    // 平均値を計算し、小数点以下切り捨て（Weather Typing風）
-    const totalKPM = validKPMs.reduce((sum, kpm) => sum + kpm, 0);
-    const averageKPM = Math.floor(totalKPM / validKPMs.length);
-
-    console.log(`【KPM計算】Weather Typing風: 各問題KPMの平均`, {
-      各問題KPM: validKPMs.join(', '),
-      平均値: averageKPM,
-    });
-
-    return averageKPM.toString();
-  };
-
-  // 正解率の計算
-  const calculateAccuracy = () => {
-    // 必要なデータを確認
-    if (!gameState.correctKeyCount && !gameState.mistakes) {
-      console.log('正解率計算: データなし', {
-        correctKeyCount: gameState.correctKeyCount,
-        mistakes: gameState.mistakes,
-      });
-      return '0.0%';
-    }
-
-    // 総入力数: 正しい入力 + 間違った入力
-    const totalAttempts = gameState.correctKeyCount + gameState.mistakes;
-
-    // 0除算防止
-    if (totalAttempts === 0) {
-      console.log('正解率計算: 総入力数が0', {
-        correctKeyCount: gameState.correctKeyCount,
-        mistakes: gameState.mistakes,
-      });
-      return '0.0%';
-    }
-
-    const accuracy = (gameState.correctKeyCount / totalAttempts) * 100;
-
-    console.log('正解率計算:', {
-      correctKeyCount: gameState.correctKeyCount,
-      mistakes: gameState.mistakes,
-      totalAttempts,
-      accuracy: accuracy.toFixed(1) + '%',
-    });
-
-    // 小数点以下1桁まで表示
-    return `${Math.min(100, Math.max(0, accuracy)).toFixed(1)}%`;
-  };
-
-  // プレイ時間の計算
-  const formatTime = () => {
-    // playTimeが直接利用可能な場合はそれを使用
-    const seconds = gameState.playTime || 0;
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  // ミス入力回数
-  const mistakeCount = gameState.mistakes || 0;
-
-  // コンポーネントがマウントされたときにサウンドシステムを初期化し記録を保存する
+  // 効果音を再生（統一されたサウンドシステムを使用）
   useEffect(() => {
-    // サウンドシステムを確実に初期化
-    soundSystem.resume();
-
-    // コンポーネントがマウントされた時点でリザルト完了音を鳴らす
-    soundSystem.play('complete');
-
-    // KPM値を計算
-    const kpmValue = calculateKPM();
-
-    // KPM値からランクを取得
-    const rank = TypingUtils.getKPMRank(kpmValue);
-    const rankColor = TypingUtils.getRankColor(rank);
-
-    // スコア値を固定
-    setFixedStats({
-      kpm: kpmValue,
-      rank: rank,
-      rankColor: rankColor,
-      accuracy: calculateAccuracy(),
-      time: formatTime(),
-      mistakes: mistakeCount,
-    });
-
-    // 正確率と時間を計算
-    const accuracyValue = parseFloat(calculateAccuracy().replace('%', ''));
-    const timeValue = gameState.playTime || 0;
-
-    // ゲームが正常に終了した場合のみ記録を保存
-    if (gameState.isGameClear && kpmValue !== '-') {
-      saveGameRecord(
-        kpmValue,
-        accuracyValue,
-        timeValue,
-        mistakeCount,
-        settings.difficulty,
-        rank // ランク情報も保存
-      );
-      console.log('ゲーム記録を保存しました:', {
-        kpm: kpmValue,
-        rank: rank,
-        accuracy: accuracyValue,
-        time: timeValue,
-        mistakes: mistakeCount,
-        difficulty: settings.difficulty,
-      });
+    if (playSound) {
+      try {
+        console.log('ResultScreen: 結果画面の効果音を再生します');
+        // サウンドシステム経由で再生
+        // playCustomSoundではなく、プリセット定義された効果音を使用するか、
+        // またはロードしてから再生する
+        if (soundSystem.sfxBuffers['complete']) {
+          soundSystem.play('complete');
+        } else {
+          // 効果音がロードされていない場合はロードしてから再生
+          soundSystem.loadSound('complete', '/sounds/resultsound.mp3')
+            .then(() => soundSystem.play('complete'))
+            .catch(error => console.error('効果音のロードに失敗しました:', error));
+        }
+      } catch (error) {
+        console.error('効果音の再生に失敗しました:', error);
+      }
+    } else {
+      console.log('ResultScreen: playSoundがfalseのため効果音をスキップします');
     }
-  }, []);
+  }, [playSound]);
 
-  // 「もう一度」ボタンのクリック処理 - トランジション対応
-  const handlePlayAgain = () => {
-    // トランジション中は操作を無効化
-    if (isTransitioning || isExiting) return;
-
-    // ボタン音を即座に再生
-    soundSystem.playSound('Button');
-
-    // 退場中フラグを立てる
-    setIsExiting(true);
-
-    // 退場アニメーションの後に画面遷移
-    setTimeout(() => {
-      // 新しい画面遷移システムを使用
-      goToScreen(SCREENS.GAME, { playSound: false }); // 音はすでに再生したので不要
-    }, 300); // アニメーション時間と同期
+  // 小数点以下を整形するヘルパー関数
+  const formatDecimal = (value) => {
+    if (value === undefined || value === null) {
+      console.warn('formatDecimal: 値が未定義です');
+      return "0.0";
+    }
+    return Number(value).toFixed(1);
   };
 
-  // 「メインメニュー」ボタンのクリック処理 - トランジション対応
-  const handleMainMenu = () => {
-    // トランジション中は操作を無効化
-    if (isTransitioning || isExiting) return;
-
-    // ボタン音を即座に再生
-    soundSystem.playSound('Button');
-
-    // 退場中フラグを立てる
-    setIsExiting(true);
-
-    // 退場アニメーションの後に画面遷移
-    setTimeout(() => {
-      // 新しい画面遷移システムを使用
-      goToScreen(SCREENS.MAIN_MENU, { playSound: false }); // 音はすでに再生したので不要
-    }, 300); // アニメーション時間と同期
+  // アニメーション用のバリアント
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        delayChildren: 0.3,
+        staggerChildren: 0.2
+      }
+    }
   };
 
-  // 「ランキング」ボタンのクリック処理 - トランジション対応
-  const handleRanking = () => {
-    // トランジション中は操作を無効化
-    if (isTransitioning || isExiting) return;
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1
+    }
+  };
 
-    // ボタン音を即座に再生
-    soundSystem.playSound('Button');
+  const rankDisplayVariants = {
+    hidden: { scale: 0, opacity: 0 },
+    visible: { 
+      scale: 1, 
+      opacity: 1, 
+      transition: { 
+        type: "spring", 
+        stiffness: 300, 
+        damping: 10, 
+        delay: 0.5 
+      } 
+    }
+  };
 
-    // 退場中フラグを立てる
-    setIsExiting(true);
+  // セーフティチェック - statsがundefinedの場合のデフォルト値
+  const safeStats = stats || {
+    totalTime: 0,
+    accuracy: 0,
+    kpm: 0,
+    correctCount: 0,
+    missCount: 0
+  };
 
-    // 退場アニメーションの後に画面遷移
-    setTimeout(() => {
-      // 新しい画面遷移システムを使用
-      goToScreen(SCREENS.RANKING, { playSound: false }); // 音はすでに再生したので不要
-    }, 300); // アニメーション時間と同期
+  // デバッグ用にKPMを確認
+  console.log('ResultScreen: KPM値', safeStats.kpm);
+  
+  // ランク計算のデバッグ
+  const rank = TypingUtils.getKPMRank(safeStats.kpm || 0);
+  console.log(`ResultScreen: KPM ${safeStats.kpm} に基づくランク: ${rank}`);
+
+  // 数値を固定して計算が再実行されないようにする
+  const fixedStats = useMemo(() => {
+    return {
+      totalTime: formatDecimal(safeStats.totalTime || 0),
+      accuracy: formatDecimal((safeStats.accuracy || 0) * 100),
+      kpm: Math.floor(safeStats.kpm || 0),
+      correctCount: safeStats.correctCount || 0,
+      missCount: safeStats.missCount || 0,
+      rank: TypingUtils.getKPMRank(safeStats.kpm || 0),
+      rankColor: TypingUtils.getRankColor(TypingUtils.getKPMRank(safeStats.kpm || 0))
+    };
+  }, [safeStats]);
+
+  // クリックハンドラー
+  const handleRetryClick = (e) => {
+    e.preventDefault();
+    console.log('リトライボタンがクリックされました');
+    soundSystem.play('button'); // 統一されたサウンドシステムで効果音を再生
+    if (typeof onClickRetry === 'function') {
+      onClickRetry();
+    } else {
+      console.error('onClickRetry関数が提供されていません');
+    }
+  };
+
+  const handleMenuClick = (e) => {
+    e.preventDefault();
+    console.log('メニューボタンがクリックされました');
+    handleBackToMenu(); // 共通のハンドラを使用
+  };
+  
+  // ランキングボタン用のハンドラー
+  const handleRankingClick = (e) => {
+    e.preventDefault();
+    console.log('ランキングボタンがクリックされました');
+    soundSystem.play('button'); // 統一されたサウンドシステムで効果音を再生
+    if (typeof onClickRanking === 'function') {
+      onClickRanking();
+    } else {
+      goToScreen(SCREENS.RANKING, { playSound: false }); // すでに音を鳴らしているので、ここではfalse
+    }
   };
 
   return (
-    <div className={styles.resultContainer}>
-      <motion.div
-        className={styles.resultHeader}
-        initial={{ y: -50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: -50, opacity: 0 }}
-        transition={{ type: 'spring', damping: 20, duration: 0.8 }}
-      >
-        <h1 className={styles.resultTitle}>結果発表</h1>
+    <motion.div
+      className={styles.resultContainer}
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <motion.div className={styles.resultHeader} variants={itemVariants}>
+        <h1 className={styles.resultTitle}>RESULT</h1>
+        <div className={styles.escHint}>ESCキーでメニューに戻る</div>
       </motion.div>
 
-      <div className={styles.resultContent}>
-        <motion.div
-          className={styles.statsContainer}
-          variants={containerVariants}
-          initial="hidden"
-          animate={isExiting ? 'exit' : 'show'}
-          exit="exit"
+      <motion.div className={styles.resultContent} variants={itemVariants}>
+        {/* ランクを上部に独立して表示 */}
+        <motion.div 
+          className={styles.rankDisplay}
+          variants={rankDisplayVariants}
         >
-          <motion.div variants={cardVariants} className={styles.statCard}>
+          <h2 
+            className={styles.rankValue}
+            style={{ color: fixedStats.rankColor }}
+          >
+            {fixedStats.rank}
+          </h2>
+          <p className={styles.rankLabel}>YOUR RANK</p>
+          <div className={styles.rankBackdrop}></div>
+        </motion.div>
+
+        {/* 主要スタッツを2×2グリッドで表示 */}
+        <motion.div 
+          className={styles.statsContainer}
+          variants={itemVariants}
+        >
+          {/* KPMを特別に強調表示 */}
+          <motion.div 
+            className={`${styles.statCard} ${styles.keyStatCard}`}
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+          >
             <div className={styles.statLabel}>KPM</div>
             <div className={styles.statValue}>{fixedStats.kpm}</div>
           </motion.div>
 
-          <motion.div
-            variants={cardVariants}
-            className={`${styles.statCard} ${styles.rankCard}`}
+          {/* 正解率を特別に強調表示 */}
+          <motion.div 
+            className={`${styles.statCard} ${styles.keyStatCard}`}
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 15 }}
           >
-            <div className={styles.statLabel}>ランク</div>
-            <div
-              className={styles.statValue}
-              style={{ color: fixedStats.rankColor }}
-            >
-              {fixedStats.rank}
-            </div>
+            <div className={styles.statLabel}>Accuracy</div>
+            <div className={styles.statValue}>{fixedStats.accuracy}%</div>
           </motion.div>
 
-          <motion.div variants={cardVariants} className={styles.statCard}>
-            <div className={styles.statLabel}>正解率</div>
-            <div className={styles.statValue}>{fixedStats.accuracy}</div>
+          {/* 正解数 */}
+          <motion.div 
+            className={styles.statCard}
+            whileHover={{ scale: 1.03 }}
+          >
+            <div className={styles.statLabel}>Correct</div>
+            <div className={styles.statValue}>{fixedStats.correctCount}</div>
           </motion.div>
 
-          <motion.div variants={cardVariants} className={styles.statCard}>
-            <div className={styles.statLabel}>ミス入力</div>
-            <div className={styles.statValue}>{fixedStats.mistakes}</div>
+          {/* ミス数 */}
+          <motion.div 
+            className={styles.statCard}
+            whileHover={{ scale: 1.03 }}
+          >
+            <div className={styles.statLabel}>Miss</div>
+            <div className={styles.statValue}>{fixedStats.missCount}</div>
           </motion.div>
         </motion.div>
-      </div>
+      </motion.div>
 
-      <motion.div
-        className={styles.buttonContainer}
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: isExiting ? 0 : 1, y: isExiting ? 50 : 0 }}
-        exit={{ opacity: 0, y: 50 }}
-        transition={{ delay: isExiting ? 0 : 1, duration: 0.5 }}
-      >
-        <motion.button
+      <motion.div className={styles.buttonContainer} variants={itemVariants}>
+        {/* ランキングボタン */}
+        <motion.button 
           className={styles.resultButton}
-          onClick={handlePlayAgain}
+          onClick={handleRankingClick}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-          disabled={isExiting}
-        >
-          もう一度
-        </motion.button>
-
-        <motion.button
-          className={styles.resultButton}
-          onClick={handleRanking}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-          disabled={isExiting}
         >
           ランキング
         </motion.button>
-
-        <motion.button
+        
+        <motion.button 
           className={styles.resultButton}
-          onClick={handleMainMenu}
+          onClick={handleRetryClick}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-          disabled={isExiting}
         >
-          メインメニュー
+          リトライ
+        </motion.button>
+        
+        <motion.button 
+          className={styles.resultButton}
+          onClick={handleMenuClick}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          メニューへ
         </motion.button>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

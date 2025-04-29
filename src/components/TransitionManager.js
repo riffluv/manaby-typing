@@ -21,7 +21,7 @@ const transitionPresets = {
     exit: { x: -500, opacity: 0 },
     transition: { type: 'spring', stiffness: 300, damping: 30, duration: 0.5 },
   },
-  // フェードとスケールのトランジション（高級感のあるゲーム風）
+  // フェードとスケールのトランジション（高級感のあるゲーム風） 
   fade: {
     initial: { opacity: 0, scale: 0.95 },
     animate: { opacity: 1, scale: 1 },
@@ -108,9 +108,12 @@ const PageTransitionOverlay = ({ isActive }) => {
 let globalSettingsModalControl = null;
 
 const TransitionManager = () => {
-  const { currentScreen, navigateTo } = useGameContext();
+  const { currentScreen, navigateTo, gameState } = useGameContext();
   const [previousScreen, setPreviousScreen] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const { goToScreen } = usePageTransition();
+  // このフラグは音声が二重再生されないようにするためのもの（常にfalseに修正）
+  const [resultSoundPlayed, setResultSoundPlayed] = useState(false);
 
   // 設定モーダル制御をグローバル変数に保存
   const settingsModalControl = useSettingsModal();
@@ -136,6 +139,9 @@ const TransitionManager = () => {
     if (previousScreen !== currentScreen) {
       // 遷移中フラグを立てる
       setIsTransitioning(true);
+
+      // リザルト画面への遷移時のフラグ処理は削除
+      // 音声の再生はResultScreenコンポーネント内で処理する
 
       // ごく短い時間だけトランジション効果を表示
       const timer = setTimeout(() => {
@@ -173,7 +179,14 @@ const TransitionManager = () => {
       case SCREENS.CREDITS:
         return <CreditsScreen />;
       case SCREENS.RESULT:
-        return <ResultScreen />;
+        // ResultScreenに必ず音声を再生するように設定（playSound=true）
+        return <ResultScreen 
+          stats={gameState.stats}
+          onClickRetry={() => goToScreen(SCREENS.GAME, { playSound: true })}
+          onClickMenu={() => goToScreen(SCREENS.MAIN_MENU, { playSound: true })}
+          onClickRanking={() => goToScreen(SCREENS.RANKING, { playSound: true })}
+          playSound={true} // 常に音声を再生するように設定
+        />;
       case SCREENS.RANKING:
         return <RankingScreen />;
       case SCREENS.MAIN_MENU:
@@ -214,13 +227,23 @@ export const usePageTransition = () => {
    * @param {boolean} options.playSound - 効果音を再生するかどうか（デフォルト：true）
    * @param {string} options.soundType - 再生する効果音のタイプ（デフォルト：'button'）
    * @param {string} options.from - 遷移元の画面（履歴管理に使用）
+   * @param {boolean} options.immediate - 即時遷移を実行するかどうか（デフォルト：false）
    */
   const goToScreen = (
     screen,
-    options = { playSound: true, soundType: 'button' }
+    options = { playSound: true, soundType: 'button', immediate: false }
   ) => {
-    // トランジション中は操作を無効化
-    if (isTransitioning) return;
+    // デバッグログ - 遷移リクエストを記録
+    console.log(
+      `goToScreen: 画面遷移リクエスト - 宛先: ${screen}, オプション:`, 
+      JSON.stringify(options)
+    );
+
+    // 遷移中は新たな遷移をブロック（ただしimmediate=trueの場合は例外）
+    if (isTransitioning && !options.immediate) {
+      console.log('goToScreen: 現在遷移中のため、リクエストをスキップします');
+      return;
+    }
 
     // 現在の画面情報を取得
     const currentScreen = window.history.state?.screen || SCREENS.MAIN_MENU;
@@ -264,7 +287,7 @@ export const usePageTransition = () => {
 
       // 効果音を再生（オプションでオフにできる）
       if (options.playSound !== false) {
-        // リザルト画面への遷移時は効果音を再生しない（ResultScreenで再生される）
+        // リザルト画面への遷移時はここでは効果音を再生せず、ResultScreenで再生する
         if (screen !== SCREENS.RESULT) {
           // 指定されたサウンドをすぐに再生する（デフォルトはbutton）
           soundSystem.play(options.soundType || 'button');
@@ -298,15 +321,30 @@ export const usePageTransition = () => {
     };
     window.history.replaceState(historyState, '', window.location.pathname);
 
-    // 画面遷移実行（リザルト画面への遷移は遅延なし、それ以外は最小限の遅延）
-    const delay = screen === SCREENS.RESULT ? 0 : 20;
+    // 画面遷移実行（リザルト画面への遷移は遅延なし、ESCキーによる遷移は最小遅延、それ以外は若干の遅延）
+    let delay = 20;
+    
+    // 遷移先がリザルト画面または即時遷移オプションが指定されている場合は遅延なし
+    if (screen === SCREENS.RESULT || options.immediate) {
+      delay = 0;
+    }
+    
+    // メインメニューへの遷移（特にESCキーからの遷移）は優先的に処理
+    if (screen === SCREENS.MAIN_MENU && options.from === SCREENS.RESULT) {
+      console.log('ResultScreenからメインメニューへの遷移を優先処理します');
+      delay = 0; // 遅延なし
+      
+      // トランジション中フラグをすぐにリセット（ESCキーの反応性向上のため）
+      setIsTransitioning(false);
+    }
+    
     setTimeout(() => {
       navigateTo(screen);
 
       // 遷移後にフラグをリセット（タイミングを最適化）
       setTimeout(() => {
         setIsTransitioning(false);
-      }, 200); // 300msから200msに短縮
+      }, 200); // 200msに短縮
     }, delay);
   };
 

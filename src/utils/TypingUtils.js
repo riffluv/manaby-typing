@@ -670,7 +670,7 @@ export default class TypingUtils {
   /**
    * KPM値に基づいてランクを返す
    * @param {number} kpm - KPM値
-   * @returns {string} ランク (GOD, DIVINE, LEGEND, SSS+, ... F)
+   * @returns {string} ランク (GOD, DIVINE, LEGEND, SSS+, ... BEGINNER)
    */
   static getKPMRank(kpm) {
     // 数値として扱うために変換
@@ -695,8 +695,8 @@ export default class TypingUtils {
     if (kpmValue >= 200) return 'D';
     if (kpmValue >= 150) return 'E+';
     if (kpmValue >= 100) return 'E';
-    if (kpmValue >= 50) return 'F+';
-    return 'F';
+    if (kpmValue >= 50) return 'ROOKIE';
+    return 'BEGINNER';
   }
 
   /**
@@ -744,10 +744,10 @@ export default class TypingUtils {
         return '#ff0000'; // 赤
       case 'E':
         return '#cc0000'; // 暗い赤
-      case 'F+':
-        return '#990000'; // より暗い赤
-      case 'F':
-        return '#660000'; // 最も暗い赤
+      case 'ROOKIE':
+        return '#9370DB'; // ミディアムパープル - 穏やかな紫色
+      case 'BEGINNER':
+        return '#6495ED'; // コーンフラワーブルー - 優しい青色
       default:
         return '#ffffff'; // 白
     }

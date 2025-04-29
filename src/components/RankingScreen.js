@@ -426,7 +426,7 @@ const RankingScreen = () => {
         exit={{ y: -50, opacity: 0 }}
         transition={{ type: 'spring', damping: 20, duration: 0.8 }}
       >
-        <h1 className={styles.rankingTitle}>ランキング</h1>
+        <h1 className={styles.rankingTitle}>RANKING</h1>
       </motion.div>
 
       {/* オンライン/ローカル切り替えボタン */}

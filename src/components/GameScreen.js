@@ -92,7 +92,7 @@ const GameScreen = () => {
     };
   }, [gameState, typingSession, soundsLoaded, errorCount, coloringInfo]);
 
-  // ゲームクリア時に即座にリザルト画面へ遷移する強化版useEffect
+  // ゲーム終了時に即座にリザルト画面へ遷移する強化版useEffect
   useEffect(() => {
     // 明示的な型チェックと即時遷移
     if (gameState.isGameClear === true) {
@@ -135,8 +135,8 @@ const GameScreen = () => {
 
     // 問題ごとのKPMを計算（Weather Typing風）
     const now = Date.now();
-    const problemElapsedMs = now - gameState.currentProblemStartTime;
-    const problemKeyCount = gameState.currentProblemKeyCount;
+    const problemElapsedMs = gameState.currentProblemStartTime ? now - gameState.currentProblemStartTime : 0;
+    const problemKeyCount = gameState.currentProblemKeyCount || 0;
 
     // KPM計算（キー数 ÷ 分）
     let problemKPM = 0;
@@ -156,26 +156,66 @@ const GameScreen = () => {
     if (isGameClear) {
       // 終了時間を記録
       const endTime = Date.now();
+      const startTime = gameState.startTime || now; // 開始時間がなければ現在時刻
+      
+      // 統計情報の計算
+      const totalTime = (endTime - startTime) / 1000; // 秒単位
+      const correctCount = gameState.correctKeyCount || 0;
+      const missCount = gameState.mistakes || 0;
+      const totalKeyCount = correctCount + missCount;
+      
+      // 正確性 (0.0 ~ 1.0) - 値が不正な場合は0
+      const accuracy = totalKeyCount > 0 ? correctCount / totalKeyCount : 0;
+      
+      // KPM (分あたりのキー数) - 分が0の場合は0
+      const totalMinutes = totalTime / 60;
+      const kpm = totalMinutes > 0 ? Math.floor(correctCount / totalMinutes) : 0;
+      
+      // 統計情報をstatsオブジェクトにまとめる
+      const stats = {
+        totalTime,
+        correctCount,
+        missCount,
+        accuracy,
+        kpm,
+        problemKPMs: updatedProblemKPMs
+      };
+      
+      console.log('【ゲームクリア】 統計情報計算結果:', stats);
+      console.log(`【KPM計算】 ${correctCount}キー / ${totalMinutes.toFixed(2)}分 = ${kpm}KPM`);
 
-      // 進行状況バーを100%表示するための一時的な状態更新
-      // 将来ゲージバーを削除しても、下のtimeoutが動作して問題なく遷移する
+      // 1回のみの状態更新で、すべてのデータを一度に設定
+      // これにより、データの一貫性が保証される
       setGameState(prevState => ({
         ...prevState,
         solvedCount,
         typedCount: typingSession?.typedRomaji?.length || 0,
-        playTime: Math.floor((endTime - gameState.startTime) / 1000),
+        playTime: Math.floor((endTime - startTime) / 1000),
+        startTime: startTime, // 明示的に保存（念のため）
         endTime: endTime,
         problemKPMs: updatedProblemKPMs,
-        uiCompletePercent: 100, // ゲージ表示用の値（将来削除可能）
+        uiCompletePercent: 100,
+        isGameClear: true, // 即座に画面遷移を行う
+        stats: stats // 必ず統計情報を含める
       }));
       
-      // 少し遅延させてからゲームクリア状態をセット（画面遷移のトリガー）
+      // 念のため、少し遅延させてから画面遷移を確認（状態のプロパゲーションを待つ）
       setTimeout(() => {
-        setGameState(prevState => ({
-          ...prevState,
-          isGameClear: true // この値が画面遷移のトリガー
-        }));
-      }, 100);
+        console.log('【遅延確認】現在のゲーム状態:', {
+          isGameClear: gameState.isGameClear,
+          stats: gameState.stats
+        });
+        
+        // すでに遷移していなければ強制的に遷移
+        if (gameState.isGameClear !== true) {
+          console.log('【修正】遷移が行われていないため、強制的に状態を更新します');
+          setGameState(prevState => ({
+            ...prevState,
+            isGameClear: true,
+            stats: stats // 再度統計情報を含める
+          }));
+        }
+      }, 200);
 
       return;
     }
@@ -458,14 +498,8 @@ const GameScreen = () => {
           進行状況: {progressPercentage}%
         </div>
       </div>
-
-      {/* ESCキーガイド */}
-      <div className={styles.escGuide}>
-        メニューへ戻る
-      </div>
     </div>
   );
 };
 
-// エクスポートするのは新しいコンポーネント
 export default GameScreen;
