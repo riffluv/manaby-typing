@@ -3,7 +3,7 @@ import styles from '../../styles/GameScreen.module.css';
 
 /**
  * タイピングの表示を担当するコンポーネント
- * パフォーマンス最適化のためにメモ化を実装
+ * タイピングマニアの設計から学んだ視覚的フィードバックを実装
  */
 const TypingDisplay = memo(({
   displayRomaji,
@@ -18,24 +18,37 @@ const TypingDisplay = memo(({
     
     // 完了した文字のスタイル
     const typedStyle = { 
-      color: 'var(--typed-text-color, #4caf50)'
+      color: 'var(--typed-text-color, #4caf50)',
+      opacity: 1
     };
     
     // 入力中の文字のスタイル
     const currentInputStyle = { 
       color: 'var(--current-input-color, #2196f3)',
-      textDecoration: 'underline'
+      textDecoration: 'underline',
+      position: 'relative',
+      opacity: 1
     };
     
-    // 未入力の文字のスタイル
+    // 未入力の文字のスタイル - カーソルの近くの文字はやや強調
     const notTypedStyle = { 
-      color: 'var(--not-typed-color, #757575)'
+      color: 'var(--not-typed-color, #757575)',
+      opacity: 0.8
+    };
+    
+    // 次に入力すべき文字のスタイル（より目立つように）
+    const nextCharStyle = {
+      color: 'var(--next-char-color, #b0bec5)', 
+      opacity: 0.95,
+      position: 'relative',
+      fontWeight: 700
     };
     
     return {
       typed: typedStyle,
       current: currentInputStyle,
       notTyped: notTypedStyle,
+      nextChar: nextCharStyle,
       typedLength,
       currentInputLength
     };
@@ -53,14 +66,15 @@ const TypingDisplay = memo(({
     const { typedLength, currentInputLength } = textStyles;
     const currentPosition = coloringInfo?.currentPosition || 0;
     
-    // テキストを3つのパートに分割
+    // テキストを複数のパーツに分割（タイピングマニアのアプローチ）
     const typedText = displayRomaji.substring(0, typedLength);
     const currentText = displayRomaji.substring(
       currentPosition, 
       currentPosition + currentInputLength
     );
-    const untypedText = displayRomaji.substring(
-      currentPosition + currentInputLength
+    const nextChar = displayRomaji.charAt(currentPosition + currentInputLength);
+    const restText = displayRomaji.substring(
+      currentPosition + currentInputLength + 1
     );
     
     return (
@@ -73,8 +87,13 @@ const TypingDisplay = memo(({
           <span style={textStyles.current}>{currentInput}</span>
         )}
         
-        {/* 未入力部分 */}
-        {untypedText && <span style={textStyles.notTyped}>{untypedText}</span>}
+        {/* 次に入力すべき文字を特別に強調（タイピングマニア風） */}
+        {nextChar && (
+          <span style={textStyles.nextChar} className={styles.nextCharHighlight}>{nextChar}</span>
+        )}
+        
+        {/* 残りの未入力部分 */}
+        {restText && <span style={textStyles.notTyped}>{restText}</span>}
       </>
     );
   }, [displayRomaji, coloringInfo, currentInput, isCompleted, textStyles]);
@@ -82,55 +101,35 @@ const TypingDisplay = memo(({
   return (
     <div 
       className={`${styles.typingText} ${errorAnimation ? styles.errorShake : ''}`}
-      style={{ willChange: 'transform', contain: 'content' }} // GPU高速化
+      style={{ 
+        willChange: 'transform', 
+        contain: 'content',
+        transition: 'all 0.2s ease-out'
+      }}
     >
       {displayText}
+      
+      {/* タイピングマニアのようなカーソルフィードバック（視覚的なリズム） */}
+      {!isCompleted && (
+        <span className={styles.typingCursor}></span>
+      )}
     </div>
   );
 }, (prevProps, nextProps) => {
   // 高度な比較関数でメモ化を最適化
   // 実際に変更があった場合のみ再レンダリング
+  if (prevProps.isCompleted !== nextProps.isCompleted) return false;
+  if (prevProps.errorAnimation !== nextProps.errorAnimation) return false;
+  if (prevProps.displayRomaji !== nextProps.displayRomaji) return false;
+  if (prevProps.currentInput !== nextProps.currentInput) return false;
   
-  // 完了状態の変化を比較
-  if (prevProps.isCompleted !== nextProps.isCompleted) {
-    return false; // 異なる場合は再レンダリング
-  }
-  
-  // エラーアニメーション状態の変化を比較
-  if (prevProps.errorAnimation !== nextProps.errorAnimation) {
-    return false; // 異なる場合は再レンダリング
-  }
-  
-  // 表示テキストの変化を比較
-  if (prevProps.displayRomaji !== nextProps.displayRomaji) {
-    return false; // 異なる場合は再レンダリング
-  }
-  
-  // 現在の入力テキストの変化を比較
-  if (prevProps.currentInput !== nextProps.currentInput) {
-    return false; // 異なる場合は再レンダリング
-  }
-  
-  // 色分け情報の変化を比較（最も頻繁に変わる部分）
   const prevColoring = prevProps.coloringInfo || {};
   const nextColoring = nextProps.coloringInfo || {};
   
-  // typedLengthの変化
-  if (prevColoring.typedLength !== nextColoring.typedLength) {
-    return false; // 異なる場合は再レンダリング
-  }
+  if (prevColoring.typedLength !== nextColoring.typedLength) return false;
+  if (prevColoring.currentInputLength !== nextColoring.currentInputLength) return false;
+  if (prevColoring.currentPosition !== nextColoring.currentPosition) return false;
   
-  // currentInputLengthの変化
-  if (prevColoring.currentInputLength !== nextColoring.currentInputLength) {
-    return false; // 異なる場合は再レンダリング
-  }
-  
-  // currentPositionの変化
-  if (prevColoring.currentPosition !== nextColoring.currentPosition) {
-    return false; // 異なる場合は再レンダリング
-  }
-  
-  // 変更がないため再レンダリングしない
   return true;
 });
 

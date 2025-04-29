@@ -808,8 +808,42 @@ export default class TypingUtils {
   }
 
   /**
-   * タイピングセッションの管理クラス
-   * Weather Typing風の最適化を施した版
+   * 入力の分割最適化 - typingmania-refの技術を応用
+   * 例: 「し」に対して「shi」を打とうとしたとき、「s」と「hi」に分割して処理
+   * @param {string} input - ユーザー入力文字
+   * @param {array} patterns - 有効なパターンの配列
+   * @param {string} currentInput - 現在までに入力された文字
+   * @returns {object|null} - 分割情報または null
+   */
+  static optimizeSplitInput(input, patterns, currentInput = '') {
+    if (!input || !patterns || !patterns.length) return null;
+    
+    // 完全一致するか確認
+    const fullInput = currentInput + input;
+    
+    // すべてのパターンについて、分割可能性をチェック
+    for (let splitPoint = 1; splitPoint < fullInput.length; splitPoint++) {
+      const firstPart = fullInput.substring(0, splitPoint);
+      const secondPart = fullInput.substring(splitPoint);
+      
+      // 現在のパターンのいずれかが第2部分で始まるか確認
+      for (const pattern of patterns) {
+        if (pattern.startsWith(secondPart)) {
+          return {
+            firstPart,
+            secondPart,
+            matchedPattern: pattern
+          };
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * タイピングセッションの管理クラス - 分割入力最適化バージョン
+   * タイピングマニアの実装を参考にした高速処理
    */
   static createTypingSession(problem) {
     if (!problem || !problem.kanaText) {
@@ -933,7 +967,7 @@ export default class TypingUtils {
           (patternArray) => new Set(patternArray.map((pattern) => pattern[0]))
         ),
 
-        // Weather Typing風の入力処理
+        // タイピングマニアの実装を参考にした拡張機能
         processInput(char) {
           if (this.completed)
             return { success: false, status: 'already_completed' };
@@ -943,24 +977,13 @@ export default class TypingUtils {
           if (!currentPatterns)
             return { success: false, status: 'invalid_state' };
 
-          // 空の入力状態で、現在のパターンのどれかの先頭文字と一致するか高速チェック
-          if (this.currentInput === '') {
-            const validFirstChars = this.firstCharsCache[this.currentCharIndex];
-            if (!validFirstChars.has(char)) {
-              return { success: false, status: 'no_match' };
-            }
-          }
-
           // 試行中の入力に文字を追加
           const newInput = this.currentInput + char;
 
-          // Weather Typing風の最適化: 短いパターンを優先的に一致チェック
+          // パターンの一致チェック
           let matchingPatterns = currentPatterns.filter((pattern) =>
             pattern.startsWith(newInput)
           );
-
-          // パターンを長さでソートし、短いものを優先
-          matchingPatterns.sort((a, b) => a.length - b.length);
 
           if (matchingPatterns.length > 0) {
             // 入力が有効なパターンの一部として認識された
@@ -987,6 +1010,36 @@ export default class TypingUtils {
             }
 
             return { success: true, status: 'in_progress' };
+          }
+          
+          // 通常の一致がない場合、分割入力の最適化を試みる (typingmania-refの技術)
+          const splitResult = TypingUtils.optimizeSplitInput(
+            char, 
+            currentPatterns, 
+            this.currentInput
+          );
+          
+          if (splitResult) {
+            // 分割入力が有効
+            this.currentInput = splitResult.secondPart;
+            
+            // 文字が完全に一致したかチェック
+            if (splitResult.secondPart === splitResult.matchedPattern) {
+              // この文字の入力が完了
+              this.typedRomaji += splitResult.secondPart;
+              this.currentCharIndex++;
+              this.currentInput = '';
+              
+              // すべての文字を入力し終えたかチェック
+              if (this.currentCharIndex >= this.patterns.length) {
+                this.completed = true;
+                this.completedAt = Date.now();
+                return { success: true, status: 'all_completed' };
+              }
+              return { success: true, status: 'char_completed_split' };
+            }
+            
+            return { success: true, status: 'in_progress_split' };
           }
 
           // どのパターンにも一致しなかった場合
