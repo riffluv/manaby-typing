@@ -8,7 +8,7 @@ import soundSystem from '../utils/SoundUtils'; // サウンドシステムを直
 
 /**
  * リザルト画面コンポーネント
- * 
+ *
  * @param {Object} props - コンポーネントのプロパティ
  * @param {Object} props.stats - 表示する統計情報
  * @param {Function} props.onClickRetry - リトライボタンクリック時のコールバック
@@ -16,16 +16,25 @@ import soundSystem from '../utils/SoundUtils'; // サウンドシステムを直
  * @param {Function} props.onClickRanking - ランキングボタンクリック時のコールバック
  * @param {boolean} props.playSound - 効果音を再生するかどうか
  */
-const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSound = true }) => {
+const ResultScreen = ({
+  stats,
+  onClickRetry,
+  onClickMenu,
+  onClickRanking,
+  playSound = true,
+}) => {
   const { goToScreen } = usePageTransition();
-  
+
   // データ検証と詳細なデバッグログを追加
   useEffect(() => {
     console.log('ResultScreen: 受け取ったstats', stats);
-    
+
     // データが不足している場合は警告を表示
     if (!stats || stats.kpm === undefined || stats.kpm === 0) {
-      console.warn('ResultScreen: statsデータが不足しているか、KPMが0です', stats);
+      console.warn(
+        'ResultScreen: statsデータが不足しているか、KPMが0です',
+        stats
+      );
     }
   }, [stats]);
 
@@ -75,9 +84,12 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
           soundSystem.play('complete');
         } else {
           // 効果音がロードされていない場合はロードしてから再生
-          soundSystem.loadSound('complete', '/sounds/resultsound.mp3')
+          soundSystem
+            .loadSound('complete', '/sounds/resultsound.mp3')
             .then(() => soundSystem.play('complete'))
-            .catch(error => console.error('効果音のロードに失敗しました:', error));
+            .catch((error) =>
+              console.error('効果音のロードに失敗しました:', error)
+            );
         }
       } catch (error) {
         console.error('効果音の再生に失敗しました:', error);
@@ -91,7 +103,7 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
   const formatDecimal = (value) => {
     if (value === undefined || value === null) {
       console.warn('formatDecimal: 値が未定義です');
-      return "0.0";
+      return '0.0';
     }
     return Number(value).toFixed(1);
   };
@@ -103,31 +115,31 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
       opacity: 1,
       transition: {
         delayChildren: 0.3,
-        staggerChildren: 0.2
-      }
-    }
+        staggerChildren: 0.2,
+      },
+    },
   };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
       y: 0,
-      opacity: 1
-    }
+      opacity: 1,
+    },
   };
 
   const rankDisplayVariants = {
     hidden: { scale: 0, opacity: 0 },
-    visible: { 
-      scale: 1, 
-      opacity: 1, 
-      transition: { 
-        type: "spring", 
-        stiffness: 300, 
-        damping: 10, 
-        delay: 0.5 
-      } 
-    }
+    visible: {
+      scale: 1,
+      opacity: 1,
+      transition: {
+        type: 'spring',
+        stiffness: 300,
+        damping: 10,
+        delay: 0.5,
+      },
+    },
   };
 
   // セーフティチェック - statsがundefinedの場合のデフォルト値
@@ -136,12 +148,12 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
     accuracy: 0,
     kpm: 0,
     correctCount: 0,
-    missCount: 0
+    missCount: 0,
   };
 
   // デバッグ用にKPMを確認
   console.log('ResultScreen: KPM値', safeStats.kpm);
-  
+
   // ランク計算のデバッグ
   const rank = TypingUtils.getKPMRank(safeStats.kpm || 0);
   console.log(`ResultScreen: KPM ${safeStats.kpm} に基づくランク: ${rank}`);
@@ -150,12 +162,16 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
   const fixedStats = useMemo(() => {
     return {
       totalTime: formatDecimal(safeStats.totalTime || 0),
-      accuracy: formatDecimal((safeStats.accuracy || 0) * 100),
+      // 修正: accuracy はすでにパーセント表示（0-100）になっているため、
+      // 100を掛ける必要はありません
+      accuracy: formatDecimal(safeStats.accuracy || 0),
       kpm: Math.floor(safeStats.kpm || 0),
       correctCount: safeStats.correctCount || 0,
       missCount: safeStats.missCount || 0,
       rank: TypingUtils.getKPMRank(safeStats.kpm || 0),
-      rankColor: TypingUtils.getRankColor(TypingUtils.getKPMRank(safeStats.kpm || 0))
+      rankColor: TypingUtils.getRankColor(
+        TypingUtils.getKPMRank(safeStats.kpm || 0)
+      ),
     };
   }, [safeStats]);
 
@@ -176,7 +192,7 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
     console.log('メニューボタンがクリックされました');
     handleBackToMenu(); // 共通のハンドラを使用
   };
-  
+
   // ランキングボタン用のハンドラー
   const handleRankingClick = (e) => {
     e.preventDefault();
@@ -203,11 +219,11 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
 
       <motion.div className={styles.resultContent} variants={itemVariants}>
         {/* ランクを上部に独立して表示 */}
-        <motion.div 
+        <motion.div
           className={styles.rankDisplay}
           variants={rankDisplayVariants}
         >
-          <h2 
+          <h2
             className={styles.rankValue}
             style={{ color: fixedStats.rankColor }}
           >
@@ -218,12 +234,9 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
         </motion.div>
 
         {/* 主要スタッツを2×2グリッドで表示 */}
-        <motion.div 
-          className={styles.statsContainer}
-          variants={itemVariants}
-        >
+        <motion.div className={styles.statsContainer} variants={itemVariants}>
           {/* KPMを特別に強調表示 */}
-          <motion.div 
+          <motion.div
             className={`${styles.statCard} ${styles.keyStatCard}`}
             whileHover={{ scale: 1.05 }}
             transition={{ type: 'spring', stiffness: 300, damping: 15 }}
@@ -233,7 +246,7 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
           </motion.div>
 
           {/* 正解率を特別に強調表示 */}
-          <motion.div 
+          <motion.div
             className={`${styles.statCard} ${styles.keyStatCard}`}
             whileHover={{ scale: 1.05 }}
             transition={{ type: 'spring', stiffness: 300, damping: 15 }}
@@ -243,19 +256,13 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
           </motion.div>
 
           {/* 正解数 */}
-          <motion.div 
-            className={styles.statCard}
-            whileHover={{ scale: 1.03 }}
-          >
+          <motion.div className={styles.statCard} whileHover={{ scale: 1.03 }}>
             <div className={styles.statLabel}>Correct</div>
             <div className={styles.statValue}>{fixedStats.correctCount}</div>
           </motion.div>
 
           {/* ミス数 */}
-          <motion.div 
-            className={styles.statCard}
-            whileHover={{ scale: 1.03 }}
-          >
+          <motion.div className={styles.statCard} whileHover={{ scale: 1.03 }}>
             <div className={styles.statLabel}>Miss</div>
             <div className={styles.statValue}>{fixedStats.missCount}</div>
           </motion.div>
@@ -264,7 +271,7 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
 
       <motion.div className={styles.buttonContainer} variants={itemVariants}>
         {/* ランキングボタン */}
-        <motion.button 
+        <motion.button
           className={styles.resultButton}
           onClick={handleRankingClick}
           whileHover={{ scale: 1.05 }}
@@ -272,8 +279,8 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
         >
           ランキング
         </motion.button>
-        
-        <motion.button 
+
+        <motion.button
           className={styles.resultButton}
           onClick={handleRetryClick}
           whileHover={{ scale: 1.05 }}
@@ -281,8 +288,8 @@ const ResultScreen = ({ stats, onClickRetry, onClickMenu, onClickRanking, playSo
         >
           リトライ
         </motion.button>
-        
-        <motion.button 
+
+        <motion.button
           className={styles.resultButton}
           onClick={handleMenuClick}
           whileHover={{ scale: 1.05 }}
