@@ -1,0 +1,57 @@
+.progressContainer {
+  width: 100%;
+  margin: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.progressBar {
+  width: 100%;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+  border-radius: 6px;
+  transition: width 0.3s ease-in-out;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.progressText {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #f8f8f8;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* パーセンテージごとの色変化（オプショナル） */
+.progressFill[aria-valuenow^="1"],
+.progressFill[aria-valuenow^="2"],
+.progressFill[aria-valuenow^="3"] {
+  background: linear-gradient(90deg, #8bc34a, #cddc39);
+}
+
+.progressFill[aria-valuenow^="4"],
+.progressFill[aria-valuenow^="5"],
+.progressFill[aria-valuenow^="6"] {
+  background: linear-gradient(90deg, #cddc39, #ffeb3b);
+}
+
+.progressFill[aria-valuenow^="7"],
+.progressFill[aria-valuenow^="8"] {
+  background: linear-gradient(90deg, #ffeb3b, #ffc107);
+}
+
+.progressFill[aria-valuenow^="9"],
+.progressFill[aria-valuenow="100"] {
+  background: linear-gradient(90deg, #ffc107, #ff9800);
+}

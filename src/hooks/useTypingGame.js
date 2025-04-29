@@ -5,7 +5,7 @@ import soundSystem from '../utils/SoundUtils';
 /**
  * タイピングゲームのコアロジックを扱うカスタムフック
  * Weather Typing風の実装を踏襲し、UIロジックとビジネスロジックを分離
- * 
+ *
  * @param {Object} options タイピングゲームの設定オプション
  * @param {Object} options.initialProblem 初期問題
  * @param {boolean} options.playSound 効果音を再生するかどうか
@@ -39,7 +39,7 @@ export function useTypingGame({
   // セッションの初期化
   const initializeSession = useCallback((problem) => {
     if (!problem) return;
-    
+
     const session = TypingUtils.createTypingSession(problem);
     if (session) {
       setTypingSession(session);
@@ -47,9 +47,9 @@ export function useTypingGame({
       setColoringInfo(session.getColoringInfo());
       setErrorCount(0);
       setIsCompleted(false);
-      
+
       // 問題ごとの統計情報をリセット
-      setStatistics(prev => ({
+      setStatistics((prev) => ({
         ...prev,
         currentProblemStartTime: null,
         currentProblemKeyCount: 0,
@@ -65,84 +65,87 @@ export function useTypingGame({
   }, [initialProblem, initializeSession]);
 
   // 入力処理
-  const handleInput = useCallback((key) => {
-    if (!typingSession || isCompleted) {
-      return { success: false, status: 'inactive_session' };
-    }
-
-    // 最初のキー入力時にタイマー計測を開始
-    if (!statistics.startTime) {
-      const now = Date.now();
-      setStatistics(prev => ({
-        ...prev,
-        startTime: now,
-        currentProblemStartTime: now,
-      }));
-    }
-    // 現在の問題の開始時間がまだ設定されていない場合
-    else if (!statistics.currentProblemStartTime) {
-      const now = Date.now();
-      setStatistics(prev => ({
-        ...prev,
-        currentProblemStartTime: now,
-      }));
-    }
-
-    // 全角文字を半角に変換
-    const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
-    
-    // 入力処理
-    const result = typingSession.processInput(halfWidthChar);
-
-    if (result.success) {
-      // 色分け情報を更新
-      setColoringInfo(typingSession.getColoringInfo());
-      
-      // 正確なキー打鍵数をカウント
-      setStatistics(prev => ({
-        ...prev,
-        correctKeyCount: prev.correctKeyCount + 1,
-        currentProblemKeyCount: prev.currentProblemKeyCount + 1,
-      }));
-
-      // タイプ成功音を再生
-      if (playSound) {
-        soundSystem.play('success');
+  const handleInput = useCallback(
+    (key) => {
+      if (!typingSession || isCompleted) {
+        return { success: false, status: 'inactive_session' };
       }
 
-      // すべて入力完了した場合
-      if (result.status === 'all_completed') {
-        completeProblem();
+      // 最初のキー入力時にタイマー計測を開始
+      if (!statistics.startTime) {
+        const now = Date.now();
+        setStatistics((prev) => ({
+          ...prev,
+          startTime: now,
+          currentProblemStartTime: now,
+        }));
       }
-    } else {
-      // 誤入力の処理
-      setErrorCount(prev => prev + 1);
-      setErrorAnimation(true);
-      
-      // 統計情報に誤入力を記録
-      setStatistics(prev => ({
-        ...prev,
-        mistakeCount: prev.mistakeCount + 1,
-      }));
-
-      // エラー音を再生
-      if (playSound) {
-        soundSystem.play('error');
+      // 現在の問題の開始時間がまだ設定されていない場合
+      else if (!statistics.currentProblemStartTime) {
+        const now = Date.now();
+        setStatistics((prev) => ({
+          ...prev,
+          currentProblemStartTime: now,
+        }));
       }
 
-      // エラーアニメーションをリセット
-      setTimeout(() => {
-        setErrorAnimation(false);
-      }, 200);
-    }
+      // 全角文字を半角に変換
+      const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
 
-    return result;
-  }, [typingSession, isCompleted, statistics, playSound]);
+      // 入力処理
+      const result = typingSession.processInput(halfWidthChar);
+
+      if (result.success) {
+        // 色分け情報を更新
+        setColoringInfo(typingSession.getColoringInfo());
+
+        // 正確なキー打鍵数をカウント
+        setStatistics((prev) => ({
+          ...prev,
+          correctKeyCount: prev.correctKeyCount + 1,
+          currentProblemKeyCount: prev.currentProblemKeyCount + 1,
+        }));
+
+        // タイプ成功音を再生
+        if (playSound) {
+          soundSystem.play('success');
+        }
+
+        // すべて入力完了した場合
+        if (result.status === 'all_completed') {
+          completeProblem();
+        }
+      } else {
+        // 誤入力の処理
+        setErrorCount((prev) => prev + 1);
+        setErrorAnimation(true);
+
+        // 統計情報に誤入力を記録
+        setStatistics((prev) => ({
+          ...prev,
+          mistakeCount: prev.mistakeCount + 1,
+        }));
+
+        // エラー音を再生
+        if (playSound) {
+          soundSystem.play('error');
+        }
+
+        // エラーアニメーションをリセット
+        setTimeout(() => {
+          setErrorAnimation(false);
+        }, 200);
+      }
+
+      return result;
+    },
+    [typingSession, isCompleted, statistics, playSound]
+  );
 
   // 問題完了時の処理
   const completeProblem = useCallback(() => {
     setIsCompleted(true);
-    
+
     // 問題ごとのKPMを計算
     const now = Date.now();
     const problemElapsedMs = statistics.currentProblemStartTime
@@ -159,13 +162,13 @@ export function useTypingGame({
 
     // 新しいKPM値を配列に追加
     const updatedProblemKPMs = [...(statistics.problemKPMs || []), problemKPM];
-    
+
     // 統計情報を更新
-    setStatistics(prev => ({
+    setStatistics((prev) => ({
       ...prev,
       problemKPMs: updatedProblemKPMs,
     }));
-    
+
     // コールバックを呼び出し
     onProblemComplete({
       problemKPM,
@@ -178,14 +181,14 @@ export function useTypingGame({
   // 現在の進捗率を計算
   const progressPercentage = useMemo(() => {
     if (!typingSession || !displayRomaji) return 0;
-    
+
     if (isCompleted) {
       return 100;
     }
 
     const typedLength = coloringInfo.typedLength || 0;
     const totalLength = displayRomaji.length;
-    
+
     // 進捗率（0～100）
     return totalLength > 0 ? Math.floor((typedLength / totalLength) * 100) : 0;
   }, [typingSession, displayRomaji, coloringInfo, isCompleted]);
@@ -196,18 +199,19 @@ export function useTypingGame({
     const missCount = statistics.mistakeCount;
     const totalCount = correctCount + missCount;
     const accuracy = totalCount > 0 ? (correctCount / totalCount) * 100 : 0;
-    
+
     const startTime = statistics.startTime || Date.now();
     const currentTime = Date.now();
     const elapsedTimeMs = currentTime - startTime;
     const elapsedTimeSeconds = elapsedTimeMs / 1000;
-    
-    const kpm = elapsedTimeMs > 0 
-      ? TypingUtils.calculateWeatherTypingKPM(correctCount, elapsedTimeMs) 
-      : 0;
-      
+
+    const kpm =
+      elapsedTimeMs > 0
+        ? TypingUtils.calculateWeatherTypingKPM(correctCount, elapsedTimeMs)
+        : 0;
+
     const rank = TypingUtils.getKPMRank(kpm);
-    
+
     return {
       correctCount,
       missCount,
@@ -231,7 +235,7 @@ export function useTypingGame({
     isCompleted,
     stats,
     progressPercentage,
-    
+
     // メソッド
     initializeSession,
     handleInput,

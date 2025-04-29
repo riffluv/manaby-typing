@@ -3,15 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import styles from '../styles/GameScreen.module.css';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
-import TypingUtils from '../utils/TypingUtils';
 import soundSystem from '../utils/SoundUtils';
 import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
-import { useTypingGame } from '../hooks/useTypingGame'; // 新規追加：カスタムフックのインポート
+import { useTypingGame } from '../hooks/useTypingGame';
+
+// 新しく作成したコンポーネントをインポート
+import TypingDisplay from './typing/TypingDisplay';
+import ProgressBar from './typing/ProgressBar';
+import ProblemDisplay from './typing/ProblemDisplay';
 
 // デバッグ用コンソールログの追加
 console.log(
-  'DEBUG: UPDATED GameScreen.js has loaded! - ESC機能付き + 戻るボタンなし + useTypingGame対応'
+  'DEBUG: UPDATED GameScreen.js has loaded! - ESC機能付き + 戻るボタンなし + useTypingGame対応 + コンポーネント分離'
 );
 
 // リファクタリング後のコンポーネント実装
@@ -246,41 +250,6 @@ const GameScreen = () => {
     typing.handleInput(e.key);
   };
 
-  // ローマ字テキストの表示処理
-  const typingTextElement = React.useMemo(() => {
-    if (!typing.displayRomaji) return null;
-
-    // 完了状態の場合
-    if (typing.isCompleted) {
-      return (
-        <div className={styles.typingRomaji}>
-          <span className={styles.completed}>{typing.displayRomaji}</span>
-        </div>
-      );
-    }
-
-    // 通常表示
-    const typedIndex = typing.coloringInfo.typedLength;
-    const currentPosition = typing.coloringInfo.currentPosition;
-    const currentInput = typing.typingSession?.currentInput || '';
-    const currentDisplay = typing.coloringInfo.currentDisplay || '';
-    const typed = typing.displayRomaji.substring(0, typedIndex);
-    const remaining = typing.displayRomaji.substring(
-      currentPosition + currentInput.length
-    );
-
-    return (
-      <div className={styles.typingRomaji}>
-        <span className={styles.completed}>{typed}</span>
-        {currentInput && <span className={styles.current}>{currentInput}</span>}
-        {currentDisplay && currentInput.length < currentDisplay.length && (
-          <span>{currentDisplay.substring(currentInput.length)}</span>
-        )}
-        <span className={typing.errorAnimation ? styles.error : ''}>{remaining}</span>
-      </div>
-    );
-  }, [typing]);
-
   // 進行状況の計算（ゲーム全体の進捗を表示するように修正）
   const progressPercentage = React.useMemo(() => {
     // ゲームの全体進捗を計算
@@ -361,31 +330,27 @@ const GameScreen = () => {
       >
         <div className={styles.typingArea}>
           <div className={styles.problemContainer}>
-            <motion.p
-              className={styles.typingProblem}
-              initial={{ y: -10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5, type: 'spring' }}
-            >
-              {gameState.currentProblem?.displayText || ''}
-            </motion.p>
-            {typingTextElement}
+            {/* 問題表示コンポーネントを使用 */}
+            <ProblemDisplay text={gameState.currentProblem?.displayText || ''} />
+            
+            {/* タイピング表示コンポーネントを使用 */}
+            <TypingDisplay 
+              displayRomaji={typing.displayRomaji}
+              coloringInfo={typing.coloringInfo}
+              isCompleted={typing.isCompleted}
+              currentInput={typing.typingSession?.currentInput || ''}
+              errorAnimation={typing.errorAnimation}
+            />
           </div>
         </div>
       </motion.div>
 
-      {/* 進行状況バー - アニメーションなしでリアルタイム更新 */}
-      <div className={styles.progressContainer}>
-        <div className={styles.progressBar}>
-          <div
-            className={styles.progressFill}
-            style={{ width: `${progressPercentage}%` }}
-          />
-        </div>
-        <div className={styles.progressText}>
-          進行状況: {progressPercentage}%
-        </div>
-      </div>
+      {/* 進行状況バー - 新しいコンポーネントを使用 */}
+      <ProgressBar 
+        percentage={progressPercentage}
+        showText={true}
+        label="進行状況"
+      />
     </div>
   );
 };
