@@ -63,7 +63,8 @@ class SoundUtils {
   }
 
   /**
-   * すべての効果音を初期ロードする
+   * 効率的な音声読み込み - 重要な効果音だけを事前にロード、その他は遅延読み込み
+   * パフォーマンス最適化版
    * @returns {Promise} ロード完了時に解決されるPromise
    */
   async initializeAllSounds() {
@@ -72,17 +73,40 @@ class SoundUtils {
       return Promise.resolve(false);
     }
 
-    const loadPromises = [];
-    for (const [name, url] of Object.entries(this.soundPresets)) {
-      loadPromises.push(this.loadSound(name, url));
-    }
-
     try {
-      await Promise.all(loadPromises);
-      console.log('すべての効果音を読み込みました');
+      // 最も重要な効果音のみを最初に読み込む（タイピング時に即時必要）
+      const criticalSounds = ['success', 'error'];
+      const criticalLoadPromises = [];
+      
+      for (const name of criticalSounds) {
+        if (this.soundPresets[name]) {
+          criticalLoadPromises.push(this.loadSound(name, this.soundPresets[name]));
+        }
+      }
+      
+      // 重要な効果音を先に読み込み終える
+      await Promise.all(criticalLoadPromises);
+      console.log('重要な効果音のロードが完了しました');
+      
+      // その他の効果音は非同期で読み込み（ユーザー体験を妨げない）
+      const nonCriticalSounds = Object.entries(this.soundPresets)
+        .filter(([name]) => !criticalSounds.includes(name));
+        
+      // バックグラウンドで非同期読み込み - 重要でない効果音
+      setTimeout(() => {
+        for (const [name, url] of nonCriticalSounds) {
+          // すでにロード済みの場合はスキップ
+          if (!this.sfxBuffers[name.toLowerCase()]) {
+            this.loadSound(name, url)
+              .catch(err => console.warn(`非クリティカル効果音「${name}」の事前ロードに失敗しました:`, err));
+          }
+        }
+        console.log('すべての効果音を非同期読み込み開始');
+      }, 100); // わずかな遅延を設けて重要なレンダリングが完了するのを待つ
+      
       return true;
     } catch (error) {
-      console.error('効果音の読み込みに失敗しました:', error);
+      console.error('効果音の初期化に失敗しました:', error);
       return false;
     }
   }
@@ -138,8 +162,8 @@ class SoundUtils {
   }
 
   /**
-   * 効果音を再生する (playSound と play の両方が同じ動作をする)
-   * 大文字小文字を区別せずに処理する
+   * 効果音を再生する - 高速応答最適化版
+   * 大文字小文字を区別せずに処理し、未ロード時は自動的にロード
    * @param {string} name - 再生する効果音の名前
    */
   playSound(name) {
@@ -150,31 +174,44 @@ class SoundUtils {
 
     // 大文字小文字を区別せずに名前を小文字に変換して処理
     const lowerName = name.toLowerCase();
-
-    if (!this.sfxBuffers[lowerName]) {
-      console.warn(
-        `効果音「${name}」が登録されていません。自動ロードを試みます...`
-      );
-
-      // プリセットも小文字で検索
-      const presetKey = Object.keys(this.soundPresets).find(
-        (key) => key.toLowerCase() === lowerName
-      );
-
-      // 登録されていない場合、プリセットから自動ロードを試みる
-      if (presetKey) {
-        this.loadSound(lowerName, this.soundPresets[presetKey])
-          .then(() => this._playBuffer(this.sfxBuffers[lowerName]))
-          .catch((err) =>
-            console.error(`自動ロード中にエラーが発生しました:`, err)
-          );
-      } else {
-        console.error(`効果音「${name}」はプリセットにも存在しません`);
-      }
+    
+    // バッファにあれば即時再生（最速パス）
+    if (this.sfxBuffers[lowerName]) {
+      this._playBuffer(this.sfxBuffers[lowerName]);
       return;
     }
 
-    this._playBuffer(this.sfxBuffers[lowerName]);
+    // バッファにない場合は遅延読み込み＋再生
+    console.warn(
+      `効果音「${name}」がプリロードされていません。オンデマンドでロードします...`
+    );
+
+    // プリセットも小文字で検索
+    const presetKey = Object.keys(this.soundPresets).find(
+      (key) => key.toLowerCase() === lowerName
+    );
+
+    // 登録されていない場合、プリセットから自動ロードを試みる
+    if (presetKey) {
+      // AudioContextを先に再開（iOS Safari対策）
+      if (this.context && this.context.state === 'suspended') {
+        this.context.resume();
+      }
+      
+      // 遅延読み込みを開始し、ロード完了後に再生
+      this.loadSound(lowerName, this.soundPresets[presetKey])
+        .then(() => {
+          // ロード完了後すぐに再生
+          if (this.sfxBuffers[lowerName]) {
+            this._playBuffer(this.sfxBuffers[lowerName]);
+          }
+        })
+        .catch((err) => 
+          console.error(`効果音「${name}」の自動ロード中にエラーが発生しました:`, err)
+        );
+    } else {
+      console.error(`効果音「${name}」はプリセットに存在しません`);
+    }
   }
 
   /**

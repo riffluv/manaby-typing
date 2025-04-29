@@ -1014,4 +1014,41 @@ export default class TypingUtils {
 
     return result;
   }
+
+  /**
+   * よく使われるローマ字パターンのキャッシュを事前に準備する
+   * パフォーマンス向上のためのプリウォーミング機能
+   */
+  static prepareCommonPatterns() {
+    // 一般的な文章でよく出現する文字列のリスト
+    const commonPatterns = [
+      'あいうえお', 'かきくけこ', 'さしすせそ', 'たちつてと',
+      'なにぬねの', 'はひふへほ', 'まみむめも', 'やゆよ',
+      'らりるれろ', 'わをん', 'がぎぐげご', 'ざじずぜぞ',
+      'だぢづでど', 'ばびぶべぼ', 'ぱぴぷぺぽ'
+    ];
+    
+    // キャッシュを事前に作成
+    const cache = {};
+    
+    // 各パターンを事前に変換しておく
+    commonPatterns.forEach(pattern => {
+      try {
+        this.parseTextToRomajiPatterns(pattern);
+      } catch (e) {
+        // エラー処理は不要（単にキャッシュが作られないだけ）
+      }
+    });
+    
+    console.log('[最適化] 一般的なローマ字パターンのキャッシュをプリウォーム完了');
+  }
+
+  // 静的初期化 - モジュール読み込み時に一度だけ実行
+  static {
+    try {
+      this.prepareCommonPatterns();
+    } catch (e) {
+      console.warn('パターンキャッシュの準備中にエラーが発生しました。パフォーマンスに影響する可能性があります。', e);
+    }
+  }
 }

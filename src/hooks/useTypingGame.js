@@ -170,92 +170,100 @@ export function useTypingGame({
 
     try {
       const now = Date.now();
-      const timeSinceLastProcess = now - lastProcessTimeRef.current;
+      
+      // 高速化のため、バッファが空になるまで連続処理を行う
+      // これによりフレーム間の無駄な待ち時間を削減
+      let processedCount = 0;
+      const maxBatchSize = 5; // 1回のフレームで処理する最大キー数（調整可能）
 
-      // 節流処理：前回の処理からの経過時間が指定時間より短い場合は処理を遅延
-      if (timeSinceLastProcess < throttleMs) {
-        frameIdRef.current = requestAnimationFrame(processKeyBuffer);
-        return;
-      }
-
-      // バッファが空の場合は処理を終了
-      if (keyBufferRef.current.length === 0) {
-        isProcessingRef.current = false;
-        return;
-      }
-
-      // 現在のバッファからキーを取り出す（FIFO）
-      const key = keyBufferRef.current.shift();
-      lastProcessTimeRef.current = now;
-
-      // 最初のキー入力時にタイマー計測を開始
-      if (!statistics.startTime) {
-        setStatistics((prev) => ({
-          ...prev,
-          startTime: now,
-          currentProblemStartTime: now,
-        }));
-      }
-      // 現在の問題の開始時間がまだ設定されていない場合
-      else if (!statistics.currentProblemStartTime) {
-        setStatistics((prev) => ({
-          ...prev,
-          currentProblemStartTime: now,
-        }));
-      }
-
-      // 全角文字を半角に変換
-      const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
-
-      // 入力処理
-      const result = typingSession.processInput(halfWidthChar);
-
-      if (result.success) {
-        // 色分け情報を更新
-        setColoringInfo(typingSession.getColoringInfo());
-
-        // 正確なキー打鍵数をカウント
-        setStatistics((prev) => ({
-          ...prev,
-          correctKeyCount: prev.correctKeyCount + 1,
-          currentProblemKeyCount: prev.currentProblemKeyCount + 1,
-        }));
-
-        // タイプ成功音を再生
-        if (playSound) {
-          soundSystem.play('success');
+      while (keyBufferRef.current.length > 0 && processedCount < maxBatchSize) {
+        const timeSinceLastProcess = now - lastProcessTimeRef.current;
+        
+        // 連続入力時のみスロットリングを緩和（反応性向上）
+        const dynamicThrottle = keyBufferRef.current.length > 2 ? 
+          Math.max(4, throttleMs / 2) : // バッファ内に複数のキーがある場合は処理間隔を短縮
+          throttleMs; // 通常のスロットリング間隔
+          
+        // 必要に応じて節流処理
+        if (timeSinceLastProcess < dynamicThrottle && processedCount > 0) {
+          break; // 最初のキーは処理済みで、次のキーはスロットリングが必要な場合
         }
 
-        // すべて入力完了した場合
-        if (result.status === 'all_completed') {
-          completeProblem();
+        // 現在のバッファからキーを取り出す（FIFO）
+        const key = keyBufferRef.current.shift();
+        lastProcessTimeRef.current = now;
+        processedCount++;
+
+        // 最初のキー入力時にタイマー計測を開始
+        if (!statistics.startTime) {
+          setStatistics((prev) => ({
+            ...prev,
+            startTime: now,
+            currentProblemStartTime: now,
+          }));
         }
-      } else {
-        // 誤入力の処理
-        setErrorCount((prev) => prev + 1);
-        setErrorAnimation(true);
-
-        // 統計情報に誤入力を記録
-        setStatistics((prev) => ({
-          ...prev,
-          mistakeCount: prev.mistakeCount + 1,
-        }));
-
-        // エラー音を再生
-        if (playSound) {
-          soundSystem.play('error');
-        }
-
-        // 既存のタイマーがあればクリア
-        if (errorAnimationTimerRef.current) {
-          clearTimeout(errorAnimationTimerRef.current);
+        // 現在の問題の開始時間がまだ設定されていない場合
+        else if (!statistics.currentProblemStartTime) {
+          setStatistics((prev) => ({
+            ...prev,
+            currentProblemStartTime: now,
+          }));
         }
 
-        // エラーアニメーションをリセット - refを使用してタイマーIDを保存
-        errorAnimationTimerRef.current = setTimeout(() => {
-          setErrorAnimation(false);
-          errorAnimationTimerRef.current = null;
-        }, 200);
+        // 全角文字を半角に変換
+        const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
+
+        // 入力処理
+        const result = typingSession.processInput(halfWidthChar);
+
+        if (result.success) {
+          // 色分け情報を更新
+          setColoringInfo(typingSession.getColoringInfo());
+
+          // 正確なキー打鍵数をカウント
+          setStatistics((prev) => ({
+            ...prev,
+            correctKeyCount: prev.correctKeyCount + 1,
+            currentProblemKeyCount: prev.currentProblemKeyCount + 1,
+          }));
+
+          // タイプ成功音を再生
+          if (playSound) {
+            soundSystem.play('success');
+          }
+
+          // すべて入力完了した場合
+          if (result.status === 'all_completed') {
+            completeProblem();
+            break; // 問題完了時は処理を停止
+          }
+        } else {
+          // 誤入力の処理
+          setErrorCount((prev) => prev + 1);
+          setErrorAnimation(true);
+
+          // 統計情報に誤入力を記録
+          setStatistics((prev) => ({
+            ...prev,
+            mistakeCount: prev.mistakeCount + 1,
+          }));
+
+          // エラー音を再生
+          if (playSound) {
+            soundSystem.play('error');
+          }
+
+          // 既存のタイマーがあればクリア
+          if (errorAnimationTimerRef.current) {
+            clearTimeout(errorAnimationTimerRef.current);
+          }
+
+          // エラーアニメーションをリセット - refを使用してタイマーIDを保存
+          errorAnimationTimerRef.current = setTimeout(() => {
+            setErrorAnimation(false);
+            errorAnimationTimerRef.current = null;
+          }, 200);
+        }
       }
 
       // バッファにまだ入力が残っている場合は次のフレームで処理を続行
