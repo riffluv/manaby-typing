@@ -66,14 +66,29 @@ const GameScreen = () => {
         const startTime =
           gameState.startTime || typingRef.current?.stats?.startTime || endTime;
 
-        // 統計情報の計算（typingフックから取得）
+        // 問題ごとのKPMから平均値を計算（Weather Typing風）
+        const problemKPMs = updatedProblemKPMs || [];
+        // KPMの平均値を計算（0は除外する）
+        const validKpms = problemKPMs.filter((kpm) => kpm > 0);
+        // 有効なKPMがあれば平均を計算、なければ0
+        const averageKPM =
+          validKpms.length > 0
+            ? Math.floor(
+                validKpms.reduce((sum, kpm) => sum + kpm, 0) / validKpms.length
+              )
+            : 0;
+
+        console.log('【KPM計算】問題ごとのKPM:', problemKPMs);
+        console.log('【KPM計算】平均KPM:', averageKPM);
+
+        // 統計情報の計算（typingフックから取得し、KPMは問題別の平均を使用）
         const stats = typingRef.current
           ? {
               totalTime: typingRef.current.stats.elapsedTimeSeconds,
               correctCount: typingRef.current.stats.correctCount,
               missCount: typingRef.current.stats.missCount,
               accuracy: typingRef.current.stats.accuracy,
-              kpm: typingRef.current.stats.kpm,
+              kpm: averageKPM, // ここを問題ごとのKPMの平均に変更
               problemKPMs: updatedProblemKPMs,
             }
           : {
@@ -192,8 +207,8 @@ const GameScreen = () => {
         // すべての効果音を読み込み
         await soundSystem.initializeAllSounds();
 
-        // BGMを再生開始（battle2を使用）
-        soundSystem.playBgm('battle2', true);
+        // BGM再生コードを削除（レスポンス問題を解消）
+        // soundSystem.playBgm('game', true);
 
         // コンポーネントがアンマウントされていなければ状態を更新
         if (isMounted) {
@@ -220,10 +235,9 @@ const GameScreen = () => {
     // クリーンアップ関数
     return () => {
       isMounted = false; // コンポーネントがアンマウントされたことを記録
-      console.log(
-        '[GameScreen] コンポーネントがアンマウントされます。BGMを停止します。'
-      );
-      soundSystem.stopBgm(); // BGMを停止
+      console.log('[GameScreen] コンポーネントがアンマウントされます。');
+      // BGM停止処理を削除（レスポンス問題を解消）
+      // soundSystem.stopBgm();
     };
   }, []);
 

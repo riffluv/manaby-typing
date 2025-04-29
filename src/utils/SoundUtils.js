@@ -250,88 +250,41 @@ class SoundUtils {
   }
 
   /**
-   * BGMを再生する
+   * BGMを再生する (無効化済み: パフォーマンス向上のため)
    * @param {string} name - 再生するBGMの名前またはURL
    * @param {boolean} loop - ループ再生するかどうか
    */
   playBgm(name, loop = true) {
-    // サーバーサイドレンダリング時またはBGMが無効の場合は何もしない
-    if (typeof window === 'undefined' || !this.bgmEnabled) {
-      return;
-    }
-
-    // 現在のBGMを停止
-    this.stopBgm();
-
-    try {
-      // 名前を小文字に統一
-      const lowerName = name.toLowerCase();
-
-      // プリセットからURLを取得
-      let url = this.bgmPresets[lowerName] || name;
-
-      // キャッシュバスティング
-      const cacheBustedUrl = `${url}?t=${this.timestamp}_${Math.random()
-        .toString(36)
-        .substring(2, 9)}`;
-
-      console.log(`[DEBUG] BGM「${name}」を再生します: ${cacheBustedUrl}`);
-
-      // Audio要素を作成
-      const audio = new Audio(cacheBustedUrl);
-      audio.loop = loop;
-      audio.volume = this.bgmVolume;
-
-      // Web Audio APIに接続
-      if (this.context) {
-        const source = this.context.createMediaElementSource(audio);
-        source.connect(this.bgmGainNode);
-      }
-
-      // 再生開始
-      audio.play().catch((error) => {
-        console.error(`BGM「${name}」の再生に失敗しました:`, error);
-      });
-
-      // 参照を保存
-      this.currentBgm = audio;
-    } catch (error) {
-      console.error(`BGMの再生に失敗しました:`, error);
-    }
+    // パフォーマンス最適化のためBGM機能を無効化
+    console.log(`[DEBUG] BGM機能は無効化されています: ${name}`);
+    return false;
   }
 
   /**
-   * 現在再生中のBGMを停止する
+   * 現在再生中のBGMを停止する (無効化済み: パフォーマンス向上のため)
    */
   stopBgm() {
-    if (this.currentBgm) {
-      this.currentBgm.pause();
-      this.currentBgm.currentTime = 0;
-      this.currentBgm = null;
-      console.log('[DEBUG] BGMを停止しました');
-    }
+    // パフォーマンス最適化のためBGM機能を無効化
+    console.log('[DEBUG] BGM停止機能は無効化されています');
+    return false;
   }
 
   /**
-   * 現在再生中のBGMを一時停止する
+   * 現在再生中のBGMを一時停止する (無効化済み: パフォーマンス向上のため)
    */
   pauseBgm() {
-    if (this.currentBgm) {
-      this.currentBgm.pause();
-      console.log('[DEBUG] BGMを一時停止しました');
-    }
+    // パフォーマンス最適化のためBGM機能を無効化
+    console.log('[DEBUG] BGM一時停止機能は無効化されています');
+    return false;
   }
 
   /**
-   * 一時停止したBGMを再開する
+   * 一時停止したBGMを再開する (無効化済み: パフォーマンス向上のため)
    */
   resumeBgm() {
-    if (this.currentBgm) {
-      this.currentBgm.play().catch((error) => {
-        console.error('BGMの再開に失敗しました:', error);
-      });
-      console.log('[DEBUG] BGMを再開しました');
-    }
+    // パフォーマンス最適化のためBGM機能を無効化
+    console.log('[DEBUG] BGM再開機能は無効化されています');
+    return false;
   }
 
   /**

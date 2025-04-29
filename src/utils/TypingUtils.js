@@ -268,10 +268,10 @@ const specialCombinations = {
   っち: 'tti', // cchiよりttiを優先
   っつ: 'ttu', // ttsuよりttuを優先
   って: 'tte',
-  っと: 'tto',
+  っと: ['tto'],
   っぱ: 'ppa',
   っぴ: 'ppi',
-  っぷ: 'ppu',
+  っぷ: 'pu',
   っぺ: 'ppe',
   っぽ: 'ppo',
   し: 'si', // shiよりsiを優先
@@ -641,7 +641,7 @@ export default class TypingUtils {
   }
 
   /**
-   * Weather Typing風のKPM計算
+   * Weather Typing風のKPM計算（オリジナルの計算方式に復元）
    * @param {number} keyCount - 正しく押したキー数
    * @param {number} elapsedTimeMs - 経過時間（ミリ秒）
    * @returns {number} KPM値（小数点以下切り捨て）
