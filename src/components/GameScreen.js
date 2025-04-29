@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import styles from '../styles/GameScreen.module.css';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
 import soundSystem from '../utils/SoundUtils';
@@ -29,123 +35,133 @@ const GameScreen = () => {
 
   // 一時ローカル状態（互換性のために残す）
   const [soundsLoaded, setSoundsLoaded] = useState(false);
-  
+
   // typingの参照を保持するためのref
   const typingRef = useRef(null);
 
   // 問題完了時のコールバック
-  const handleProblemComplete = useCallback((problemStats) => {
-    console.log('【handleProblemComplete】問題完了コールバック発火:', problemStats);
-    // ここではtypingRefを使用せず、直接goToNextProblemを呼び出す
-    const solvedCount = gameState.solvedCount + 1;
-    const isGameClear = solvedCount >= requiredProblemCount;
+  const handleProblemComplete = useCallback(
+    (problemStats) => {
+      console.log(
+        '【handleProblemComplete】問題完了コールバック発火:',
+        problemStats
+      );
+      // ここではtypingRefを使用せず、直接goToNextProblemを呼び出す
+      const solvedCount = gameState.solvedCount + 1;
+      const isGameClear = solvedCount >= requiredProblemCount;
 
-    // デバッグ情報追加
-    console.log('【goToNextProblem】問題切り替え処理実行:', {
-      solvedCount,
-      isGameClear,
-      problemStats
-    });
-
-    // problemStatsから問題ごとの情報を取得
-    const { problemKPM = 0, updatedProblemKPMs = [] } = problemStats;
-
-    if (isGameClear) {
-      // 終了時間を記録
-      const endTime = Date.now();
-      const startTime = gameState.startTime || (typingRef.current?.stats?.startTime || endTime);
-
-      // 統計情報の計算（typingフックから取得）
-      const stats = typingRef.current ? {
-        totalTime: typingRef.current.stats.elapsedTimeSeconds,
-        correctCount: typingRef.current.stats.correctCount,
-        missCount: typingRef.current.stats.missCount,
-        accuracy: typingRef.current.stats.accuracy,
-        kpm: typingRef.current.stats.kpm,
-        problemKPMs: updatedProblemKPMs,
-      } : {
-        totalTime: 0,
-        correctCount: 0,
-        missCount: 0,
-        accuracy: 0,
-        kpm: 0,
-        problemKPMs: updatedProblemKPMs,
-      };
-
-      console.log('【ゲームクリア】 統計情報計算結果:', stats);
-
-      // 1回のみの状態更新で、すべてのデータを一度に設定
-      setGameState((prevState) => ({
-        ...prevState,
+      // デバッグ情報追加
+      console.log('【goToNextProblem】問題切り替え処理実行:', {
         solvedCount,
-        typedCount: typingRef.current?.typingSession?.typedRomaji?.length || 0,
-        playTime: Math.floor(stats.totalTime),
-        startTime: startTime,
-        endTime: endTime,
-        problemKPMs: updatedProblemKPMs,
-        uiCompletePercent: 100,
-        isGameClear: true, // 即座に画面遷移を行う
-        stats: stats, // 必ず統計情報を含める
-      }));
+        isGameClear,
+        problemStats,
+      });
 
-      // 念のため、少し遅延させてから画面遷移を確認（状態のプロパゲーションを待つ）
-      const timeoutId = setTimeout(() => {
-        console.log('【遅延確認】現在のゲーム状態:', {
-          isGameClear: gameState.isGameClear,
-          stats: gameState.stats,
+      // problemStatsから問題ごとの情報を取得
+      const { problemKPM = 0, updatedProblemKPMs = [] } = problemStats;
+
+      if (isGameClear) {
+        // 終了時間を記録
+        const endTime = Date.now();
+        const startTime =
+          gameState.startTime || typingRef.current?.stats?.startTime || endTime;
+
+        // 統計情報の計算（typingフックから取得）
+        const stats = typingRef.current
+          ? {
+              totalTime: typingRef.current.stats.elapsedTimeSeconds,
+              correctCount: typingRef.current.stats.correctCount,
+              missCount: typingRef.current.stats.missCount,
+              accuracy: typingRef.current.stats.accuracy,
+              kpm: typingRef.current.stats.kpm,
+              problemKPMs: updatedProblemKPMs,
+            }
+          : {
+              totalTime: 0,
+              correctCount: 0,
+              missCount: 0,
+              accuracy: 0,
+              kpm: 0,
+              problemKPMs: updatedProblemKPMs,
+            };
+
+        console.log('【ゲームクリア】 統計情報計算結果:', stats);
+
+        // 1回のみの状態更新で、すべてのデータを一度に設定
+        setGameState((prevState) => ({
+          ...prevState,
+          solvedCount,
+          typedCount:
+            typingRef.current?.typingSession?.typedRomaji?.length || 0,
+          playTime: Math.floor(stats.totalTime),
+          startTime: startTime,
+          endTime: endTime,
+          problemKPMs: updatedProblemKPMs,
+          uiCompletePercent: 100,
+          isGameClear: true, // 即座に画面遷移を行う
+          stats: stats, // 必ず統計情報を含める
+        }));
+
+        // 念のため、少し遅延させてから画面遷移を確認（状態のプロパゲーションを待つ）
+        const timeoutId = setTimeout(() => {
+          console.log('【遅延確認】現在のゲーム状態:', {
+            isGameClear: gameState.isGameClear,
+            stats: gameState.stats,
+          });
+
+          // すでに遷移していなければ強制的に遷移
+          if (gameState.isGameClear !== true) {
+            console.log(
+              '【修正】遷移が行われていないため、強制的に状態を更新します'
+            );
+            setGameState((prevState) => ({
+              ...prevState,
+              isGameClear: true,
+              stats: stats, // 再度統計情報を含める
+            }));
+          }
+        }, 200);
+
+        return;
+      }
+
+      // 次の問題へ進む
+      try {
+        const nextProblemIndex =
+          (problems.indexOf(gameState.currentProblem) + 1) % problems.length;
+        const nextProblem = problems[nextProblemIndex];
+
+        console.log('【次の問題】', {
+          現在の問題: gameState.currentProblem?.displayText,
+          次の問題: nextProblem?.displayText,
+          インデックス: nextProblemIndex,
         });
 
-        // すでに遷移していなければ強制的に遷移
-        if (gameState.isGameClear !== true) {
-          console.log(
-            '【修正】遷移が行われていないため、強制的に状態を更新します'
-          );
-          setGameState((prevState) => ({
-            ...prevState,
-            isGameClear: true,
-            stats: stats, // 再度統計情報を含める
-          }));
-        }
-      }, 200);
+        setGameState({
+          ...gameState,
+          currentProblem: nextProblem,
+          currentProblemIndex: nextProblemIndex,
+          solvedCount,
+          problemKPMs: updatedProblemKPMs, // 各問題のKPM値の配列を更新
+          currentProblemStartTime: null, // 次の問題の開始時間はまだ設定しない
+          currentProblemKeyCount: 0, // 次の問題用のカウンターをリセット
+        });
 
-      return;
-    }
-
-    // 次の問題へ進む
-    try {
-      const nextProblemIndex =
-        (problems.indexOf(gameState.currentProblem) + 1) % problems.length;
-      const nextProblem = problems[nextProblemIndex];
-
-      console.log('【次の問題】', {
-        現在の問題: gameState.currentProblem?.displayText,
-        次の問題: nextProblem?.displayText,
-        インデックス: nextProblemIndex
-      });
-
-      setGameState({
-        ...gameState,
-        currentProblem: nextProblem,
-        currentProblemIndex: nextProblemIndex,
-        solvedCount,
-        problemKPMs: updatedProblemKPMs, // 各問題のKPM値の配列を更新
-        currentProblemStartTime: null, // 次の問題の開始時間はまだ設定しない
-        currentProblemKeyCount: 0, // 次の問題用のカウンターをリセット
-      });
-
-      // 正解音は処理済み
-    } catch (error) {
-      console.error('次の問題の設定中にエラーが発生しました:', error);
-    }
-  }, [gameState, requiredProblemCount, problems, setGameState]);
+        // 正解音は処理済み
+      } catch (error) {
+        console.error('次の問題の設定中にエラーが発生しました:', error);
+      }
+    },
+    [gameState, requiredProblemCount, problems, setGameState]
+  );
 
   // カスタムフックの使用 - 現在の問題に対するタイピングセッションを管理
   const typing = useTypingGame({
     initialProblem: gameState.currentProblem,
     playSound: soundsLoaded,
-    onProblemComplete: handleProblemComplete
+    onProblemComplete: handleProblemComplete,
   });
-  
+
   // typingオブジェクトの参照を更新
   useEffect(() => {
     typingRef.current = typing;
@@ -154,7 +170,7 @@ const GameScreen = () => {
   // サウンドの初期化 - 改良版
   useEffect(() => {
     let isMounted = true; // クリーンアップ用のフラグ
-    
+
     const initSound = async () => {
       try {
         console.log('[GameScreen] サウンドシステムの初期化を開始します...');
@@ -176,6 +192,9 @@ const GameScreen = () => {
         // すべての効果音を読み込み
         await soundSystem.initializeAllSounds();
 
+        // BGMを再生開始（battle2を使用）
+        soundSystem.playBgm('battle2', true);
+
         // コンポーネントがアンマウントされていなければ状態を更新
         if (isMounted) {
           // 音声システムのステータスをコンソールに出力
@@ -184,7 +203,7 @@ const GameScreen = () => {
             loadedSounds: Object.keys(soundSystem.sfxBuffers),
             volume: soundSystem.getSfxVolume(),
           });
-  
+
           setSoundsLoaded(true);
         }
       } catch (err) {
@@ -202,59 +221,72 @@ const GameScreen = () => {
     return () => {
       isMounted = false; // コンポーネントがアンマウントされたことを記録
       console.log(
-        '[GameScreen] コンポーネントがアンマウントされます。サウンドシステムの状態を保持します。'
+        '[GameScreen] コンポーネントがアンマウントされます。BGMを停止します。'
       );
+      soundSystem.stopBgm(); // BGMを停止
     };
   }, []);
 
   // キー入力ハンドラー - useCallback で最適化
-  const handleKeyDown = useCallback((e) => {
-    // ゲームクリア時は何もしない
-    if (gameState.isGameClear === true) {
-      return;
-    }
+  const handleKeyDown = useCallback(
+    (e) => {
+      // ゲームクリア時は何もしない
+      if (gameState.isGameClear === true) {
+        return;
+      }
 
-    // ESCキーが押されたらメインメニューに戻る
-    if (e.key === 'Escape') {
-      // 音声再生もgoToScreen関数に委譲する
-      setTimeout(() => {
-        goToScreen(SCREENS.MAIN_MENU, { playSound: true, soundType: 'button' });
-      }, 100);
-      return;
-    }
+      // ESCキーが押されたらメインメニューに戻る
+      if (e.key === 'Escape') {
+        // 音声再生もgoToScreen関数に委譲する
+        setTimeout(() => {
+          goToScreen(SCREENS.MAIN_MENU, {
+            playSound: true,
+            soundType: 'button',
+          });
+        }, 100);
+        return;
+      }
 
-    // 入力に関係のないキーは無視
-    if (e.key.length !== 1 || e.ctrlKey || e.altKey || e.metaKey) {
-      return;
-    }
+      // 入力に関係のないキーは無視
+      if (e.key.length !== 1 || e.ctrlKey || e.altKey || e.metaKey) {
+        return;
+      }
 
-    // 特殊キーは適切に処理
-    if (e.key === 'Enter') {
-      return;
-    }
+      // 特殊キーは適切に処理
+      if (e.key === 'Enter') {
+        return;
+      }
 
-    // IME確定中の場合は処理しない
-    if (e.isComposing) {
-      return;
-    }
+      // IME確定中の場合は処理しない
+      if (e.isComposing) {
+        return;
+      }
 
-    // AudioContextの状態がsuspendedの場合は再開
-    soundSystem.resume();
+      // AudioContextの状態がsuspendedの場合は再開
+      soundSystem.resume();
 
-    // Weather Typingのように、最初のキー入力時にタイマー計測を開始
-    if (!gameState.hasStartedTyping) {
-      const now = Date.now();
-      setGameState((prevState) => ({
-        ...prevState,
-        startTime: now, // 最初のキー入力時点からタイマー計測を開始
-        hasStartedTyping: true,
-        currentProblemStartTime: now, // 最初の問題の開始時間も設定
-      }));
-    }
+      // Weather Typingのように、最初のキー入力時にタイマー計測を開始
+      if (!gameState.hasStartedTyping) {
+        const now = Date.now();
+        setGameState((prevState) => ({
+          ...prevState,
+          startTime: now, // 最初のキー入力時点からタイマー計測を開始
+          hasStartedTyping: true,
+          currentProblemStartTime: now, // 最初の問題の開始時間も設定
+        }));
+      }
 
-    // カスタムフックを使用して入力処理
-    typing.handleInput(e.key);
-  }, [gameState.isGameClear, gameState.hasStartedTyping, typing, goToScreen, setGameState]);
+      // カスタムフックを使用して入力処理
+      typing.handleInput(e.key);
+    },
+    [
+      gameState.isGameClear,
+      gameState.hasStartedTyping,
+      typing,
+      goToScreen,
+      setGameState,
+    ]
+  );
 
   // document全体で物理キー入力を受け付ける
   useEffect(() => {
@@ -276,7 +308,7 @@ const GameScreen = () => {
       const timeoutId = setTimeout(() => {
         goToScreen(SCREENS.RESULT);
       }, 150);
-      
+
       // クリーンアップ関数でタイマーをクリア
       return () => clearTimeout(timeoutId);
     }
@@ -318,30 +350,33 @@ const GameScreen = () => {
   ]);
 
   // アニメーション用のバリアント - 再レンダリング間で一定に保つために useMemo を使用
-  const animationVariants = useMemo(() => ({
-    header: {
-      initial: { y: -20, opacity: 0 },
-      animate: { y: 0, opacity: 1 },
-      transition: { duration: 0.3 }
-    },
-    gameArea: {
-      initial: { opacity: 0, y: 20 },
-      animate: { opacity: 1, y: 0 },
-      transition: { delay: 0.1, duration: 0.4 }
-    },
-    gameLevelScale: {
-      initial: { scale: 1 },
-      animate: {
-        scale: [1, 1.1, 1],
+  const animationVariants = useMemo(
+    () => ({
+      header: {
+        initial: { y: -20, opacity: 0 },
+        animate: { y: 0, opacity: 1 },
+        transition: { duration: 0.3 },
       },
-      transition: {
-        duration: 0.5,
-        times: [0, 0.5, 1],
-        repeat: 0,
-        repeatDelay: 1,
-      }
-    }
-  }), []);
+      gameArea: {
+        initial: { opacity: 0, y: 20 },
+        animate: { opacity: 1, y: 0 },
+        transition: { delay: 0.1, duration: 0.4 },
+      },
+      gameLevelScale: {
+        initial: { scale: 1 },
+        animate: {
+          scale: [1, 1.1, 1],
+        },
+        transition: {
+          duration: 0.5,
+          times: [0, 0.5, 1],
+          repeat: 0,
+          repeatDelay: 1,
+        },
+      },
+    }),
+    []
+  );
 
   // ゲームクリア状態の場合は何も表示しない - 早期リターン
   if (gameState.isGameClear === true) {
@@ -379,10 +414,12 @@ const GameScreen = () => {
         <div className={styles.typingArea}>
           <div className={styles.problemContainer}>
             {/* 問題表示コンポーネントを使用 */}
-            <ProblemDisplay text={gameState.currentProblem?.displayText || ''} />
-            
+            <ProblemDisplay
+              text={gameState.currentProblem?.displayText || ''}
+            />
+
             {/* タイピング表示コンポーネントを使用 */}
-            <TypingDisplay 
+            <TypingDisplay
               displayRomaji={typing.displayRomaji}
               coloringInfo={typing.coloringInfo}
               isCompleted={typing.isCompleted}
@@ -394,7 +431,7 @@ const GameScreen = () => {
       </motion.div>
 
       {/* 進行状況バー - 新しいコンポーネントを使用 */}
-      <ProgressBar 
+      <ProgressBar
         percentage={progressPercentage}
         showText={true}
         label="進行状況"

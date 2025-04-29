@@ -198,7 +198,11 @@ const ResultScreen = ({
     if (typeof onClickRanking === 'function') {
       onClickRanking();
     } else {
-      goToScreen(SCREENS.RANKING, { playSound: true }); // 音声再生はgoToScreenに委譲
+      // gameStateパラメータとしてstatsデータを渡す
+      goToScreen(SCREENS.RANKING, {
+        playSound: true,
+        gameState: stats, // ここでstatsデータを渡す
+      });
     }
   };
 

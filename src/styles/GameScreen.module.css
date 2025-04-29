@@ -10,7 +10,8 @@
   position: relative;
   overflow: hidden;
   color: #e1e1e1;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
 }
 
 .gameContainer::before {
@@ -20,7 +21,10 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: linear-gradient(rgba(255, 140, 0, 0.03) 1px, transparent 1px),
+  background-image: linear-gradient(
+      rgba(255, 140, 0, 0.03) 1px,
+      transparent 1px
+    ),
     linear-gradient(90deg, rgba(255, 140, 0, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
   z-index: 0;
@@ -66,7 +70,8 @@
   background-color: rgba(0, 0, 0, 0.25);
   border-radius: 16px;
   padding: 2.5rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   text-align: center;
   border: 1px solid rgba(255, 140, 0, 0.15);
   position: relative;
@@ -75,7 +80,8 @@
 
 .typingArea:focus-within {
   transform: translateY(-2px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 140, 0, 0.3);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 140, 0, 0.3);
 }
 
 .problemContainer {
@@ -133,6 +139,13 @@
   text-shadow: 0px 0px 8px rgba(77, 184, 255, 0.4);
 }
 
+/* 未確定のローマ字（薄い青色） */
+.pending {
+  color: #7fbfff; /* より薄い青色 */
+  font-weight: 500; /* 少し薄めのフォント */
+  text-shadow: 0px 0px 6px rgba(127, 191, 255, 0.3);
+}
+
 .error {
   color: #ff6b6b;
   animation: shake 0.3s;
@@ -140,7 +153,8 @@
 }
 
 @keyframes shake {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
   25% {
@@ -152,7 +166,8 @@
 }
 
 @keyframes blink {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -291,7 +306,8 @@
 }
 
 @keyframes blink {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

@@ -5,7 +5,7 @@ import styles from '../../styles/GameScreen.module.css';
 /**
  * 問題表示コンポーネント
  * タイピングゲームのお題（問題文）を表示する
- * 
+ *
  * @param {Object} props
  * @param {string} props.text - 表示する問題テキスト
  * @param {boolean} props.animate - アニメーション効果を適用するかどうか
@@ -13,18 +13,14 @@ import styles from '../../styles/GameScreen.module.css';
 const ProblemDisplay = ({ text = '', animate = true }) => {
   // パフォーマンス向上のためコンソール出力を開発環境のみに制限
   if (process.env.NODE_ENV === 'development') {
-    console.debug('[ProblemDisplay] レンダリング:', { 
-      textLength: text?.length
+    console.debug('[ProblemDisplay] レンダリング:', {
+      textLength: text?.length,
     });
   }
 
   // アニメーションなしの場合
   if (!animate) {
-    return (
-      <p className={styles.typingProblem}>
-        {text}
-      </p>
-    );
+    return <p className={styles.typingProblem}>{text}</p>;
   }
 
   // アニメーション効果付きの表示
@@ -43,8 +39,9 @@ const ProblemDisplay = ({ text = '', animate = true }) => {
 
 // シンプルな比較関数: テキストと animate プロパティが変わったときのみ再レンダリング
 const arePropsEqual = (prevProps, nextProps) => {
-  return prevProps.text === nextProps.text && 
-         prevProps.animate === nextProps.animate;
+  return (
+    prevProps.text === nextProps.text && prevProps.animate === nextProps.animate
+  );
 };
 
 // React.memo でコンポーネントをラップし、カスタム比較関数を使用

@@ -42,7 +42,7 @@ class SoundUtils {
     // サウンドプリセット定義 - シンプル化
     this.soundPresets = {
       // 基本ゲーム効果音
-      success: '/sounds/keyboard-click-327728.mp3', // タイピング成功音
+      success: '/sounds/Hit05-1.mp3', // タイピング成功音（変更後）
       error: '/sounds/Hit04-1.mp3', // タイピングエラー音
       complete: '/sounds/resultsound.mp3', // ゲームクリア音
       button: '/sounds/buttonsound1.mp3', // ボタンクリック音

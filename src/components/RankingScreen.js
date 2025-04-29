@@ -15,6 +15,7 @@ import soundSystem from '../utils/SoundUtils';
 import TypingUtils from '../utils/TypingUtils';
 import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
+import { useRouter } from 'next/navigation';
 
 // アニメーション設定
 const containerVariants = {
@@ -50,12 +51,29 @@ const itemVariants = {
 };
 
 const RankingScreen = () => {
-  const { settings, gameState } = useGameContext();
-  const { goToScreen, isTransitioning } = usePageTransition();
+  const navigate = useRouter();
+  const { goToScreen } = usePageTransition();
+  const { gameState } = useGameContext(); // GameContextからゲーム状態を取得
+
+  // 画面遷移とアニメーション状態を管理 - 初期化をfalseに明示的に設定
+  const [isExiting, setIsExiting] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  // このスコアが既に登録されたかどうかを追跡する状態
+  const [isScoreRegistered, setIsScoreRegistered] = useState(false);
+
+  // デフォルトの難易度設定
+  const defaultSettings = { difficulty: 'normal' };
+  const [settings, setSettings] = useState(defaultSettings);
+  const [activeDifficulty, setActiveDifficulty] = useState('normal');
+
+  // デバッグログ - ゲーム状態の確認
+  useEffect(() => {
+    console.log('RankingScreen: 受け取ったゲーム状態データ:', gameState);
+  }, [gameState]);
+
+  // ランキングデータとハイスコアの状態
   const [rankingData, setRankingData] = useState([]);
   const [highScores, setHighScores] = useState({});
-  const [activeDifficulty, setActiveDifficulty] = useState('normal');
-  const [isExiting, setIsExiting] = useState(false);
 
   // オンラインランキング関連の状態
   const [onlineRankings, setOnlineRankings] = useState([]);
@@ -102,7 +120,51 @@ const RankingScreen = () => {
     if (savedName) {
       setPlayerName(savedName);
     }
+
+    // 現在のゲームデータが既に登録されているか確認
+    checkIfGameIsRegistered();
   }, []);
+
+  // ゲームデータが既に登録されているかを確認
+  const checkIfGameIsRegistered = () => {
+    if (!gameState) return;
+
+    try {
+      // セッションストレージからこれまでに登録したゲームのIDを取得
+      const registeredGames = JSON.parse(sessionStorage.getItem('registeredGames') || '[]');
+
+      // 現在のゲームデータに基づいて一意のIDを生成
+      const kpmValue = gameState.stats?.kpm || 
+                      (gameState.problemKPMs && gameState.problemKPMs.length > 0 
+                        ? Math.floor(
+                            gameState.problemKPMs
+                              .filter(kpm => kpm > 0)
+                              .reduce((sum, kpm) => sum + kpm, 0) / 
+                              gameState.problemKPMs.filter(kpm => kpm > 0).length
+                          ) 
+                        : 0);
+
+      const accuracyValue = gameState.stats?.accuracy || 
+                          gameState.accuracy || 
+                          (gameState.correctKeyCount && (gameState.mistakes || gameState.mistakes === 0)
+                            ? (gameState.correctKeyCount / (gameState.correctKeyCount + gameState.mistakes)) * 100
+                            : 0);
+
+      const missCount = gameState.stats?.missCount || gameState.mistakes || 0;
+      const playTime = gameState.stats?.elapsedTimeMs || gameState.playTime || 0;
+
+      // 生成したゲームIDのフォーマットは登録処理と同じにする
+      const currentGameId = `${kpmValue}-${accuracyValue.toFixed(1)}-${missCount}-${playTime}`;
+
+      // 同じIDのゲームが既に登録されているかチェック
+      if (registeredGames.includes(currentGameId)) {
+        setIsScoreRegistered(true);
+        console.log('このスコアは既に登録済みです');
+      }
+    } catch (e) {
+      console.error('登録済みゲーム確認エラー:', e);
+    }
+  };
 
   // オンラインモードが変更された時にデータをロード
   useEffect(() => {
@@ -193,38 +255,48 @@ const RankingScreen = () => {
 
   // 戻るボタンのクリック処理
   const handleBack = () => {
-    // トランジション中は操作を無効化
-    if (isTransitioning || isExiting) return;
+    console.log('戻るボタンがクリックされました');
+
+    // すでに遷移中の場合は処理をスキップ
+    if (isExiting || isTransitioning) return;
 
     // ボタン音を即座に再生
     soundSystem.playSound('Button');
 
-    // 退場中フラグを立てる
+    // 遷移中のフラグを設定（重複クリック防止）
     setIsExiting(true);
+    setIsTransitioning(true);
 
-    // 退場アニメーションの後に画面遷移
+    // タイムアウトを設定して画面遷移を実行
     setTimeout(() => {
-      // previousScreenが設定されていればその画面に、なければメインメニューに戻る
-      const destination = previousScreen || SCREENS.MAIN_MENU;
-      goToScreen(destination, { playSound: false }); // 音はすでに再生したので不要
-    }, 300); // アニメーション時間と同期
+      // 遷移前にフラグをリセット
+      setIsExiting(false);
+      setIsTransitioning(false);
+      goToScreen(previousScreen || SCREENS.MAIN_MENU, { playSound: false });
+    }, 300);
   };
 
   // メインメニューボタンのクリック処理
   const handleMainMenu = () => {
-    // トランジション中は操作を無効化
-    if (isTransitioning || isExiting) return;
+    console.log('メインメニューボタンがクリックされました');
+
+    // すでに遷移中の場合は処理をスキップ
+    if (isExiting || isTransitioning) return;
 
     // ボタン音を即座に再生
     soundSystem.playSound('Button');
 
-    // 退場中フラグを立てる
+    // 遷移中のフラグを設定（重複クリック防止）
     setIsExiting(true);
+    setIsTransitioning(true);
 
-    // 退場アニメーションの後に画面遷移
+    // タイムアウトを設定して画面遷移を実行
     setTimeout(() => {
-      goToScreen(SCREENS.MAIN_MENU, { playSound: false }); // 音はすでに再生したので不要
-    }, 300); // アニメーション時間と同期
+      // 遷移前にフラグをリセット
+      setIsExiting(false);
+      setIsTransitioning(false);
+      goToScreen(SCREENS.MAIN_MENU, { playSound: false });
+    }, 300);
   };
 
   // 登録モーダルを表示
@@ -247,7 +319,8 @@ const RankingScreen = () => {
 
   // オンラインランキングに登録
   const handleRegisterScore = async () => {
-    if (!gameState || !gameState.correctKeyCount) {
+    // gameStateがnullかstatsプロパティを確認
+    if (!gameState) {
       setRegistrationStatus({
         success: false,
         message: '登録するスコアがありません。プレイ後に再度お試しください。',
@@ -270,7 +343,13 @@ const RankingScreen = () => {
 
       // Weather Typing風の計算方法でのKPM
       let kpmValue = 0;
-      if (gameState.problemKPMs && gameState.problemKPMs.length > 0) {
+      
+      // リファクタリング後の構造に対応
+      if (gameState.stats && gameState.stats.kpm) {
+        // 新しい構造: stats.kpm
+        kpmValue = Math.floor(gameState.stats.kpm);
+      } else if (gameState.problemKPMs && gameState.problemKPMs.length > 0) {
+        // 以前の構造: problemKPMs
         const validKPMs = gameState.problemKPMs.filter((kpm) => kpm > 0);
         if (validKPMs.length > 0) {
           const totalKPM = validKPMs.reduce((sum, kpm) => sum + kpm, 0);
@@ -281,6 +360,7 @@ const RankingScreen = () => {
         gameState.endTime &&
         gameState.correctKeyCount
       ) {
+        // 以前の構造: 直接KPM計算
         const elapsedMs = gameState.endTime - gameState.startTime;
         const minutes = elapsedMs / 60000;
         kpmValue = Math.floor(gameState.correctKeyCount / minutes);
@@ -290,39 +370,46 @@ const RankingScreen = () => {
       const rankValue = TypingUtils.getKPMRank(kpmValue);
 
       // 正解率を計算
-      // gameState.accuracyが存在しない場合は、正解キー数と間違いから計算
       let accuracyValue = 0;
-      if (
-        typeof gameState.accuracy === 'number' &&
-        !isNaN(gameState.accuracy)
-      ) {
-        // すでにaccuracyが計算されている場合はその値を使用
+      
+      // リファクタリング後の構造に対応
+      if (gameState.stats && typeof gameState.stats.accuracy === 'number') {
+        // 新しい構造: stats.accuracy
+        accuracyValue = gameState.stats.accuracy;
+      } else if (typeof gameState.accuracy === 'number' && !isNaN(gameState.accuracy)) {
+        // 以前の構造: gameState.accuracy
         accuracyValue = gameState.accuracy;
       } else if (
-        gameState.correctKeyCount >= 0 &&
-        (gameState.mistakes >= 0 || gameState.mistakes === 0)
+        (gameState.correctKeyCount >= 0 || (gameState.stats && gameState.stats.correctCount >= 0)) &&
+        (gameState.mistakes >= 0 || gameState.mistakes === 0 || 
+         (gameState.stats && (gameState.stats.missCount >= 0 || gameState.stats.missCount === 0)))
       ) {
+        // データ構造に応じて適切なプロパティを使用
+        const correctCount = gameState.correctKeyCount || (gameState.stats && gameState.stats.correctCount) || 0;
+        const missCount = gameState.mistakes || (gameState.stats && gameState.stats.missCount) || 0;
+        
         // correctKeyCountとmistakesから計算
-        const totalKeystrokes = gameState.correctKeyCount + gameState.mistakes;
+        const totalKeystrokes = correctCount + missCount;
         if (totalKeystrokes > 0) {
-          accuracyValue = (gameState.correctKeyCount / totalKeystrokes) * 100;
+          accuracyValue = (correctCount / totalKeystrokes) * 100;
         }
       }
 
       console.log('送信する正確率データ:', accuracyValue, '%');
-      console.log('gameState:', {
-        correctKeyCount: gameState.correctKeyCount,
-        mistakes: gameState.mistakes,
-        accuracy: gameState.accuracy,
-      });
+      console.log('gameState:', gameState);
 
       // オンラインランキングに保存
+      // 新しい構造にも対応
+      const correctCount = gameState.correctKeyCount || (gameState.stats && gameState.stats.correctCount) || 0;
+      const missCount = gameState.mistakes || (gameState.stats && gameState.stats.missCount) || 0;
+      const playTime = gameState.playTime || (gameState.stats && gameState.stats.elapsedTimeMs) || 0;
+      
       const recordId = await saveOnlineRanking(
         playerName,
         kpmValue,
         accuracyValue,
-        gameState.playTime || 0,
-        gameState.mistakes || 0,
+        playTime,
+        missCount,
         settings.difficulty || 'normal',
         rankValue // ランク情報を追加
       );
@@ -332,6 +419,21 @@ const RankingScreen = () => {
           success: true,
           message: 'ランキングに登録しました！',
         });
+
+        // スコア登録済みフラグを設定
+        setIsScoreRegistered(true);
+
+        // セッションストレージに登録済みフラグを保存
+        // これにより画面再読み込みでも登録できなくなる
+        try {
+          // ゲームのユニーク識別子を生成（KPM + 正解率 + ミス数 + 時間）
+          const gameId = `${kpmValue}-${accuracyValue.toFixed(1)}-${missCount}-${playTime}`;
+          const registeredGames = JSON.parse(sessionStorage.getItem('registeredGames') || '[]');
+          registeredGames.push(gameId);
+          sessionStorage.setItem('registeredGames', JSON.stringify(registeredGames));
+        } catch (e) {
+          console.error('登録済みゲームの保存に失敗:', e);
+        }
 
         // オンラインモードに切り替えて最新データを表示
         setIsOnlineMode(true);
@@ -416,6 +518,20 @@ const RankingScreen = () => {
     const destination = SCREENS.RESULT;
     goToScreen(destination, { playSound: false });
   };
+
+  // コンポーネントのマウント/アンマウント時に実行
+  useEffect(() => {
+    // コンポーネントがマウントされた時、状態をリセット
+    setIsExiting(false);
+    setIsTransitioning(false);
+
+    // クリーンアップ関数
+    return () => {
+      // コンポーネントがアンマウントされる時にもリセット
+      setIsExiting(false);
+      setIsTransitioning(false);
+    };
+  }, []); // 依存配列を空にして、マウント時とアンマウント時のみ実行
 
   return (
     <div className={styles.rankingContainer}>
@@ -653,9 +769,9 @@ const RankingScreen = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-          disabled={isExiting || !gameState || !gameState.correctKeyCount}
+          disabled={!gameState || (!gameState.correctKeyCount && !gameState.stats) || isScoreRegistered}
         >
-          ランキング登録
+          {isScoreRegistered ? 'すでに登録済み' : 'ランキング登録'}
         </motion.button>
 
         <motion.button
@@ -664,7 +780,6 @@ const RankingScreen = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-          disabled={isExiting}
         >
           戻る
         </motion.button>
@@ -675,7 +790,6 @@ const RankingScreen = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-          disabled={isExiting}
         >
           メインメニュー
         </motion.button>

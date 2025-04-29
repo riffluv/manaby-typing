@@ -21,7 +21,7 @@ const transitionPresets = {
     exit: { x: -500, opacity: 0 },
     transition: { type: 'spring', stiffness: 300, damping: 30, duration: 0.5 },
   },
-  // フェードとスケールのトランジション（高級感のあるゲーム風） 
+  // フェードとスケールのトランジション（高級感のあるゲーム風）
   fade: {
     initial: { opacity: 0, scale: 0.95 },
     animate: { opacity: 1, scale: 1 },
@@ -180,13 +180,19 @@ const TransitionManager = () => {
         return <CreditsScreen />;
       case SCREENS.RESULT:
         // ResultScreenに必ず音声を再生するように設定（playSound=true）
-        return <ResultScreen 
-          stats={gameState.stats}
-          onClickRetry={() => goToScreen(SCREENS.GAME, { playSound: true })}
-          onClickMenu={() => goToScreen(SCREENS.MAIN_MENU, { playSound: true })}
-          onClickRanking={() => goToScreen(SCREENS.RANKING, { playSound: true })}
-          playSound={true} // 常に音声を再生するように設定
-        />;
+        return (
+          <ResultScreen
+            stats={gameState.stats}
+            onClickRetry={() => goToScreen(SCREENS.GAME, { playSound: true })}
+            onClickMenu={() =>
+              goToScreen(SCREENS.MAIN_MENU, { playSound: true })
+            }
+            onClickRanking={() =>
+              goToScreen(SCREENS.RANKING, { playSound: true })
+            }
+            playSound={true} // 常に音声を再生するように設定
+          />
+        );
       case SCREENS.RANKING:
         return <RankingScreen />;
       case SCREENS.MAIN_MENU:
@@ -228,15 +234,24 @@ export const usePageTransition = () => {
    * @param {string} options.soundType - 再生する効果音のタイプ（デフォルト：'button'）
    * @param {string} options.from - 遷移元の画面（履歴管理に使用）
    * @param {boolean} options.immediate - 即時遷移を実行するかどうか（デフォルト：false）
+   * @param {object} options.gameState - ゲームの状態データ（ランキング画面などに渡すデータ）
    */
   const goToScreen = (
     screen,
-    options = { playSound: true, soundType: 'button', immediate: false }
+    options = {
+      playSound: true,
+      soundType: 'button',
+      immediate: false,
+      gameState: null,
+    }
   ) => {
     // デバッグログ - 遷移リクエストを記録
     console.log(
-      `goToScreen: 画面遷移リクエスト - 宛先: ${screen}, オプション:`, 
-      JSON.stringify(options)
+      `goToScreen: 画面遷移リクエスト - 宛先: ${screen}, オプション:`,
+      JSON.stringify({
+        ...options,
+        gameState: options.gameState ? 'データあり' : 'なし',
+      })
     );
 
     // 遷移中は新たな遷移をブロック（ただしimmediate=trueの場合は例外）
@@ -323,23 +338,33 @@ export const usePageTransition = () => {
 
     // 画面遷移実行（リザルト画面への遷移は遅延なし、ESCキーによる遷移は最小遅延、それ以外は若干の遅延）
     let delay = 20;
-    
+
     // 遷移先がリザルト画面または即時遷移オプションが指定されている場合は遅延なし
     if (screen === SCREENS.RESULT || options.immediate) {
       delay = 0;
     }
-    
+
     // メインメニューへの遷移（特にESCキーからの遷移）は優先的に処理
     if (screen === SCREENS.MAIN_MENU && options.from === SCREENS.RESULT) {
       console.log('ResultScreenからメインメニューへの遷移を優先処理します');
       delay = 0; // 遅延なし
-      
+
       // トランジション中フラグをすぐにリセット（ESCキーの反応性向上のため）
       setIsTransitioning(false);
     }
-    
+
     setTimeout(() => {
-      navigateTo(screen);
+      // ゲーム状態データが提供されている場合は、遷移先に応じて処理
+      if (options.gameState && screen === SCREENS.RANKING) {
+        console.log(
+          'ランキング画面に遷移するためのゲーム状態データ:',
+          options.gameState
+        );
+        // navigateToの呼び出し時にゲーム状態データを渡す
+        navigateTo(screen, options.gameState);
+      } else {
+        navigateTo(screen);
+      }
 
       // 遷移後にフラグをリセット（タイミングを最適化）
       setTimeout(() => {
