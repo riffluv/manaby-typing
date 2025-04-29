@@ -29,11 +29,9 @@ const TypingDisplay = memo(({
       opacity: 1
     };
     
-    // 入力中の文字のスタイル
+    // 入力中の文字のスタイル - 青からタイプ済みと同じ緑に変更
     const currentInputStyle = { 
-      color: 'var(--current-input-color, #2196f3)',
-      textDecoration: 'underline',
-      position: 'relative',
+      color: 'var(--typed-text-color, #4caf50)',  // 青色から緑色に変更
       opacity: 1
     };
     
@@ -45,8 +43,8 @@ const TypingDisplay = memo(({
     
     // 次に入力すべき文字のスタイル（より目立つように）
     const nextCharStyle = {
-      color: 'var(--next-char-color, #ff9a28)', // #b0bec5から#ff9a28（明るいオレンジ）に変更
-      opacity: 1, // 0.95から1に変更してより鮮明に
+      color: 'var(--next-char-color, #ff9a28)', // オレンジ色
+      opacity: 1,
       position: 'relative',
       fontWeight: 700
     };
