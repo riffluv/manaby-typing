@@ -22,7 +22,16 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable}`}
         suppressHydrationWarning
+        style={{
+          position: 'relative',
+          margin: 0,
+          padding: 0,
+          minHeight: '100vh',
+          backgroundColor: '#111'
+        }}
       >
+        {/* ここではクライアントコンポーネントを直接インポートできないため、
+            下層のページコンポーネントに背景を表示させる */}
         {children}
       </body>
     </html>

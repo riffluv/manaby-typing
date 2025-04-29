@@ -4,7 +4,10 @@
   align-items: center;
   min-height: 100vh;
   width: 100%;
-  background-color: #000000;
+  /* 背景色を削除して背景コンポーネントが見えるようにする */
+  /* background-color: #000000; */
+  background-color: transparent;
   overflow: hidden;
   padding: 20px;
+  position: relative; /* 子要素の位置関係のため */
 }
