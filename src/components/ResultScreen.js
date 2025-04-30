@@ -5,6 +5,7 @@ import TypingUtils from '@/utils/TypingUtils';
 import { useGameContext, SCREENS } from '@/contexts/GameContext';
 import { usePageTransition } from './TransitionManager';
 import soundSystem from '../utils/SoundUtils'; // サウンドシステムを直接インポート
+import { saveGameRecord } from '../utils/RecordUtils'; // ローカルランキング保存用に追加
 
 /**
  * リザルト画面コンポーネント
@@ -42,6 +43,43 @@ const ResultScreen = ({
         finalStats
       );
     }
+    
+    // ローカルランキングにデータを保存
+    const saveToLocalRanking = () => {
+      if (!finalStats) return;
+      
+      try {
+        // 必要なデータを取得
+        const kpm = finalStats.kpm || 0;
+        const accuracy = finalStats.accuracy || 0;
+        const timeInSeconds = finalStats.totalTime || 0;
+        const mistakes = finalStats.missCount || 0;
+        const difficulty = gameState?.difficulty || gameState?.settings?.difficulty || 'normal';
+        const rank = TypingUtils.getKPMRank(kpm);
+        
+        console.log('ResultScreen: ローカルランキングにデータを保存します', {
+          kpm, accuracy, timeInSeconds, mistakes, difficulty, rank
+        });
+        
+        // RecordUtilsの関数を呼び出してデータを保存
+        const saved = saveGameRecord(
+          kpm,
+          accuracy,
+          timeInSeconds,
+          mistakes,
+          difficulty,
+          rank
+        );
+        
+        console.log('ResultScreen: ローカルランキングの保存結果:', saved);
+      } catch (error) {
+        console.error('ResultScreen: ローカルランキング保存中にエラーが発生しました:', error);
+      }
+    };
+    
+    // ランキングに保存
+    saveToLocalRanking();
+    
   }, [stats, gameState]);
 
   // メニューに戻るハンドラー - 再利用可能なコールバックとして定義

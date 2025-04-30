@@ -41,7 +41,7 @@
 .resultTitle {
   font-family: 'Press Start 2P', monospace, system-ui;
   color: #ff8c00;
-  font-size: 42px;
+  font-size: 33px; /* 42pxから33pxに変更 */
   letter-spacing: 4px;
   text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
                3px 3px 5px rgba(0, 0, 0, 0.7);

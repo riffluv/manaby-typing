@@ -84,7 +84,7 @@
 .title {
   font-family: 'Press Start 2P', monospace, system-ui;
   color: #ff8c00;
-  font-size: 36px; /* 28pxから36pxに拡大 */
+  font-size: 33px; /* 36pxから33pxに変更 */
   letter-spacing: 2px;
   text-shadow: 2px 2px 0 #000;
   margin: 0;

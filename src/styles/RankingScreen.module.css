@@ -36,7 +36,7 @@
 
 .rankingTitle {
   font-family: 'Press Start 2P', cursive, system-ui;
-  font-size: 38px;
+  font-size: 33px; /* 38pxから33pxに変更 */
   letter-spacing: 2px;
   text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
   margin: 0;
