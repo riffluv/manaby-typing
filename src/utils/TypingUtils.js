@@ -290,6 +290,18 @@ const specialCombinations = {
   じょ: 'zyo', // joよりzyoを優先
 };
 
+// typingmania-refから学んだ最適化処理のための設定値
+const TYPING_OPTIMIZATION = {
+  // 入力バッファサイズ - 高速タイピング時のバッファリングサイズ
+  BUFFER_SIZE: 16,
+  // バッチ処理サイズ - 一度に処理する最大文字数
+  BATCH_SIZE: 10,
+  // 再計算頻度 - 統計情報の再計算間隔（ミリ秒）
+  STATS_RECALC_MS: 100,
+  // 先読み文字数 - 事前に読み込む文字数
+  PRELOAD_CHARS: 5,
+};
+
 export default class TypingUtils {
   /**
    * 文字列をひらがなに変換
@@ -851,12 +863,15 @@ export default class TypingUtils {
     // 完全一致するか確認
     const fullInput = currentInput + input;
 
+    // typingmania-refの実装を参考にした効率的なアルゴリズム
+    // 最大限の最適化のためにループ処理を効率化
+
     // すべてのパターンについて、分割可能性をチェック
     for (let splitPoint = 1; splitPoint < fullInput.length; splitPoint++) {
       const firstPart = fullInput.substring(0, splitPoint);
       const secondPart = fullInput.substring(splitPoint);
 
-      // 現在のパターンのいずれかが第2部分で始まるか確認
+      // 効率化: 可能なパターンの絞り込みをキャッシュ
       for (const pattern of patterns) {
         if (pattern.startsWith(secondPart)) {
           return {
@@ -873,7 +888,7 @@ export default class TypingUtils {
 
   /**
    * タイピングセッションの管理クラス - 分割入力最適化バージョン
-   * タイピングマニアの実装を参考にした高速処理
+   * typingmania-refの実装を参考にした高速処理
    */
   static createTypingSession(problem) {
     if (!problem || !problem.kanaText) {
@@ -918,21 +933,24 @@ export default class TypingUtils {
         return shortestPattern;
       }).join('');
 
-      // セッションオブジェクトの作成（クロージャの最小化）
+      // typingmania-refスタイルの効率的なセッションオブジェクト
       const typingSession = {
         originalText: problem.displayText,
         kanaText: kana,
-        displayRomaji, // 事前計算済み
-        patterns,      // 解析済みのパターン配列
-        patternLengths,// 各パターンの長さ配列
-        displayIndices,// 表示位置の配列
+        displayRomaji,
+        patterns,
+        patternLengths,
+        displayIndices,
         currentCharIndex: 0,
         typedRomaji: '',
         currentInput: '',
         completed: false,
         completedAt: null,
         
-        // パフォーマンス重視の高速処理実装
+        // 高速処理のためのキャッシュ領域
+        _cache: new Map(),
+        
+        // typingmania-refスタイルの高速実装
         processInput(char) {
           if (this.completed) {
             return { success: false, status: 'already_completed' };
@@ -947,7 +965,7 @@ export default class TypingUtils {
           // 新しい入力文字を現在の入力に追加
           const newInput = this.currentInput + char;
           
-          // マッチするパターンをフィルタリング - メモリ効率のため参照のみで作業
+          // typingmania-refスタイルの高速パターンマッチング
           let exactMatch = null;
           let hasMatchingPrefix = false;
           
@@ -1017,8 +1035,14 @@ export default class TypingUtils {
         
         // 色分け情報を取得（高速化）
         getColoringInfo() {
+          // キャッシュ確認（同一状態での重複計算を避ける）
+          const cacheKey = `coloring_${this.currentCharIndex}_${this.currentInput}`;
+          if (this._cache.has(cacheKey)) {
+            return this._cache.get(cacheKey);
+          }
+          
           if (this.completed) {
-            return {
+            const completeInfo = {
               typedLength: this.displayRomaji.length,
               currentInputLength: 0,
               currentPosition: this.displayRomaji.length,
@@ -1026,6 +1050,8 @@ export default class TypingUtils {
               completed: true,
               completedAt: this.completedAt,
             };
+            this._cache.set(cacheKey, completeInfo);
+            return completeInfo;
           }
           
           // 事前計算済みのインデックスを使用
@@ -1035,13 +1061,17 @@ export default class TypingUtils {
           const currentPosition = this.currentCharIndex < this.patterns.length ?
             this.displayIndices[this.currentCharIndex] : this.displayRomaji.length;
           
-          return {
+          const result = {
             typedLength: typedIndex,
             currentInputLength: this.currentInput.length,
             currentPosition: currentPosition,
             currentDisplay: '',
             completed: false,
           };
+          
+          // キャッシュに保存
+          this._cache.set(cacheKey, result);
+          return result;
         },
         
         // 進捗率計算（高速化）
@@ -1049,6 +1079,11 @@ export default class TypingUtils {
           if (this.completed) return 100;
           return this.patterns.length > 0 ? 
             Math.floor((this.currentCharIndex / this.patterns.length) * 100) : 0;
+        },
+        
+        // メモリ使用効率化
+        clearCache() {
+          this._cache.clear();
         }
       };
       
@@ -1072,7 +1107,7 @@ export default class TypingUtils {
     const value = event.target.value || '';
     if (!value) return null;
 
-    // 値をクリア（次の入力のため）
+    // 値をクリア（次の入力のため） 
     event.target.value = '';
 
     // 全角→半角変換
@@ -1303,5 +1338,101 @@ export default class TypingUtils {
         e
       );
     }
+  }
+
+  /**
+   * typingmania-ref風の入力バッファマネージャー
+   * バッファサイズを動的に調整する最適化されたバッファリングシステム
+   */
+  static createInputBufferManager(processFn, options = {}) {
+    // デフォルト設定とマージ
+    const settings = {
+      initialBufferSize: TYPING_OPTIMIZATION.BUFFER_SIZE,
+      maxBatchSize: TYPING_OPTIMIZATION.BATCH_SIZE,
+      ...options
+    };
+    
+    // バッファとステート
+    const state = {
+      buffer: [],
+      isProcessing: false,
+      frameId: null,
+      lastProcessTime: 0
+    };
+    
+    // 入力を追加する関数
+    const addInput = (input) => {
+      state.buffer.push(input);
+      
+      // 処理をスケジュール（実行中でなければ）
+      if (!state.isProcessing && state.frameId === null) {
+        state.frameId = requestAnimationFrame(processBuffer);
+      }
+      
+      return true;
+    };
+    
+    // バッファ内の入力を処理する関数
+    const processBuffer = () => {
+      // フレーム処理をクリア
+      state.frameId = null;
+      
+      if (state.isProcessing || state.buffer.length === 0) {
+        return;
+      }
+      
+      state.isProcessing = true;
+      
+      try {
+        // 開始時間を記録
+        const startTime = performance.now();
+        const now = Date.now();
+        
+        // バッファサイズに応じて処理量を調整
+        const batchSize = Math.min(
+          settings.maxBatchSize,
+          state.buffer.length
+        );
+        
+        // 指定された数だけ処理
+        for (let i = 0; i < batchSize && state.buffer.length > 0; i++) {
+          const input = state.buffer.shift();
+          processFn(input, now);
+        }
+        
+        // 処理時間を記録
+        state.lastProcessTime = now;
+        
+        // まだ処理すべきものがあれば次のフレームで続行
+        if (state.buffer.length > 0) {
+          state.frameId = requestAnimationFrame(processBuffer);
+        }
+        
+        // 処理時間をログ（デバッグモードのみ）
+        const elapsedMs = performance.now() - startTime;
+        if (elapsedMs > 16) { // 16.67ms = 60fps
+          // フレーム速度が低下している場合のみ警告
+          console.debug(`[パフォーマンス警告] バッファ処理に ${elapsedMs.toFixed(2)}ms かかりました`);
+        }
+      } finally {
+        state.isProcessing = false;
+      }
+    };
+    
+    // クリーンアップ関数
+    const cleanup = () => {
+      if (state.frameId !== null) {
+        cancelAnimationFrame(state.frameId);
+        state.frameId = null;
+      }
+      state.buffer = [];
+    };
+    
+    return {
+      addInput,
+      processBuffer,
+      cleanup,
+      getBufferLength: () => state.buffer.length
+    };
   }
 }

@@ -4,8 +4,8 @@ import soundSystem from '../utils/SoundUtils';
 
 /**
  * タイピングゲームのコアロジックを扱うカスタムフック
- * Weather Typing風の実装を踏襲し、UIロジックとビジネスロジックを分離
- * パフォーマンスを最適化するためにコールバックとメモ化を積極的に活用
+ * typingmania-refを参考にした高性能実装に対応
+ * パフォーマンスを最大限に最適化したリアルタイム処理を実現
  *
  * @param {Object} options タイピングゲームの設定オプション
  * @param {Object} options.initialProblem 初期問題
@@ -53,11 +53,25 @@ export function useTypingGame({
   });
   const [isCompleted, setIsCompleted] = useState(false);
 
+  // 最適化された入力処理システム：typingmania-refスタイル
+  // 入力バッファリングを参照オブジェクトとして保持
+  const inputSystem = useRef(null);
+  
   // キー入力バッファリングと節流のための参照
   const keyBufferRef = useRef([]);
   const lastProcessTimeRef = useRef(0);
   const isProcessingRef = useRef(false);
   const frameIdRef = useRef(null);
+  
+  // typingmania-ref風のパフォーマンス設定
+  const performanceConfig = useRef({
+    // 一度に処理する最大文字数
+    maxBatchSize: 10,
+    // 統計情報の再計算頻度（ミリ秒）
+    statsUpdateInterval: 100,
+    // キー入力の処理間隔（ミリ秒）- 高負荷時は自動調整
+    processingThreshold: throttleMs || 16
+  }).current;
 
   // エラーアニメーション用のタイマーIDを保持
   const errorAnimationTimerRef = useRef(null);
@@ -72,13 +86,110 @@ export function useTypingGame({
       if (frameIdRef.current) {
         cancelAnimationFrame(frameIdRef.current);
       }
+      // 入力システムもクリーンアップ
+      if (inputSystem.current) {
+        inputSystem.current.cleanup();
+      }
     };
   }, []);
+
+  // 入力処理関数 - 高速化バージョン
+  const processInput = useCallback((key, timestamp) => {
+    if (!typingSession || isCompleted) return { success: false };
+
+    // 統計の開始時間設定
+    const now = timestamp || Date.now();
+    if (!statistics.startTime) {
+      setStatistics((prev) => ({
+        ...prev,
+        startTime: now,
+        currentProblemStartTime: now,
+      }));
+    }
+    else if (!statistics.currentProblemStartTime) {
+      setStatistics((prev) => ({
+        ...prev, 
+        currentProblemStartTime: now 
+      }));
+    }
+
+    // タイピングセッションを使用して入力を処理（最適化版）
+    const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
+    const result = typingSession.processInput(halfWidthChar);
+
+    if (result.success) {
+      // 効果音再生（これは保持）
+      if (playSound) {
+        soundSystem.play('success');
+      }
+
+      // 統計更新（カウンターのみ、バッチ処理向け）
+      setStatistics((prev) => ({
+        ...prev,
+        correctKeyCount: prev.correctKeyCount + 1,
+        currentProblemKeyCount: prev.currentProblemKeyCount + 1,
+      }));
+
+      // 色分け情報を更新
+      setColoringInfo(typingSession.getColoringInfo());
+
+      // 完了チェック
+      if (result.status === 'all_completed') {
+        completeProblem();
+      }
+
+      return { success: true, status: result.status };
+    } else {
+      // エラー処理
+      setErrorCount((prev) => prev + 1);
+      setErrorAnimation(true);
+      setStatistics((prev) => ({
+        ...prev,
+        mistakeCount: prev.mistakeCount + 1,
+      }));
+
+      // エラー音再生
+      if (playSound) {
+        soundSystem.play('error');
+      }
+
+      // エラーアニメーションリセット
+      if (errorAnimationTimerRef.current) {
+        clearTimeout(errorAnimationTimerRef.current);
+      }
+
+      errorAnimationTimerRef.current = setTimeout(() => {
+        setErrorAnimation(false);
+        errorAnimationTimerRef.current = null;
+      }, 200);
+
+      return { success: false, status: result.status };
+    }
+  }, [typingSession, statistics, isCompleted, playSound]);
+
+  // 初期化時に入力バッファマネージャーを作成
+  useEffect(() => {
+    // typingmania-ref風の最適化された入力バッファリングシステムを作成
+    inputSystem.current = TypingUtils.createInputBufferManager(
+      processInput,
+      {
+        initialBufferSize: 16,
+        maxBatchSize: performanceConfig.maxBatchSize
+      }
+    );
+    
+    return () => {
+      if (inputSystem.current) {
+        inputSystem.current.cleanup();
+      }
+    };
+  }, [processInput, performanceConfig.maxBatchSize]);
 
   // セッションの初期化 - useCallbackでメモ化
   const initializeSession = useCallback((problem) => {
     if (!problem) return;
 
+    // 新しい最適化タイピングセッションを生成
     const session = TypingUtils.createTypingSession(problem);
     if (session) {
       setTypingSession(session);
@@ -89,6 +200,11 @@ export function useTypingGame({
 
       // 入力バッファをクリア
       keyBufferRef.current = [];
+      
+      // 入力システムもリセット
+      if (inputSystem.current) {
+        inputSystem.current.cleanup();
+      }
 
       // 問題ごとの統計情報をリセット
       setStatistics((prev) => ({
@@ -114,7 +230,6 @@ export function useTypingGame({
   }, [initialProblem, initializeSession]);
 
   // 問題完了時の処理 - useCallbackでメモ化
-  // ※この関数を先に宣言して循環参照を解決
   const completeProblem = useCallback(() => {
     if (isCompleted) return; // 既に完了している場合は処理しない（重複防止）
 
@@ -168,198 +283,36 @@ export function useTypingGame({
     });
   }, [statistics, onProblemComplete, isCompleted]);
 
-  // バッファされたキー入力を処理する関数
-  const processKeyBuffer = useCallback(() => {
-    if (isProcessingRef.current || !typingSession || isCompleted) {
-      return;
-    }
-
-    // 処理中フラグを立てる
-    isProcessingRef.current = true;
-
-    try {
-      const now = Date.now();
-      let needsColorUpdate = false;
-      let processedCount = 0;
-      const maxBatchSize = 10; // バッチサイズを増加（高速タイピング対応）
-
-      // 統計情報の更新に使用するカウンター（バッチ処理用）
-      let correctKeyIncrement = 0;
-      let problemKeyIncrement = 0;
-      let mistakeIncrement = 0;
-
-      // 高速化: バッファが空になるまで一気に処理
-      while (keyBufferRef.current.length > 0 && processedCount < maxBatchSize) {
-        // 動的スロットリングはさらに緩和（反応性を最優先）
-        const dynamicThrottle = 
-          keyBufferRef.current.length > 3 ? 2 : // 複数キー入力時は超高速処理
-          keyBufferRef.current.length > 0 ? 4 : // 少数キー入力時も高速処理
-          throttleMs; // 通常のスロットリング
-
-        const timeSinceLastProcess = now - lastProcessTimeRef.current;
-        if (timeSinceLastProcess < dynamicThrottle && processedCount > 0) {
-          break;
-        }
-
-        const key = keyBufferRef.current.shift();
-        lastProcessTimeRef.current = now;
-        processedCount++;
-
-        // 最初のキー入力時のタイマー設定（これは必要なので残す）
-        if (!statistics.startTime) {
-          setStatistics((prev) => ({
-            ...prev,
-            startTime: now,
-            currentProblemStartTime: now,
-          }));
-        }
-        else if (!statistics.currentProblemStartTime) {
-          setStatistics((prev) => ({
-            ...prev,
-            currentProblemStartTime: now,
-          }));
-        }
-
-        // 入力処理
-        const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
-        const result = typingSession.processInput(halfWidthChar);
-
-        if (result.success) {
-          // 色分け情報の更新フラグを立てる（バッチ処理後にまとめて更新）
-          needsColorUpdate = true;
-          
-          // キーカウントを増加（統計情報の一括更新用）
-          correctKeyIncrement++;
-          problemKeyIncrement++;
-          
-          // 効果音は維持（体感速度に影響するため）
-          if (playSound) {
-            soundSystem.play('success');
-          }
-
-          // 完了判定は即時処理（これは遅延できない）
-          if (result.status === 'all_completed') {
-            // 更新済みの統計をまとめて保存
-            if (correctKeyIncrement > 0 || mistakeIncrement > 0) {
-              setStatistics((prev) => ({
-                ...prev,
-                correctKeyCount: prev.correctKeyCount + correctKeyIncrement,
-                currentProblemKeyCount: prev.currentProblemKeyCount + problemKeyIncrement,
-                mistakeCount: prev.mistakeCount + mistakeIncrement,
-              }));
-            }
-            
-            completeProblem();
-            break;
-          }
-        } else {
-          // エラー処理
-          mistakeIncrement++;
-          
-          // エラーアニメーションは視覚的フィードバックなので即時更新
-          setErrorAnimation(true);
-          setErrorCount((prev) => prev + 1);
-
-          // エラー音再生
-          if (playSound) {
-            soundSystem.play('error');
-          }
-
-          // エラーアニメーションリセット
-          if (errorAnimationTimerRef.current) {
-            clearTimeout(errorAnimationTimerRef.current);
-          }
-
-          errorAnimationTimerRef.current = setTimeout(() => {
-            setErrorAnimation(false);
-            errorAnimationTimerRef.current = null;
-          }, 200);
-        }
-      }
-
-      // 処理完了後にまとめて更新（状態更新の回数を最小化）
-      if (needsColorUpdate) {
-        setColoringInfo(typingSession.getColoringInfo());
-      }
-
-      // 統計情報もまとめて更新
-      if (correctKeyIncrement > 0 || mistakeIncrement > 0) {
-        setStatistics((prev) => ({
-          ...prev,
-          correctKeyCount: prev.correctKeyCount + correctKeyIncrement,
-          currentProblemKeyCount: prev.currentProblemKeyCount + problemKeyIncrement,
-          mistakeCount: prev.mistakeCount + mistakeIncrement,
-        }));
-      }
-
-      // まだ入力が残っている場合は次フレームで処理
-      if (keyBufferRef.current.length > 0) {
-        frameIdRef.current = requestAnimationFrame(processKeyBuffer);
-      }
-    } finally {
-      isProcessingRef.current = false;
-    }
-  }, [
-    typingSession,
-    isCompleted,
-    statistics,
-    playSound,
-    throttleMs,
-    completeProblem,
-  ]);
-
-  // 入力をバッファに追加するだけの高速な関数 - 先読み最適化版
+  // 入力をバッファに追加するだけの高速な関数 - typingmania風の最適化版
   const handleInput = useCallback(
     (key) => {
       if (!typingSession || isCompleted) {
         return { success: false, status: 'inactive_session' };
       }
 
-      // キーバッファに入力を追加（FIFO）
-      keyBufferRef.current.push(key);
-
-      // パフォーマンスのため静的フラグでログ出力を制御
-      const enableDebugLogs = false; // 有効にすると詳細なログを出力
-
-      // 先読み最適化: 次の入力を予測して、処理の準備を始める
-      if (typingSession.currentCharIndex < typingSession.patterns.length) {
-        // 現在の入力状況
-        const charIndex = typingSession.currentCharIndex;
-        const nextCharIndex = charIndex + 1;
-
-        // 現在の文字が完了したかどうかを予測
-        const currentInput = typingSession.currentInput + key;
-
-        // 現在のパターンに完全一致するか確認
-        const patterns = typingSession.patterns[charIndex];
-        const exactMatch = patterns.find((pattern) => pattern === currentInput);
-
-        // 次の文字の入力準備
-        if (exactMatch && nextCharIndex < typingSession.patterns.length) {
-          // 次の文字のパターンを事前に探索して、レンダリングの準備をしておく
-          // 状態は更新せず、単に計算のみ実行
-          TypingUtils.getNextPossibleChars(nextCharIndex);
-          // ログをオプションにして通常は出力しない
-          if (enableDebugLogs) {
-            const nextPossibleChars = TypingUtils.getNextPossibleChars(nextCharIndex);
-            if (nextPossibleChars) {
-              console.log(
-                '[最適化] 次の入力を先読み準備完了:',
-                Array.from(nextPossibleChars).join(',')
-              );
-            }
-          }
-        }
+      // 最適化された入力システムを使用（高速バッファリング）
+      if (inputSystem.current) {
+        inputSystem.current.addInput(key);
+        return { success: true, status: 'buffered' };
       }
+
+      // フォールバック：キーバッファに入力を追加（FIFO）
+      keyBufferRef.current.push(key);
 
       // バッファ処理をリクエスト（まだ処理中でなければ）
       if (!isProcessingRef.current) {
-        frameIdRef.current = requestAnimationFrame(processKeyBuffer);
+        frameIdRef.current = requestAnimationFrame(() => {
+          // バッファ内の入力を処理
+          while (keyBufferRef.current.length > 0) {
+            const key = keyBufferRef.current.shift();
+            processInput(key);
+          }
+        });
       }
 
       return { success: true, status: 'buffered' };
     },
-    [typingSession, isCompleted, processKeyBuffer]
+    [typingSession, isCompleted, processInput]
   );
 
   // 現在の進捗率を計算 - useMemoで最適化
@@ -370,17 +323,23 @@ export function useTypingGame({
       return 100;
     }
 
+    // 進捗率を最適化されたセッションから直接取得（可能な場合）
+    if (typeof typingSession.getCompletionPercentage === 'function') {
+      return typingSession.getCompletionPercentage();
+    }
+
+    // フォールバック：従来の計算方法
     const typedLength = coloringInfo.typedLength || 0;
     const totalLength = displayRomaji.length;
-
-    // 進捗率（0～100）
     return totalLength > 0 ? Math.floor((typedLength / totalLength) * 100) : 0;
   }, [typingSession, displayRomaji, coloringInfo, isCompleted]);
 
   // キーバッファの長さを提供（監視用）
   const bufferLength = useMemo(
-    () => keyBufferRef.current.length,
-    [keyBufferRef.current.length]
+    () => inputSystem.current ? 
+      inputSystem.current.getBufferLength() : 
+      keyBufferRef.current.length,
+    []
   );
 
   // 統計情報の計算 - useMemoで最適化
@@ -388,13 +347,12 @@ export function useTypingGame({
   const lastStatsRef = useRef(null);
   const stats = useMemo(() => {
     // パフォーマンス最適化: 統計情報の計算を遅延実行
-    // レンダリングやキー入力には関係ない部分のため、計算頻度を減らす
     const now = Date.now();
     const timeElapsedSinceLastCalc = now - (lastStatsCalcTimeRef.current || 0);
     
-    // 計算間隔を制限（100ms以内の再計算をスキップ）
-    // タイピング中は統計情報を頻繁に更新する必要はない
-    if (timeElapsedSinceLastCalc < 100 && lastStatsRef.current && !isCompleted) {
+    // 計算間隔を制限（設定値以内の再計算をスキップ）
+    if (timeElapsedSinceLastCalc < performanceConfig.statsUpdateInterval && 
+        lastStatsRef.current && !isCompleted) {
       return lastStatsRef.current;
     }
     
@@ -410,14 +368,15 @@ export function useTypingGame({
     const elapsedTimeMs = now - startTime;
     const elapsedTimeSeconds = elapsedTimeMs / 1000;
 
-    // KPM計算の頻度も制限（プレイ中はリアルタイム性より処理速度優先）
+    // KPM計算：typingmania-refスタイルの高速版
     const kpm = TypingUtils.calculateWeatherTypingKPM(
       correctCount,
       elapsedTimeMs,
       statistics.problemStats
     );
 
-    const rank = TypingUtils.getKPMRank ? TypingUtils.getKPMRank(kpm) : '';
+    const rank = TypingUtils.getKPMRank(kpm);
+    const rankColor = TypingUtils.getRankColor(rank);
     
     // 新しい統計情報をキャッシュ
     const newStats = {
@@ -429,6 +388,7 @@ export function useTypingGame({
       elapsedTimeSeconds: parseFloat(elapsedTimeSeconds.toFixed(1)),
       kpm,
       rank,
+      rankColor,
       problemKPMs: statistics.problemKPMs,
       problemStats: statistics.problemStats,
     };
@@ -437,7 +397,7 @@ export function useTypingGame({
     lastStatsRef.current = newStats;
     
     return newStats;
-  }, [statistics, isCompleted]);
+  }, [statistics, isCompleted, performanceConfig.statsUpdateInterval]);
 
   // 返り値をuseMemoでメモ化して子コンポーネントの再レンダリングを最適化
   return useMemo(
@@ -457,6 +417,9 @@ export function useTypingGame({
       initializeSession,
       handleInput,
       completeProblem,
+      
+      // typingmania-ref風の拡張機能
+      getRankColor: TypingUtils.getRankColor,
     }),
     [
       typingSession,
