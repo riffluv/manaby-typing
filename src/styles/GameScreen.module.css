@@ -10,8 +10,7 @@
   position: relative;
   overflow: hidden;
   color: #e1e1e1;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    Roboto, sans-serif;
+  font-family: var(--font-normal); /* 変数を使用 */
 }
 
 .gameContainer::before {
@@ -107,12 +106,13 @@
   /* 複数行のテキストをよりよく表示するための設定 */
   width: 100%;
   padding: 0 10px;
+  font-family: var(--font-normal); /* 日本語表示用に通常フォントを使用 */
 }
 
 .typingText {
   font-size: 1.8rem;
   letter-spacing: 1.5px;
-  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  font-family: var(--font-normal); /* ローマ字表示用に通常フォントを使用 */
   line-height: 1.5; /* 1.3から1.5に変更して行間を広げる */
   min-height: 3.6rem; /* 2.4remから3.6remに変更して最小高さを増やす */
   margin: 0.8rem auto; /* 0.5rem autoから0.8rem autoに変更 */
@@ -514,25 +514,16 @@
   font-weight: 600;
 }
 
-.nextCharHighlight::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background-color: rgba(255, 140, 0, 0.6);
-  animation: nextCharPulse 1.5s infinite;
+/* ドットフォントを使用したい箇所の追加クラス */
+.dotFontText {
+  font-family: var(--font-dot);
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: none;
 }
 
-@keyframes nextCharPulse {
-  0%,
-  100% {
-    opacity: 0.8;
-    width: 100%;
-  }
-  50% {
-    opacity: 0.5;
-    width: 90%;
-  }
+/* 見出し用ドットフォントクラス */
+.dotHeading {
+  font-family: var(--font-dot);
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: none;
 }

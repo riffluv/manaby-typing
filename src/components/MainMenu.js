@@ -258,8 +258,8 @@ const MainMenu = () => {
   // クレジットコンテンツをレンダリングする関数
   const renderCreditsContent = () => {
     return (
-      <CreditsContent 
-        credits={creditsData} 
+      <CreditsContent
+        credits={creditsData}
         showAcknowledgements={false}
         creditSectionClass={styles.creditSection}
         sectionTitleClass={styles.sectionTitle}

@@ -178,8 +178,11 @@ const TransitionManager = () => {
         // ResultScreenに確実に統計データを渡すよう修正
         // gameStateからstatsを取得、なければ空オブジェクト
         const statsToPass = gameState.stats || {};
-        console.log('TransitionManager: ResultScreenに渡す統計データ', statsToPass);
-        
+        console.log(
+          'TransitionManager: ResultScreenに渡す統計データ',
+          statsToPass
+        );
+
         return (
           <ResultScreen
             stats={statsToPass}
@@ -188,7 +191,10 @@ const TransitionManager = () => {
               goToScreen(SCREENS.MAIN_MENU, { playSound: true })
             }
             onClickRanking={() =>
-              goToScreen(SCREENS.RANKING, { playSound: true, gameState: { stats: statsToPass } })
+              goToScreen(SCREENS.RANKING, {
+                playSound: true,
+                gameState: { stats: statsToPass },
+              })
             }
             playSound={true} // 常に音声を再生するように設定
           />
