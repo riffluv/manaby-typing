@@ -24,19 +24,25 @@ const ResultScreen = ({
   playSound = true,
 }) => {
   const { goToScreen } = usePageTransition();
+  const { gameState } = useGameContext();
 
   // データ検証と詳細なデバッグログを追加
   useEffect(() => {
     console.log('ResultScreen: 受け取ったstats', stats);
+    console.log('ResultScreen: gameStateからのstats', gameState?.stats);
+    
+    // 外部propsとgameStateの両方からデータを確認
+    const finalStats = stats || gameState?.stats;
+    console.log('ResultScreen: 使用する統計情報', finalStats);
 
     // データが不足している場合は警告を表示
-    if (!stats || stats.kpm === undefined || stats.kpm === 0) {
+    if (!finalStats || finalStats.kpm === undefined || finalStats.kpm === 0) {
       console.warn(
         'ResultScreen: statsデータが不足しているか、KPMが0です',
-        stats
+        finalStats
       );
     }
-  }, [stats]);
+  }, [stats, gameState]);
 
   // メニューに戻るハンドラー - 再利用可能なコールバックとして定義
   const handleBackToMenu = useCallback(() => {
@@ -142,13 +148,69 @@ const ResultScreen = ({
   };
 
   // セーフティチェック - statsがundefinedの場合のデフォルト値
-  const safeStats = stats || {
-    totalTime: 0,
-    accuracy: 0,
-    kpm: 0,
-    correctCount: 0,
-    missCount: 0,
-  };
+  const safeStats = useMemo(() => {
+    // まずprops経由のstatsを確認
+    if (stats && stats.kpm !== undefined && stats.kpm > 0) {
+      console.log('ResultScreen: propsからの有効なstatsを使用します', stats);
+      return stats;
+    }
+    
+    // 次にgameContextからのstatsを確認
+    if (gameState && gameState.stats && gameState.stats.kpm !== undefined && gameState.stats.kpm > 0) {
+      console.log('ResultScreen: gameContextからの有効なstatsを使用します', gameState.stats);
+      return gameState.stats;
+    }
+    
+    // どちらも有効でない場合は最終手段としてデータを再構築
+    console.warn('ResultScreen: 有効なKPMデータがありません。データの再構築を試みます');
+    
+    // 利用可能なデータを集める
+    const baseStats = stats || gameState?.stats || {};
+    const problemStats = baseStats.problemStats || [];
+    
+    // 問題ごとのデータが存在すれば、それを使ってKPMを再計算
+    if (problemStats.length > 0) {
+      console.log('ResultScreen: 問題データを使ってKPM再計算', problemStats);
+      
+      // 総キー数と総時間を計算
+      let totalKeyCount = 0;
+      let totalTimeMs = 0;
+      
+      problemStats.forEach(problem => {
+        if (problem && problem.problemKeyCount && problem.problemElapsedMs) {
+          totalKeyCount += problem.problemKeyCount;
+          totalTimeMs += problem.problemElapsedMs;
+        }
+      });
+      
+      // KPM再計算
+      if (totalKeyCount > 0 && totalTimeMs > 0) {
+        const minutes = totalTimeMs / 60000;
+        const calculatedKpm = Math.floor(totalKeyCount / minutes);
+        console.log(`ResultScreen: KPM再計算: ${totalKeyCount}キー / ${minutes.toFixed(2)}分 = ${calculatedKpm}`);
+        
+        // 再構築したデータを返す
+        return {
+          ...baseStats,
+          kpm: calculatedKpm,
+          correctCount: baseStats.correctCount || totalKeyCount,
+          missCount: baseStats.missCount || 0,
+          accuracy: baseStats.accuracy || 100,
+          totalTime: baseStats.totalTime || (totalTimeMs / 1000)
+        };
+      }
+    }
+    
+    // 最終的なフォールバック
+    return {
+      totalTime: baseStats.totalTime || 0,
+      accuracy: baseStats.accuracy || 100,
+      kpm: baseStats.kpm || 0,
+      correctCount: baseStats.correctCount || 0,
+      missCount: baseStats.missCount || 0,
+      problemStats: problemStats
+    };
+  }, [stats, gameState]);
 
   // デバッグ用にKPMを確認
   console.log('ResultScreen: KPM値', safeStats.kpm);

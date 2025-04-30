@@ -132,11 +132,7 @@ export const GameProvider = ({ children }) => {
     // 効果音の設定を反映
     soundSystem.setSfxEnabled(isSoundEnabled && settings.sfxEnabled);
     soundSystem.setSfxVolume(settings.sfxVolume);
-  }, [
-    settings.soundEnabled,
-    settings.sfxEnabled,
-    settings.sfxVolume,
-  ]);
+  }, [settings.soundEnabled, settings.sfxEnabled, settings.sfxVolume]);
 
   // ゲームのスコアや進行状態
   const [gameState, setGameState] = useState({

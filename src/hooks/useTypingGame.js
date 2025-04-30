@@ -49,6 +49,7 @@ export function useTypingGame({
     currentProblemStartTime: null,
     currentProblemKeyCount: 0,
     problemKPMs: [],
+    problemStats: [] // 明示的に空の配列として初期化
   });
   const [isCompleted, setIsCompleted] = useState(false);
 
@@ -133,13 +134,21 @@ export function useTypingGame({
       problemKPM = Math.floor(problemKeyCount / minutes); // Weather Typing風に小数点以下切り捨て
     }
 
-    // 新しいKPM値を配列に追加
-    const updatedProblemKPMs = [...(statistics.problemKPMs || []), problemKPM];
+    // 問題の詳細データを作成（KPM計算関数に渡すためのフォーマット）
+    const problemData = {
+      problemKeyCount,
+      problemElapsedMs,
+      problemKPM
+    };
+
+    // 新しい問題データを配列に追加
+    const updatedProblemStats = [...(statistics.problemStats || []), problemData];
 
     // 統計情報を更新
     setStatistics((prev) => ({
       ...prev,
-      problemKPMs: updatedProblemKPMs,
+      problemKPMs: [...(prev.problemKPMs || []), problemKPM],
+      problemStats: updatedProblemStats // WeTyping公式計算のための詳細データ
     }));
 
     if (process.env.NODE_ENV === 'development') {
@@ -155,7 +164,7 @@ export function useTypingGame({
       problemKPM,
       problemElapsedMs,
       problemKeyCount,
-      updatedProblemKPMs,
+      updatedProblemStats,
     });
   }, [statistics, onProblemComplete, isCompleted]);
 
@@ -170,31 +179,33 @@ export function useTypingGame({
 
     try {
       const now = Date.now();
-      
-      // 高速化のため、バッファが空になるまで連続処理を行う
-      // これによりフレーム間の無駄な待ち時間を削減
+      let needsColorUpdate = false;
       let processedCount = 0;
-      const maxBatchSize = 5; // 1回のフレームで処理する最大キー数（調整可能）
+      const maxBatchSize = 10; // バッチサイズを増加（高速タイピング対応）
 
+      // 統計情報の更新に使用するカウンター（バッチ処理用）
+      let correctKeyIncrement = 0;
+      let problemKeyIncrement = 0;
+      let mistakeIncrement = 0;
+
+      // 高速化: バッファが空になるまで一気に処理
       while (keyBufferRef.current.length > 0 && processedCount < maxBatchSize) {
+        // 動的スロットリングはさらに緩和（反応性を最優先）
+        const dynamicThrottle = 
+          keyBufferRef.current.length > 3 ? 2 : // 複数キー入力時は超高速処理
+          keyBufferRef.current.length > 0 ? 4 : // 少数キー入力時も高速処理
+          throttleMs; // 通常のスロットリング
+
         const timeSinceLastProcess = now - lastProcessTimeRef.current;
-        
-        // 連続入力時のみスロットリングを緩和（反応性向上）
-        const dynamicThrottle = keyBufferRef.current.length > 2 ? 
-          Math.max(4, throttleMs / 2) : // バッファ内に複数のキーがある場合は処理間隔を短縮
-          throttleMs; // 通常のスロットリング間隔
-          
-        // 必要に応じて節流処理
         if (timeSinceLastProcess < dynamicThrottle && processedCount > 0) {
-          break; // 最初のキーは処理済みで、次のキーはスロットリングが必要な場合
+          break;
         }
 
-        // 現在のバッファからキーを取り出す（FIFO）
         const key = keyBufferRef.current.shift();
         lastProcessTimeRef.current = now;
         processedCount++;
 
-        // 最初のキー入力時にタイマー計測を開始
+        // 最初のキー入力時のタイマー設定（これは必要なので残す）
         if (!statistics.startTime) {
           setStatistics((prev) => ({
             ...prev,
@@ -202,7 +213,6 @@ export function useTypingGame({
             currentProblemStartTime: now,
           }));
         }
-        // 現在の問題の開始時間がまだ設定されていない場合
         else if (!statistics.currentProblemStartTime) {
           setStatistics((prev) => ({
             ...prev,
@@ -210,55 +220,56 @@ export function useTypingGame({
           }));
         }
 
-        // 全角文字を半角に変換
-        const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
-
         // 入力処理
+        const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
         const result = typingSession.processInput(halfWidthChar);
 
         if (result.success) {
-          // 色分け情報を更新
-          setColoringInfo(typingSession.getColoringInfo());
-
-          // 正確なキー打鍵数をカウント
-          setStatistics((prev) => ({
-            ...prev,
-            correctKeyCount: prev.correctKeyCount + 1,
-            currentProblemKeyCount: prev.currentProblemKeyCount + 1,
-          }));
-
-          // タイプ成功音を再生
+          // 色分け情報の更新フラグを立てる（バッチ処理後にまとめて更新）
+          needsColorUpdate = true;
+          
+          // キーカウントを増加（統計情報の一括更新用）
+          correctKeyIncrement++;
+          problemKeyIncrement++;
+          
+          // 効果音は維持（体感速度に影響するため）
           if (playSound) {
             soundSystem.play('success');
           }
 
-          // すべて入力完了した場合
+          // 完了判定は即時処理（これは遅延できない）
           if (result.status === 'all_completed') {
+            // 更新済みの統計をまとめて保存
+            if (correctKeyIncrement > 0 || mistakeIncrement > 0) {
+              setStatistics((prev) => ({
+                ...prev,
+                correctKeyCount: prev.correctKeyCount + correctKeyIncrement,
+                currentProblemKeyCount: prev.currentProblemKeyCount + problemKeyIncrement,
+                mistakeCount: prev.mistakeCount + mistakeIncrement,
+              }));
+            }
+            
             completeProblem();
-            break; // 問題完了時は処理を停止
+            break;
           }
         } else {
-          // 誤入力の処理
-          setErrorCount((prev) => prev + 1);
+          // エラー処理
+          mistakeIncrement++;
+          
+          // エラーアニメーションは視覚的フィードバックなので即時更新
           setErrorAnimation(true);
+          setErrorCount((prev) => prev + 1);
 
-          // 統計情報に誤入力を記録
-          setStatistics((prev) => ({
-            ...prev,
-            mistakeCount: prev.mistakeCount + 1,
-          }));
-
-          // エラー音を再生
+          // エラー音再生
           if (playSound) {
             soundSystem.play('error');
           }
 
-          // 既存のタイマーがあればクリア
+          // エラーアニメーションリセット
           if (errorAnimationTimerRef.current) {
             clearTimeout(errorAnimationTimerRef.current);
           }
 
-          // エラーアニメーションをリセット - refを使用してタイマーIDを保存
           errorAnimationTimerRef.current = setTimeout(() => {
             setErrorAnimation(false);
             errorAnimationTimerRef.current = null;
@@ -266,12 +277,26 @@ export function useTypingGame({
         }
       }
 
-      // バッファにまだ入力が残っている場合は次のフレームで処理を続行
+      // 処理完了後にまとめて更新（状態更新の回数を最小化）
+      if (needsColorUpdate) {
+        setColoringInfo(typingSession.getColoringInfo());
+      }
+
+      // 統計情報もまとめて更新
+      if (correctKeyIncrement > 0 || mistakeIncrement > 0) {
+        setStatistics((prev) => ({
+          ...prev,
+          correctKeyCount: prev.correctKeyCount + correctKeyIncrement,
+          currentProblemKeyCount: prev.currentProblemKeyCount + problemKeyIncrement,
+          mistakeCount: prev.mistakeCount + mistakeIncrement,
+        }));
+      }
+
+      // まだ入力が残っている場合は次フレームで処理
       if (keyBufferRef.current.length > 0) {
         frameIdRef.current = requestAnimationFrame(processKeyBuffer);
       }
     } finally {
-      // 処理中フラグを解除
       isProcessingRef.current = false;
     }
   }, [
@@ -293,33 +318,40 @@ export function useTypingGame({
       // キーバッファに入力を追加（FIFO）
       keyBufferRef.current.push(key);
 
+      // パフォーマンスのため静的フラグでログ出力を制御
+      const enableDebugLogs = false; // 有効にすると詳細なログを出力
+
       // 先読み最適化: 次の入力を予測して、処理の準備を始める
       if (typingSession.currentCharIndex < typingSession.patterns.length) {
         // 現在の入力状況
         const charIndex = typingSession.currentCharIndex;
         const nextCharIndex = charIndex + 1;
-        
+
         // 現在の文字が完了したかどうかを予測
         const currentInput = typingSession.currentInput + key;
-        
+
         // 現在のパターンに完全一致するか確認
         const patterns = typingSession.patterns[charIndex];
-        const exactMatch = patterns.find(pattern => pattern === currentInput);
-        
+        const exactMatch = patterns.find((pattern) => pattern === currentInput);
+
         // 次の文字の入力準備
         if (exactMatch && nextCharIndex < typingSession.patterns.length) {
           // 次の文字のパターンを事前に探索して、レンダリングの準備をしておく
           // 状態は更新せず、単に計算のみ実行
-          const nextPossibleChars = TypingUtils.getNextPossibleChars(nextCharIndex);
-          
-          if (nextPossibleChars) {
-            // 次の入力の可能性を計算済み（これにより次のレンダリング時間が短縮される）
-            console.log('[最適化] 次の入力を先読み準備完了:', 
-              Array.from(nextPossibleChars).join(','));
+          TypingUtils.getNextPossibleChars(nextCharIndex);
+          // ログをオプションにして通常は出力しない
+          if (enableDebugLogs) {
+            const nextPossibleChars = TypingUtils.getNextPossibleChars(nextCharIndex);
+            if (nextPossibleChars) {
+              console.log(
+                '[最適化] 次の入力を先読み準備完了:',
+                Array.from(nextPossibleChars).join(',')
+              );
+            }
           }
         }
       }
-      
+
       // バッファ処理をリクエスト（まだ処理中でなければ）
       if (!isProcessingRef.current) {
         frameIdRef.current = requestAnimationFrame(processKeyBuffer);
@@ -352,28 +384,43 @@ export function useTypingGame({
   );
 
   // 統計情報の計算 - useMemoで最適化
+  const lastStatsCalcTimeRef = useRef(0);
+  const lastStatsRef = useRef(null);
   const stats = useMemo(() => {
+    // パフォーマンス最適化: 統計情報の計算を遅延実行
+    // レンダリングやキー入力には関係ない部分のため、計算頻度を減らす
+    const now = Date.now();
+    const timeElapsedSinceLastCalc = now - (lastStatsCalcTimeRef.current || 0);
+    
+    // 計算間隔を制限（100ms以内の再計算をスキップ）
+    // タイピング中は統計情報を頻繁に更新する必要はない
+    if (timeElapsedSinceLastCalc < 100 && lastStatsRef.current && !isCompleted) {
+      return lastStatsRef.current;
+    }
+    
+    // 実際に再計算が必要なときのみ計算を実行
+    lastStatsCalcTimeRef.current = now;
+    
     const correctCount = statistics.correctKeyCount;
     const missCount = statistics.mistakeCount;
     const totalCount = correctCount + missCount;
     const accuracy = totalCount > 0 ? (correctCount / totalCount) * 100 : 0;
 
-    const startTime = statistics.startTime || Date.now();
-    const currentTime = Date.now();
-    const elapsedTimeMs = currentTime - startTime;
+    const startTime = statistics.startTime || now;
+    const elapsedTimeMs = now - startTime;
     const elapsedTimeSeconds = elapsedTimeMs / 1000;
 
-    // KPM計算に専用関数があればそれを使用
-    const kpm =
-      elapsedTimeMs > 0
-        ? TypingUtils.calculateWeatherTypingKPM
-          ? TypingUtils.calculateWeatherTypingKPM(correctCount, elapsedTimeMs)
-          : Math.floor((correctCount / elapsedTimeMs) * 60000)
-        : 0;
+    // KPM計算の頻度も制限（プレイ中はリアルタイム性より処理速度優先）
+    const kpm = TypingUtils.calculateWeatherTypingKPM(
+      correctCount,
+      elapsedTimeMs,
+      statistics.problemStats
+    );
 
     const rank = TypingUtils.getKPMRank ? TypingUtils.getKPMRank(kpm) : '';
-
-    return {
+    
+    // 新しい統計情報をキャッシュ
+    const newStats = {
       correctCount,
       missCount,
       totalCount,
@@ -383,8 +430,14 @@ export function useTypingGame({
       kpm,
       rank,
       problemKPMs: statistics.problemKPMs,
+      problemStats: statistics.problemStats,
     };
-  }, [statistics]);
+    
+    // レンダリングがすぐ必要ないデータはキャッシュに保存
+    lastStatsRef.current = newStats;
+    
+    return newStats;
+  }, [statistics, isCompleted]);
 
   // 返り値をuseMemoでメモ化して子コンポーネントの再レンダリングを最適化
   return useMemo(

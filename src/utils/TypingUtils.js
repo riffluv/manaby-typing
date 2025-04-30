@@ -25,7 +25,7 @@ const romajiMap = {
   と: ['to'],
   な: ['na'],
   に: ['ni'],
-  ぬ: ['nu'],
+     ぬ: ['nu'],
   ね: ['ne'],
   の: ['no'],
   は: ['ha'],
@@ -62,7 +62,7 @@ const romajiMap = {
   ぜ: ['ze'],
   ぞ: ['zo'],
   だ: ['da'],
-  ぢ: ['di', 'ji'],
+     ぢ: ['di', 'ji'],
   づ: ['du', 'zu'],
   で: ['de'],
   ど: ['do'],
@@ -447,8 +447,9 @@ export default class TypingUtils {
    * 例: "こんにちは" => [["ko"], ["n", "nn"], ["ni"], ["chi", "ti"], ["ha"]]
    */
   static parseTextToRomajiPatterns(text) {
-    // デバッグ情報
-    console.log(`【解析開始】入力テキスト: "${text}"`);
+    // デバッグ情報 - パフォーマンス向上のために通常は無効化
+    const enableDebug = false;
+    if (enableDebug) console.log(`【解析開始】入力テキスト: "${text}"`);
 
     const hiragana =
       typeof text === 'string' ? wanakana.toHiragana(text) : text;
@@ -467,17 +468,19 @@ export default class TypingUtils {
       'ぉ',
       'っ',
     ]);
-    const processedChars = [];
+    const processedChars = enableDebug ? [] : null;
 
     while (i < hiragana.length) {
       let currentChar = hiragana[i];
       let nextChar = i + 1 < hiragana.length ? hiragana[i + 1] : null;
       let processedLength = 1; // デフォルトで1文字処理
 
-      // 処理した文字をログに記録
-      processedChars.push(
-        currentChar + (nextChar && specialChars.has(nextChar) ? nextChar : '')
-      );
+      // 処理した文字をログに記録 (デバッグが有効な場合のみ)
+      if (enableDebug) {
+        processedChars.push(
+          currentChar + (nextChar && specialChars.has(nextChar) ? nextChar : '')
+        );
+      }
 
       // 促音（っ）の処理
       if (currentChar === 'っ' && nextChar) {
@@ -549,12 +552,14 @@ export default class TypingUtils {
       i += processedLength;
     }
 
-    // デバッグ情報
-    console.log('【解析完了】処理文字:', processedChars.join(', '));
-    console.log(
-      '【解析完了】結果パターン:',
-      patterns.map((p) => p.join('/')).join(', ')
-    );
+    // デバッグ情報 (デバッグが有効な場合のみ)
+    if (enableDebug) {
+      console.log('【解析完了】処理文字:', processedChars.join(', '));
+      console.log(
+        '【解析完了】結果パターン:',
+        patterns.map((p) => p.join('/')).join(', ')
+      );
+    }
 
     return patterns;
   }
@@ -575,21 +580,24 @@ export default class TypingUtils {
    * カスタム実装によりromajiMapの各パターンの最初のものを優先的に使用
    */
   static generateDisplayRomaji(kanaText) {
-    // デバッグ用にkanaTextを出力
-    console.log('【ローマ字変換】入力かな:', kanaText);
+    // デバッグ用フラグ - 必要に応じて有効にする
+    const enableDebug = false;
+    
+    // デバッグログを条件付きで出力
+    if (enableDebug) console.log('【ローマ字変換】入力かな:', kanaText);
 
     try {
       // parseTextToRomajPatternsを使用して、一貫性のある表示を生成
       const patterns = this.parseTextToRomajiPatterns(kanaText);
 
-      // デバッグ出力
-      console.log('【ローマ字変換】パターン解析結果:', patterns);
+      // デバッグ出力（条件付き）
+      if (enableDebug) console.log('【ローマ字変換】パターン解析結果:', patterns);
 
       // 各文字の最初のパターンを使用してローマ字文字列を構築
       const result = patterns.map((pattern) => pattern[0]).join('');
 
-      // 最終結果を出力
-      console.log('【ローマ字変換】最終ローマ字:', result);
+      // 最終結果を出力（条件付き）
+      if (enableDebug) console.log('【ローマ字変換】最終ローマ字:', result);
 
       return result;
     } catch (error) {
@@ -641,30 +649,50 @@ export default class TypingUtils {
   }
 
   /**
-   * Weather Typing風のKPM計算（オリジナルの計算方式に復元）
+   * Weather Typing風のKPM計算（オリジナルの計算方式に準拠）
+   * 公式: https://denasu.com/software/wtfaq.html に基づく実装
+   * 「複数ワードの場合は入力数と入力時間の総和を取り、同じ計算式で計算します」
    * @param {number} keyCount - 正しく押したキー数
    * @param {number} elapsedTimeMs - 経過時間（ミリ秒）
+   * @param {Array} problemStats - 問題ごとの統計情報（オプション）
    * @returns {number} KPM値（小数点以下切り捨て）
    */
-  static calculateWeatherTypingKPM(keyCount, elapsedTimeMs) {
-    console.log(`【KPM計算】キー数: ${keyCount}, 経過時間: ${elapsedTimeMs}ms`);
+  static calculateWeatherTypingKPM(keyCount, elapsedTimeMs, problemStats = []) {
+    // パフォーマンス向上のため、デバッグログは開発環境でのみ出力
+    const isDebug = false; // 必要な時だけtrueに変更
+    
+    // 問題ごとの統計情報がある場合、公式計算方法を適用
+    if (problemStats && Array.isArray(problemStats) && problemStats.length > 0) {
+      // 各問題の入力数と時間を集計
+      let totalKeyCount = 0;
+      let totalTimeMs = 0;
+      
+      problemStats.forEach((problem) => {
+        if (problem && typeof problem === 'object') {
+          totalKeyCount += problem.problemKeyCount || 0;
+          totalTimeMs += problem.problemElapsedMs || 0;
+        }
+      });
 
+      // 合計時間をミリ秒から分に変換
+      const totalMinutes = totalTimeMs / 60000;
+      
+      // 0除算防止
+      if (totalMinutes <= 0) return 0;
+      
+      // WeTyping公式の計算方法: 「入力数と入力時間の総和を取り、同じ計算式で計算」
+      return Math.floor(totalKeyCount / totalMinutes);
+    }
+
+    // 問題ごとのデータがない場合は単純計算
     // ミリ秒を分に変換
     const minutes = elapsedTimeMs / 60000;
 
     // 0除算防止
-    if (minutes <= 0) {
-      console.log('【KPM計算】経過時間が0分以下のため、KPM=0を返します');
-      return 0;
-    }
+    if (minutes <= 0) return 0;
 
     // Weather Typingと同じ方法（Math.floorで切り捨て）
-    const kpm = Math.floor(keyCount / minutes);
-
-    console.log(
-      `【KPM計算】計算結果: ${keyCount} / ${minutes.toFixed(2)} = ${kpm}`
-    );
-    return kpm;
+    return Math.floor(keyCount / minutes);
   }
 
   /**
@@ -758,7 +786,7 @@ export default class TypingUtils {
    * 高速タイピング時のパフォーマンスを向上させるための先読み機能
    */
   static _nextCharPredictionCache = new Map();
-  
+
   /**
    * 特定の問題で次に入力される可能性の高い文字をプリキャッシュする
    * 頻出パターンを先読みすることで高速タイピング時のレスポンスを向上
@@ -767,37 +795,39 @@ export default class TypingUtils {
    */
   static precomputeNextCharPredictions(kanaText) {
     if (!kanaText || typeof kanaText !== 'string') return;
-    
+
     try {
       // 先読みキャッシュをクリア
       this._nextCharPredictionCache.clear();
-      
+
       // ローマ字パターンを取得
       const patterns = this.parseTextToRomajiPatterns(kanaText);
-      
+
       // 各文字位置での先読み情報を計算
       for (let i = 0; i < patterns.length; i++) {
         const currentPatterns = patterns[i];
-        
+
         // 各パターンの最初の文字をキャッシュ
         const firstChars = new Set();
-        currentPatterns.forEach(pattern => {
+        currentPatterns.forEach((pattern) => {
           if (pattern && pattern.length > 0) {
             firstChars.add(pattern[0]);
           }
         });
-        
+
         // キャッシュに保存
         this._nextCharPredictionCache.set(i, firstChars);
       }
-      
-      console.log('[最適化] 入力先読みキャッシュを準備完了:', 
-        `${patterns.length}文字のかな文字列に対して${this._nextCharPredictionCache.size}エントリーをキャッシュ`);
+
+      console.log(
+        '[最適化] 入力先読みキャッシュを準備完了:',
+        `${patterns.length}文字のかな文字列に対して${this._nextCharPredictionCache.size}エントリーをキャッシュ`
+      );
     } catch (e) {
       console.warn('[最適化] 入力先読みキャッシュの準備に失敗:', e);
     }
   }
-  
+
   /**
    * 指定位置で次に入力される可能性のある文字を取得（先読み最適化）
    * @param {number} position - 現在の入力位置
@@ -817,27 +847,27 @@ export default class TypingUtils {
    */
   static optimizeSplitInput(input, patterns, currentInput = '') {
     if (!input || !patterns || !patterns.length) return null;
-    
+
     // 完全一致するか確認
     const fullInput = currentInput + input;
-    
+
     // すべてのパターンについて、分割可能性をチェック
     for (let splitPoint = 1; splitPoint < fullInput.length; splitPoint++) {
       const firstPart = fullInput.substring(0, splitPoint);
       const secondPart = fullInput.substring(splitPoint);
-      
+
       // 現在のパターンのいずれかが第2部分で始まるか確認
       for (const pattern of patterns) {
         if (pattern.startsWith(secondPart)) {
           return {
             firstPart,
             secondPart,
-            matchedPattern: pattern
+            matchedPattern: pattern,
           };
         }
       }
     }
-    
+
     return null;
   }
 
@@ -851,186 +881,125 @@ export default class TypingUtils {
       return null;
     }
 
-    console.log('【セッション作成】問題:', problem);
-
     // かな文字列を正規化（全て小文字のひらがなに変換）
     const kana = wanakana.toHiragana(problem.kanaText.trim().toLowerCase());
-    
+
     // 先読みキャッシュを準備（パフォーマンス向上）
     this.precomputeNextCharPredictions(kana);
 
     try {
-      // かな文字列をローマ字パターンに分解
+      // かな文字列をローマ字パターンに分解（高速化）
       const patterns = this.parseTextToRomajiPatterns(kana);
-
-      // Weather Typing風の最短ローマ字パターンを優先
-      const displayRomaji = patterns
-        .map((pattern) => {
-          // 複数のパターンがある場合は最短のものを選ぶ
-          if (pattern.length > 1) {
-            return pattern.reduce(
-              (shortest, current) =>
-                current.length < shortest.length ? current : shortest,
-              pattern[0]
-            );
-          }
-          return pattern[0];
-        })
-        .join('');
-
-      console.log(
-        `【タイピングセッション】最終表示ローマ字(最短パターン優先): "${displayRomaji}"`
-      );
-
-      // かな文字列の実際の文字数とパターン数の不一致を検出
-      const specialChars = new Set([
-        'ゃ',
-        'ゅ',
-        'ょ',
-        'ぁ',
-        'ぃ',
-        'ぅ',
-        'ぇ',
-        'ぉ',
-        'っ',
-      ]);
-      let adjustedKanaLength = 0;
-
-      // 特殊文字を考慮したかな文字数の計算
-      for (let i = 0; i < kana.length; i++) {
-        if (
-          i > 0 &&
-          specialChars.has(kana[i]) &&
-          !specialChars.has(kana[i - 1])
-        ) {
-          // 拗音・促音として前の文字と一緒に数える
-          continue;
-        }
-        adjustedKanaLength++;
-      }
-
-      console.log(
-        `【タイピングセッション】調整後かな文字数: ${adjustedKanaLength}, パターン数: ${patterns.length}`
-      );
-
-      // 調整後のかな文字数とパターン数の差が大きい場合のみ警告
-      if (Math.abs(adjustedKanaLength - patterns.length) > 1) {
-        console.warn(
-          `【警告】調整後かな文字数(${adjustedKanaLength})とパターン数(${patterns.length})の差が大きすぎます。` +
-            `正確なローマ字変換ができない可能性があります。`
-        );
-      }
-
-      // 各パターンのローマ字表現とその長さを計算して保存
-      const patternLengths = patterns.map((patternArray) => {
-        // Weather Typing風の最短パターン優先
-        if (patternArray.length > 1) {
-          const lengths = patternArray.map((p) => p.length);
-          // 最短の長さを先頭に
-          lengths.sort((a, b) => a - b);
-          return lengths;
-        }
-        return patternArray.map((pattern) => pattern.length);
-      });
-
-      // 各かな文字が表示上どこから始まるかのインデックスを計算
+      
+      // メモリ効率とパフォーマンスのため事前計算値を確保
+      // typingmania-refに倣った実装: 必要な情報を事前に計算して静的保持
       const displayIndices = [];
+      const patternLengths = [];
       let currentIndex = 0;
-
-      for (let i = 0; i < patterns.length; i++) {
-        displayIndices.push(currentIndex);
-
-        // Weather Typing風の最短パターン選択
-        const shortestPattern = patterns[i].reduce(
-          (shortest, current) =>
+      
+      // パターンを反復処理する代わりに、一度の走査で必要なデータを全て収集
+      const displayRomaji = patterns.map((pattern, i) => {
+        // 現在の表示位置を記録
+        displayIndices[i] = currentIndex;
+        
+        // 最短パターンを選択
+        const shortestPattern = pattern.reduce(
+          (shortest, current) => 
             current.length < shortest.length ? current : shortest,
-          patterns[i][0]
+          pattern[0]
         );
+        
+        // パターンの長さを保存
+        patternLengths[i] = shortestPattern.length;
+        
+        // インデックスを更新
         currentIndex += shortestPattern.length;
-      }
+        
+        return shortestPattern;
+      }).join('');
 
-      // Weatherタイピング風の最適化を施したオブジェクトを返す
-      return {
+      // セッションオブジェクトの作成（クロージャの最小化）
+      const typingSession = {
         originalText: problem.displayText,
         kanaText: kana,
-        displayRomaji: displayRomaji,
-        patterns: patterns,
-        patternLengths: patternLengths,
-        displayIndices: displayIndices,
+        displayRomaji, // 事前計算済み
+        patterns,      // 解析済みのパターン配列
+        patternLengths,// 各パターンの長さ配列
+        displayIndices,// 表示位置の配列
         currentCharIndex: 0,
         typedRomaji: '',
         currentInput: '',
         completed: false,
         completedAt: null,
-        // 各パターンごとの先頭文字をキャッシュ（高速化のため）
-        firstCharsCache: patterns.map(
-          (patternArray) => new Set(patternArray.map((pattern) => pattern[0]))
-        ),
-
-        // タイピングマニアの実装を参考にした拡張機能
+        
+        // パフォーマンス重視の高速処理実装
         processInput(char) {
-          if (this.completed)
+          if (this.completed) {
             return { success: false, status: 'already_completed' };
-
-          // 現在の文字に対する有効なパターン
+          }
+          
+          // 現在のパターンに対する有効な入力かを確認
           const currentPatterns = this.patterns[this.currentCharIndex];
-          if (!currentPatterns)
+          if (!currentPatterns) {
             return { success: false, status: 'invalid_state' };
-
-          // 試行中の入力に文字を追加
+          }
+          
+          // 新しい入力文字を現在の入力に追加
           const newInput = this.currentInput + char;
-
-          // パターンの一致チェック
-          let matchingPatterns = currentPatterns.filter((pattern) =>
-            pattern.startsWith(newInput)
-          );
-
-          if (matchingPatterns.length > 0) {
-            // 入力が有効なパターンの一部として認識された
+          
+          // マッチするパターンをフィルタリング - メモリ効率のため参照のみで作業
+          let exactMatch = null;
+          let hasMatchingPrefix = false;
+          
+          for (let i = 0; i < currentPatterns.length; i++) {
+            const pattern = currentPatterns[i];
+            if (pattern === newInput) {
+              exactMatch = pattern;
+              break;
+            }
+            if (pattern.startsWith(newInput)) {
+              hasMatchingPrefix = true;
+            }
+          }
+          
+          if (exactMatch || hasMatchingPrefix) {
             this.currentInput = newInput;
-
-            // パターンの中で最短のものと完全一致するか確認
-            const exactMatch = matchingPatterns.find(
-              (pattern) => pattern === newInput
-            );
-
+            
             if (exactMatch) {
               // この文字の入力が完了
               this.typedRomaji += exactMatch;
               this.currentCharIndex++;
               this.currentInput = '';
-
-              // すべての文字を入力し終えたかチェック
+              
+              // すべての文字を入力完了したかチェック
               if (this.currentCharIndex >= this.patterns.length) {
                 this.completed = true;
-                this.completedAt = Date.now(); // 入力完了時刻を記録
+                this.completedAt = Date.now();
                 return { success: true, status: 'all_completed' };
               }
               return { success: true, status: 'char_completed' };
             }
-
+            
             return { success: true, status: 'in_progress' };
           }
           
-          // 通常の一致がない場合、分割入力の最適化を試みる (typingmania-refの技術)
+          // typingmania-refの分割入力処理を適用
           const splitResult = TypingUtils.optimizeSplitInput(
-            char, 
-            currentPatterns, 
+            char,
+            currentPatterns,
             this.currentInput
           );
           
           if (splitResult) {
-            // 分割入力が有効
+            // 分割処理が有効
             this.currentInput = splitResult.secondPart;
             
-            // 文字が完全に一致したかチェック
+            // 文字が完全一致したかチェック
             if (splitResult.secondPart === splitResult.matchedPattern) {
-              // この文字の入力が完了
-              this.typedRomaji += splitResult.secondPart;
+              this.typedRomaji += splitResult.matchedPattern;
               this.currentCharIndex++;
               this.currentInput = '';
               
-              // すべての文字を入力し終えたかチェック
               if (this.currentCharIndex >= this.patterns.length) {
                 this.completed = true;
                 this.completedAt = Date.now();
@@ -1041,14 +1010,13 @@ export default class TypingUtils {
             
             return { success: true, status: 'in_progress_split' };
           }
-
-          // どのパターンにも一致しなかった場合
+          
+          // 入力が一致しない
           return { success: false, status: 'no_match' };
         },
-
-        // 現在の色分け情報を取得
+        
+        // 色分け情報を取得（高速化）
         getColoringInfo() {
-          // 完了状態の場合は特別な情報を返す
           if (this.completed) {
             return {
               typedLength: this.displayRomaji.length,
@@ -1059,20 +1027,14 @@ export default class TypingUtils {
               completedAt: this.completedAt,
             };
           }
-
-          // 入力済み文字のインデックス（表示上）
-          const typedIndex =
-            this.currentCharIndex > 0 &&
-            this.currentCharIndex < this.displayIndices.length
-              ? this.displayIndices[this.currentCharIndex]
-              : 0;
-
-          // 現在入力中の文字の表示位置
-          const currentPosition =
-            this.currentCharIndex < this.displayIndices.length
-              ? this.displayIndices[this.currentCharIndex]
-              : this.displayRomaji.length;
-
+          
+          // 事前計算済みのインデックスを使用
+          const typedIndex = this.currentCharIndex > 0 ? 
+            this.displayIndices[this.currentCharIndex] : 0;
+          
+          const currentPosition = this.currentCharIndex < this.patterns.length ?
+            this.displayIndices[this.currentCharIndex] : this.displayRomaji.length;
+          
           return {
             typedLength: typedIndex,
             currentInputLength: this.currentInput.length,
@@ -1081,22 +1043,19 @@ export default class TypingUtils {
             completed: false,
           };
         },
-
-        // 入力済み%を計算
+        
+        // 進捗率計算（高速化）
         getCompletionPercentage() {
           if (this.completed) return 100;
-
-          const totalPatterns = this.patterns.length;
-          if (totalPatterns === 0) return 0;
-
-          return Math.floor((this.currentCharIndex / totalPatterns) * 100);
-        },
+          return this.patterns.length > 0 ? 
+            Math.floor((this.currentCharIndex / this.patterns.length) * 100) : 0;
+        }
       };
+      
+      return typingSession;
+      
     } catch (error) {
-      console.error(
-        'タイピングセッションの作成中にエラーが発生しました:',
-        error
-      );
+      console.error('タイピングセッションの作成中にエラー:', error);
       return null;
     }
   }
@@ -1132,25 +1091,38 @@ export default class TypingUtils {
   static prepareCommonPatterns() {
     // 一般的な文章でよく出現する文字列のリスト
     const commonPatterns = [
-      'あいうえお', 'かきくけこ', 'さしすせそ', 'たちつてと',
-      'なにぬねの', 'はひふへほ', 'まみむめも', 'やゆよ',
-      'らりるれろ', 'わをん', 'がぎぐげご', 'ざじずぜぞ',
-      'だぢづでど', 'ばびぶべぼ', 'ぱぴぷぺぽ'
+      'あいうえお',
+      'かきくけこ',
+      'さしすせそ',
+      'たちつてと',
+      'なにぬねの',
+      'はひふへほ',
+      'まみむめも',
+      'やゆよ',
+      'らりるれろ',
+      'わをん',
+      'がぎぐげご',
+      'ざじずぜぞ',
+      'だぢづでど',
+      'ばびぶべぼ',
+      'ぱぴぷぺぽ',
     ];
-    
+
     // キャッシュを事前に作成
     const cache = {};
-    
+
     // 各パターンを事前に変換しておく
-    commonPatterns.forEach(pattern => {
+    commonPatterns.forEach((pattern) => {
       try {
         this.parseTextToRomajiPatterns(pattern);
       } catch (e) {
         // エラー処理は不要（単にキャッシュが作られないだけ）
       }
     });
-    
-    console.log('[最適化] 一般的なローマ字パターンのキャッシュをプリウォーム完了');
+
+    console.log(
+      '[最適化] 一般的なローマ字パターンのキャッシュをプリウォーム完了'
+    );
   }
 
   /**
@@ -1160,24 +1132,24 @@ export default class TypingUtils {
   static _setupOptimizations() {
     if (typeof window !== 'undefined') {
       // requestIdleCallback のポリフィル
-      window.requestIdleCallback = 
-        window.requestIdleCallback || 
-        function(cb) {
+      window.requestIdleCallback =
+        window.requestIdleCallback ||
+        function (cb) {
           return setTimeout(() => {
             const start = Date.now();
             cb({
               didTimeout: false,
-              timeRemaining: () => Math.max(0, 50 - (Date.now() - start))
+              timeRemaining: () => Math.max(0, 50 - (Date.now() - start)),
             });
           }, 1);
         };
 
-      window.cancelIdleCallback = 
-        window.cancelIdleCallback || 
-        function(id) {
+      window.cancelIdleCallback =
+        window.cancelIdleCallback ||
+        function (id) {
           clearTimeout(id);
         };
-      
+
       console.log('[最適化] パフォーマンスポリフィル初期化完了');
     }
   }
@@ -1190,51 +1162,52 @@ export default class TypingUtils {
    */
   static optimizeTokenProcessing(text) {
     if (!text) return [];
-    
+
     // トークン配列
     const tokens = [];
-    
+
     // 1文字ずつ処理するよりもまとめて処理する
     let currentToken = '';
     let tokenType = 'unknown';
-    
+
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
       let newType = 'unknown';
-      
+
       // 文字のタイプを判定（アルファベット、数字、記号、かな）
       if (/[a-zA-Z]/.test(char)) {
         newType = 'alpha';
       } else if (/[0-9]/.test(char)) {
         newType = 'numeric';
-      } else if (/[\u3040-\u309F\u30A0-\u30FF]/.test(char)) { // ひらがな・カタカナ
+      } else if (/[\u3040-\u309F\u30A0-\u30FF]/.test(char)) {
+        // ひらがな・カタカナ
         newType = 'kana';
       } else {
         newType = 'symbol';
       }
-      
+
       // トークンタイプが変わったら新しいトークンを開始
       if (tokenType !== 'unknown' && tokenType !== newType) {
         tokens.push({
           text: currentToken,
-          type: tokenType
+          type: tokenType,
         });
         currentToken = '';
       }
-      
+
       // 現在の文字を追加
       currentToken += char;
       tokenType = newType;
     }
-    
+
     // 最後のトークンを追加
     if (currentToken) {
       tokens.push({
         text: currentToken,
-        type: tokenType
+        type: tokenType,
       });
     }
-    
+
     return tokens;
   }
 
@@ -1246,34 +1219,34 @@ export default class TypingUtils {
   static createTypeAheadOptimization(text) {
     // トークン処理の最適化を利用
     const tokens = this.optimizeTokenProcessing(text);
-    
+
     // 予測マップを作成
     const predictMap = {};
     let position = 0;
-    
-    tokens.forEach(token => {
+
+    tokens.forEach((token) => {
       const romanji = wanakana.toRomaji(token.text);
-      
+
       for (let i = 0; i < romanji.length; i++) {
         const char = romanji[i].toLowerCase();
-        
+
         // 位置ごとに次の文字を予測
         if (!predictMap[position + i]) {
           predictMap[position + i] = new Set();
         }
-        
+
         // 次の文字があれば予測に追加
         if (i < romanji.length - 1) {
           predictMap[position + i].add(romanji[i + 1].toLowerCase());
         }
       }
-      
+
       position += romanji.length;
     });
-    
+
     return {
       predictMap,
-      totalLength: position
+      totalLength: position,
     };
   }
 
@@ -1285,13 +1258,13 @@ export default class TypingUtils {
    */
   static debounce(func, wait) {
     let timeout;
-    
+
     return function executedFunction(...args) {
       const later = () => {
         clearTimeout(timeout);
         func(...args);
       };
-      
+
       clearTimeout(timeout);
       timeout = setTimeout(later, wait);
     };
@@ -1303,20 +1276,20 @@ export default class TypingUtils {
    */
   static applyElementOptimizations(element) {
     if (!element || typeof window === 'undefined') return;
-    
+
     // will-changeでGPUアクセラレーション
     element.style.willChange = 'transform';
-    
+
     // コンテンツ包含ヒント（レイアウト最適化）
     element.style.contain = 'content';
-    
+
     // トランジション最適化（スムーズな動き）
     element.style.transition = 'all 0.2s ease-out';
-    
+
     // 古いブラウザ用にベンダープレフィックスも追加
     element.style.webkitTransition = 'all 0.2s ease-out';
     element.style.mozTransition = 'all 0.2s ease-out';
-    
+
     console.log('[最適化] 要素に最適化を適用:', element);
   }
 
@@ -1325,7 +1298,10 @@ export default class TypingUtils {
     try {
       this._setupOptimizations();
     } catch (e) {
-      console.warn('最適化セットアップ中にエラーが発生しました。パフォーマンスに影響する可能性があります。', e);
+      console.warn(
+        '最適化セットアップ中にエラーが発生しました。パフォーマンスに影響する可能性があります。',
+        e
+      );
     }
   }
 }

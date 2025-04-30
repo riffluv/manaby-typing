@@ -57,33 +57,40 @@ class SoundUtils {
       // 最も重要な効果音のみを最初に読み込む（タイピング時に即時必要）
       const criticalSounds = ['success', 'error'];
       const criticalLoadPromises = [];
-      
+
       for (const name of criticalSounds) {
         if (this.soundPresets[name]) {
-          criticalLoadPromises.push(this.loadSound(name, this.soundPresets[name]));
+          criticalLoadPromises.push(
+            this.loadSound(name, this.soundPresets[name])
+          );
         }
       }
-      
+
       // 重要な効果音を先に読み込み終える
       await Promise.all(criticalLoadPromises);
       console.log('重要な効果音のロードが完了しました');
-      
+
       // その他の効果音は非同期で読み込み（ユーザー体験を妨げない）
-      const nonCriticalSounds = Object.entries(this.soundPresets)
-        .filter(([name]) => !criticalSounds.includes(name));
-        
+      const nonCriticalSounds = Object.entries(this.soundPresets).filter(
+        ([name]) => !criticalSounds.includes(name)
+      );
+
       // バックグラウンドで非同期読み込み - 重要でない効果音
       setTimeout(() => {
         for (const [name, url] of nonCriticalSounds) {
           // すでにロード済みの場合はスキップ
           if (!this.sfxBuffers[name.toLowerCase()]) {
-            this.loadSound(name, url)
-              .catch(err => console.warn(`非クリティカル効果音「${name}」の事前ロードに失敗しました:`, err));
+            this.loadSound(name, url).catch((err) =>
+              console.warn(
+                `非クリティカル効果音「${name}」の事前ロードに失敗しました:`,
+                err
+              )
+            );
           }
         }
         console.log('すべての効果音を非同期読み込み開始');
       }, 100); // わずかな遅延を設けて重要なレンダリングが完了するのを待つ
-      
+
       return true;
     } catch (error) {
       console.error('効果音の初期化に失敗しました:', error);
@@ -154,7 +161,7 @@ class SoundUtils {
 
     // 大文字小文字を区別せずに名前を小文字に変換して処理
     const lowerName = name.toLowerCase();
-    
+
     // バッファにあれば即時再生（最速パス）
     if (this.sfxBuffers[lowerName]) {
       this._playBuffer(this.sfxBuffers[lowerName]);
@@ -177,7 +184,7 @@ class SoundUtils {
       if (this.context && this.context.state === 'suspended') {
         this.context.resume();
       }
-      
+
       // 遅延読み込みを開始し、ロード完了後に再生
       this.loadSound(lowerName, this.soundPresets[presetKey])
         .then(() => {
@@ -186,8 +193,11 @@ class SoundUtils {
             this._playBuffer(this.sfxBuffers[lowerName]);
           }
         })
-        .catch((err) => 
-          console.error(`効果音「${name}」の自動ロード中にエラーが発生しました:`, err)
+        .catch((err) =>
+          console.error(
+            `効果音「${name}」の自動ロード中にエラーが発生しました:`,
+            err
+          )
         );
     } else {
       console.error(`効果音「${name}」はプリセットに存在しません`);

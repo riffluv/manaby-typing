@@ -10,6 +10,7 @@ import React, {
 import styles from '../styles/GameScreen.module.css';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
 import soundSystem from '../utils/SoundUtils';
+import TypingUtils from '../utils/TypingUtils'; // KPM計算用にTypingUtilsをインポート
 import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import { useTypingGame } from '../hooks/useTypingGame';
@@ -66,39 +67,35 @@ const GameScreen = () => {
         const startTime =
           gameState.startTime || typingRef.current?.stats?.startTime || endTime;
 
-        // 問題ごとのKPMから平均値を計算（Weather Typing風）
-        const problemKPMs = updatedProblemKPMs || [];
-        // KPMの平均値を計算（0は除外する）
-        const validKpms = problemKPMs.filter((kpm) => kpm > 0);
-        // 有効なKPMがあれば平均を計算、なければ0
-        const averageKPM =
-          validKpms.length > 0
-            ? Math.floor(
-                validKpms.reduce((sum, kpm) => sum + kpm, 0) / validKpms.length
-              )
-            : 0;
+        // タイピングフックから詳細なデータを取得
+        const typingStats = typingRef.current?.stats || {};
+        const { problemStats = [] } = typingStats;
+        
+        console.log('【KPM計算】タイピングフックから取得した問題データ:', problemStats);
+        
+        // 正確なKPM計算のためのデータ確認と収集
+        const correctKeyCount = typingStats.correctCount || 0;
+        const elapsedTimeMs = endTime - startTime;
+        
+        // Weather Typing公式計算方法で再計算
+        const calculatedKPM = TypingUtils.calculateWeatherTypingKPM(
+          correctKeyCount,
+          elapsedTimeMs,
+          problemStats
+        );
+        
+        console.log('【KPM計算】再計算されたKPM:', calculatedKPM);
 
-        console.log('【KPM計算】問題ごとのKPM:', problemKPMs);
-        console.log('【KPM計算】平均KPM:', averageKPM);
-
-        // 統計情報の計算（typingフックから取得し、KPMは問題別の平均を使用）
-        const stats = typingRef.current
-          ? {
-              totalTime: typingRef.current.stats.elapsedTimeSeconds,
-              correctCount: typingRef.current.stats.correctCount,
-              missCount: typingRef.current.stats.missCount,
-              accuracy: typingRef.current.stats.accuracy,
-              kpm: averageKPM, // ここを問題ごとのKPMの平均に変更
-              problemKPMs: updatedProblemKPMs,
-            }
-          : {
-              totalTime: 0,
-              correctCount: 0,
-              missCount: 0,
-              accuracy: 0,
-              kpm: 0,
-              problemKPMs: updatedProblemKPMs,
-            };
+        // 統計情報の計算
+        const stats = {
+          totalTime: typingStats.elapsedTimeSeconds || (elapsedTimeMs / 1000),
+          correctCount: correctKeyCount,
+          missCount: typingStats.missCount || 0,
+          accuracy: typingStats.accuracy || 100,
+          kpm: calculatedKPM, // Weather Typing公式計算で算出したKPM
+          problemKPMs: updatedProblemKPMs || [],
+          problemStats: problemStats // 問題ごとの詳細データ
+        };
 
         console.log('【ゲームクリア】 統計情報計算結果:', stats);
 
@@ -315,18 +312,56 @@ const GameScreen = () => {
     // 明示的な型チェックと即時遷移
     if (gameState.isGameClear === true) {
       console.log(
-        '【GameScreenNew】ゲームクリア状態を検出 - 即座にリザルト画面へ遷移します'
+        '【GameScreen】ゲームクリア状態を検出 - 即座にリザルト画面へ遷移します'
       );
+      console.log('【GameScreen】統計情報詳細:', gameState.stats);
+
+      // 統計情報がnullまたは不完全な場合は再計算して確保
+      let statsToPass = gameState.stats;
+      
+      if (!statsToPass || statsToPass.kpm === undefined || statsToPass.kpm === 0) {
+        console.log('【GameScreen】統計情報が不完全なため再計算します');
+        
+        // 終了時間を確認
+        const endTime = gameState.endTime || Date.now();
+        const startTime = gameState.startTime || Date.now();
+        const elapsedTimeMs = endTime - startTime;
+        
+        // 問題ごとのKPMから総合KPMを計算（Weather Typing公式方法）
+        const problemStats = (gameState.problemStats || []).map(problem => ({
+          problemKeyCount: problem.problemKeyCount || 0,
+          problemElapsedMs: problem.problemElapsedMs || 0
+        }));
+        
+        // useTypingGameフックからのデータを取得
+        const typingStats = typingRef.current?.stats || {};
+        
+        // 統計情報を構築
+        statsToPass = {
+          totalTime: typingStats.elapsedTimeSeconds || (elapsedTimeMs / 1000),
+          correctCount: typingStats.correctCount || gameState.correctKeyCount || 0,
+          missCount: typingStats.missCount || 0,
+          accuracy: typingStats.accuracy || 100,
+          kpm: typingStats.kpm || 0,
+          problemKPMs: gameState.problemKPMs || [],
+          problemStats: problemStats
+        };
+        
+        console.log('【GameScreen】再計算した統計情報:', statsToPass);
+      }
 
       // スムーズな遷移のために最適な遅延
       const timeoutId = setTimeout(() => {
-        goToScreen(SCREENS.RESULT);
+        // 確実に統計情報を渡すためにgameStateパラメータとして渡す
+        goToScreen(SCREENS.RESULT, {
+          gameState: { stats: statsToPass }
+        });
       }, 150);
 
       // クリーンアップ関数でタイマーをクリア
       return () => clearTimeout(timeoutId);
     }
-  }, [gameState.isGameClear, goToScreen]);
+  }, [gameState.isGameClear, gameState.stats, gameState.problemKPMs, goToScreen]);
 
   // 進行状況の計算（ゲーム全体の進捗を表示するように修正）- useMemoで最適化
   const progressPercentage = useMemo(() => {
