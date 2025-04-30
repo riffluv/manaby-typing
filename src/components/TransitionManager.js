@@ -6,8 +6,6 @@ import { useGameContext, SCREENS } from '../contexts/GameContext';
 import soundSystem from '../utils/SoundUtils';
 import MainMenu from './MainMenu';
 import GameScreen from './GameScreen';
-import SettingsScreen from './SettingsScreen';
-import CreditsScreen from './CreditsScreen';
 import ResultScreen from './ResultScreen';
 import RankingScreen from './RankingScreen';
 import { useSettingsModal } from './MainMenu';
@@ -176,8 +174,6 @@ const TransitionManager = () => {
       case SCREENS.SETTINGS:
         // 設定画面はメインメニューでモーダル表示するため、メインメニューを表示
         return <MainMenu />;
-      case SCREENS.CREDITS:
-        return <CreditsScreen />;
       case SCREENS.RESULT:
         // ResultScreenに確実に統計データを渡すよう修正
         // gameStateからstatsを取得、なければ空オブジェクト

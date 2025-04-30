@@ -9,6 +9,8 @@ import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import Modal from './common/Modal'; // 共通モーダルコンポーネント
 import Button, { ToggleButton } from './common/Button'; // 共通ボタンコンポーネント
+import CreditsContent from './common/CreditsContent'; // 共通クレジットコンポーネント
+import { creditsData } from '../utils/CreditsData'; // クレジットデータ
 
 // 設定モーダルの表示状態を外部から制御するためのカスタムフック
 export const useSettingsModal = () => {
@@ -256,29 +258,15 @@ const MainMenu = () => {
   // クレジットコンテンツをレンダリングする関数
   const renderCreditsContent = () => {
     return (
-      <>
-        {/* 開発 */}
-        <div className={styles.creditSection}>
-          <h3 className={styles.sectionTitle}>開発</h3>
-          <p className={styles.creditText}>開発者名</p>
-        </div>
-
-        {/* デザイン */}
-        <div className={styles.creditSection}>
-          <h3 className={styles.sectionTitle}>デザイン</h3>
-          <p className={styles.creditText}>デザイナー名</p>
-        </div>
-
-        {/* 素材 */}
-        <div className={styles.creditSection}>
-          <h3 className={styles.sectionTitle}>素材</h3>
-          <ul className={styles.creditsList}>
-            <li className={styles.creditsItem}>アイコン素材：素材提供元</li>
-            <li className={styles.creditsItem}>フォント：フォント提供元</li>
-            <li className={styles.creditsItem}>効果音：効果音提供元</li>
-          </ul>
-        </div>
-      </>
+      <CreditsContent 
+        credits={creditsData} 
+        showAcknowledgements={false}
+        creditSectionClass={styles.creditSection}
+        sectionTitleClass={styles.sectionTitle}
+        creditTextClass={styles.creditText}
+        creditsListClass={styles.creditsList}
+        creditsItemClass={styles.creditsItem}
+      />
     );
   };
 
