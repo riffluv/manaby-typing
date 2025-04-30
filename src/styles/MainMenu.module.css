@@ -421,7 +421,6 @@
   max-height: 80px;
   transform-origin: center bottom;
   animation: wiggle 6s ease-in-out infinite;
-  image-rendering: pixelated;
   background: transparent !important;
   border: none !important;
   outline: none !important;
