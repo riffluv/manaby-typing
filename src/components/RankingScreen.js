@@ -870,7 +870,9 @@ const RankingScreen = () => {
                   <div className={styles.previewItem}>
                     <span>KPM:</span>
                     <span>
-                      {gameState.problemKPMs && gameState.problemKPMs.length > 0
+                      {gameState.stats && typeof gameState.stats.kpm === 'number'
+                        ? Math.floor(gameState.stats.kpm)
+                        : gameState.problemKPMs && gameState.problemKPMs.length > 0
                         ? Math.floor(
                             gameState.problemKPMs
                               .filter((kpm) => kpm > 0)
@@ -887,7 +889,9 @@ const RankingScreen = () => {
                       style={{
                         color: TypingUtils.getRankColor(
                           TypingUtils.getKPMRank(
-                            gameState.problemKPMs &&
+                            gameState.stats && typeof gameState.stats.kpm === 'number'
+                            ? Math.floor(gameState.stats.kpm)
+                            : gameState.problemKPMs &&
                               gameState.problemKPMs.length > 0
                               ? Math.floor(
                                   gameState.problemKPMs
@@ -903,7 +907,9 @@ const RankingScreen = () => {
                       }}
                     >
                       {TypingUtils.getKPMRank(
-                        gameState.problemKPMs &&
+                        gameState.stats && typeof gameState.stats.kpm === 'number'
+                        ? Math.floor(gameState.stats.kpm)
+                        : gameState.problemKPMs &&
                           gameState.problemKPMs.length > 0
                           ? Math.floor(
                               gameState.problemKPMs
@@ -919,15 +925,19 @@ const RankingScreen = () => {
                   <div className={styles.previewItem}>
                     <span>正解率:</span>
                     <span>
-                      {gameState.correctKeyCount &&
-                      (gameState.mistakes || gameState.mistakes === 0)
-                        ? (
-                            (gameState.correctKeyCount /
-                              (gameState.correctKeyCount +
-                                gameState.mistakes)) *
-                            100
-                          ).toFixed(1)
-                        : 0}
+                      {gameState.stats && typeof gameState.stats.accuracy === 'number'
+                        ? gameState.stats.accuracy.toFixed(1)
+                        : gameState.accuracy
+                        ? gameState.accuracy.toFixed(1)
+                        : gameState.correctKeyCount &&
+                          (gameState.mistakes || gameState.mistakes === 0)
+                          ? (
+                              (gameState.correctKeyCount /
+                                (gameState.correctKeyCount +
+                                  gameState.mistakes)) *
+                              100
+                            ).toFixed(1)
+                          : 0}
                       %
                     </span>
                   </div>

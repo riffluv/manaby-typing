@@ -735,6 +735,75 @@ export const getScreenBackgroundsFromFirebase = async (
   }
 };
 
+/**
+ * 指定した難易度のランキングデータをすべて削除する
+ * @param {string} difficulty - 削除する難易度 ('easy', 'normal', 'hard')
+ * @returns {Promise<boolean>} 削除が成功したらtrue、失敗したらfalse
+ */
+export const deleteRankingsByDifficulty = async (difficulty) => {
+  if (!initializeFirebase() || !database) {
+    console.error('Firebase not initialized');
+    return false;
+  }
+
+  try {
+    // インデックスエラーを回避するため、ルートから全データを取得
+    const rankingRef = ref(database, 'scores');
+    const snapshot = await get(rankingRef);
+
+    if (!snapshot.exists()) {
+      console.log('削除対象のランキングデータがありません');
+      return true; // データがなくても成功とみなす
+    }
+
+    // 指定した難易度のデータのみを削除
+    const deletePromises = [];
+    snapshot.forEach((childSnapshot) => {
+      const data = childSnapshot.val();
+      const recordDifficulty = data.difficulty || data.gameMode || 'normal';
+      
+      if (recordDifficulty === difficulty) {
+        const entryRef = ref(database, `scores/${childSnapshot.key}`);
+        deletePromises.push(set(entryRef, null));
+      }
+    });
+
+    // すべての削除リクエストが完了するまで待つ
+    if (deletePromises.length > 0) {
+      await Promise.all(deletePromises);
+    }
+
+    console.log(`難易度「${difficulty}」のランキングデータを${deletePromises.length}件削除しました`);
+    return true;
+  } catch (error) {
+    console.error(`難易度「${difficulty}」のランキング削除中にエラーが発生しました:`, error);
+    return false;
+  }
+};
+
+/**
+ * 全ランキングデータを削除する
+ * @returns {Promise<boolean>} 削除が成功したらtrue、失敗したらfalse
+ */
+export const deleteAllRankings = async () => {
+  if (!initializeFirebase() || !database) {
+    console.error('Firebase not initialized');
+    return false;
+  }
+
+  try {
+    // scoresノード自体を削除
+    const rankingRef = ref(database, 'scores');
+    await set(rankingRef, null);
+    
+    console.log('すべてのランキングデータを削除しました');
+    return true;
+  } catch (error) {
+    console.error('ランキングデータの削除中にエラーが発生しました:', error);
+    return false;
+  }
+};
+
 export default {
   initializeFirebase,
   saveOnlineRanking,
@@ -746,4 +815,6 @@ export default {
   deleteBackgroundFromFirebase, // 削除関数を追加
   saveScreenBackgroundToFirebase,
   getScreenBackgroundsFromFirebase,
+  deleteRankingsByDifficulty,
+  deleteAllRankings,
 };

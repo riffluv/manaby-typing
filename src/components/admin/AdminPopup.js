@@ -23,7 +23,7 @@ const logError = (message, error) => {
 const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
   const { gameState, setGameState, currentScreen } = useGameContext();
   const [problemCount, setProblemCount] = useState(5); // デフォルト値は5問
-  const [activeTab, setActiveTab] = useState('settings'); // 'settings'、'background'、または 'gallery'
+  const [activeTab, setActiveTab] = useState('settings'); // 'settings'、'background'、'gallery'、または 'rankings'
   const [isSavingBackground, setIsSavingBackground] = useState(false); // 保存中状態
   const [showSaveSuccess, setShowSaveSuccess] = useState(false); // 保存成功メッセージ表示状態
   const [playerName, setPlayerName] = useState(''); // プレイヤー名入力用
@@ -32,6 +32,9 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
   const [showRestoreSuccess, setShowRestoreSuccess] = useState(false); // 復元成功メッセージ表示状態
   const [selectedScreen, setSelectedScreen] = useState('ALL'); // 背景を保存/適用する画面
   const [captureMode, setCaptureMode] = useState('spa'); // 'spa', 'container', 'spa-background'
+  const [selectedDifficulty, setSelectedDifficulty] = useState('normal'); // ランキング削除時の選択難易度
+  const [isDeletingRankings, setIsDeletingRankings] = useState(false); // ランキング削除中状態
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false); // 削除成功メッセージ表示状態
 
   // 画面一覧の定義
   const screenOptions = [
@@ -670,11 +673,67 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
     }
   };
 
+  // ランキング削除関連の関数を追加
+  // 指定した難易度のランキングを削除する関数
+  const deleteRankingsByDifficulty = async () => {
+    if (!window.confirm(`難易度「${getDifficultyDisplayName(selectedDifficulty)}」のランキングをすべて削除しますか？この操作は取り消せません。`)) {
+      return;
+    }
+
+    try {
+      setIsDeletingRankings(true);
+      const success = await FirebaseUtils.deleteRankingsByDifficulty(selectedDifficulty);
+      
+      if (success) {
+        logDebug(`難易度「${selectedDifficulty}」のランキングを削除しました`);
+        showSuccessMessage(setShowDeleteSuccess);
+      }
+    } catch (error) {
+      logError('ランキング削除中にエラーが発生しました:', error);
+      alert(`ランキングの削除に失敗しました: ${error.message}`);
+    } finally {
+      setIsDeletingRankings(false);
+    }
+  };
+
+  // すべてのランキングを削除する関数
+  const deleteAllRankings = async () => {
+    if (!window.confirm('すべての難易度のランキングを削除しますか？この操作は取り消せません。')) {
+      return;
+    }
+
+    try {
+      setIsDeletingRankings(true);
+      const success = await FirebaseUtils.deleteAllRankings();
+      
+      if (success) {
+        logDebug('すべてのランキングデータを削除しました');
+        showSuccessMessage(setShowDeleteSuccess);
+      }
+    } catch (error) {
+      logError('ランキング削除中にエラーが発生しました:', error);
+      alert(`ランキングの削除に失敗しました: ${error.message}`);
+    } finally {
+      setIsDeletingRankings(false);
+    }
+  };
+
+  // 難易度の表示名を取得する関数
+  const getDifficultyDisplayName = (difficulty) => {
+    const difficultyNames = {
+      easy: 'かんたん',
+      normal: 'ふつう',
+      hard: 'むずかしい'
+    };
+    return difficultyNames[difficulty] || difficulty;
+  };
+
   // 各種イベントハンドラー
   const handlePlayerNameChange = (e) => setPlayerName(e.target.value);
   const handleTabChange = (tab) => setActiveTab(tab);
   const handleScreenChange = (e) => setSelectedScreen(e.target.value);
   const handleCaptureModeChange = (mode) => setCaptureMode(mode);
+  const handleDifficultyChange = (e) => setSelectedDifficulty(e.target.value);
 
   if (!isOpen) return null;
 
@@ -720,6 +779,14 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
             onClick={() => handleTabChange('gallery')}
           >
             着せ替え
+          </button>
+          <button
+            className={`${styles.adminPopup__tab} ${
+              activeTab === 'rankings' ? styles['adminPopup__tab--active'] : ''
+            }`}
+            onClick={() => handleTabChange('rankings')}
+          >
+            ランキング
           </button>
         </div>
 
@@ -976,6 +1043,69 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
                   {isLoading ? '更新中...' : '一覧を更新'}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* 新しいランキング管理タブ */}
+          {activeTab === 'rankings' && (
+            <div className={styles.adminPopup__rankingManagement}>
+              <h3 className={styles.adminPopup__subTitle}>
+                ランキング管理
+              </h3>
+
+              <div className={styles.adminPopup__formGroup}>
+                <label
+                  className={styles.adminPopup__label}
+                  htmlFor="difficultySelector"
+                >
+                  難易度を選択
+                </label>
+                <select
+                  className={styles.adminPopup__select}
+                  id="difficultySelector"
+                  value={selectedDifficulty}
+                  onChange={handleDifficultyChange}
+                >
+                  <option value="easy">かんたん</option>
+                  <option value="normal">ふつう</option>
+                  <option value="hard">むずかしい</option>
+                </select>
+                <p className={styles.adminPopup__info}>
+                  削除する難易度を選択します。
+                </p>
+              </div>
+
+              <div className={styles.adminPopup__buttonGroup}>
+                <button
+                  className={`${styles.adminPopup__button} ${styles['adminPopup__button--delete']}`}
+                  onClick={deleteRankingsByDifficulty}
+                  disabled={isDeletingRankings}
+                >
+                  {isDeletingRankings ? '削除中...' : `${getDifficultyDisplayName(selectedDifficulty)}のランキングを削除`}
+                </button>
+                
+                <button
+                  className={`${styles.adminPopup__button} ${styles['adminPopup__button--danger']}`}
+                  onClick={deleteAllRankings}
+                  disabled={isDeletingRankings}
+                >
+                  {isDeletingRankings ? '削除中...' : 'すべてのランキングを削除'}
+                </button>
+              </div>
+
+              <div className={styles.adminPopup__warningBox}>
+                <p className={styles.adminPopup__warning}>
+                  <span className={styles.adminPopup__warningIcon}>⚠️</span>
+                  注意: 削除したランキングデータは復元できません。
+                </p>
+              </div>
+
+              {showDeleteSuccess && (
+                <div className={styles.adminPopup__successMessage}>
+                  <span className={styles.adminPopup__successIcon}>✓</span>{' '}
+                  ランキングデータを削除しました！
+                </div>
+              )}
             </div>
           )}
         </div>
