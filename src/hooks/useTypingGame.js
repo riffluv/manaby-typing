@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import TypingUtils from '../utils/TypingUtils';
 import soundSystem from '../utils/SoundUtils';
+import typingWorkerManager from '../utils/TypingWorkerManager';
 
 /**
  * タイピングゲームのコアロジックを扱うカスタムフック
  * typingmania-refを参考にした高性能実装に対応
  * パフォーマンスを最大限に最適化したリアルタイム処理を実現
+ * Web Workerを活用して、UI描画とバックグラウンド処理を分離
  *
  * @param {Object} options タイピングゲームの設定オプション
  * @param {Object} options.initialProblem 初期問題
@@ -53,6 +55,9 @@ export function useTypingGame({
   });
   const [isCompleted, setIsCompleted] = useState(false);
 
+  // 入力履歴の管理（Web Workerに送信するため）
+  const inputHistoryRef = useRef([]);
+
   // 最適化された入力処理システム：typingmania-refスタイル
   // 入力バッファリングを参照オブジェクトとして保持
   const inputSystem = useRef(null);
@@ -76,6 +81,9 @@ export function useTypingGame({
   // エラーアニメーション用のタイマーIDを保持
   const errorAnimationTimerRef = useRef(null);
 
+  // WorkerからのデータをメインスレッドUIに反映する
+  const workerUpdateUIRef = useRef(false);
+
   // クリーンアップ関数
   useEffect(() => {
     return () => {
@@ -90,10 +98,13 @@ export function useTypingGame({
       if (inputSystem.current) {
         inputSystem.current.cleanup();
       }
+      
+      // Worker履歴をクリア
+      typingWorkerManager.clearInputHistory();
     };
   }, []);
 
-  // 入力処理関数 - 高速化バージョン
+  // メインスレッドで処理する入力ハンドリング（高速化バージョン）
   const processInput = useCallback((key, timestamp) => {
     if (!typingSession || isCompleted) return { success: false };
 
@@ -116,9 +127,20 @@ export function useTypingGame({
     // タイピングセッションを使用して入力を処理（最適化版）
     const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
     const result = typingSession.processInput(halfWidthChar);
+    
+    // Worker記録用のフラグ
+    const isCorrectInput = result.success;
+
+    // Worker入力履歴を記録（ワーカーに送信するため）
+    inputHistoryRef.current.push({
+      key: halfWidthChar,
+      isCorrect: isCorrectInput,
+      timestamp: now,
+      expectedKey: isCorrectInput ? null : typingSession.getCurrentExpectedKey?.()
+    });
 
     if (result.success) {
-      // 効果音再生（これは保持）
+      // 効果音再生（これはメインスレッドで処理）
       if (playSound) {
         soundSystem.play('success');
       }
@@ -130,17 +152,17 @@ export function useTypingGame({
         currentProblemKeyCount: prev.currentProblemKeyCount + 1,
       }));
 
-      // 色分け情報を更新
+      // 色分け情報を更新（メインスレッドで処理、UIに即時反映）
       setColoringInfo(typingSession.getColoringInfo());
 
-      // 完了チェック
+      // 完了チェック（これはメインスレッドで処理）
       if (result.status === 'all_completed') {
         completeProblem();
       }
 
       return { success: true, status: result.status };
     } else {
-      // エラー処理
+      // エラー処理（メインスレッドで処理、UIに即時反映）
       setErrorCount((prev) => prev + 1);
       setErrorAnimation(true);
       setStatistics((prev) => ({
@@ -178,12 +200,53 @@ export function useTypingGame({
       }
     );
     
+    // 定期的にワーカーに統計計算を依頼するインターバル
+    let statsIntervalId = null;
+    
+    if (typeof window !== 'undefined') {
+      statsIntervalId = setInterval(() => {
+        // 問題が完了しておらず、十分な入力がある場合のみ統計を計算
+        if (!isCompleted && statistics.correctKeyCount > 0) {
+          // Workerに非同期で統計計算を依頼
+          typingWorkerManager.calculateStatistics({
+            correctCount: statistics.correctKeyCount,
+            missCount: statistics.mistakeCount,
+            startTimeMs: statistics.startTime || Date.now(),
+            currentTimeMs: Date.now(),
+            problemStats: statistics.problemStats
+          }).then(result => {
+            if (result && !result.error) {
+              // UIの更新フラグが立っている場合のみ更新
+              if (workerUpdateUIRef.current) {
+                // KPM、ランク情報をWorkerの計算結果で更新
+                lastStatsRef.current = {
+                  ...lastStatsRef.current,
+                  kpm: result.kpm,
+                  rank: result.rank,
+                  accuracy: result.accuracy
+                };
+                workerUpdateUIRef.current = false;
+              }
+            }
+          }).catch(err => {
+            console.error("Worker統計計算エラー:", err);
+          });
+        }
+      }, performanceConfig.statsUpdateInterval);
+    }
+    
     return () => {
       if (inputSystem.current) {
         inputSystem.current.cleanup();
       }
+      if (statsIntervalId) {
+        clearInterval(statsIntervalId);
+      }
+      
+      // Worker履歴をクリア
+      typingWorkerManager.clearInputHistory();
     };
-  }, [processInput, performanceConfig.maxBatchSize]);
+  }, [processInput, performanceConfig.maxBatchSize, performanceConfig.statsUpdateInterval, statistics, isCompleted]);
 
   // セッションの初期化 - useCallbackでメモ化
   const initializeSession = useCallback((problem) => {
@@ -205,6 +268,11 @@ export function useTypingGame({
       if (inputSystem.current) {
         inputSystem.current.cleanup();
       }
+      
+      // Worker関連の状態をリセット
+      inputHistoryRef.current = [];
+      typingWorkerManager.clearInputHistory();
+      workerUpdateUIRef.current = true;
 
       // 問題ごとの統計情報をリセット
       setStatistics((prev) => ({
@@ -265,6 +333,26 @@ export function useTypingGame({
       problemKPMs: [...(prev.problemKPMs || []), problemKPM],
       problemStats: updatedProblemStats // WeTyping公式計算のための詳細データ
     }));
+
+    // Web Workerを使用して入力履歴の分析を行う
+    typingWorkerManager.processInputHistory()
+      .then(result => {
+        if (result && result.success && result.data) {
+          const analysisData = result.data;
+          console.debug('[Web Worker] 入力履歴の分析結果:', analysisData);
+          
+          // 頻度の高いエラーパターンや速度変化などの情報があればログに記録
+          if (analysisData.errorPatterns && Object.keys(analysisData.errorPatterns).length > 0) {
+            const topErrors = Object.entries(analysisData.errorPatterns)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 3);
+            console.info('[Web Worker] 頻出エラーパターン:', topErrors);
+          }
+        }
+      })
+      .catch(err => {
+        console.error('[Web Worker] 入力履歴の分析に失敗:', err);
+      });
 
     if (process.env.NODE_ENV === 'development') {
       console.debug('[useTypingGame] 問題完了:', {
@@ -345,6 +433,17 @@ export function useTypingGame({
   // 統計情報の計算 - useMemoで最適化
   const lastStatsCalcTimeRef = useRef(0);
   const lastStatsRef = useRef(null);
+  
+  // UIの更新フラグを定期的に設定
+  useEffect(() => {
+    const uiUpdateInterval = setInterval(() => {
+      // UIの更新フラグを定期的に設定
+      workerUpdateUIRef.current = true;
+    }, 500); // UI更新は500msごと
+    
+    return () => clearInterval(uiUpdateInterval);
+  }, []);
+  
   const stats = useMemo(() => {
     // パフォーマンス最適化: 統計情報の計算を遅延実行
     const now = Date.now();
@@ -359,24 +458,30 @@ export function useTypingGame({
     // 実際に再計算が必要なときのみ計算を実行
     lastStatsCalcTimeRef.current = now;
     
+    // メインスレッドで簡単な計算のみ行う
     const correctCount = statistics.correctKeyCount;
     const missCount = statistics.mistakeCount;
     const totalCount = correctCount + missCount;
     const accuracy = totalCount > 0 ? (correctCount / totalCount) * 100 : 0;
-
     const startTime = statistics.startTime || now;
     const elapsedTimeMs = now - startTime;
     const elapsedTimeSeconds = elapsedTimeMs / 1000;
-
-    // KPM計算：typingmania-refスタイルの高速版
-    const kpm = TypingUtils.calculateWeatherTypingKPM(
-      correctCount,
-      elapsedTimeMs,
-      statistics.problemStats
-    );
-
-    const rank = TypingUtils.getKPMRank(kpm);
-    const rankColor = TypingUtils.getRankColor(rank);
+    
+    // KPM計算はメインスレッドで単純計算（詳細計算はWorkerに依頼済み）
+    let kpm = 0;
+    if (elapsedTimeMs > 0 && correctCount > 0) {
+      const minutes = elapsedTimeMs / 60000;
+      kpm = Math.floor(correctCount / minutes);
+    }
+    
+    // ランク計算もメインスレッドで簡易計算
+    let rank = 'F';
+    if (kpm >= 400) rank = 'S';
+    else if (kpm >= 300) rank = 'A';
+    else if (kpm >= 200) rank = 'B';
+    else if (kpm >= 150) rank = 'C';
+    else if (kpm >= 100) rank = 'D';
+    else if (kpm >= 50) rank = 'E';
     
     // 新しい統計情報をキャッシュ
     const newStats = {
@@ -388,7 +493,7 @@ export function useTypingGame({
       elapsedTimeSeconds: parseFloat(elapsedTimeSeconds.toFixed(1)),
       kpm,
       rank,
-      rankColor,
+      rankColor: TypingUtils.getRankColor(rank),
       problemKPMs: statistics.problemKPMs,
       problemStats: statistics.problemStats,
     };
@@ -398,6 +503,27 @@ export function useTypingGame({
     
     return newStats;
   }, [statistics, isCompleted, performanceConfig.statsUpdateInterval]);
+  
+  // ランキング登録関数を追加（Web Workerで非同期処理）
+  const submitScore = useCallback((username = 'Anonymous', endpoint) => {
+    // 統計情報がない場合は送信しない
+    if (!stats || !stats.kpm) {
+      return Promise.reject(new Error('有効なスコアデータがありません'));
+    }
+    
+    // 送信データを準備
+    const recordData = {
+      username,
+      score: stats.correctCount || 0,
+      kpm: stats.kpm || 0,
+      accuracy: stats.accuracy || 0,
+      problemCount: statistics.problemStats ? statistics.problemStats.length : 0,
+      endpoint
+    };
+    
+    // Web Workerを使ってバックグラウンドでランキング送信
+    return typingWorkerManager.submitRanking(recordData);
+  }, [stats, statistics]);
 
   // 返り値をuseMemoでメモ化して子コンポーネントの再レンダリングを最適化
   return useMemo(
@@ -417,6 +543,7 @@ export function useTypingGame({
       initializeSession,
       handleInput,
       completeProblem,
+      submitScore, // ランキング登録用の関数を追加
       
       // typingmania-ref風の拡張機能
       getRankColor: TypingUtils.getRankColor,
@@ -434,6 +561,7 @@ export function useTypingGame({
       initializeSession,
       handleInput,
       completeProblem,
+      submitScore,
     ]
   );
 }

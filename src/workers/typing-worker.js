@@ -375,6 +375,223 @@ function optimizeSplitInput(input, patterns, currentInput = '') {
 }
 
 /**
+ * スコア計算とKPM計算
+ * メインスレッドから切り離すことで計算負荷の影響をなくす
+ * @param {Object} statsData - 計算に必要な統計データ
+ * @returns {Object} 計算結果
+ */
+function calculateStatistics(statsData) {
+  const { 
+    correctCount, 
+    missCount, 
+    startTimeMs, 
+    currentTimeMs, 
+    problemStats = [] 
+  } = statsData;
+
+  // 計算結果を格納するオブジェクト
+  const result = {
+    totalCount: correctCount + missCount,
+    accuracy: 0,
+    elapsedTimeMs: 0,
+    elapsedTimeSeconds: 0,
+    kpm: 0,
+    rank: 'F',
+    problemKPMs: [],
+  };
+
+  // 計算に必要な基本データ
+  result.elapsedTimeMs = currentTimeMs - startTimeMs;
+  result.elapsedTimeSeconds = result.elapsedTimeMs / 1000;
+  
+  // 正確性計算
+  if (result.totalCount > 0) {
+    result.accuracy = (correctCount / result.totalCount) * 100;
+  }
+  
+  // 問題ごとのKPM計算
+  if (Array.isArray(problemStats) && problemStats.length > 0) {
+    let totalKeyCount = 0;
+    let totalTimeMs = 0;
+    
+    // 各問題のKPMを計算して配列に追加
+    problemStats.forEach(problem => {
+      if (problem && typeof problem === 'object') {
+        const { problemKeyCount, problemElapsedMs } = problem;
+        
+        // 各問題のKPMを計算
+        let problemKPM = 0;
+        if (problemElapsedMs > 0) {
+          const minutes = problemElapsedMs / 60000; // ミリ秒を分に変換
+          problemKPM = Math.floor(problemKeyCount / minutes); // 小数点以下切り捨て
+        }
+        
+        // 総計にも加算
+        totalKeyCount += problemKeyCount || 0;
+        totalTimeMs += problemElapsedMs || 0;
+        
+        // 各問題のKPM配列に追加
+        result.problemKPMs.push(problemKPM);
+      }
+    });
+    
+    // 総合KPMを計算
+    if (totalTimeMs > 0) {
+      const totalMinutes = totalTimeMs / 60000;
+      result.kpm = Math.floor(totalKeyCount / totalMinutes);
+    }
+  } else {
+    // 問題ごとのデータがない場合は単純計算
+    const minutes = result.elapsedTimeMs / 60000;
+    if (minutes > 0) {
+      result.kpm = Math.floor(correctCount / minutes);
+    }
+  }
+  
+  // ランク計算
+  result.rank = calculateRank(result.kpm);
+  
+  return result;
+}
+
+/**
+ * KPM値からランクを判定する関数
+ * @param {number} kpm - KPM値
+ * @returns {string} ランク（S, A, B, C, D, E, F）
+ */
+function calculateRank(kpm) {
+  if (kpm >= 400) return 'S'; 
+  if (kpm >= 300) return 'A';
+  if (kpm >= 200) return 'B';
+  if (kpm >= 150) return 'C';
+  if (kpm >= 100) return 'D';
+  if (kpm >= 50)  return 'E';
+  return 'F';
+}
+
+/**
+ * ランキングサーバーへの記録送信
+ * 非同期のネットワークリクエストをワーカーで処理することでメインスレッドを解放
+ * @param {Object} recordData - 送信する記録データ
+ */
+async function submitRanking(recordData) {
+  try {
+    // ランキングサーバーのエンドポイント
+    const endpoint = recordData.endpoint || 'https://api.example.com/ranking';
+    
+    // リクエストオプション
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: recordData.username || 'Anonymous',
+        score: recordData.score,
+        kpm: recordData.kpm,
+        accuracy: recordData.accuracy,
+        problemCount: recordData.problemCount,
+        timestamp: new Date().toISOString()
+      })
+    };
+    
+    // APIリクエスト実行
+    const response = await fetch(endpoint, options);
+    
+    if (!response.ok) {
+      throw new Error(`サーバーエラー: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    return {
+      success: true,
+      data: result
+    };
+  } catch (error) {
+    console.error('ランキング送信エラー:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * 入力履歴データの処理と集計
+ * @param {Array} inputHistory - キー入力の履歴データ
+ */
+function processInputHistory(inputHistory) {
+  if (!Array.isArray(inputHistory) || inputHistory.length === 0) {
+    return { success: false, error: '有効な入力履歴がありません' };
+  }
+  
+  // 集計結果
+  const result = {
+    totalKeyCount: 0,
+    correctKeyCount: 0,
+    missCount: 0,
+    keyFrequency: {}, // どのキーが何回押されたか
+    errorPatterns: {}, // よくミスするパターン
+    speedPatterns: [], // 速度パターン（時間経過とともにどう変わるか）
+  };
+  
+  // 入力キーごとの頻度を集計
+  inputHistory.forEach(entry => {
+    if (!entry || typeof entry !== 'object') return;
+    
+    const { key, isCorrect, timestamp } = entry;
+    
+    // 全体カウント
+    result.totalKeyCount++;
+    
+    // 正誤カウント
+    if (isCorrect) {
+      result.correctKeyCount++;
+    } else {
+      result.missCount++;
+    }
+    
+    // キー頻度の集計
+    if (key) {
+      result.keyFrequency[key] = (result.keyFrequency[key] || 0) + 1;
+    }
+    
+    // エラーパターンの集計
+    if (!isCorrect && entry.expectedKey) {
+      const errorPattern = `${entry.expectedKey}->${key}`;
+      result.errorPatterns[errorPattern] = (result.errorPatterns[errorPattern] || 0) + 1;
+    }
+    
+    // 速度パターン（10秒ごとのセグメントに分割）
+    if (timestamp) {
+      const timeSegment = Math.floor(timestamp / 10000); // 10秒単位で区切る
+      
+      if (!result.speedPatterns[timeSegment]) {
+        result.speedPatterns[timeSegment] = {
+          keyCount: 0,
+          correctCount: 0,
+          startTime: timeSegment * 10000,
+          endTime: (timeSegment + 1) * 10000
+        };
+      }
+      
+      result.speedPatterns[timeSegment].keyCount++;
+      if (isCorrect) {
+        result.speedPatterns[timeSegment].correctCount++;
+      }
+    }
+  });
+  
+  // スパースな配列を詰める
+  result.speedPatterns = result.speedPatterns.filter(Boolean);
+  
+  return {
+    success: true,
+    data: result
+  };
+}
+
+/**
  * Web Workerのメッセージハンドラ
  * すべてのタイピング処理をメインスレッドから分離して実行
  */
@@ -422,6 +639,64 @@ self.onmessage = function(e) {
           type: 'coloringInfoResult',
           callbackId,
           data: { error: err.message }
+        });
+      }
+      break;
+
+    case 'calculateStatistics':
+      // 統計情報を計算
+      try {
+        const result = calculateStatistics(data);
+        self.postMessage({
+          type: 'calculateStatisticsResult',
+          callbackId,
+          data: result
+        });
+      } catch (err) {
+        console.error('Worker処理エラー (calculateStatistics):', err);
+        self.postMessage({
+          type: 'calculateStatisticsResult',
+          callbackId,
+          data: { error: err.message }
+        });
+      }
+      break;
+
+    case 'submitRanking':
+      // ランキング送信処理（非同期）
+      submitRanking(data)
+        .then(result => {
+          self.postMessage({
+            type: 'submitRankingResult',
+            callbackId,
+            data: result
+          });
+        })
+        .catch(err => {
+          console.error('Worker処理エラー (submitRanking):', err);
+          self.postMessage({
+            type: 'submitRankingResult',
+            callbackId,
+            data: { success: false, error: err.message }
+          });
+        });
+      break;
+
+    case 'processInputHistory':
+      // 入力履歴の処理と集計
+      try {
+        const result = processInputHistory(data.inputHistory);
+        self.postMessage({
+          type: 'processInputHistoryResult',
+          callbackId,
+          data: result
+        });
+      } catch (err) {
+        console.error('Worker処理エラー (processInputHistory):', err);
+        self.postMessage({
+          type: 'processInputHistoryResult',
+          callbackId,
+          data: { success: false, error: err.message }
         });
       }
       break;

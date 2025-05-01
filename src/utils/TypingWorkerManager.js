@@ -9,6 +9,7 @@ export class TypingWorkerManager {
     this._callbackId = 0;
     this._lastSession = null;
     this._initializationPromise = null;
+    this._inputHistory = []; // 入力履歴を保持
     
     // 自動初期化
     this._initialize();
@@ -120,18 +121,28 @@ export class TypingWorkerManager {
   }
 
   /**
-   * キー入力を処理する
+   * キー入力を処理する - この処理はメインスレッドでも行う
    * @param {Object} session - タイピングセッション
    * @param {string} char - 入力された文字
+   * @param {boolean} isCorrect - 正しい入力かどうか（統計用）
    * @returns {Promise} 処理結果を含むPromise
    */
-  async processInput(session, char) {
+  async processInput(session, char, isCorrect = null) {
     if (!this._worker) {
       try {
         await this._initialize();
       } catch (error) {
         return Promise.reject(error);
       }
+    }
+    
+    // 入力履歴に追加（統計用）
+    if (char) {
+      this._inputHistory.push({
+        key: char,
+        isCorrect: isCorrect,
+        timestamp: Date.now()
+      });
     }
     
     return new Promise((resolve) => {
@@ -156,7 +167,7 @@ export class TypingWorkerManager {
   }
 
   /**
-   * 色分け情報を取得
+   * 色分け情報を取得 - この処理はメインスレッドでも行う
    * @param {Object} session - タイピングセッション
    * @returns {Promise} 色分け情報を含むPromise
    */
@@ -188,6 +199,106 @@ export class TypingWorkerManager {
       });
     });
   }
+  
+  /**
+   * 統計情報を計算（非同期） - この処理はWorkerで行う
+   * @param {Object} statsData - 統計計算に必要なデータ
+   * @returns {Promise} 計算結果を含むPromise
+   */
+  async calculateStatistics(statsData) {
+    if (!this._worker) {
+      try {
+        await this._initialize();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+    
+    return new Promise((resolve) => {
+      const callbackId = this._getNextCallbackId();
+      
+      // コールバックを登録
+      this._callbacks.set(callbackId, resolve);
+      
+      // Workerにメッセージを送信
+      this._worker.postMessage({
+        type: 'calculateStatistics',
+        callbackId,
+        data: statsData
+      });
+    });
+  }
+  
+  /**
+   * ランキング送信（非同期） - この処理はWorkerで行う
+   * @param {Object} recordData - 送信するランキングデータ
+   * @returns {Promise} 送信結果を含むPromise
+   */
+  async submitRanking(recordData) {
+    if (!this._worker) {
+      try {
+        await this._initialize();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+    
+    return new Promise((resolve) => {
+      const callbackId = this._getNextCallbackId();
+      
+      // コールバックを登録
+      this._callbacks.set(callbackId, resolve);
+      
+      // Workerにメッセージを送信
+      this._worker.postMessage({
+        type: 'submitRanking',
+        callbackId,
+        data: recordData
+      });
+    });
+  }
+  
+  /**
+   * 入力履歴の処理と集計（非同期） - この処理はWorkerで行う
+   * @returns {Promise} 集計結果を含むPromise
+   */
+  async processInputHistory() {
+    if (!this._worker) {
+      try {
+        await this._initialize();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+    
+    // 入力履歴がなければ処理不要
+    if (this._inputHistory.length === 0) {
+      return Promise.resolve({ success: false, error: '入力履歴がありません' });
+    }
+    
+    return new Promise((resolve) => {
+      const callbackId = this._getNextCallbackId();
+      
+      // コールバックを登録
+      this._callbacks.set(callbackId, resolve);
+      
+      // Workerにメッセージを送信
+      this._worker.postMessage({
+        type: 'processInputHistory',
+        callbackId,
+        data: {
+          inputHistory: this._inputHistory
+        }
+      });
+    });
+  }
+  
+  /**
+   * 入力履歴をクリア
+   */
+  clearInputHistory() {
+    this._inputHistory = [];
+  }
 
   /**
    * コールバックIDの生成
@@ -208,6 +319,7 @@ export class TypingWorkerManager {
     this._callbacks.clear();
     this._lastSession = null;
     this._initializationPromise = null;
+    this._inputHistory = [];
   }
 }
 
