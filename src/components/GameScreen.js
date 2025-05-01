@@ -20,6 +20,7 @@ import TypingDisplay from './typing/TypingDisplay';
 import CanvasTypingDisplay from './typing/CanvasTypingDisplay'; // 新しいCanvas描画コンポーネント
 import ProgressBar from './typing/ProgressBar';
 import ProblemDisplay from './typing/ProblemDisplay';
+import Button from './common/Button'; // 共通ボタンコンポーネントをインポート
 
 // デバッグ用コンソールログの追加
 console.log(
@@ -71,31 +72,34 @@ const GameScreen = () => {
         // タイピングフックから詳細なデータを取得
         const typingStats = typingRef.current?.stats || {};
         const { problemStats = [] } = typingStats;
-        
-        console.log('【KPM計算】タイピングフックから取得した問題データ:', problemStats);
-        
+
+        console.log(
+          '【KPM計算】タイピングフックから取得した問題データ:',
+          problemStats
+        );
+
         // 正確なKPM計算のためのデータ確認と収集
         const correctKeyCount = typingStats.correctCount || 0;
         const elapsedTimeMs = endTime - startTime;
-        
+
         // Weather Typing公式計算方法で再計算
         const calculatedKPM = TypingUtils.calculateWeatherTypingKPM(
           correctKeyCount,
           elapsedTimeMs,
           problemStats
         );
-        
+
         console.log('【KPM計算】再計算されたKPM:', calculatedKPM);
 
         // 統計情報の計算
         const stats = {
-          totalTime: typingStats.elapsedTimeSeconds || (elapsedTimeMs / 1000),
+          totalTime: typingStats.elapsedTimeSeconds || elapsedTimeMs / 1000,
           correctCount: correctKeyCount,
           missCount: typingStats.missCount || 0,
           accuracy: typingStats.accuracy || 100,
           kpm: calculatedKPM, // Weather Typing公式計算で算出したKPM
           problemKPMs: updatedProblemKPMs || [],
-          problemStats: problemStats // 問題ごとの詳細データ
+          problemStats: problemStats, // 問題ごとの詳細データ
         };
 
         console.log('【ゲームクリア】 統計情報計算結果:', stats);
@@ -319,35 +323,40 @@ const GameScreen = () => {
 
       // 統計情報がnullまたは不完全な場合は再計算して確保
       let statsToPass = gameState.stats;
-      
-      if (!statsToPass || statsToPass.kpm === undefined || statsToPass.kpm === 0) {
+
+      if (
+        !statsToPass ||
+        statsToPass.kpm === undefined ||
+        statsToPass.kpm === 0
+      ) {
         console.log('【GameScreen】統計情報が不完全なため再計算します');
-        
+
         // 終了時間を確認
         const endTime = gameState.endTime || Date.now();
         const startTime = gameState.startTime || Date.now();
         const elapsedTimeMs = endTime - startTime;
-        
+
         // 問題ごとのKPMから総合KPMを計算（Weather Typing公式方法）
-        const problemStats = (gameState.problemStats || []).map(problem => ({
+        const problemStats = (gameState.problemStats || []).map((problem) => ({
           problemKeyCount: problem.problemKeyCount || 0,
-          problemElapsedMs: problem.problemElapsedMs || 0
+          problemElapsedMs: problem.problemElapsedMs || 0,
         }));
-        
+
         // useTypingGameフックからのデータを取得
         const typingStats = typingRef.current?.stats || {};
-        
+
         // 統計情報を構築
         statsToPass = {
-          totalTime: typingStats.elapsedTimeSeconds || (elapsedTimeMs / 1000),
-          correctCount: typingStats.correctCount || gameState.correctKeyCount || 0,
+          totalTime: typingStats.elapsedTimeSeconds || elapsedTimeMs / 1000,
+          correctCount:
+            typingStats.correctCount || gameState.correctKeyCount || 0,
           missCount: typingStats.missCount || 0,
           accuracy: typingStats.accuracy || 100,
           kpm: typingStats.kpm || 0,
           problemKPMs: gameState.problemKPMs || [],
-          problemStats: problemStats
+          problemStats: problemStats,
         };
-        
+
         console.log('【GameScreen】再計算した統計情報:', statsToPass);
       }
 
@@ -355,14 +364,19 @@ const GameScreen = () => {
       const timeoutId = setTimeout(() => {
         // 確実に統計情報を渡すためにgameStateパラメータとして渡す
         goToScreen(SCREENS.RESULT, {
-          gameState: { stats: statsToPass }
+          gameState: { stats: statsToPass },
         });
       }, 150);
 
       // クリーンアップ関数でタイマーをクリア
       return () => clearTimeout(timeoutId);
     }
-  }, [gameState.isGameClear, gameState.stats, gameState.problemKPMs, goToScreen]);
+  }, [
+    gameState.isGameClear,
+    gameState.stats,
+    gameState.problemKPMs,
+    goToScreen,
+  ]);
 
   // 進行状況の計算（ゲーム全体の進捗を表示するように修正）- useMemoで最適化
   const progressPercentage = useMemo(() => {
@@ -486,6 +500,21 @@ const GameScreen = () => {
         showText={true}
         label="進行状況"
       />
+
+      {/* 戻るボタンを追加 */}
+      <div className={styles.controlsContainer}>
+        <Button
+          variant="default"
+          size="small"
+          className="button--control"
+          onClick={() => goToScreen(SCREENS.MAIN_MENU, {
+            playSound: true,
+            soundType: 'button',
+          })}
+        >
+          メニューに戻る
+        </Button>
+      </div>
     </div>
   );
 };

@@ -16,6 +16,7 @@ import TypingUtils from '../utils/TypingUtils';
 import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import { useRouter } from 'next/navigation';
+import Button from './common/Button'; // 共通ボタンコンポーネントをインポート
 
 // アニメーション設定
 const containerVariants = {
@@ -557,79 +558,53 @@ const RankingScreen = () => {
           position: 'relative',
         }}
       >
-        <button
-          style={{
-            backgroundColor: !isOnlineMode
-              ? 'rgba(255, 140, 0, 0.4)'
-              : 'rgba(0, 0, 0, 0.7)',
-            color: '#ffffff',
-            fontFamily: "'Press Start 2P', cursive, system-ui",
-            fontSize: '12px',
-            padding: '8px 15px',
-            border: '2px solid #ff8c00',
-            borderRadius: '20px',
-            cursor: isOnlineMode ? 'pointer' : 'default',
-            boxShadow: !isOnlineMode
-              ? '0 0 10px rgba(255, 140, 0, 0.8)'
-              : 'none',
-            transition: 'all 0.3s',
-          }}
+        <Button
+          variant={!isOnlineMode ? 'primary' : 'default'}
+          active={!isOnlineMode}
           onClick={() => {
             if (isOnlineMode) toggleOnlineMode();
           }}
+          size="small"
         >
           ローカル
-        </button>
-        <button
-          style={{
-            backgroundColor: isOnlineMode
-              ? 'rgba(255, 140, 0, 0.4)'
-              : 'rgba(0, 0, 0, 0.7)',
-            color: '#ffffff',
-            fontFamily: "'Press Start 2P', cursive, system-ui",
-            fontSize: '12px',
-            padding: '8px 15px',
-            border: '2px solid #ff8c00',
-            borderRadius: '20px',
-            cursor: !isOnlineMode ? 'pointer' : 'default',
-            boxShadow: isOnlineMode
-              ? '0 0 10px rgba(255, 140, 0, 0.8)'
-              : 'none',
-            transition: 'all 0.3s',
-          }}
+        </Button>
+        <Button
+          variant={isOnlineMode ? 'primary' : 'default'}
+          active={isOnlineMode}
           onClick={() => {
             if (!isOnlineMode) toggleOnlineMode();
           }}
+          size="small"
         >
           オンライン
-        </button>
+        </Button>
       </div>
 
       <div className={styles.difficultyNav}>
-        <button
-          className={`${styles.difficultyButton} ${
-            activeDifficulty === 'easy' ? styles.difficultyButton__active : ''
-          }`}
+        <Button
+          className="button--difficulty"
+          active={activeDifficulty === 'easy'}
+          variant={activeDifficulty === 'easy' ? 'primary' : 'default'}
           onClick={() => handleDifficultyChange('easy')}
         >
           やさしい
-        </button>
-        <button
-          className={`${styles.difficultyButton} ${
-            activeDifficulty === 'normal' ? styles.difficultyButton__active : ''
-          }`}
+        </Button>
+        <Button
+          className="button--difficulty"
+          active={activeDifficulty === 'normal'}
+          variant={activeDifficulty === 'normal' ? 'primary' : 'default'}
           onClick={() => handleDifficultyChange('normal')}
         >
           普通
-        </button>
-        <button
-          className={`${styles.difficultyButton} ${
-            activeDifficulty === 'hard' ? styles.difficultyButton__active : ''
-          }`}
+        </Button>
+        <Button
+          className="button--difficulty"
+          active={activeDifficulty === 'hard'}
+          variant={activeDifficulty === 'hard' ? 'primary' : 'default'}
           onClick={() => handleDifficultyChange('hard')}
         >
           むずかしい
-        </button>
+        </Button>
       </div>
 
       <div className={styles.rankingContent}>
@@ -763,48 +738,64 @@ const RankingScreen = () => {
         exit={{ opacity: 0, y: 50 }}
         transition={{ delay: isExiting ? 0 : 0.6, duration: 0.5 }}
       >
-        <motion.button
-          className={styles.registerButton}
-          onClick={handleShowRegisterModal}
+        <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-          disabled={!gameState || (!gameState.correctKeyCount && !gameState.stats) || isScoreRegistered}
         >
-          {isScoreRegistered ? 'すでに登録済み' : 'ランキング登録'}
-        </motion.button>
+          <Button
+            variant="primary"
+            size="medium"
+            onClick={handleShowRegisterModal}
+            disabled={!gameState || (!gameState.correctKeyCount && !gameState.stats) || isScoreRegistered}
+          >
+            {isScoreRegistered ? 'すでに登録済み' : 'ランキング登録'}
+          </Button>
+        </motion.div>
 
-        <motion.button
-          className={styles.backButton}
-          onClick={handleBack}
+        <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
-          戻る
-        </motion.button>
+          <Button
+            variant="default"
+            size="medium"
+            onClick={handleBack}
+          >
+            戻る
+          </Button>
+        </motion.div>
 
-        <motion.button
-          className={styles.mainMenuButton}
-          onClick={handleMainMenu}
+        <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
-          メインメニュー
-        </motion.button>
+          <Button
+            variant="default"
+            size="medium"
+            onClick={handleMainMenu}
+          >
+            メインメニュー
+          </Button>
+        </motion.div>
 
         {/* デバッグボタン - 開発用 */}
-        <motion.button
-          className={styles.debugButton}
-          onClick={handleDebugFirebase}
+        <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-          disabled={isLoading}
         >
-          接続確認
-        </motion.button>
+          <Button
+            variant="default"
+            size="medium"
+            onClick={handleDebugFirebase}
+            disabled={isLoading}
+          >
+            接続確認
+          </Button>
+        </motion.div>
       </motion.div>
 
       {/* ランキング登録モーダル */}
@@ -822,9 +813,14 @@ const RankingScreen = () => {
           >
             <div className={styles.modalHeader}>
               <h2 className={styles.modalTitle}>オンラインランキング登録</h2>
-              <button className={styles.closeButton} onClick={handleCloseModal}>
+              <Button
+                variant="default"
+                size="small"
+                onClick={handleCloseModal}
+                className={styles.closeButton}
+              >
                 ✕
-              </button>
+              </Button>
             </div>
             <div className={styles.modalBody}>
               <p>名前を入力してオンラインランキングに登録しましょう！</p>
@@ -945,8 +941,9 @@ const RankingScreen = () => {
               )}
 
               <div className={styles.modalActions}>
-                <button
-                  className={styles.registerActionButton}
+                <Button
+                  variant="primary"
+                  size="medium"
                   onClick={handleRegisterScore}
                   disabled={
                     isLoading ||
@@ -955,14 +952,15 @@ const RankingScreen = () => {
                   }
                 >
                   {isLoading ? '登録中...' : '登録する'}
-                </button>
-                <button
-                  className={styles.cancelButton}
+                </Button>
+                <Button
+                  variant="default"
+                  size="medium"
                   onClick={handleCloseModal}
                   disabled={isLoading}
                 >
                   キャンセル
-                </button>
+                </Button>
               </div>
             </div>
           </motion.div>
@@ -984,17 +982,26 @@ const RankingScreen = () => {
           >
             <div className={styles.modalHeader}>
               <h2 className={styles.modalTitle}>デバッグモード</h2>
-              <button className={styles.closeButton} onClick={closeDebug}>
+              <Button
+                variant="default"
+                size="small"
+                onClick={closeDebug}
+                className={styles.closeButton}
+              >
                 ✕
-              </button>
+              </Button>
             </div>
             <div className={styles.modalBody}>
               <pre>{JSON.stringify(debugData, null, 2)}</pre>
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.cancelButton} onClick={closeDebug}>
+              <Button
+                variant="default"
+                size="medium"
+                onClick={closeDebug}
+              >
                 閉じる
-              </button>
+              </Button>
             </div>
           </motion.div>
         </div>

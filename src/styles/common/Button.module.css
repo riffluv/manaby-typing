@@ -3,19 +3,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 15px;
+  padding: 10px 20px; /* 水平方向のパディングを統一 */
   border: 2px solid #ff8c00;
   background-color: rgba(0, 0, 0, 0.7);
   color: #fff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-radius: 5px;
+  border-radius: 8px; /* 統一された角丸の半径 */
   box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
     inset 0 0 10px rgba(255, 140, 0, 0.3);
   position: relative;
   overflow: hidden;
+  font-weight: 500; /* 統一されたフォントの太さ */
+  letter-spacing: 0.5px; /* 文字間隔を統一 */
 }
 
 .button:hover {
@@ -56,12 +58,14 @@
 /* ボタンサイズ */
 .button--small {
   font-size: 12px;
-  padding: 6px 10px;
+  padding: 8px 16px; /* 縦横比を維持 */
+  border-radius: 6px; /* サイズに合わせた角丸 */
 }
 
 .button--large {
   font-size: 16px;
-  padding: 12px 20px;
+  padding: 12px 24px; /* 縦横比を維持 */
+  border-radius: 10px; /* サイズに合わせた角丸 */
 }
 
 .button--round {
@@ -102,11 +106,11 @@
 /* メインメニュー用のボタンスタイル */
 .button--menu {
   flex-direction: row;
-  padding: 6px 14px;
+  padding: 10px 20px; /* 統一されたパディング */
   width: 130px;
-  height: 36px;
-  font-size: 10px;
-  border-radius: 30px;
+  height: 40px; /* 統一された高さ */
+  font-size: 12px;
+  border-radius: 8px; /* 統一された角丸 */
   letter-spacing: 0.5px;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
@@ -135,8 +139,8 @@
 .button--difficulty {
   flex: 1;
   font-size: 12px;
-  padding: 10px 5px;
-  border-radius: 5px;
+  padding: 10px 16px; /* パディングを統一 */
+  border-radius: 8px; /* 角丸を統一 */
   background-color: rgba(0, 0, 0, 0.7);
   width: auto;
 }
@@ -150,12 +154,29 @@
   box-shadow: 0 0 10px rgba(255, 140, 0, 0.6);
 }
 
+/* スタンダードなゲームコントロール用ボタン */
+.button--control {
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+/* 戻るボタン用のスタイル */
+.button--back {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
 /* メディアクエリ対応 */
 @media (max-width: 850px) {
   .button--menu {
     width: 120px;
-    height: 34px;
-    padding: 5px 10px;
+    height: 38px;
+    padding: 8px 16px; /* パディングを調整 */
+    border-radius: 8px; /* 角丸を統一 */
   }
 
   .button--menu .button__icon {
@@ -164,6 +185,6 @@
   }
 
   .button--menu {
-    font-size: 9px;
+    font-size: 10px;
   }
 }

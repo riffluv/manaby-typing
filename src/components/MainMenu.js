@@ -370,16 +370,26 @@ const MainMenu = () => {
           animate="show"
         >
           <motion.div variants={itemVariants}>
-            <button className={styles.menuButton} onClick={handleOpenSettings}>
-              <span className={styles.buttonIcon}>⚙️</span>
+            <Button
+              variant="default"
+              size="medium"
+              onClick={handleOpenSettings}
+              className="button--menu"
+              icon="⚙️"
+            >
               <span className={styles.buttonText}>設定</span>
-            </button>
+            </Button>
           </motion.div>
           <motion.div variants={itemVariants}>
-            <button className={styles.menuButton} onClick={handleOpenCredits}>
-              <span className={styles.buttonIcon}>ⓘ</span>
+            <Button
+              variant="default"
+              size="medium"
+              onClick={handleOpenCredits}
+              className="button--menu"
+              icon="ⓘ"
+            >
               <span className={styles.buttonText}>クレジット</span>
-            </button>
+            </Button>
           </motion.div>
         </motion.div>
 

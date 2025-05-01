@@ -6,6 +6,7 @@ import { useGameContext, SCREENS } from '../contexts/GameContext';
 import soundSystem from '../utils/SoundUtils';
 import CreditsContent from './common/CreditsContent'; // 共通クレジットコンポーネント
 import { creditsData } from '../utils/CreditsData'; // クレジットデータ
+import Button from './common/Button'; // 共通ボタンコンポーネントをインポート
 
 const CreditsScreen = () => {
   const { navigateTo } = useGameContext();
@@ -35,9 +36,14 @@ const CreditsScreen = () => {
       </div>
 
       <div className={styles.creditsFooter}>
-        <button className={styles.backButton} onClick={handleBackClick}>
+        <Button
+          variant="default"
+          size="medium"
+          onClick={handleBackClick}
+          className="button--back"
+        >
           メインメニューに戻る
-        </button>
+        </Button>
       </div>
     </div>
   );
