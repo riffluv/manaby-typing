@@ -40,7 +40,7 @@ const CanvasTypingDisplay = memo(
     // 色の定義 (CSSのカスタムプロパティに対応)
     const colors = useMemo(() => ({
       typed: '#6aff8b', // 入力済み文字色（緑）
-      current: '#4db8ff', // 現在入力中の文字色（青）
+      current: '#6aff8b', // 現在入力中の文字色（緑に変更）
       nextChar: '#ff9a28', // 次に入力すべき文字色（オレンジ）
       notTyped: '#757575', // 未入力の文字色（薄いグレー）
       cursor: '#ff9a28', // カーソル色（オレンジ）
