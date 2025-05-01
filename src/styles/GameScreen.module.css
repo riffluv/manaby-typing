@@ -527,3 +527,21 @@
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: none;
 }
+
+/* Canvas描画用のスタイル */
+.canvasTypingContainer {
+  width: 100%;
+  min-height: 80px;
+  position: relative;
+  margin: 0.8rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.typingCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}

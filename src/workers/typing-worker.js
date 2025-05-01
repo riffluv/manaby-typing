@@ -27,7 +27,7 @@ const romajiMap = {
   と: ['to'],
   な: ['na'],
   に: ['ni'],
-   ぬ: ['nu'],
+  ぬ: ['nu'],
   ね: ['ne'],
   の: ['no'],
   は: ['ha'],
@@ -62,7 +62,7 @@ const romajiMap = {
   ぜ: ['ze'],
   ぞ: ['zo'],
   だ: ['da'],
-   ぢ: ['di', 'ji'],
+  ぢ: ['di', 'ji'],
   づ: ['du', 'zu'],
   で: ['de'],
   ど: ['do'],
@@ -72,7 +72,7 @@ const romajiMap = {
   べ: ['be'],
   ぼ: ['bo'],
   ぱ: ['pa'],
-   ぴ: ['pi'],
+  ぴ: ['pi'],
   ぷ: ['pu'],
   ぺ: ['pe'],
   ぽ: ['po'],
@@ -151,14 +151,32 @@ const romajiMap = {
 
 // 促音（小さいっ）の特別ルール処理用の子音マッピング
 const smallTsuMap = {
-  k: true, s: true, t: true, p: true, c: true,
-  h: true, f: true, m: true, y: true, r: true,
-  w: true, g: true, z: true, d: true, b: true, j: true
+  k: true,
+  s: true,
+  t: true,
+  p: true,
+  c: true,
+  h: true,
+  f: true,
+  m: true,
+  y: true,
+  r: true,
+  w: true,
+  g: true,
+  z: true,
+  d: true,
+  b: true,
+  j: true,
 };
 
 // 母音と「y」で始まるパターン（「ん」の特殊処理用）
 const vowelsAndY = {
-  a: true, i: true, u: true, e: true, o: true, y: true
+  a: true,
+  i: true,
+  u: true,
+  e: true,
+  o: true,
+  y: true,
 };
 
 /**
@@ -167,28 +185,101 @@ const vowelsAndY = {
 function convertFullWidthToHalfWidth(char) {
   // 全角英数字・記号の変換マップ
   const fullWidthMap = {
-    '！': '!', '＂': '"', '＃': '#', '＄': '$', '％': '%',
-    '＆': '&', '＇': "'", '（': '(', '）': ')', '＊': '*',
-    '＋': '+', '，': ',', '－': '-', '．': '.', '／': '/',
-    '０': '0', '１': '1', '２': '2', '３': '3', '４': '4',
-    '５': '5', '６': '6', '７': '7', '８': '8', '９': '9',
-    '：': ':', '；': ';', '＜': '<', '＝': '=', '＞': '>',
-    '？': '?', '＠': '@',
-    'Ａ': 'a', 'Ｂ': 'b', 'Ｃ': 'c', 'Ｄ': 'd', 'Ｅ': 'e',
-    'Ｆ': 'f', 'Ｇ': 'g', 'Ｈ': 'h', 'Ｉ': 'i', 'Ｊ': 'j',
-    'Ｋ': 'k', 'Ｌ': 'l', 'Ｍ': 'm', 'Ｎ': 'n', 'Ｏ': 'o',
-    'Ｐ': 'p', 'Ｑ': 'q', 'Ｒ': 'r', 'Ｓ': 's', 'Ｔ': 't',
-    'Ｕ': 'u', 'Ｖ': 'v', 'Ｗ': 'w', 'Ｘ': 'x', 'Ｙ': 'y',
-    'Ｚ': 'z',
-    'ａ': 'a', 'ｂ': 'b', 'ｃ': 'c', 'ｄ': 'd', 'ｅ': 'e',
-    'ｆ': 'f', 'ｇ': 'g', 'ｈ': 'h', 'ｉ': 'i', 'ｊ': 'j',
-    'ｋ': 'k', 'ｌ': 'l', 'ｍ': 'm', 'ｎ': 'n', 'ｏ': 'o',
-    'ｐ': 'p', 'ｑ': 'q', 'ｒ': 'r', 'ｓ': 's', 'ｔ': 't',
-    'ｕ': 'u', 'ｖ': 'v', 'ｗ': 'w', 'ｘ': 'x', 'ｙ': 'y',
-    'ｚ': 'z',
-    '［': '[', '＼': '\\', '］': ']', '＾': '^', '＿': '_',
-    '｀': '`', '｛': '{', '｜': '|', '｝': '}', '～': '~',
-    '　': ' '
+    '！': '!',
+    '＂': '"',
+    '＃': '#',
+    '＄': '$',
+    '％': '%',
+    '＆': '&',
+    '＇': "'",
+    '（': '(',
+    '）': ')',
+    '＊': '*',
+    '＋': '+',
+    '，': ',',
+    '－': '-',
+    '．': '.',
+    '／': '/',
+    '０': '0',
+    '１': '1',
+    '２': '2',
+    '３': '3',
+    '４': '4',
+    '５': '5',
+    '６': '6',
+    '７': '7',
+    '８': '8',
+    '９': '9',
+    '：': ':',
+    '；': ';',
+    '＜': '<',
+    '＝': '=',
+    '＞': '>',
+    '？': '?',
+    '＠': '@',
+    Ａ: 'a',
+    Ｂ: 'b',
+    Ｃ: 'c',
+    Ｄ: 'd',
+    Ｅ: 'e',
+    Ｆ: 'f',
+    Ｇ: 'g',
+    Ｈ: 'h',
+    Ｉ: 'i',
+    Ｊ: 'j',
+    Ｋ: 'k',
+    Ｌ: 'l',
+    Ｍ: 'm',
+    Ｎ: 'n',
+    Ｏ: 'o',
+    Ｐ: 'p',
+    Ｑ: 'q',
+    Ｒ: 'r',
+    Ｓ: 's',
+    Ｔ: 't',
+    Ｕ: 'u',
+    Ｖ: 'v',
+    Ｗ: 'w',
+    Ｘ: 'x',
+    Ｙ: 'y',
+    Ｚ: 'z',
+    ａ: 'a',
+    ｂ: 'b',
+    ｃ: 'c',
+    ｄ: 'd',
+    ｅ: 'e',
+    ｆ: 'f',
+    ｇ: 'g',
+    ｈ: 'h',
+    ｉ: 'i',
+    ｊ: 'j',
+    ｋ: 'k',
+    ｌ: 'l',
+    ｍ: 'm',
+    ｎ: 'n',
+    ｏ: 'o',
+    ｐ: 'p',
+    ｑ: 'q',
+    ｒ: 'r',
+    ｓ: 's',
+    ｔ: 't',
+    ｕ: 'u',
+    ｖ: 'v',
+    ｗ: 'w',
+    ｘ: 'x',
+    ｙ: 'y',
+    ｚ: 'z',
+    '［': '[',
+    '＼': '\\',
+    '］': ']',
+    '＾': '^',
+    '＿': '_',
+    '｀': '`',
+    '｛': '{',
+    '｜': '|',
+    '｝': '}',
+    '～': '~',
+    '　': ' ',
   };
 
   return fullWidthMap[char] || char;
@@ -204,19 +295,19 @@ function processInput(session, char) {
   if (!session || session.completed) {
     return { success: false, status: 'already_completed' };
   }
-  
+
   const currentPatterns = session.patterns[session.currentCharIndex];
   if (!currentPatterns) {
     return { success: false, status: 'invalid_state' };
   }
-  
+
   // 新しい入力を追加
   const newInput = session.currentInput + char;
-  
+
   // パターンマッチング（高速処理版）
   let exactMatch = null;
   let hasMatchingPrefix = false;
-  
+
   for (let i = 0; i < currentPatterns.length; i++) {
     const pattern = currentPatterns[i];
     if (pattern === newInput) {
@@ -227,87 +318,87 @@ function processInput(session, char) {
       hasMatchingPrefix = true;
     }
   }
-  
+
   if (exactMatch || hasMatchingPrefix) {
     // 新しいセッションオブジェクトを作成（イミュータブルに）
     const updatedSession = {
       ...session,
-      currentInput: newInput
+      currentInput: newInput,
     };
-    
+
     if (exactMatch) {
       // 文字入力完了
       updatedSession.typedRomaji += exactMatch;
       updatedSession.currentCharIndex++;
       updatedSession.currentInput = '';
-      
+
       // すべての文字が入力完了したか
       if (updatedSession.currentCharIndex >= updatedSession.patterns.length) {
         updatedSession.completed = true;
         updatedSession.completedAt = Date.now();
-        return { 
-          success: true, 
+        return {
+          success: true,
           status: 'all_completed',
-          session: updatedSession
+          session: updatedSession,
         };
       }
-      return { 
-        success: true, 
+      return {
+        success: true,
         status: 'char_completed',
-        session: updatedSession
+        session: updatedSession,
       };
     }
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       status: 'in_progress',
-      session: updatedSession
+      session: updatedSession,
     };
   }
-  
+
   // 分割入力処理（例：「し」に対して「shi」の「s」「hi」)
   const splitResult = optimizeSplitInput(
     char,
     currentPatterns,
     session.currentInput
   );
-  
+
   if (splitResult) {
     // 分割処理が有効
     const updatedSession = {
       ...session,
-      currentInput: splitResult.secondPart
+      currentInput: splitResult.secondPart,
     };
-    
+
     if (splitResult.secondPart === splitResult.matchedPattern) {
       // 文字入力完了
       updatedSession.typedRomaji += splitResult.matchedPattern;
       updatedSession.currentCharIndex++;
       updatedSession.currentInput = '';
-      
+
       if (updatedSession.currentCharIndex >= updatedSession.patterns.length) {
         updatedSession.completed = true;
         updatedSession.completedAt = Date.now();
-        return { 
-          success: true, 
+        return {
+          success: true,
           status: 'all_completed',
-          session: updatedSession
+          session: updatedSession,
         };
       }
-      return { 
-        success: true, 
+      return {
+        success: true,
         status: 'char_completed_split',
-        session: updatedSession
+        session: updatedSession,
       };
     }
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       status: 'in_progress_split',
-      session: updatedSession
+      session: updatedSession,
     };
   }
-  
+
   // 入力が一致しない
   return { success: false, status: 'no_match' };
 }
@@ -316,8 +407,14 @@ function processInput(session, char) {
  * 色分け情報を取得
  */
 function getColoringInfo(session) {
-  if (!session) return { typedLength: 0, currentInputLength: 0, currentPosition: 0, completed: false };
-  
+  if (!session)
+    return {
+      typedLength: 0,
+      currentInputLength: 0,
+      currentPosition: 0,
+      completed: false,
+    };
+
   if (session.completed) {
     return {
       typedLength: session.displayRomaji.length,
@@ -328,14 +425,18 @@ function getColoringInfo(session) {
       completedAt: session.completedAt,
     };
   }
-  
+
   // 事前計算済みのインデックスを使用
-  const typedIndex = session.currentCharIndex > 0 ? 
-    session.displayIndices[session.currentCharIndex] : 0;
-  
-  const currentPosition = session.currentCharIndex < session.patterns.length ?
-    session.displayIndices[session.currentCharIndex] : session.displayRomaji.length;
-  
+  const typedIndex =
+    session.currentCharIndex > 0
+      ? session.displayIndices[session.currentCharIndex]
+      : 0;
+
+  const currentPosition =
+    session.currentCharIndex < session.patterns.length
+      ? session.displayIndices[session.currentCharIndex]
+      : session.displayRomaji.length;
+
   return {
     typedLength: typedIndex,
     currentInputLength: session.currentInput.length,
@@ -381,12 +482,12 @@ function optimizeSplitInput(input, patterns, currentInput = '') {
  * @returns {Object} 計算結果
  */
 function calculateStatistics(statsData) {
-  const { 
-    correctCount, 
-    missCount, 
-    startTimeMs, 
-    currentTimeMs, 
-    problemStats = [] 
+  const {
+    correctCount,
+    missCount,
+    startTimeMs,
+    currentTimeMs,
+    problemStats = [],
   } = statsData;
 
   // 計算結果を格納するオブジェクト
@@ -403,38 +504,38 @@ function calculateStatistics(statsData) {
   // 計算に必要な基本データ
   result.elapsedTimeMs = currentTimeMs - startTimeMs;
   result.elapsedTimeSeconds = result.elapsedTimeMs / 1000;
-  
+
   // 正確性計算
   if (result.totalCount > 0) {
     result.accuracy = (correctCount / result.totalCount) * 100;
   }
-  
+
   // 問題ごとのKPM計算
   if (Array.isArray(problemStats) && problemStats.length > 0) {
     let totalKeyCount = 0;
     let totalTimeMs = 0;
-    
+
     // 各問題のKPMを計算して配列に追加
-    problemStats.forEach(problem => {
+    problemStats.forEach((problem) => {
       if (problem && typeof problem === 'object') {
         const { problemKeyCount, problemElapsedMs } = problem;
-        
+
         // 各問題のKPMを計算
         let problemKPM = 0;
         if (problemElapsedMs > 0) {
           const minutes = problemElapsedMs / 60000; // ミリ秒を分に変換
           problemKPM = Math.floor(problemKeyCount / minutes); // 小数点以下切り捨て
         }
-        
+
         // 総計にも加算
         totalKeyCount += problemKeyCount || 0;
         totalTimeMs += problemElapsedMs || 0;
-        
+
         // 各問題のKPM配列に追加
         result.problemKPMs.push(problemKPM);
       }
     });
-    
+
     // 総合KPMを計算
     if (totalTimeMs > 0) {
       const totalMinutes = totalTimeMs / 60000;
@@ -447,10 +548,10 @@ function calculateStatistics(statsData) {
       result.kpm = Math.floor(correctCount / minutes);
     }
   }
-  
+
   // ランク計算
   result.rank = calculateRank(result.kpm);
-  
+
   return result;
 }
 
@@ -460,12 +561,12 @@ function calculateStatistics(statsData) {
  * @returns {string} ランク（S, A, B, C, D, E, F）
  */
 function calculateRank(kpm) {
-  if (kpm >= 400) return 'S'; 
+  if (kpm >= 400) return 'S';
   if (kpm >= 300) return 'A';
   if (kpm >= 200) return 'B';
   if (kpm >= 150) return 'C';
   if (kpm >= 100) return 'D';
-  if (kpm >= 50)  return 'E';
+  if (kpm >= 50) return 'E';
   return 'F';
 }
 
@@ -478,12 +579,12 @@ async function submitRanking(recordData) {
   try {
     // ランキングサーバーのエンドポイント
     const endpoint = recordData.endpoint || 'https://api.example.com/ranking';
-    
+
     // リクエストオプション
     const options = {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         username: recordData.username || 'Anonymous',
@@ -491,27 +592,27 @@ async function submitRanking(recordData) {
         kpm: recordData.kpm,
         accuracy: recordData.accuracy,
         problemCount: recordData.problemCount,
-        timestamp: new Date().toISOString()
-      })
+        timestamp: new Date().toISOString(),
+      }),
     };
-    
+
     // APIリクエスト実行
     const response = await fetch(endpoint, options);
-    
+
     if (!response.ok) {
       throw new Error(`サーバーエラー: ${response.status}`);
     }
-    
+
     const result = await response.json();
     return {
       success: true,
-      data: result
+      data: result,
     };
   } catch (error) {
     console.error('ランキング送信エラー:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 }
@@ -524,7 +625,7 @@ function processInputHistory(inputHistory) {
   if (!Array.isArray(inputHistory) || inputHistory.length === 0) {
     return { success: false, error: '有効な入力履歴がありません' };
   }
-  
+
   // 集計結果
   const result = {
     totalKeyCount: 0,
@@ -534,60 +635,61 @@ function processInputHistory(inputHistory) {
     errorPatterns: {}, // よくミスするパターン
     speedPatterns: [], // 速度パターン（時間経過とともにどう変わるか）
   };
-  
+
   // 入力キーごとの頻度を集計
-  inputHistory.forEach(entry => {
+  inputHistory.forEach((entry) => {
     if (!entry || typeof entry !== 'object') return;
-    
+
     const { key, isCorrect, timestamp } = entry;
-    
+
     // 全体カウント
     result.totalKeyCount++;
-    
+
     // 正誤カウント
     if (isCorrect) {
       result.correctKeyCount++;
     } else {
       result.missCount++;
     }
-    
+
     // キー頻度の集計
     if (key) {
       result.keyFrequency[key] = (result.keyFrequency[key] || 0) + 1;
     }
-    
+
     // エラーパターンの集計
     if (!isCorrect && entry.expectedKey) {
       const errorPattern = `${entry.expectedKey}->${key}`;
-      result.errorPatterns[errorPattern] = (result.errorPatterns[errorPattern] || 0) + 1;
+      result.errorPatterns[errorPattern] =
+        (result.errorPatterns[errorPattern] || 0) + 1;
     }
-    
+
     // 速度パターン（10秒ごとのセグメントに分割）
     if (timestamp) {
       const timeSegment = Math.floor(timestamp / 10000); // 10秒単位で区切る
-      
+
       if (!result.speedPatterns[timeSegment]) {
         result.speedPatterns[timeSegment] = {
           keyCount: 0,
           correctCount: 0,
           startTime: timeSegment * 10000,
-          endTime: (timeSegment + 1) * 10000
+          endTime: (timeSegment + 1) * 10000,
         };
       }
-      
+
       result.speedPatterns[timeSegment].keyCount++;
       if (isCorrect) {
         result.speedPatterns[timeSegment].correctCount++;
       }
     }
   });
-  
+
   // スパースな配列を詰める
   result.speedPatterns = result.speedPatterns.filter(Boolean);
-  
+
   return {
     success: true,
-    data: result
+    data: result,
   };
 }
 
@@ -595,9 +697,9 @@ function processInputHistory(inputHistory) {
  * Web Workerのメッセージハンドラ
  * すべてのタイピング処理をメインスレッドから分離して実行
  */
-self.onmessage = function(e) {
+self.onmessage = function (e) {
   const { type, data, callbackId } = e.data;
-  
+
   switch (type) {
     case 'processInput':
       // 入力処理を実行
@@ -605,40 +707,40 @@ self.onmessage = function(e) {
         const { session, char } = data;
         const normalizedChar = convertFullWidthToHalfWidth(char.toLowerCase());
         const result = processInput(session, normalizedChar);
-        
+
         // 結果をメインスレッドに返す
         self.postMessage({
           type: 'processInputResult',
           callbackId,
-          data: result
+          data: result,
         });
       } catch (err) {
         console.error('Worker処理エラー (processInput):', err);
         self.postMessage({
           type: 'processInputResult',
           callbackId,
-          data: { success: false, status: 'worker_error', error: err.message }
+          data: { success: false, status: 'worker_error', error: err.message },
         });
       }
       break;
-      
+
     case 'getColoringInfo':
       // 色分け情報を計算
       try {
         const coloringInfo = getColoringInfo(data.session);
-        
+
         // 結果をメインスレッドに返す
         self.postMessage({
           type: 'coloringInfoResult',
           callbackId,
-          data: coloringInfo
+          data: coloringInfo,
         });
       } catch (err) {
         console.error('Worker処理エラー (getColoringInfo):', err);
         self.postMessage({
           type: 'coloringInfoResult',
           callbackId,
-          data: { error: err.message }
+          data: { error: err.message },
         });
       }
       break;
@@ -650,14 +752,14 @@ self.onmessage = function(e) {
         self.postMessage({
           type: 'calculateStatisticsResult',
           callbackId,
-          data: result
+          data: result,
         });
       } catch (err) {
         console.error('Worker処理エラー (calculateStatistics):', err);
         self.postMessage({
           type: 'calculateStatisticsResult',
           callbackId,
-          data: { error: err.message }
+          data: { error: err.message },
         });
       }
       break;
@@ -665,19 +767,19 @@ self.onmessage = function(e) {
     case 'submitRanking':
       // ランキング送信処理（非同期）
       submitRanking(data)
-        .then(result => {
+        .then((result) => {
           self.postMessage({
             type: 'submitRankingResult',
             callbackId,
-            data: result
+            data: result,
           });
         })
-        .catch(err => {
+        .catch((err) => {
           console.error('Worker処理エラー (submitRanking):', err);
           self.postMessage({
             type: 'submitRankingResult',
             callbackId,
-            data: { success: false, error: err.message }
+            data: { success: false, error: err.message },
           });
         });
       break;
@@ -689,26 +791,26 @@ self.onmessage = function(e) {
         self.postMessage({
           type: 'processInputHistoryResult',
           callbackId,
-          data: result
+          data: result,
         });
       } catch (err) {
         console.error('Worker処理エラー (processInputHistory):', err);
         self.postMessage({
           type: 'processInputHistoryResult',
           callbackId,
-          data: { success: false, error: err.message }
+          data: { success: false, error: err.message },
         });
       }
       break;
-      
+
     case 'ping':
       // 生存確認用
       self.postMessage({
         type: 'pong',
-        data: { received: Date.now() }
+        data: { received: Date.now() },
       });
       break;
-      
+
     default:
       console.warn('不明なメッセージタイプ:', type);
       break;

@@ -15,14 +15,15 @@ import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import { useTypingGame } from '../hooks/useTypingGame';
 
-// 新しく作成したコンポーネントをインポート
+// コンポーネントをインポート
 import TypingDisplay from './typing/TypingDisplay';
+import CanvasTypingDisplay from './typing/CanvasTypingDisplay'; // 新しいCanvas描画コンポーネント
 import ProgressBar from './typing/ProgressBar';
 import ProblemDisplay from './typing/ProblemDisplay';
 
 // デバッグ用コンソールログの追加
 console.log(
-  'DEBUG: UPDATED GameScreen.js has loaded! - ESC機能付き + 戻るボタンなし + useTypingGame対応 + コンポーネント分離 + パフォーマンス最適化'
+  'DEBUG: UPDATED GameScreen.js has loaded! - ESC機能付き + 戻るボタンなし + useTypingGame対応 + コンポーネント分離 + パフォーマンス最適化 + Canvas描画対応'
 );
 
 // リファクタリング後のコンポーネント実装
@@ -468,7 +469,7 @@ const GameScreen = () => {
             />
 
             {/* タイピング表示コンポーネントを使用 */}
-            <TypingDisplay
+            <CanvasTypingDisplay
               displayRomaji={typing.displayRomaji}
               coloringInfo={typing.coloringInfo}
               isCompleted={typing.isCompleted}

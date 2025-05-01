@@ -10,7 +10,7 @@ export class TypingWorkerManager {
     this._lastSession = null;
     this._initializationPromise = null;
     this._inputHistory = []; // 入力履歴を保持
-    
+
     // 自動初期化
     this._initialize();
   }
@@ -27,12 +27,14 @@ export class TypingWorkerManager {
     this._initializationPromise = new Promise((resolve, reject) => {
       try {
         // WorkerをWeb Worker APIを使って初期化
-        this._worker = new Worker(new URL('../workers/typing-worker.js', import.meta.url));
-        
+        this._worker = new Worker(
+          new URL('../workers/typing-worker.js', import.meta.url)
+        );
+
         // メッセージハンドラの設定
         this._worker.onmessage = (e) => {
           const { type, data, callbackId } = e.data;
-          
+
           // コールバックIDがある場合は、対応するコールバックを実行
           if (callbackId && this._callbacks.has(callbackId)) {
             const callback = this._callbacks.get(callbackId);
@@ -40,7 +42,7 @@ export class TypingWorkerManager {
             callback(data);
             return;
           }
-          
+
           // 各メッセージタイプに応じた処理
           switch (type) {
             case 'processInputResult':
@@ -49,26 +51,30 @@ export class TypingWorkerManager {
                 this._lastSession = this._reconstructSession(data.session);
               }
               break;
-              
+
             case 'pong':
               // 生存確認の応答
-              console.log('Worker is alive, response time:', Date.now() - data.received, 'ms');
+              console.log(
+                'Worker is alive, response time:',
+                Date.now() - data.received,
+                'ms'
+              );
               break;
           }
         };
-        
+
         // エラーハンドラの設定
         this._worker.onerror = (error) => {
           console.error('Typing Worker error:', error);
           reject(error);
         };
-        
+
         // 生存確認のメッセージを送信
         this._worker.postMessage({
           type: 'ping',
-          data: { sent: Date.now() }
+          data: { sent: Date.now() },
         });
-        
+
         resolve();
       } catch (error) {
         console.error('Failed to initialize Typing Worker:', error);
@@ -78,7 +84,7 @@ export class TypingWorkerManager {
         reject(error);
       }
     });
-    
+
     return this._initializationPromise;
   }
 
@@ -87,7 +93,7 @@ export class TypingWorkerManager {
    */
   _serializeSession(session) {
     if (!session) return null;
-    
+
     // 関数を含まないプロパティのみを抽出
     return {
       originalText: session.originalText,
@@ -100,10 +106,10 @@ export class TypingWorkerManager {
       typedRomaji: session.typedRomaji,
       currentInput: session.currentInput,
       completed: session.completed,
-      completedAt: session.completedAt
+      completedAt: session.completedAt,
     };
   }
-  
+
   /**
    * Worker からのデータを元のセッションオブジェクトに再構築
    */
@@ -135,33 +141,33 @@ export class TypingWorkerManager {
         return Promise.reject(error);
       }
     }
-    
+
     // 入力履歴に追加（統計用）
     if (char) {
       this._inputHistory.push({
         key: char,
         isCorrect: isCorrect,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     }
-    
+
     return new Promise((resolve) => {
       const callbackId = this._getNextCallbackId();
-      
+
       // コールバックを登録
       this._callbacks.set(callbackId, resolve);
-      
+
       // セッションをシリアライズして関数を除去
       const serializedSession = this._serializeSession(session);
-      
+
       // Workerにメッセージを送信
       this._worker.postMessage({
         type: 'processInput',
         callbackId,
         data: {
           session: serializedSession,
-          char
-        }
+          char,
+        },
       });
     });
   }
@@ -179,27 +185,29 @@ export class TypingWorkerManager {
         return Promise.reject(error);
       }
     }
-    
+
     return new Promise((resolve) => {
       const callbackId = this._getNextCallbackId();
-      
+
       // コールバックを登録
       this._callbacks.set(callbackId, resolve);
-      
+
       // セッションをシリアライズして関数を除去
-      const serializedSession = this._serializeSession(session || this._lastSession);
-      
+      const serializedSession = this._serializeSession(
+        session || this._lastSession
+      );
+
       // Workerにメッセージを送信
       this._worker.postMessage({
         type: 'getColoringInfo',
         callbackId,
         data: {
-          session: serializedSession
-        }
+          session: serializedSession,
+        },
       });
     });
   }
-  
+
   /**
    * 統計情報を計算（非同期） - この処理はWorkerで行う
    * @param {Object} statsData - 統計計算に必要なデータ
@@ -213,22 +221,22 @@ export class TypingWorkerManager {
         return Promise.reject(error);
       }
     }
-    
+
     return new Promise((resolve) => {
       const callbackId = this._getNextCallbackId();
-      
+
       // コールバックを登録
       this._callbacks.set(callbackId, resolve);
-      
+
       // Workerにメッセージを送信
       this._worker.postMessage({
         type: 'calculateStatistics',
         callbackId,
-        data: statsData
+        data: statsData,
       });
     });
   }
-  
+
   /**
    * ランキング送信（非同期） - この処理はWorkerで行う
    * @param {Object} recordData - 送信するランキングデータ
@@ -242,22 +250,22 @@ export class TypingWorkerManager {
         return Promise.reject(error);
       }
     }
-    
+
     return new Promise((resolve) => {
       const callbackId = this._getNextCallbackId();
-      
+
       // コールバックを登録
       this._callbacks.set(callbackId, resolve);
-      
+
       // Workerにメッセージを送信
       this._worker.postMessage({
         type: 'submitRanking',
         callbackId,
-        data: recordData
+        data: recordData,
       });
     });
   }
-  
+
   /**
    * 入力履歴の処理と集計（非同期） - この処理はWorkerで行う
    * @returns {Promise} 集計結果を含むPromise
@@ -270,29 +278,29 @@ export class TypingWorkerManager {
         return Promise.reject(error);
       }
     }
-    
+
     // 入力履歴がなければ処理不要
     if (this._inputHistory.length === 0) {
       return Promise.resolve({ success: false, error: '入力履歴がありません' });
     }
-    
+
     return new Promise((resolve) => {
       const callbackId = this._getNextCallbackId();
-      
+
       // コールバックを登録
       this._callbacks.set(callbackId, resolve);
-      
+
       // Workerにメッセージを送信
       this._worker.postMessage({
         type: 'processInputHistory',
         callbackId,
         data: {
-          inputHistory: this._inputHistory
-        }
+          inputHistory: this._inputHistory,
+        },
       });
     });
   }
-  
+
   /**
    * 入力履歴をクリア
    */
