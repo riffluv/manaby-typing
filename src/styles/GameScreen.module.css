@@ -56,11 +56,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start; /* 上部寄せに変更 */
   align-items: center;
   padding: 1.5rem;
-  padding-bottom: 4rem; /* 下部に余白を増やして上方に配置 */
+  padding-bottom: 5.5rem; /* 下部の余白を増やしてゲームバーのスペースを確保 */
   z-index: 1;
+  position: relative; /* 相対位置指定を追加 */
 }
 
 .typingArea {
@@ -68,17 +69,17 @@
   max-width: 700px;
   background-color: rgba(0, 0, 0, 0.25);
   border-radius: 16px;
-  padding: 2.5rem;
+  padding: 2rem 2.5rem; /* パディングを少し調整 */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   text-align: center;
   border: 1px solid rgba(255, 140, 0, 0.15);
   position: relative;
   transition: box-shadow 0.3s ease, transform 0.2s ease;
-  /* 長いテキスト用に高さを自動調整できるようにする */
   display: flex;
   flex-direction: column;
-  min-height: 200px;
+  min-height: 180px; /* 最小高さを少し小さく */
+  max-height: 60vh; /* 最大高さを制限 */
 }
 
 .typingArea:focus-within {
@@ -414,14 +415,15 @@
 /* 進行状況バーのスタイル */
 .progressContainer {
   position: absolute;
-  bottom: 80px;
+  bottom: 24px; /* 底部からの距離を調整 */
   left: 50%;
   transform: translateX(-50%);
-  width: 60%;
+  width: 80%; /* 幅を広げる */
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  z-index: 5; /* 重なり順序を確保 */
 }
 
 .progressBar {
@@ -531,12 +533,14 @@
 /* Canvas描画用のスタイル */
 .canvasTypingContainer {
   width: 100%;
-  min-height: 80px;
+  height: 120px; /* 固定高さを指定 */
+  max-height: 25vh; /* 画面の高さに対する最大値の設定 */
   position: relative;
-  margin: 0.8rem auto;
+  margin: 0.6rem auto;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden; /* はみ出し部分を隠す */
 }
 
 .typingCanvas {

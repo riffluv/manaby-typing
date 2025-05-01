@@ -180,11 +180,14 @@ const CanvasTypingDisplay = memo(
         const dpr = window.devicePixelRatio || 1;
         const rect = container.getBoundingClientRect();
         
+        // 固定高さを使用し、コンテナの幅に合わせる
+        const fixedHeight = 120; // CSSで定義した固定高さに合わせる
+        
         canvas.width = rect.width * dpr;
-        canvas.height = Math.max(80, rect.height) * dpr;
+        canvas.height = fixedHeight * dpr;
         
         canvas.style.width = `${rect.width}px`;
-        canvas.style.height = `${Math.max(80, rect.height)}px`;
+        canvas.style.height = `${fixedHeight}px`;
         
         // スケーリング調整
         const ctx = canvas.getContext('2d');
