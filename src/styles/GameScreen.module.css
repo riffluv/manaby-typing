@@ -108,6 +108,12 @@
   width: 100%;
   padding: 0 10px;
   font-family: var(--font-normal); /* 日本語表示用に通常フォントを使用 */
+  text-align: center;
+  display: block;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .typingText {
@@ -120,9 +126,9 @@
   padding: 0.8rem; /* 0.5rem 0.8remから0.8remに変更してパディングを均等に */
   background-color: transparent;
   border-radius: 8px;
-  display: inline-block;
-  min-width: 70%; /* 60%から70%に変更して幅を確保 */
-  max-width: 90%;
+  display: block; /* inline-blockからblockに変更して幅全体を活用 */
+  width: 100%; /* 幅を100%に設定して親要素いっぱいに広げる */
+  text-align: center; /* テキスト自体を中央揃えに */
   position: relative;
   font-weight: 600;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
@@ -132,6 +138,42 @@
   box-shadow: none;
   /* 長いテキストを適切に表示するための設定 */
   white-space: pre-wrap; /* 改行を維持するが、必要に応じて折り返す */
+}
+
+/* シンプルな中央揃えタイピングテキスト - 新しく追加 */
+.simpleTypingText {
+  font-size: 1.8rem;
+  letter-spacing: 1.5px;
+  font-family: var(--font-normal);
+  line-height: 1.5;
+  min-height: 3.6rem;
+  margin: 0.8rem auto;
+  padding: 0.8rem;
+  background-color: transparent;
+  border-radius: 8px;
+  display: block;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  font-weight: 600;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  overflow-wrap: break-word;
+  word-break: break-all;
+  border: none;
+  box-shadow: none;
+  white-space: pre-wrap;
+}
+
+/* お題テキストとローマ字表示を確実に同じ配置にする */
+.typingProblem, 
+.simpleTypingText {
+  width: 100%;
+  text-align: center;
+  display: block;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .typingText::before {

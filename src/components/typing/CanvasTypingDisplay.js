@@ -80,15 +80,19 @@ const CanvasTypingDisplay = memo(
       // エラーアニメーションのオフセットを取得
       const { x: errorOffsetX, y: errorOffsetY } = errorOffsetRef.current;
       
-      // テキスト描画開始X位置（中央寄せ）
+      // テキスト描画開始X位置
+      // お題テキストと同じ表示位置になるように計算を修正
       let totalTextWidth = 0;
       if (typedText) totalTextWidth += ctx.measureText(typedText).width;
       if (currentText) totalTextWidth += ctx.measureText(currentText).width;
       if (nextChar) totalTextWidth += ctx.measureText(nextChar).width;
       if (restText) totalTextWidth += ctx.measureText(restText).width;
       
-      // 描画開始位置（中央寄せ）
-      let currentX = Math.max(20, (canvas.width - totalTextWidth) / 2) + errorOffsetX;
+      // ローマ字テキストの表示位置調整
+      // お題と同じ左右の表示位置になるように調整 
+      // canvas.width/2から文字列の半分の長さを引いて開始位置を計算
+      const startX = Math.max(canvas.width / 2 - totalTextWidth / 2, 20);
+      let currentX = startX + errorOffsetX;
       
       // 完了状態
       if (isCompleted) {

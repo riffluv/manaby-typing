@@ -2,8 +2,8 @@ import React, { useMemo, memo } from 'react';
 import styles from '../../styles/GameScreen.module.css';
 
 /**
- * タイピングの表示を担当するコンポーネント
- * タイピングマニアの設計から学んだ視覚的フィードバックを実装
+ * シンプル化したタイピング表示コンポーネント
+ * すべてのタイピングテキストを中央揃えで表示
  */
 const TypingDisplay = memo(
   ({
@@ -119,14 +119,9 @@ const TypingDisplay = memo(
 
     return (
       <div
-        className={`${styles.typingText} ${
+        className={`${styles.simpleTypingText} ${
           errorAnimation ? styles.errorShake : ''
         }`}
-        style={{
-          willChange: 'transform',
-          contain: 'content',
-          transition: 'all 0.2s ease-out',
-        }}
       >
         {displayText}
 
@@ -134,25 +129,6 @@ const TypingDisplay = memo(
         {!isCompleted && <span className={styles.typingCursor}></span>}
       </div>
     );
-  },
-  (prevProps, nextProps) => {
-    // 高度な比較関数でメモ化を最適化
-    // 実際に変更があった場合のみ再レンダリング
-    if (prevProps.isCompleted !== nextProps.isCompleted) return false;
-    if (prevProps.errorAnimation !== nextProps.errorAnimation) return false;
-    if (prevProps.displayRomaji !== nextProps.displayRomaji) return false;
-    if (prevProps.currentInput !== nextProps.currentInput) return false;
-
-    const prevColoring = prevProps.coloringInfo || {};
-    const nextColoring = nextProps.coloringInfo || {};
-
-    if (prevColoring.typedLength !== nextColoring.typedLength) return false;
-    if (prevColoring.currentInputLength !== nextColoring.currentInputLength)
-      return false;
-    if (prevColoring.currentPosition !== nextColoring.currentPosition)
-      return false;
-
-    return true;
   }
 );
 

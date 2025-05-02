@@ -17,7 +17,7 @@ import { useTypingGame } from '../hooks/useTypingGame';
 
 // コンポーネントをインポート
 import TypingDisplay from './typing/TypingDisplay';
-import CanvasTypingDisplay from './typing/CanvasTypingDisplay'; // 新しいCanvas描画コンポーネント
+// import CanvasTypingDisplay from './typing/CanvasTypingDisplay'; // Canvas描画コンポーネントを一旦コメントアウト
 import ProgressBar from './typing/ProgressBar';
 import ProblemDisplay from './typing/ProblemDisplay';
 import Button from './common/Button'; // 共通ボタンコンポーネントをインポート
@@ -482,8 +482,8 @@ const GameScreen = () => {
               text={gameState.currentProblem?.displayText || ''}
             />
 
-            {/* タイピング表示コンポーネントを使用 */}
-            <CanvasTypingDisplay
+            {/* Canvasタイピング表示の代わりにシンプル版を使用 */}
+            <TypingDisplay
               displayRomaji={typing.displayRomaji}
               coloringInfo={typing.coloringInfo}
               isCompleted={typing.isCompleted}
