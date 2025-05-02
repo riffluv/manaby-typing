@@ -15,7 +15,7 @@ const CanvasTypingDisplay = memo(
     currentInput,
     errorAnimation,
     fontFamily = "'Roboto Mono', monospace, 'Noto Sans JP'",
-    fontSize = 28,
+    fontSize = 24, // 800x600画面に最適な中間サイズに変更
     lineHeight = 1.5
   }) => {
     // Canvasの参照
@@ -54,15 +54,25 @@ const CanvasTypingDisplay = memo(
 
     // 色の定義 (CSSのカスタムプロパティに対応)
     const colors = useMemo(() => ({
-      typed: '#6aff8b', // 入力済み文字色（緑）
-      current: '#6aff8b', // 現在入力中の文字色（緑に変更）
-      nextChar: '#ff9a28', // 次に入力すべき文字色（オレンジ）
-      notTyped: '#757575', // 未入力の文字色（薄いグレー）
-      cursor: '#ff9a28', // カーソル色（オレンジ）
-      cursorAlpha: 0.8, // カーソルの透明度
+      typed: '#FFFFFF', // 入力済み文字色（より明るい白に変更）
+      current: '#FFFFFF', // 現在入力中の文字色（白に変更）
+      nextChar: '#FFFF00', // 次に入力すべき文字色（黄色に変更）
+      notTyped: '#FFFFFF', // 未入力の文字色（白に変更）
+      cursor: '#FFFF00', // カーソル色（黄色に変更）
+      cursorAlpha: 0.9, // カーソルの透明度（上げる）
       error: '#ff3333', // エラー時の文字色（赤）
-      textShadow: 'rgba(0, 0, 0, 0.4)' // テキストの影色
+      textShadow: 'rgba(0, 0, 0, 1.0)', // テキストの影色（黒で完全不透明）
+      background: 'rgba(30, 30, 100, 0.95)' // 背景色（ほぼ不透明の濃い青）
     }), []);
+
+    // 固定高さの設定（CSSと同期）
+    const containerHeight = 120;
+    // 最大表示幅（画面幅からの計算）
+    const maxTextWidth = 700;
+    // 改行が必要かどうかを判定するためのフラグ
+    const needLineWrapRef = useRef(false);
+    // テキスト位置のオフセット（改行時に使用）
+    const textOffsetYRef = useRef(0);
 
     // テキスト測定のキャッシュ関数（高速化）
     const measureTextCached = (ctx, text) => {
@@ -81,6 +91,33 @@ const CanvasTypingDisplay = memo(
         }
       }
       return textMetricsCache.current.get(cacheKey);
+    };
+    
+    // テキストの改行処理を行う関数
+    const wrapText = (ctx, text, maxWidth) => {
+      if (!text) return { lines: [], needWrap: false };
+      
+      const words = text.split(''); // 日本語対応のため文字ごとに分割
+      const lines = [];
+      let currentLine = '';
+      let needWrap = false;
+      
+      for (let i = 0; i < words.length; i++) {
+        const testLine = currentLine + words[i];
+        const metrics = measureTextCached(ctx, testLine);
+        const testWidth = metrics.width;
+        
+        if (testWidth > maxWidth && i > 0) {
+          lines.push(currentLine);
+          currentLine = words[i];
+          needWrap = true;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      
+      lines.push(currentLine);
+      return { lines, needWrap };
     };
 
     // オフスクリーンキャンバスの初期化
@@ -121,10 +158,15 @@ const CanvasTypingDisplay = memo(
       // キャンバスをクリア
       offscreenCtx.clearRect(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
       
+      // 背景を描画（ほぼ不透明の背景で）
+      offscreenCtx.fillStyle = colors.background;
+      offscreenCtx.fillRect(0, 0, offscreenCanvasRef.current.width, offscreenCanvasRef.current.height);
+      
       if (!cleanDisplayRomaji) {
         // メインキャンバスにオフスクリーンの内容をコピー
         const mainCtx = canvasRef.current.getContext('2d');
         mainCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        mainCtx.drawImage(offscreenCanvasRef.current, 0, 0);
         requestNextFrame();
         return;
       }
@@ -141,9 +183,26 @@ const CanvasTypingDisplay = memo(
       const currentText = currentInput || '';
       const nextChar = cleanDisplayRomaji.charAt(currentPosition + currentInputLength);
       const restText = cleanDisplayRomaji.substring(currentPosition + currentInputLength + 1);
-
+      
+      // テキストの全長を測定して改行が必要かチェック
+      const totalText = cleanDisplayRomaji;
+      const maxWidth = maxTextWidth * 0.9; // 余白を考慮
+      const { lines, needWrap } = wrapText(offscreenCtx, totalText, maxWidth);
+      needLineWrapRef.current = needWrap;
+      
       // テキスト測定（キャッシュ使用）
-      const centerY = offscreenCanvasRef.current.height / (2 * dprRef.current);
+      let centerY = offscreenCanvasRef.current.height / (2 * dprRef.current);
+      
+      // 改行が必要な場合はY位置を上に調整
+      if (needLineWrapRef.current) {
+        const lineCount = lines.length;
+        const totalHeight = lineCount * fontSize * lineHeight;
+        const startY = (offscreenCanvasRef.current.height / dprRef.current - totalHeight) / 2;
+        textOffsetYRef.current = startY;
+        centerY = startY + (fontSize * lineHeight) / 2;
+      } else {
+        textOffsetYRef.current = 0;
+      }
       
       // エラーアニメーションのオフセットを取得
       const { x: errorOffsetX, y: errorOffsetY } = errorOffsetRef.current;
@@ -162,10 +221,29 @@ const CanvasTypingDisplay = memo(
       
       // 完了状態
       if (isCompleted) {
-        offscreenCtx.fillStyle = colors.typed;
-        offscreenCtx.shadowColor = colors.textShadow;
-        offscreenCtx.shadowBlur = 4;
-        offscreenCtx.fillText(cleanDisplayRomaji, currentX, centerY + errorOffsetY);
+        if (needLineWrapRef.current) {
+          // 複数行テキストの描画
+          let lineY = centerY + errorOffsetY;
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const lineWidth = measureTextCached(offscreenCtx, line).width;
+            const lineX = offscreenCanvasRef.current.width / (2 * dprRef.current) - lineWidth / 2;
+            
+            offscreenCtx.fillStyle = colors.typed;
+            offscreenCtx.shadowColor = colors.textShadow;
+            offscreenCtx.shadowBlur = 4;
+            offscreenCtx.fillText(line, lineX, lineY);
+            
+            lineY += fontSize * lineHeight;
+          }
+        } else {
+          // 単一行テキストの描画
+          offscreenCtx.fillStyle = colors.typed;
+          offscreenCtx.shadowColor = colors.textShadow;
+          offscreenCtx.shadowBlur = 4;
+          offscreenCtx.fillText(cleanDisplayRomaji, currentX, centerY + errorOffsetY);
+        }
+        
         offscreenCtx.shadowBlur = 0;
         
         // メインキャンバスにオフスクリーンの内容をコピー
@@ -176,67 +254,181 @@ const CanvasTypingDisplay = memo(
         return;
       }
       
-      // 1. 入力済み部分の描画
-      if (typedText) {
-        offscreenCtx.fillStyle = colors.typed;
-        offscreenCtx.shadowColor = colors.textShadow;
-        offscreenCtx.shadowBlur = 4;
-        offscreenCtx.fillText(typedText, currentX, centerY + errorOffsetY);
-        offscreenCtx.shadowBlur = 0;
-        currentX += typedWidth;
-      }
-      
-      // 2. 現在入力中のテキストの描画
-      if (currentText) {
-        offscreenCtx.fillStyle = colors.current;
-        offscreenCtx.shadowColor = colors.textShadow;
-        offscreenCtx.shadowBlur = 4;
-        offscreenCtx.fillText(currentText, currentX, centerY + errorOffsetY);
-        offscreenCtx.shadowBlur = 0;
-        currentX += currentInputWidth;
-      }
-      
-      // 3. 次に入力すべき一文字を強調表示
-      if (nextChar) {
-        offscreenCtx.fillStyle = colors.nextChar;
-        offscreenCtx.shadowColor = colors.textShadow;
-        offscreenCtx.shadowBlur = 7; // 次の文字はより強調
-        offscreenCtx.font = `bold ${fontSize}px ${fontFamily}`; // 太字にして強調
-        offscreenCtx.fillText(nextChar, currentX, centerY + errorOffsetY);
-        offscreenCtx.shadowBlur = 0;
-        offscreenCtx.font = `${fontSize}px ${fontFamily}`; // フォントを戻す
+      // 改行が必要な場合は複数行描画
+      if (needLineWrapRef.current) {
+        // 複数行テキストの描画
+        let currentLineIndex = 0;
+        let currentLineOffset = 0;
+        let currentPos = 0;
         
-        // 下線を引いて強調表示
-        offscreenCtx.strokeStyle = colors.nextChar;
-        offscreenCtx.lineWidth = 2;
-        offscreenCtx.beginPath();
-        offscreenCtx.moveTo(currentX, centerY + fontSize/2);
-        offscreenCtx.lineTo(currentX + nextCharWidth, centerY + fontSize/2);
-        offscreenCtx.stroke();
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          const lineWidth = measureTextCached(offscreenCtx, line).width;
+          const lineX = offscreenCanvasRef.current.width / (2 * dprRef.current) - lineWidth / 2;
+          const lineY = centerY + (i * fontSize * lineHeight);
+          
+          // このライン内に現在の入力位置があるかチェック
+          const lineEndPos = currentPos + line.length;
+          if (currentPosition >= currentPos && currentPosition < lineEndPos) {
+            currentLineIndex = i;
+            currentLineOffset = currentPosition - currentPos;
+          }
+          
+          // 入力済み部分
+          const lineTypedText = i < currentLineIndex ? line : 
+                                (i === currentLineIndex ? line.substring(0, currentLineOffset) : '');
+          
+          // 現在の行の未入力部分
+          const lineRestText = i < currentLineIndex ? '' : 
+                              (i === currentLineIndex ? line.substring(currentLineOffset) : line);
+          
+          // 各行の描画
+          if (lineTypedText) {
+            offscreenCtx.fillStyle = colors.typed;
+            offscreenCtx.shadowColor = colors.textShadow;
+            offscreenCtx.shadowBlur = 4;
+            offscreenCtx.fillText(lineTypedText, lineX, lineY + errorOffsetY);
+            offscreenCtx.shadowBlur = 0;
+          }
+          
+          if (lineRestText && i === currentLineIndex) {
+            // 現在のライン: 入力中部分、次の文字、残り部分を分けて描画
+            const currentTextWidth = currentText ? measureTextCached(offscreenCtx, currentText).width : 0;
+            const currentTextX = lineX + measureTextCached(offscreenCtx, lineTypedText).width;
+            
+            if (currentText) {
+              offscreenCtx.fillStyle = colors.current;
+              offscreenCtx.shadowColor = colors.textShadow;
+              offscreenCtx.shadowBlur = 4;
+              offscreenCtx.fillText(currentText, currentTextX, lineY + errorOffsetY);
+              offscreenCtx.shadowBlur = 0;
+            }
+            
+            // 次の文字
+            if (nextChar) {
+              const nextCharX = currentTextX + currentTextWidth;
+              offscreenCtx.fillStyle = colors.nextChar;
+              offscreenCtx.shadowColor = colors.textShadow;
+              offscreenCtx.shadowBlur = 7;
+              offscreenCtx.font = `bold ${fontSize}px ${fontFamily}`;
+              offscreenCtx.fillText(nextChar, nextCharX, lineY + errorOffsetY);
+              offscreenCtx.shadowBlur = 0;
+              offscreenCtx.font = `${fontSize}px ${fontFamily}`;
+              
+              // 下線
+              const nextCharWidth = measureTextCached(offscreenCtx, nextChar).width;
+              offscreenCtx.strokeStyle = colors.nextChar;
+              offscreenCtx.lineWidth = 2;
+              offscreenCtx.beginPath();
+              offscreenCtx.moveTo(nextCharX, lineY + fontSize/2 + errorOffsetY);
+              offscreenCtx.lineTo(nextCharX + nextCharWidth, lineY + fontSize/2 + errorOffsetY);
+              offscreenCtx.stroke();
+              
+              // 残りの未入力部分
+              const restStartX = nextCharX + nextCharWidth;
+              const restText = lineRestText.substring(currentInputLength + 1);
+              if (restText) {
+                offscreenCtx.fillStyle = colors.notTyped;
+                offscreenCtx.globalAlpha = 0.8;
+                offscreenCtx.fillText(restText, restStartX, lineY + errorOffsetY);
+                offscreenCtx.globalAlpha = 1;
+              }
+              
+              // カーソル描画
+              if (cursorVisibleRef.current && !isCompleted) {
+                offscreenCtx.fillStyle = colors.cursor;
+                offscreenCtx.globalAlpha = colors.cursorAlpha;
+                offscreenCtx.fillRect(nextCharX + nextCharWidth + 2, lineY - fontSize/2 + errorOffsetY, 2, fontSize);
+                offscreenCtx.globalAlpha = 1;
+              }
+            } else {
+              // 次の文字がない場合は残りすべてをnotTypedで描画
+              offscreenCtx.fillStyle = colors.notTyped;
+              offscreenCtx.globalAlpha = 0.8;
+              offscreenCtx.fillText(lineRestText.substring(currentInputLength), currentTextX + currentTextWidth, lineY + errorOffsetY);
+              offscreenCtx.globalAlpha = 1;
+            }
+          } else if (i > currentLineIndex) {
+            // 後続の行はすべて未入力
+            offscreenCtx.fillStyle = colors.notTyped;
+            offscreenCtx.globalAlpha = 0.8;
+            offscreenCtx.fillText(line, lineX, lineY + errorOffsetY);
+            offscreenCtx.globalAlpha = 1;
+          }
+          
+          currentPos += line.length;
+        }
+      } else {
+        // 単一行表示モード（標準描画）
         
-        currentX += nextCharWidth;
-      }
-      
-      // 4. 残りの未入力部分
-      if (restText) {
-        offscreenCtx.fillStyle = colors.notTyped;
-        offscreenCtx.globalAlpha = 0.8;
-        offscreenCtx.fillText(restText, currentX, centerY + errorOffsetY);
-        offscreenCtx.globalAlpha = 1;
-      }
-      
-      // 5. カーソル描画（1秒間隔で点滅）
-      const cursorBlinkInterval = 500; // ミリ秒
-      if ((timestamp - cursorBlinkTimestampRef.current) > cursorBlinkInterval) {
-        cursorBlinkTimestampRef.current = timestamp;
-        cursorVisibleRef.current = !cursorVisibleRef.current;
-      }
-      
-      if (cursorVisibleRef.current && !isCompleted) {
-        offscreenCtx.fillStyle = colors.cursor;
-        offscreenCtx.globalAlpha = colors.cursorAlpha;
-        offscreenCtx.fillRect(currentX + 2, centerY - fontSize/2, 2, fontSize);
-        offscreenCtx.globalAlpha = 1;
+        // 1. 入力済み部分の描画
+        if (typedText) {
+          offscreenCtx.fillStyle = colors.typed;
+          offscreenCtx.shadowColor = colors.textShadow;
+          offscreenCtx.shadowBlur = 4;
+          offscreenCtx.fillText(typedText, currentX, centerY + errorOffsetY);
+          offscreenCtx.shadowBlur = 0;
+          currentX += typedWidth;
+        }
+        
+        // 2. 現在入力中のテキストの描画
+        if (currentText) {
+          offscreenCtx.fillStyle = colors.current;
+          offscreenCtx.shadowColor = colors.textShadow;
+          offscreenCtx.shadowBlur = 4;
+          offscreenCtx.fillText(currentText, currentX, centerY + errorOffsetY);
+          offscreenCtx.shadowBlur = 0;
+          currentX += currentInputWidth;
+        }
+        
+        // 3. 次に入力すべき一文字を強調表示
+        if (nextChar) {
+          offscreenCtx.fillStyle = colors.nextChar;
+          offscreenCtx.shadowColor = colors.textShadow;
+          offscreenCtx.shadowBlur = 10; // シャドウを強調して視認性を向上
+          offscreenCtx.font = `bold ${fontSize}px ${fontFamily}`; // 太字にして強調
+          offscreenCtx.fillText(nextChar, currentX, centerY + errorOffsetY);
+          offscreenCtx.shadowBlur = 0;
+          offscreenCtx.font = `${fontSize}px ${fontFamily}`; // フォントを戻す
+          
+          // 下線をより明確に
+          offscreenCtx.strokeStyle = colors.nextChar;
+          offscreenCtx.lineWidth = 3; // 線を太くして視認性向上
+          offscreenCtx.beginPath();
+          offscreenCtx.moveTo(currentX, centerY + fontSize/2);
+          offscreenCtx.lineTo(currentX + nextCharWidth, centerY + fontSize/2);
+          offscreenCtx.stroke();
+          
+          currentX += nextCharWidth;
+        }
+        
+        // 4. 残りの未入力部分
+        if (restText) {
+          offscreenCtx.fillStyle = colors.notTyped;
+          offscreenCtx.globalAlpha = 0.9; // 透明度を調整
+          // テキストに強いシャドウを追加して視認性を向上
+          offscreenCtx.shadowColor = 'black';
+          offscreenCtx.shadowBlur = 6;
+          offscreenCtx.shadowOffsetX = 0;
+          offscreenCtx.shadowOffsetY = 0;
+          offscreenCtx.fillText(restText, currentX, centerY + errorOffsetY);
+          offscreenCtx.shadowBlur = 0; // シャドウをリセット
+          offscreenCtx.globalAlpha = 1;
+        }
+        
+        // 5. カーソル描画（1秒間隔で点滅）
+        const cursorBlinkInterval = 500; // ミリ秒
+        if ((timestamp - cursorBlinkTimestampRef.current) > cursorBlinkInterval) {
+          cursorBlinkTimestampRef.current = timestamp;
+          cursorVisibleRef.current = !cursorVisibleRef.current;
+        }
+        
+        if (cursorVisibleRef.current && !isCompleted) {
+          offscreenCtx.fillStyle = colors.cursor;
+          offscreenCtx.globalAlpha = colors.cursorAlpha;
+          offscreenCtx.fillRect(currentX + 2, centerY - fontSize/2 + errorOffsetY, 2, fontSize);
+          offscreenCtx.globalAlpha = 1;
+        }
       }
       
       // メインキャンバスにオフスクリーンの内容をコピー（高速描画）
@@ -258,7 +450,8 @@ const CanvasTypingDisplay = memo(
         currentInput,
         errorOffsetX,
         errorOffsetY,
-        cursorVisible: cursorVisibleRef.current
+        cursorVisible: cursorVisibleRef.current,
+        needLineWrap: needLineWrapRef.current
       };
       
       const stateChanged = JSON.stringify(currentState) !== JSON.stringify(prevRenderState.current);
@@ -311,8 +504,8 @@ const CanvasTypingDisplay = memo(
         
         const rect = container.getBoundingClientRect();
         
-        // 固定高さを使用し、コンテナの幅に合わせる
-        const fixedHeight = 120; // CSSで定義した固定高さに合わせる
+        // 固定高さを使用（CSSと同期）
+        const fixedHeight = containerHeight; 
         
         canvas.width = rect.width * dpr;
         canvas.height = fixedHeight * dpr;
@@ -499,7 +692,7 @@ const CanvasTypingDisplay = memo(
     ]);
     
     return (
-      <div className={styles.canvasTypingContainer}>
+      <div className={styles.canvasTypingContainer} style={{ zIndex: 10, position: 'relative' }}>
         <canvas 
           ref={canvasRef}
           className={styles.typingCanvas} 
@@ -508,6 +701,10 @@ const CanvasTypingDisplay = memo(
             contain: 'content',
             transform: 'translateZ(0)', // GPU高速化
             imageRendering: 'crisp-edges', // テキスト描画の鮮明さを向上
+            boxShadow: '0 0 15px rgba(0, 0, 0, 0.8)', // シャドウを強化
+            borderRadius: '8px',
+            border: '2px solid rgba(100, 100, 255, 0.5)', // 境界線を追加
+            zIndex: 10, // z-indexを明示的に設定
           }}
         />
       </div>
