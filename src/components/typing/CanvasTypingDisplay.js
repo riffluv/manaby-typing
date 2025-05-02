@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useMemo, memo } from 'react';
 import styles from '../../styles/GameScreen.module.css';
+import typingWorkerManager from '../../utils/TypingWorkerManager';
 
 /**
  * Canvas描画を使用したタイピング表示コンポーネント
@@ -37,6 +38,12 @@ const CanvasTypingDisplay = memo(
     const prevRenderState = useRef({});
     // DPIスケール比率の保存
     const dprRef = useRef(1);
+    // Worker連携用のレンダリング解除関数
+    const unregisterRenderRef = useRef(null);
+    // 入力イベントからのレンダリングフラグ
+    const isInputTriggeredRenderRef = useRef(false);
+    // 最後の入力タイムスタンプ
+    const lastInputTimestampRef = useRef(0);
     
     // ローマ字文字列から末尾の「|」を削除（存在する場合）
     const cleanDisplayRomaji = useMemo(() => {
@@ -90,6 +97,20 @@ const CanvasTypingDisplay = memo(
       offscreenCanvasRef.current.height = canvasRef.current.height;
     };
 
+    // Web Workerと連携した高速描画関数
+    const drawCanvasWithWorker = (timestamp, inputTimestamp) => {
+      // 入力イベントトリガーかどうかを判定
+      const isInputTriggered = inputTimestamp > lastInputTimestampRef.current;
+      if (isInputTriggered) {
+        lastInputTimestampRef.current = inputTimestamp;
+        isInputTriggeredRenderRef.current = true;
+      } else {
+        isInputTriggeredRenderRef.current = false;
+      }
+      
+      drawCanvas(timestamp);
+    };
+
     // Canvas描画用の描画関数
     const drawCanvas = (timestamp) => {
       if (!canvasRef.current || !offscreenCanvasRef.current) return;
@@ -104,7 +125,7 @@ const CanvasTypingDisplay = memo(
         // メインキャンバスにオフスクリーンの内容をコピー
         const mainCtx = canvasRef.current.getContext('2d');
         mainCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        animationFrameId.current = requestAnimationFrame(drawCanvas);
+        requestNextFrame();
         return;
       }
       
@@ -223,7 +244,13 @@ const CanvasTypingDisplay = memo(
       mainCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       mainCtx.drawImage(offscreenCanvasRef.current, 0, 0);
       
-      // 最適化：状態が変わらない場合はフレームレート制限
+      // 最適化：入力からトリガーされた場合は状態比較せず常に高速描画
+      if (isInputTriggeredRenderRef.current) {
+        requestNextFrame();
+        return;
+      }
+      
+      // 通常の状態管理（入力トリガーでない場合）
       const currentState = {
         typedLength,
         currentInputLength,
@@ -239,7 +266,7 @@ const CanvasTypingDisplay = memo(
       
       // カーソル点滅や状態変更時のみ描画更新（CPU負荷軽減）
       if (stateChanged || timestamp - cursorBlinkTimestampRef.current < 50) {
-        animationFrameId.current = requestAnimationFrame(drawCanvas);
+        requestNextFrame();
       } else {
         // 次のカーソル点滅タイミングで更新
         const timeToNextBlink = cursorBlinkInterval - (timestamp - cursorBlinkTimestampRef.current);
@@ -247,6 +274,27 @@ const CanvasTypingDisplay = memo(
           requestAnimationFrame(drawCanvas);
         }, timeToNextBlink);
       }
+    };
+
+    // 次のフレーム描画をリクエスト (Worker連携モード時は使用しない)
+    const requestNextFrame = () => {
+      // WorkerManagerが利用可能かチェック
+      if (typingWorkerManager && typingWorkerManager.isWorkerAvailable()) {
+        // Worker側でスケジュールされるので何もしない
+        return;
+      }
+      
+      // フォールバック: 通常のrequestAnimationFrame
+      if (animationFrameId.current) {
+        if (typeof animationFrameId.current === 'number') {
+          if (animationFrameId.current < 1000) {
+            cancelAnimationFrame(animationFrameId.current);
+          } else {
+            clearTimeout(animationFrameId.current);
+          }
+        }
+      }
+      animationFrameId.current = requestAnimationFrame(drawCanvas);
     };
     
     // キャンバスのサイズ設定
@@ -327,6 +375,11 @@ const CanvasTypingDisplay = memo(
             // アニメーション終了時
             errorOffsetRef.current = { x: 0, y: 0 };
           }
+          
+          // エラー時は最高優先度で描画を要求
+          if (typingWorkerManager && typingWorkerManager.isWorkerAvailable()) {
+            typingWorkerManager.requestRender(1);
+          }
         };
         
         animateError();
@@ -340,6 +393,42 @@ const CanvasTypingDisplay = memo(
       }
     }, [errorAnimation]);
 
+    // Web Worker連携のセットアップ
+    useEffect(() => {
+      // WorkerManagerにレンダリングコールバックを登録
+      if (typingWorkerManager && typingWorkerManager.isWorkerAvailable()) {
+        // 高優先度コールバック（入力直後に即座に反応するために使用）
+        unregisterRenderRef.current = typingWorkerManager.registerRenderCallback(
+          drawCanvasWithWorker, 
+          true // 高優先度として登録
+        );
+        
+        // 初回描画をリクエスト
+        typingWorkerManager.requestRender(0);
+      } else {
+        // WorkerManagerが利用できない場合のフォールバック
+        animationFrameId.current = requestAnimationFrame(drawCanvas);
+      }
+      
+      return () => {
+        // 登録解除関数があれば実行
+        if (unregisterRenderRef.current) {
+          unregisterRenderRef.current();
+        }
+        
+        // 通常のアニメーションフレーム解除
+        if (animationFrameId.current) {
+          if (typeof animationFrameId.current === 'number') {
+            if (animationFrameId.current < 1000) {
+              cancelAnimationFrame(animationFrameId.current);
+            } else {
+              clearTimeout(animationFrameId.current);
+            }
+          }
+        }
+      };
+    }, []);
+
     // Canvasの初期化とリサイズ処理
     useEffect(() => {
       // オフスクリーンキャンバス初期化
@@ -350,6 +439,11 @@ const CanvasTypingDisplay = memo(
       // リサイズイベントの設定
       const handleResize = () => {
         setCanvasSize();
+        
+        // サイズ変更時も描画を要求
+        if (typingWorkerManager && typingWorkerManager.isWorkerAvailable()) {
+          typingWorkerManager.requestRender(0);
+        }
       };
       
       window.addEventListener('resize', handleResize);
@@ -362,9 +456,6 @@ const CanvasTypingDisplay = memo(
         const preloadChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789あいうえおかきくけこさしすせそたちつてと';
         ctx.fillText(preloadChars, -1000, -1000); // 画面外に描画
       }
-      
-      // 描画開始
-      animationFrameId.current = requestAnimationFrame(drawCanvas);
       
       // クリーンアップ関数
       return () => {
@@ -386,14 +477,20 @@ const CanvasTypingDisplay = memo(
     
     // 表示内容、色分け情報が更新されたら再描画をトリガー
     useEffect(() => {
-      if (typeof animationFrameId.current === 'number') {
-        if (animationFrameId.current < 1000) { // requestAnimationFrameのID
-          cancelAnimationFrame(animationFrameId.current);
-        } else { // setTimeout のID
-          clearTimeout(animationFrameId.current);
+      if (typingWorkerManager && typingWorkerManager.isWorkerAvailable()) {
+        // Workerを使用している場合はWorker経由で描画リクエスト
+        typingWorkerManager.requestRender(0);
+      } else {
+        // 通常のアニメーションフレーム
+        if (typeof animationFrameId.current === 'number') {
+          if (animationFrameId.current < 1000) { // requestAnimationFrameのID
+            cancelAnimationFrame(animationFrameId.current);
+          } else { // setTimeout のID
+            clearTimeout(animationFrameId.current);
+          }
         }
+        animationFrameId.current = requestAnimationFrame(drawCanvas);
       }
-      animationFrameId.current = requestAnimationFrame(drawCanvas);
     }, [
       cleanDisplayRomaji, 
       coloringInfo, 

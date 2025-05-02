@@ -10,6 +10,11 @@ export class TypingWorkerManager {
     this._lastSession = null;
     this._initializationPromise = null;
     this._inputHistory = []; // 入力履歴を保持
+    this._renderCallbacks = new Set(); // レンダリングコールバックを格納
+    this._renderHighPriority = new Set(); // 高優先度レンダリングコールバック
+    this._lastRenderTime = 0; // 最後のレンダリング時間
+    this._pendingRender = false; // レンダリング保留フラグ
+    this._inputTimestamp = 0; // 最後の入力タイムスタンプ
 
     // 自動初期化
     this._initialize();
@@ -127,6 +132,83 @@ export class TypingWorkerManager {
   }
 
   /**
+   * レンダリングコールバックを登録 - Canvasの描画タイミングをWorkerと同期
+   * @param {Function} callback - 描画時に呼び出すコールバック関数
+   * @param {Boolean} highPriority - 高優先度（入力直後の描画用）
+   * @returns {Function} - 登録解除用の関数
+   */
+  registerRenderCallback(callback, highPriority = false) {
+    if (typeof callback !== 'function') return () => {};
+    
+    if (highPriority) {
+      this._renderHighPriority.add(callback);
+    } else {
+      this._renderCallbacks.add(callback);
+    }
+    
+    // 登録解除用の関数を返す
+    return () => {
+      this._renderHighPriority.delete(callback);
+      this._renderCallbacks.delete(callback);
+    };
+  }
+
+  /**
+   * レンダリングをリクエスト - 高速描画が必要な時に呼び出す
+   * @param {Number} priority - 優先度 (1: 高, 0: 通常)
+   */
+  requestRender(priority = 0) {
+    const now = performance.now();
+    this._inputTimestamp = now;
+    
+    // 直近の入力では即時描画
+    if (priority === 1) {
+      this._executeRender(true);
+      return;
+    }
+    
+    if (!this._pendingRender) {
+      this._pendingRender = true;
+      // 高速なタイマーでレンダリングをスケジュール
+      setTimeout(() => {
+        this._executeRender(false);
+        this._pendingRender = false;
+      }, 0);
+    }
+  }
+
+  /**
+   * レンダリング実行 - 実際の描画処理を行う
+   * @param {Boolean} isHighPriority - 高優先度の描画か
+   * @private
+   */
+  _executeRender(isHighPriority) {
+    const now = performance.now();
+    
+    // 高優先度コールバックを実行
+    if (isHighPriority) {
+      this._renderHighPriority.forEach(callback => {
+        try {
+          callback(now, this._inputTimestamp);
+        } catch (e) {
+          console.error('レンダリングコールバックエラー:', e);
+        }
+      });
+    }
+    
+    // 通常の描画コールバックを実行
+    this._renderCallbacks.forEach(callback => {
+      try {
+        callback(now, this._inputTimestamp);
+      } catch (e) {
+        console.error('レンダリングコールバックエラー:', e);
+      }
+    });
+    
+    this._lastRenderTime = now;
+  }
+
+  /**
    * キー入力を処理する - この処理はメインスレッドでも行う
    * @param {Object} session - タイピングセッション
    * @param {string} char - 入力された文字
@@ -151,11 +233,18 @@ export class TypingWorkerManager {
       });
     }
 
+    // 入力時に即座に高優先度レンダリングをリクエスト
+    this.requestRender(1);
+
     return new Promise((resolve) => {
       const callbackId = this._getNextCallbackId();
 
       // コールバックを登録
-      this._callbacks.set(callbackId, resolve);
+      this._callbacks.set(callbackId, (result) => {
+        // 処理完了後、もう一度レンダリングをリクエスト
+        this.requestRender(0);
+        resolve(result);
+      });
 
       // セッションをシリアライズして関数を除去
       const serializedSession = this._serializeSession(session);
@@ -325,6 +414,8 @@ export class TypingWorkerManager {
       this._worker = null;
     }
     this._callbacks.clear();
+    this._renderCallbacks.clear();
+    this._renderHighPriority.clear();
     this._lastSession = null;
     this._initializationPromise = null;
     this._inputHistory = [];
