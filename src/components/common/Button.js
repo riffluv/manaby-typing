@@ -3,9 +3,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import styles from '../../styles/common/Button.module.css';
+import { getButtonClassName, ButtonAnimations } from '../../utils/ButtonStyleUtils';
 
 /**
  * 再利用可能なボタンコンポーネント
+ * デザインシステムの ButtonStyleUtils を使用して、一貫性のあるスタイルを適用
+ *
  * @param {Object} props - コンポーネントのプロパティ
  * @param {string} [props.variant='default'] - ボタンの種類 ('primary', 'secondary', 'danger', 'success')
  * @param {string} [props.size='medium'] - ボタンのサイズ ('small', 'medium', 'large')
@@ -30,47 +33,32 @@ const Button = ({
   children,
   ...rest
 }) => {
-  // スタイルクラスを組み立て
-  let buttonClass = styles.button;
+  // ButtonStyleUtilsのヘルパー関数を使用してクラス名を生成
+  const withIcon = !!icon;
+  const buttonClass = getButtonClassName({
+    variant,
+    size,
+    round,
+    active,
+    withIcon,
+    disabled,
+    className,
+  });
 
-  // バリアント
-  if (variant !== 'default') {
-    buttonClass += ` ${styles[`button--${variant}`]}`;
-  }
-
-  // サイズ
-  if (size !== 'medium') {
-    buttonClass += ` ${styles[`button--${size}`]}`;
-  }
-
-  // 丸みを帯びたスタイル
-  if (round) {
-    buttonClass += ` ${styles['button--round']}`;
-  }
-
-  // アクティブ状態
-  if (active) {
-    buttonClass += ` ${styles['button--active']}`;
-  }
-
-  // メニュー用ボタン
-  if (className === 'button--menu') {
-    buttonClass += ` ${styles['button--menu']}`;
-  }
-
-  // 難易度選択用ボタン
-  if (className === 'button--difficulty') {
-    buttonClass += ` ${styles['button--difficulty']}`;
-  }
+  // クラス名を適用
+  const combinedClassName = buttonClass
+    .split(' ')
+    .map((cls) => styles[cls] || cls)
+    .join(' ');
 
   return (
     <motion.button
-      className={buttonClass}
+      className={combinedClassName}
       onClick={onClick}
       disabled={disabled}
-      whileTap={{ scale: disabled ? 1 : 0.95 }}
-      whileHover={disabled ? {} : { scale: 1.05 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+      whileTap={!disabled ? ButtonAnimations.framerMotion.whileTap : undefined}
+      whileHover={!disabled ? ButtonAnimations.framerMotion.whileHover : undefined}
+      transition={ButtonAnimations.framerMotion.transition}
       {...rest}
     >
       {icon && <span className={styles.button__icon}>{icon}</span>}
@@ -97,9 +85,9 @@ export const ToggleButton = ({ isOn, onToggle, disabled = false }) => {
       className={`${styles.button} ${toggleClass}`}
       onClick={onToggle}
       disabled={disabled}
-      whileTap={{ scale: disabled ? 1 : 0.95 }}
-      whileHover={disabled ? {} : { scale: 1.05 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+      whileTap={!disabled ? ButtonAnimations.framerMotion.whileTap : undefined}
+      whileHover={!disabled ? ButtonAnimations.framerMotion.whileHover : undefined}
+      transition={ButtonAnimations.framerMotion.transition}
     >
       {isOn ? 'ON' : 'OFF'}
     </motion.button>
