@@ -1,10 +1,11 @@
 import React, { useMemo, memo } from 'react';
 import styles from '../../styles/GameScreen.module.css';
+import { TextStyles, TextAnimations } from '../../utils/TextStyleUtils';
 
 /**
  * シンプル化したタイピング表示コンポーネント
  * すべてのタイピングテキストを中央揃えで表示
- * CSS変数を使用して、統一されたスタイル設定を適用
+ * TextStyleUtils からスタイル定義を使用して統一された表示を実現
  */
 const TypingDisplay = memo(
   ({
@@ -25,38 +26,12 @@ const TypingDisplay = memo(
     const textStyles = useMemo(() => {
       const { typedLength = 0, currentInputLength = 0 } = coloringInfo || {};
 
-      // CSS変数を使用して、グローバルテーマとの一貫性を保持
-      // 完了した文字のスタイル
-      const typedStyle = {
-        color: 'var(--typed-text-color)',
-        opacity: 1,
-      };
-
-      // 入力中の文字のスタイル
-      const currentInputStyle = {
-        color: 'var(--typed-text-color)', // 青色から確定済み文字と同じ緑色に変更
-        opacity: 1,
-      };
-
-      // 未入力の文字のスタイル
-      const notTypedStyle = {
-        color: 'var(--not-typed-color)',
-        opacity: 0.8,
-      };
-
-      // 次に入力すべき文字のスタイル（より目立つように）
-      const nextCharStyle = {
-        color: 'var(--next-char-color)', // オレンジ色
-        opacity: 1,
-        position: 'relative',
-        fontWeight: 700,
-      };
-
+      // TextStyleUtilsから共通スタイルを取得
       return {
-        typed: typedStyle,
-        current: currentInputStyle,
-        notTyped: notTypedStyle,
-        nextChar: nextCharStyle,
+        typed: TextStyles.typed,
+        current: TextStyles.current,
+        notTyped: TextStyles.notTyped,
+        nextChar: TextStyles.nextChar,
         typedLength,
         currentInputLength,
       };
@@ -92,7 +67,7 @@ const TypingDisplay = memo(
           {/* 入力済み部分 */}
           {typedText && <span style={textStyles.typed}>{typedText}</span>}
 
-          {/* 現在の入力中部分 */}
+          {/* 現在の入力中部分 - 確定済みと同じ緑色で表示 */}
           {currentInput && (
             <span style={textStyles.current}>{currentInput}</span>
           )}
@@ -124,6 +99,7 @@ const TypingDisplay = memo(
         className={`${styles.simpleTypingText} ${
           errorAnimation ? styles.errorShake : ''
         }`}
+        style={TextStyles.typingText} // ベースのタイピングテキストスタイルを適用
       >
         {displayText}
 
