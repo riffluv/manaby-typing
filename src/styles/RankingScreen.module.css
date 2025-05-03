@@ -34,35 +34,9 @@
   position: relative;
 }
 
+/* タイトルの個別調整のみ残す */
 .rankingTitle {
-  font-family: 'Press Start 2P', cursive, system-ui;
-  font-size: 33px; /* 38pxから33pxに変更 */
-  letter-spacing: 2px;
-  text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
-  margin: 0;
-  position: relative;
-  display: inline-block;
-  
-  /* 中が透ける特殊効果 */
-  background-image: radial-gradient(circle, #ff8c00 50%, transparent 50%);
-  background-size: 4px 4px;
-  background-repeat: repeat;
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  -webkit-text-stroke: 1px #ff8c00;
-  filter: drop-shadow(0 0 3px rgba(255, 140, 0, 0.8));
   transform: translateY(-5px);
-}
-
-.rankingTitle::after {
-  content: '';
-  position: absolute;
-  width: 120%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #ff8c00 50%, transparent);
-  bottom: -5px;
-  left: -10%;
 }
 
 .difficultyNav {
@@ -77,7 +51,7 @@
 .difficultyButton {
   background-color: rgba(0, 0, 0, 0.7);
   color: #fff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 12px;
   padding: 8px 12px;
   border: 2px solid #ff8c00;
@@ -115,7 +89,7 @@
   width: 100%;
   border-collapse: collapse;
   color: #ffffff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 12px;
 }
 
@@ -138,7 +112,7 @@
 .noRecords {
   text-align: center;
   color: #ffffff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 14px;
   margin-top: 30px;
 }
@@ -157,7 +131,7 @@
 .modeButton {
   background-color: rgba(0, 0, 0, 0.7);
   color: #ffffff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 12px;
   padding: 8px 15px;
   border: 2px solid #ff8c00;
@@ -191,7 +165,7 @@
 .registerButton {
   background-color: rgba(0, 0, 0, 0.7);
   color: #ffffff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 14px;
   padding: 10px 20px;
   border: 2px solid #ff8c00;
@@ -214,7 +188,7 @@
 .mainMenuButton {
   background-color: rgba(0, 0, 0, 0.7);
   color: #ffffff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 14px;
   padding: 10px 20px;
   border: 2px solid #ff8c00;
@@ -257,7 +231,7 @@
 .debugButton {
   background-color: rgba(0, 0, 0, 0.7);
   color: #ffffff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 10px;
   padding: 8px 10px;
   border: 2px solid #ff8c00;
@@ -323,7 +297,7 @@
 }
 
 .modalTitle {
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-dot);
   color: #ff8c00;
   font-size: 18px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
@@ -347,7 +321,7 @@
 .modalBody {
   padding: 20px;
   color: #ffffff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 12px;
 }
 
@@ -369,7 +343,7 @@
   border: 2px solid #ff8c00;
   border-radius: 5px;
   color: #ffffff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 14px;
   padding: 10px;
   margin-top: 5px;
@@ -431,7 +405,7 @@
 .registerActionButton {
   background-color: rgba(255, 140, 0, 0.3);
   color: #ffffff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 12px;
   padding: 10px 15px;
   border: 2px solid #ff8c00;
@@ -454,7 +428,7 @@
 .cancelButton {
   background-color: rgba(0, 0, 0, 0.3);
   color: #ffffff;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   font-size: 12px;
   padding: 10px 15px;
   border: 2px solid rgba(255, 255, 255, 0.3);
@@ -479,7 +453,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  font-family: 'Press Start 2P', cursive, system-ui;
+  font-family: var(--font-normal);
   color: #ff8c00;
   font-size: 16px;
   height: 200px;

@@ -340,7 +340,7 @@ const MainMenu = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: 'spring', bounce: 0.4, duration: 0.8 }}
         >
-          <h1 className={styles.title}>manaby typing</h1>
+          <h1 className={`screen-title ${styles.title}`}>manaby typing</h1>
         </motion.div>
 
         {/* メインロゴ（スタートボタン） - アニメーション付き */}

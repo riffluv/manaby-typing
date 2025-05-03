@@ -314,7 +314,7 @@ const ResultScreen = ({
       variants={containerVariants}
     >
       <motion.div className={styles.resultHeader} variants={itemVariants}>
-        <h1 className={styles.resultTitle}>RESULT</h1>
+        <h1 className={`screen-title ${styles.resultTitle}`}>RESULT</h1>
       </motion.div>
 
       <motion.div className={styles.resultContent} variants={itemVariants}>
