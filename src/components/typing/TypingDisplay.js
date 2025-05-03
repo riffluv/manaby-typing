@@ -54,7 +54,7 @@ const TypingDisplay = memo(
 
           {/* 現在の入力中部分 - 確定済みと同じ緑色で表示 */}
           {currentInput && (
-            <span className="typing-current">{currentInput}</span>
+            <span className="typing-completed">{currentInput}</span>
           )}
 
           {/* 次に入力すべき文字を特別に強調（タイピングマニア風） */}

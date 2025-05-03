@@ -211,8 +211,8 @@
 /* 次の入力文字の強調表示 - タイピングマニア風 */
 .nextCharHighlight {
   position: relative;
-  color: #d0d0d0;
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+  color: #ff9a28; /* 濃い白からオレンジ色に変更 */
+  text-shadow: 0 0 4px rgba(255, 154, 40, 0.5); /* シャドウも合わせて調整 */
   font-weight: 600;
 }
 
