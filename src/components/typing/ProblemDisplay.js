@@ -5,6 +5,7 @@ import styles from '../../styles/GameScreen.module.css';
 /**
  * 問題表示コンポーネント
  * タイピングゲームのお題（問題文）を表示する
+ * CSS変数を使用して統一されたスタイリングを適用
  *
  * @param {Object} props
  * @param {string} props.text - 表示する問題テキスト

@@ -4,6 +4,7 @@ import styles from '../../styles/GameScreen.module.css';
 /**
  * シンプル化したタイピング表示コンポーネント
  * すべてのタイピングテキストを中央揃えで表示
+ * CSS変数を使用して、統一されたスタイル設定を適用
  */
 const TypingDisplay = memo(
   ({
@@ -24,27 +25,28 @@ const TypingDisplay = memo(
     const textStyles = useMemo(() => {
       const { typedLength = 0, currentInputLength = 0 } = coloringInfo || {};
 
+      // CSS変数を使用して、グローバルテーマとの一貫性を保持
       // 完了した文字のスタイル
       const typedStyle = {
-        color: 'var(--typed-text-color, #4caf50)',
+        color: 'var(--typed-text-color)',
         opacity: 1,
       };
 
-      // 入力中の文字のスタイル - 青からタイプ済みと同じ緑に変更
+      // 入力中の文字のスタイル
       const currentInputStyle = {
-        color: 'var(--typed-text-color, #4caf50)', // 青色から緑色に変更
+        color: 'var(--current-input-color)',
         opacity: 1,
       };
 
-      // 未入力の文字のスタイル - カーソルの近くの文字はやや強調
+      // 未入力の文字のスタイル
       const notTypedStyle = {
-        color: 'var(--not-typed-color, #757575)',
+        color: 'var(--not-typed-color)',
         opacity: 0.8,
       };
 
       // 次に入力すべき文字のスタイル（より目立つように）
       const nextCharStyle = {
-        color: 'var(--next-char-color, #ff9a28)', // オレンジ色
+        color: 'var(--next-char-color)', // オレンジ色
         opacity: 1,
         position: 'relative',
         fontWeight: 700,
@@ -125,7 +127,7 @@ const TypingDisplay = memo(
       >
         {displayText}
 
-        {/* タイピングマニアのようなカーソルフィードバック（視覚的なリズム） */}
+        {/* タイピングマニア風のカーソルフィードバック */}
         {!isCompleted && <span className={styles.typingCursor}></span>}
       </div>
     );

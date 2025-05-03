@@ -105,99 +105,84 @@
     inset 0 0 0 1px rgba(255, 140, 0, 0.3);
 }
 
+/* お題表示エリア - 整理・統合されたスタイル */
 .problemContainer {
-  margin-bottom: 1.5rem; /* 余白を調整 */
-  /* フレキシブルなレイアウトで高さを確保 */
+  margin-bottom: 1.5rem;
   display: flex;
   flex-direction: column;
-  /* flex: 1を削除して高さを自然に拡張できるようにする */
 }
 
+/* お題テキスト - 統一されたベーススタイル */
 .typingProblem {
-  font-size: 2.25rem;
-  margin-bottom: 1.5rem; /* 0.8remから1.5remに変更して間隔を拡げる */
+  /* フォント設定 */
+  font-size: var(--problem-text-size);
   font-weight: 700;
   letter-spacing: 1px;
-  color: #ffffff;
+  font-family: var(--font-normal);
+  line-height: var(--problem-text-line-height);
+  
+  /* テキスト表示 */
+  color: var(--problem-text-color);
   text-shadow: 0px 2px 10px rgba(0, 0, 0, 0.5);
-  line-height: 1.3;
-  /* 複数行のテキストをよりよく表示するための設定 */
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-all;
+  
+  /* 配置 */
   width: 100%;
+  max-width: 90%;
+  margin: 0 auto 1.5rem;
   padding: 0 10px;
-  font-family: var(--font-normal); /* 日本語表示用に通常フォントを使用 */
   text-align: center;
   display: block;
-  max-width: 90%;
-  margin-left: auto;
-  margin-right: auto;
   box-sizing: border-box;
 }
 
-.typingText {
-  font-size: 1.8rem;
-  letter-spacing: 1.5px;
-  font-family: var(--font-normal); /* ローマ字表示用に通常フォントを使用 */
-  line-height: 1.5; /* 1.3から1.5に変更して行間を広げる */
-  min-height: 3.6rem; /* 2.4remから3.6remに変更して最小高さを増やす */
-  margin: 0.8rem auto; /* 0.5rem autoから0.8rem autoに変更 */
-  padding: 0.8rem; /* 0.5rem 0.8remから0.8remに変更してパディングを均等に */
-  background-color: transparent;
-  border-radius: 8px;
-  display: block; /* inline-blockからblockに変更して幅全体を活用 */
-  width: 100%; /* 幅を100%に設定して親要素いっぱいに広げる */
-  text-align: center; /* テキスト自体を中央揃えに */
-  position: relative;
-  font-weight: 600;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  overflow-wrap: break-word;
-  word-break: break-all;
-  border: none;
-  box-shadow: none;
-  /* 長いテキストを適切に表示するための設定 */
-  white-space: pre-wrap; /* 改行を維持するが、必要に応じて折り返す */
-}
-
-/* シンプルな中央揃えタイピングテキスト - 新しく追加 */
+/* タイピング入力テキスト - 統一されたベーススタイル */
 .simpleTypingText {
-  font-size: 1.8rem;
+  /* フォント設定 */
+  font-size: var(--typing-text-size);
+  font-weight: 600;
   letter-spacing: 1.5px;
   font-family: var(--font-normal);
-  line-height: 1.5;
+  line-height: var(--typing-text-line-height);
+  
+  /* テキスト表示 */
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-all;
+  
+  /* 配置 */
+  width: 100%;
+  max-width: 90%;
   min-height: 3.6rem;
   margin: 0.8rem auto;
   padding: 0.8rem;
   background-color: transparent;
   border-radius: 8px;
-  display: block;
-  width: 100%;
   text-align: center;
+  display: block;
   position: relative;
-  font-weight: 600;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  overflow-wrap: break-word;
-  word-break: break-all;
   border: none;
   box-shadow: none;
-  white-space: pre-wrap;
-}
-
-/* お題テキストとローマ字表示を確実に同じ配置にする */
-.typingProblem, 
-.simpleTypingText {
-  width: 100%;
-  text-align: center;
-  display: block;
-  max-width: 90%;
-  margin-left: auto;
-  margin-right: auto;
   box-sizing: border-box;
 }
 
+/* 古いtypingTextクラスのコンテナスタイル（互換性維持） */
+.typingText {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-family: var(--font-normal);
+  white-space: pre-wrap;
+}
+
 .typingText::before {
-  /* ドットを削除 */
   display: none;
 }
 
+/* 入力状態ごとのスタイル */
 .completed {
   color: #6aff8b;
   font-weight: 600;
@@ -258,43 +243,49 @@
   }
 }
 
-.hiddenInput {
-  opacity: 0;
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
+/* タイピングマニア風のカーソルスタイル */
+.typingCursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.5em;
+  background-color: rgba(255, 140, 0, 0.8);
+  vertical-align: middle;
+  margin-left: 0.2em;
+  animation: cursorBlink 1s infinite;
+  position: relative;
+  top: -0.1em;
 }
 
-.gameControls {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  z-index: 1;
+@keyframes cursorBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
-.controlButton {
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  border: 2px solid #ff8c00;
-  padding: 0.8rem 1.5rem;
-  font-size: 0.9rem;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.3),
-    inset 0 0 10px rgba(255, 140, 0, 0.1);
+/* 次の入力文字の強調表示 - タイピングマニア風 */
+.nextCharHighlight {
+  position: relative;
+  color: #d0d0d0;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+  font-weight: 600;
 }
 
-.controlButton:hover {
-  background-color: rgba(255, 140, 0, 0.15);
-  transform: translateY(-2px);
+/* ドットフォントを使用したい箇所の追加クラス */
+.dotFontText {
+  font-family: var(--font-dot);
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: none;
 }
 
-.controlButton:active {
-  transform: translateY(1px);
+/* 見出し用ドットフォントクラス */
+.dotHeading {
+  font-family: var(--font-dot);
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: none;
 }
 
 /* ゲーム結果のスタイル強化 */
@@ -557,49 +548,4 @@
   display: block;
   text-transform: uppercase;
   letter-spacing: 1px;
-}
-
-/* タイピングマニア風のカーソルスタイル */
-.typingCursor {
-  display: inline-block;
-  width: 2px;
-  height: 1.5em;
-  background-color: rgba(255, 140, 0, 0.8);
-  vertical-align: middle;
-  margin-left: 0.2em;
-  animation: cursorBlink 1s infinite;
-  position: relative;
-  top: -0.1em;
-}
-
-@keyframes cursorBlink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.3;
-  }
-}
-
-/* 次の入力文字の強調表示 - タイピングマニア風 */
-.nextCharHighlight {
-  position: relative;
-  color: #d0d0d0;
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
-  font-weight: 600;
-}
-
-/* ドットフォントを使用したい箇所の追加クラス */
-.dotFontText {
-  font-family: var(--font-dot);
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: none;
-}
-
-/* 見出し用ドットフォントクラス */
-.dotHeading {
-  font-family: var(--font-dot);
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: none;
 }
