@@ -520,13 +520,41 @@ export function useTypingGame({
 
   // UIの更新フラグを定期的に設定
   useEffect(() => {
-    const uiUpdateInterval = setInterval(() => {
-      // UIの更新フラグを定期的に設定
+    // UI更新と統計計算を同期させる（500msごと）
+    const syncedUpdateInterval = setInterval(() => {
+      // UIの更新フラグを設定
       workerUpdateUIRef.current = true;
-    }, 500); // UI更新は500msごと
-
-    return () => clearInterval(uiUpdateInterval);
-  }, []);
+      
+      // 問題が完了しておらず、十分な入力がある場合のみ統計を計算
+      if (!isCompleted && statistics.correctKeyCount > 0) {
+        // Workerに非同期で統計計算を依頼
+        typingWorkerManager
+          .calculateStatistics({
+            correctCount: statistics.correctKeyCount,
+            missCount: statistics.mistakeCount,
+            startTimeMs: statistics.startTime || Date.now(),
+            currentTimeMs: Date.now(),
+            problemStats: statistics.problemStats,
+          })
+          .then((result) => {
+            if (result && !result.error) {
+              // KPM、ランク情報をWorkerの計算結果で更新
+              lastStatsRef.current = {
+                ...lastStatsRef.current,
+                kpm: result.kpm,
+                rank: result.rank,
+                accuracy: result.accuracy,
+              };
+            }
+          })
+          .catch((err) => {
+            console.error('Worker統計計算エラー:', err);
+          });
+      }
+    }, 500); // UI更新と統計計算を500msに統一
+    
+    return () => clearInterval(syncedUpdateInterval);
+  }, [statistics, isCompleted]);
 
   const stats = useMemo(() => {
     // パフォーマンス最適化: 統計情報の計算を遅延実行

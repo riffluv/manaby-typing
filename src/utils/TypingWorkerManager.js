@@ -11,8 +11,10 @@ export class TypingWorkerManager {
     this._initializationPromise = null;
     this._inputHistory = []; // 入力履歴を保持
 
-    // 自動初期化
-    this._initialize();
+    // 自動初期化 - ただしブラウザ環境の場合のみ
+    if (typeof window !== 'undefined') {
+      this._initialize();
+    }
   }
 
   /**
@@ -26,6 +28,13 @@ export class TypingWorkerManager {
 
     this._initializationPromise = new Promise((resolve, reject) => {
       try {
+        // ブラウザ環境でのみWorkerを初期化
+        if (typeof Worker === 'undefined') {
+          console.warn('Web Worker is not supported in this environment.');
+          resolve();
+          return;
+        }
+
         // WorkerをWeb Worker APIを使って初期化
         this._worker = new Worker(
           new URL('../workers/typing-worker.js', import.meta.url)
@@ -89,12 +98,32 @@ export class TypingWorkerManager {
   }
 
   /**
-   * セッションオブジェクトを Worker に送信可能な形式に変換（関数を除外）
+   * セッションオブジェクトを Worker に送信可能な形式に変換（関数を除外・差分更新機能付き）
    */
   _serializeSession(session) {
     if (!session) return null;
 
-    // 関数を含まないプロパティのみを抽出
+    // 全く同じオブジェクトの場合は差分はなし
+    if (this._lastSession === session) {
+      return { unchanged: true };
+    }
+
+    // 前回のセッションがある場合は、変更部分のみを送信
+    if (this._lastSession) {
+      const diff = {
+        currentCharIndex: session.currentCharIndex,
+        typedRomaji: session.typedRomaji,
+        currentInput: session.currentInput,
+        completed: session.completed,
+        completedAt: session.completedAt,
+        isDiff: true
+      };
+
+      // ベース情報が変わっていない場合はセッションIDのみ送信
+      return diff;
+    }
+
+    // 初回または大きな変更があった場合は完全なオブジェクトを送信
     return {
       originalText: session.originalText,
       kanaText: session.kanaText,
@@ -107,6 +136,7 @@ export class TypingWorkerManager {
       currentInput: session.currentInput,
       completed: session.completed,
       completedAt: session.completedAt,
+      isFullSync: true
     };
   }
 

@@ -286,12 +286,28 @@ function convertFullWidthToHalfWidth(char) {
 }
 
 /**
- * タイピング処理の最適化版
+ * タイピング処理の最適化版（差分更新対応）
  * @param {object} session - タイピングセッションオブジェクト (シリアライズ済み)
  * @param {string} char - 入力された文字
  * @returns {object} - 処理結果
  */
 function processInput(session, char) {
+  // セッションが差分のみの場合、前回のセッションと統合
+  if (session.isDiff && self._lastFullSession) {
+    session = {
+      ...self._lastFullSession,
+      ...session
+    };
+  } else if (session.isFullSync) {
+    // 完全なセッションの場合はキャッシュ
+    self._lastFullSession = { ...session };
+  }
+  
+  // セッション変更なしの場合は前回の結果を再利用
+  if (session.unchanged) {
+    return { success: false, status: 'unchanged_session' };
+  }
+
   if (!session || session.completed) {
     return { success: false, status: 'already_completed' };
   }
@@ -321,9 +337,14 @@ function processInput(session, char) {
 
   if (exactMatch || hasMatchingPrefix) {
     // 新しいセッションオブジェクトを作成（イミュータブルに）
+    // 差分更新のため、必要な属性だけ更新
     const updatedSession = {
-      ...session,
+      currentCharIndex: session.currentCharIndex,
+      typedRomaji: session.typedRomaji,
       currentInput: newInput,
+      completed: session.completed,
+      completedAt: session.completedAt,
+      isDiff: true
     };
 
     if (exactMatch) {
@@ -333,7 +354,7 @@ function processInput(session, char) {
       updatedSession.currentInput = '';
 
       // すべての文字が入力完了したか
-      if (updatedSession.currentCharIndex >= updatedSession.patterns.length) {
+      if (updatedSession.currentCharIndex >= session.patterns.length) {
         updatedSession.completed = true;
         updatedSession.completedAt = Date.now();
         return {
@@ -364,10 +385,14 @@ function processInput(session, char) {
   );
 
   if (splitResult) {
-    // 分割処理が有効
+    // 分割処理が有効 - 差分更新として必要な属性のみ
     const updatedSession = {
-      ...session,
+      currentCharIndex: session.currentCharIndex,
+      typedRomaji: session.typedRomaji,
       currentInput: splitResult.secondPart,
+      completed: session.completed,
+      completedAt: session.completedAt,
+      isDiff: true
     };
 
     if (splitResult.secondPart === splitResult.matchedPattern) {
@@ -376,7 +401,7 @@ function processInput(session, char) {
       updatedSession.currentCharIndex++;
       updatedSession.currentInput = '';
 
-      if (updatedSession.currentCharIndex >= updatedSession.patterns.length) {
+      if (updatedSession.currentCharIndex >= session.patterns.length) {
         updatedSession.completed = true;
         updatedSession.completedAt = Date.now();
         return {
@@ -407,16 +432,39 @@ function processInput(session, char) {
  * 色分け情報を取得
  */
 function getColoringInfo(session) {
-  if (!session)
+  // セッションが差分のみの場合、前回のセッションと統合
+  if (session.isDiff && self._lastFullSession) {
+    session = {
+      ...self._lastFullSession,
+      ...session
+    };
+  } else if (session.isFullSync) {
+    // 完全なセッションの場合はキャッシュ
+    self._lastFullSession = { ...session };
+  }
+  
+  // セッション変更なしの場合は前回の結果を再利用
+  if (session.unchanged && self._lastColoringInfo) {
+    return self._lastColoringInfo;
+  }
+
+  if (!session) {
     return {
       typedLength: 0,
       currentInputLength: 0,
       currentPosition: 0,
       completed: false,
     };
+  }
+
+  // キャッシュキーを作成
+  const cacheKey = `${session.currentCharIndex}_${session.currentInput}_${session.completed}`;
+  if (self._coloringCache.has(cacheKey)) {
+    return self._coloringCache.get(cacheKey);
+  }
 
   if (session.completed) {
-    return {
+    const result = {
       typedLength: session.displayRomaji.length,
       currentInputLength: 0,
       currentPosition: session.displayRomaji.length,
@@ -424,6 +472,12 @@ function getColoringInfo(session) {
       completed: true,
       completedAt: session.completedAt,
     };
+    
+    // キャッシュに保存
+    self._coloringCache.set(cacheKey, result);
+    self._lastColoringInfo = result;
+    
+    return result;
   }
 
   // 事前計算済みのインデックスを使用
@@ -437,13 +491,19 @@ function getColoringInfo(session) {
       ? session.displayIndices[session.currentCharIndex]
       : session.displayRomaji.length;
 
-  return {
+  const result = {
     typedLength: typedIndex,
     currentInputLength: session.currentInput.length,
     currentPosition: currentPosition,
     currentDisplay: '',
     completed: false,
   };
+  
+  // キャッシュに保存
+  self._coloringCache.set(cacheKey, result);
+  self._lastColoringInfo = result;
+  
+  return result;
 }
 
 /**
@@ -692,6 +752,10 @@ function processInputHistory(inputHistory) {
     data: result,
   };
 }
+
+// Web Worker グローバルコンテキスト初期化
+self._lastFullSession = null; // 完全なセッションを保持するためのキャッシュ
+self._coloringCache = new Map(); // 色分け情報のキャッシュ
 
 /**
  * Web Workerのメッセージハンドラ
