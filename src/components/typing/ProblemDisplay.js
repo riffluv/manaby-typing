@@ -1,13 +1,12 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import styles from '../../styles/GameScreen.module.css';
-import { Typography, Animation } from '../../utils/DesignTokens';
-import { TextStyles } from '../../utils/TextStyleUtils';
+import { Animation } from '../../utils/DesignTokens';
 
 /**
  * 問題表示コンポーネント
  * タイピングゲームのお題（問題文）を表示する
- * デザインシステムの統一されたスタイリングを適用
+ * グローバルスタイルを使用したデザインシステム
  *
  * @param {Object} props
  * @param {string} props.text - 表示する問題テキスト
@@ -21,21 +20,15 @@ const ProblemDisplay = ({ text = '', animate = true }) => {
     });
   }
 
-  // インラインスタイルとして問題テキストスタイルを適用
-  const problemStyle = {
-    ...TextStyles.problemText,
-  };
-
   // アニメーションなしの場合
   if (!animate) {
-    return <p className={styles.typingProblem} style={problemStyle}>{text}</p>;
+    return <p className={`typing-problem ${styles.typingProblem}`}>{text}</p>;
   }
 
   // アニメーション効果付きの表示
   return (
     <motion.p
-      className={styles.typingProblem}
-      style={problemStyle}
+      className={`typing-problem ${styles.typingProblem}`}
       initial={{ y: -10, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ 

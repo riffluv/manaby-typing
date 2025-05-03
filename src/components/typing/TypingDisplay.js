@@ -1,11 +1,10 @@
 import React, { useMemo, memo } from 'react';
 import styles from '../../styles/GameScreen.module.css';
-import { TextStyles, TextAnimations } from '../../utils/TextStyleUtils';
 
 /**
  * シンプル化したタイピング表示コンポーネント
  * すべてのタイピングテキストを中央揃えで表示
- * TextStyleUtils からスタイル定義を使用して統一された表示を実現
+ * グローバルCSSのクラスを使用して統一された表示を実現
  */
 const TypingDisplay = memo(
   ({
@@ -22,31 +21,17 @@ const TypingDisplay = memo(
         : displayRomaji;
     }, [displayRomaji]);
 
-    // 文字色分け用のスタイルオブジェクト - useMemoでレンダリング最適化
-    const textStyles = useMemo(() => {
-      const { typedLength = 0, currentInputLength = 0 } = coloringInfo || {};
-
-      // TextStyleUtilsから共通スタイルを取得
-      return {
-        typed: TextStyles.typed,
-        current: TextStyles.current,
-        notTyped: TextStyles.notTyped,
-        nextChar: TextStyles.nextChar,
-        typedLength,
-        currentInputLength,
-      };
-    }, [coloringInfo]);
-
     // 現在の入力を含むテキスト表示 - useMemoでレンダリング最適化
     const displayText = useMemo(() => {
       if (!cleanDisplayRomaji) return null;
 
       // 全体が完了した場合
       if (isCompleted) {
-        return <span style={textStyles.typed}>{cleanDisplayRomaji}</span>;
+        return <span className="typing-completed">{cleanDisplayRomaji}</span>;
       }
 
-      const { typedLength, currentInputLength } = textStyles;
+      const typedLength = coloringInfo?.typedLength || 0;
+      const currentInputLength = coloringInfo?.currentInputLength || 0;
       const currentPosition = coloringInfo?.currentPosition || 0;
 
       // テキストを複数のパーツに分割（タイピングマニアのアプローチ）
@@ -65,25 +50,20 @@ const TypingDisplay = memo(
       return (
         <>
           {/* 入力済み部分 */}
-          {typedText && <span style={textStyles.typed}>{typedText}</span>}
+          {typedText && <span className="typing-completed">{typedText}</span>}
 
           {/* 現在の入力中部分 - 確定済みと同じ緑色で表示 */}
           {currentInput && (
-            <span style={textStyles.current}>{currentInput}</span>
+            <span className="typing-current">{currentInput}</span>
           )}
 
           {/* 次に入力すべき文字を特別に強調（タイピングマニア風） */}
           {nextChar && (
-            <span
-              style={textStyles.nextChar}
-              className={styles.nextCharHighlight}
-            >
-              {nextChar}
-            </span>
+            <span className={styles.nextCharHighlight}>{nextChar}</span>
           )}
 
           {/* 残りの未入力部分 */}
-          {restText && <span style={textStyles.notTyped}>{restText}</span>}
+          {restText && <span style={{ color: '#757575' }}>{restText}</span>}
         </>
       );
     }, [
@@ -91,15 +71,13 @@ const TypingDisplay = memo(
       coloringInfo,
       currentInput,
       isCompleted,
-      textStyles,
     ]);
 
     return (
       <div
-        className={`${styles.simpleTypingText} ${
+        className={`typing-text ${styles.simpleTypingText} ${
           errorAnimation ? styles.errorShake : ''
         }`}
-        style={TextStyles.typingText} // ベースのタイピングテキストスタイルを適用
       >
         {displayText}
 

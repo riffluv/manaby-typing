@@ -4,6 +4,8 @@
  * このファイルはタイピングゲーム内のテキスト表示に関する
  * 色、サイズ、フォント、スタイルなどの定義を集約しています。
  * 複数のコンポーネントで一貫したテキスト表示を実現するために使用します。
+ * 
+ * 注: フォント関連の基本定義はglobals.cssに移動し、ここではglobals.cssの変数を参照します
  */
 
 import { Colors, Typography, Animation } from './DesignTokens';
@@ -18,7 +20,7 @@ export const TextColors = {
   // タイピング関連
   PROBLEM_TEXT: 'var(--problem-text-color)',
   TYPED_TEXT: 'var(--typed-text-color)',
-  CURRENT_INPUT: 'var(--typed-text-color)', // 確定済み文字と同じ緑色
+  CURRENT_INPUT: 'var(--current-input-color)',
   NEXT_CHAR: 'var(--next-char-color)',
   NOT_TYPED: 'var(--not-typed-color)',
   ERROR_TEXT: 'var(--error-color)',
@@ -47,66 +49,57 @@ export const TextColors = {
   RANK_BEGINNER: Colors.ranks.beginner,
 };
 
-// フォントサイズ関連の定数（TypographyからFontSizeを参照）
+// フォントサイズ関連の定数（CSSカスタムプロパティを参照）
 export const TextSizes = {
-  PROBLEM_TEXT: Typography.fontSize.problemText,
-  TYPING_TEXT: Typography.fontSize.typingText,
-  HEADING_XL: Typography.fontSize['4xl'],
-  HEADING_LG: Typography.fontSize['3xl'],
-  HEADING_MD: Typography.fontSize['2xl'],
-  HEADING_SM: Typography.fontSize.xl,
-  BODY_LG: Typography.fontSize.lg,
-  BODY_MD: Typography.fontSize.md,
-  BODY_SM: Typography.fontSize.sm,
-  CAPTION: Typography.fontSize.xs,
+  PROBLEM_TEXT: 'var(--problem-text-size)',
+  TYPING_TEXT: 'var(--typing-text-size)',
+  HEADING_XL: 'var(--font-size-4xl)',
+  HEADING_LG: 'var(--font-size-3xl)',
+  HEADING_MD: 'var(--font-size-2xl)',
+  HEADING_SM: 'var(--font-size-xl)',
+  BODY_LG: 'var(--font-size-lg)',
+  BODY_MD: 'var(--font-size-md)',
+  BODY_SM: 'var(--font-size-sm)',
+  CAPTION: 'var(--font-size-xs)',
 };
 
 // フォントスタイル関連の定数
+// 注: これらはJSX内でインラインスタイルとして使用される場合のために残します
+// 新しいコンポーネントでは可能な限りglobals.cssのクラスを使用することを推奨
 export const TextStyles = {
-  // 問題テキスト用（お題表示）
+  // テキストスタイルのレガシーサポート - 互換性のために残す
+  // 新しいコードでは .typing-problem クラスを使用してください
   problemText: {
-    fontSize: TextSizes.PROBLEM_TEXT,
-    fontWeight: Typography.fontWeight.bold,
-    letterSpacing: Typography.letterSpacing.normal,
-    fontFamily: Typography.fontFamily.normal,
-    lineHeight: Typography.lineHeight.problemText,
     color: TextColors.PROBLEM_TEXT,
     textShadow: '0px 2px 10px rgba(0, 0, 0, 0.5)',
   },
   
-  // タイピング入力表示用
+  // タイピング入力表示用 - 互換性のために残す
+  // 新しいコードでは .typing-text クラスを使用してください
   typingText: {
-    fontSize: TextSizes.TYPING_TEXT,
-    fontWeight: Typography.fontWeight.semibold,
-    letterSpacing: Typography.letterSpacing.wide,
-    fontFamily: Typography.fontFamily.normal,
-    lineHeight: Typography.lineHeight.typingText,
     textShadow: '0 2px 6px rgba(0, 0, 0, 0.5)',
   },
   
-  // タイピング入力の状態別スタイル
+  // タイピング入力の状態別スタイル - インラインスタイル用
+  // 新しいコードでは .typing-completed クラスなどを使用してください
   typed: {
     color: TextColors.TYPED_TEXT,
-    fontWeight: Typography.fontWeight.semibold,
     textShadow: '0px 0px 8px rgba(106, 255, 139, 0.4)',
   },
   
   current: {
     color: TextColors.CURRENT_INPUT,
-    fontWeight: Typography.fontWeight.semibold,
-    textShadow: '0px 0px 8px rgba(106, 255, 139, 0.4)',
+    textShadow: '0px 0px 8px rgba(77, 184, 255, 0.4)',
   },
   
   nextChar: {
     color: TextColors.NEXT_CHAR,
-    fontWeight: Typography.fontWeight.bold,
     position: 'relative',
     textShadow: '0px 0px 8px rgba(255, 154, 40, 0.4)',
   },
   
   notTyped: {
     color: TextColors.NOT_TYPED,
-    opacity: Colors.opacity[80],
   },
   
   error: {

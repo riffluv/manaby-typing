@@ -1,3 +1,4 @@
+/* 全体のコンテナスタイル */
 .gameContainer {
   display: flex;
   flex-direction: column;
@@ -10,7 +11,7 @@
   position: relative;
   overflow: hidden;
   color: #e1e1e1;
-  font-family: var(--font-normal); /* 変数を使用 */
+  /* font-familyを削除し、グローバルスタイルに依存 */
 }
 
 .gameContainer::before {
@@ -112,23 +113,8 @@
   flex-direction: column;
 }
 
-/* お題テキスト - 統一されたベーススタイル */
+/* お題テキスト - レイアウト調整のみ（フォント関連はグローバルクラスへ） */
 .typingProblem {
-  /* フォント設定 */
-  font-size: var(--problem-text-size);
-  font-weight: 700;
-  letter-spacing: 1px;
-  font-family: var(--font-normal);
-  line-height: var(--problem-text-line-height);
-  
-  /* テキスト表示 */
-  color: var(--problem-text-color);
-  text-shadow: 0px 2px 10px rgba(0, 0, 0, 0.5);
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  word-break: break-all;
-  
-  /* 配置 */
   width: 100%;
   max-width: 90%;
   margin: 0 auto 1.5rem;
@@ -138,22 +124,8 @@
   box-sizing: border-box;
 }
 
-/* タイピング入力テキスト - 統一されたベーススタイル */
+/* タイピング入力テキスト - レイアウト調整のみ（フォント関連はグローバルクラスへ） */
 .simpleTypingText {
-  /* フォント設定 */
-  font-size: var(--typing-text-size);
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  font-family: var(--font-normal);
-  line-height: var(--typing-text-line-height);
-  
-  /* テキスト表示 */
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  word-break: break-all;
-  
-  /* 配置 */
   width: 100%;
   max-width: 90%;
   min-height: 3.6rem;
@@ -174,7 +146,6 @@
   display: block;
   width: 100%;
   text-align: center;
-  font-family: var(--font-normal);
   white-space: pre-wrap;
 }
 
@@ -182,42 +153,7 @@
   display: none;
 }
 
-/* 入力状態ごとのスタイル */
-.completed {
-  color: #6aff8b;
-  font-weight: 600;
-  text-shadow: 0px 0px 8px rgba(106, 255, 139, 0.4);
-}
-
-.current {
-  color: #4db8ff;
-  font-weight: 600;
-  border-bottom: 2px solid #4db8ff;
-  animation: blink 1.2s infinite;
-  padding-bottom: 2px;
-  text-shadow: 0px 0px 8px rgba(77, 184, 255, 0.4);
-}
-
-/* 未確定のローマ字（薄い青色） */
-.pending {
-  color: #7fbfff; /* より薄い青色 */
-  font-weight: 500; /* 少し薄めのフォント */
-  text-shadow: 0px 0px 6px rgba(127, 191, 255, 0.3);
-}
-
-.error {
-  color: #ff6b6b;
-  animation: shake 0.3s;
-  text-shadow: 0px 0px 8px rgba(255, 107, 107, 0.4);
-}
-
-/* ミスの振動アニメーション - よりスムーズに */
-.errorShake {
-  animation: errorShake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-}
-
+/* アニメーション定義（スタイルではなくアニメーションの定義のみ） */
 @keyframes errorShake {
   0%,
   100% {
@@ -231,6 +167,12 @@
   80% {
     transform: translateX(5px);
   }
+}
+
+.errorShake {
+  animation: errorShake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
 }
 
 @keyframes blink {
@@ -272,20 +214,6 @@
   color: #d0d0d0;
   text-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
   font-weight: 600;
-}
-
-/* ドットフォントを使用したい箇所の追加クラス */
-.dotFontText {
-  font-family: var(--font-dot);
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: none;
-}
-
-/* 見出し用ドットフォントクラス */
-.dotHeading {
-  font-family: var(--font-dot);
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: none;
 }
 
 /* ゲーム結果のスタイル強化 */
@@ -377,16 +305,6 @@
   text-align: center;
   margin-top: 20px;
   animation: blink 1.5s infinite;
-}
-
-@keyframes blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
 }
 
 .escGuide {
