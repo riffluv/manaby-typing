@@ -5,7 +5,7 @@
  * 一貫性のあるUI設計を実現します。デザイントークンと連携して使用します。
  */
 
-import { Colors, Typography, Spacing, Layout, Animation } from './DesignTokens';
+import { Colors, Typography, Spacing, Layout, Animation, StyleHelpers } from './DesignTokens';
 
 // ボタンの基本スタイル
 export const ButtonBaseStyle = {
@@ -59,6 +59,22 @@ export const ButtonVariants = {
     },
   },
   
+  // 強調ボタン（アクセントカラー使用）
+  accent: {
+    backgroundColor: Colors.accent,
+    color: '#ffffff',
+    boxShadow: `0 4px 6px rgba(0, 0, 0, 0.15), inset 0 1px rgba(255, 255, 255, 0.1)`,
+    '&:hover': {
+      backgroundColor: `color-mix(in srgb, ${Colors.accent} 90%, white)`,
+      transform: 'translateY(-2px)',
+      boxShadow: `0 6px 8px rgba(0, 0, 0, 0.2)`,
+    },
+    '&:active': {
+      transform: 'translateY(1px)',
+      boxShadow: '0 2px 3px rgba(0, 0, 0, 0.1)',
+    },
+  },
+  
   // アウトラインボタン
   outline: {
     backgroundColor: 'transparent',
@@ -68,6 +84,36 @@ export const ButtonVariants = {
     '&:hover': {
       border: `1px solid ${Colors.foreground}`,
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+  },
+  
+  // ゴーストボタン（より軽量なアウトライン）
+  ghost: {
+    backgroundColor: 'transparent',
+    color: Colors.foreground,
+    border: 'none',
+    boxShadow: 'none',
+    '&:hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.07)',
+    },
+    '&:active': {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+  },
+  
+  // リンクスタイルボタン
+  link: {
+    backgroundColor: 'transparent',
+    color: Colors.secondary,
+    padding: 0,
+    border: 'none',
+    textDecoration: 'underline',
+    boxShadow: 'none',
+    minWidth: 'auto',
+    height: 'auto',
+    '&:hover': {
+      color: Colors.primary,
+      transform: 'none',
     },
   },
   
@@ -88,6 +134,51 @@ export const ButtonVariants = {
     boxShadow: '0 4px 6px rgba(76, 175, 80, 0.2)',
     '&:hover': {
       backgroundColor: `color-mix(in srgb, ${Colors.success} 90%, white)`,
+    },
+  },
+  
+  // 警告ボタン
+  warning: {
+    backgroundColor: Colors.warning,
+    color: '#fff',
+    boxShadow: '0 4px 6px rgba(255, 154, 40, 0.2)',
+    '&:hover': {
+      backgroundColor: `color-mix(in srgb, ${Colors.warning} 90%, white)`,
+    },
+  },
+  
+  // 情報ボタン
+  info: {
+    backgroundColor: Colors.info,
+    color: '#fff',
+    boxShadow: '0 4px 6px rgba(77, 184, 255, 0.2)',
+    '&:hover': {
+      backgroundColor: `color-mix(in srgb, ${Colors.info} 90%, white)`,
+    },
+  },
+  
+  // ガラスモルフィズム
+  glass: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    color: Colors.foreground,
+    '&:hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+    },
+  },
+  
+  // グラデーション
+  gradient: {
+    background: Colors.gradients.primary,
+    color: '#ffffff',
+    border: 'none',
+    '&:hover': {
+      opacity: 0.9,
+      transform: 'translateY(-2px)',
+      boxShadow: `0 7px 14px rgba(0, 0, 0, 0.1)`,
     },
   },
   
@@ -126,27 +217,59 @@ export const ButtonVariants = {
       color: Colors.foreground,
     },
   },
+  
+  // ネオン
+  neon: {
+    backgroundColor: 'transparent',
+    color: Colors.primary,
+    border: `2px solid ${Colors.primary}`,
+    boxShadow: Layout.shadows.neon,
+    textShadow: `0 0 5px ${Colors.primary}`,
+    '&:hover': {
+      textShadow: `0 0 10px ${Colors.primary}`,
+      boxShadow: `0 0 15px ${Colors.primary}, 0 0 30px ${Colors.primary}`,
+      backgroundColor: 'rgba(255, 140, 0, 0.1)',
+    },
+  },
 };
 
 // ボタンサイズ別のスタイル
 export const ButtonSizes = {
+  tiny: {
+    padding: '0.15rem 0.5rem',
+    fontSize: Typography.fontSize.xs,
+    height: '24px',
+    minWidth: '60px',
+  },
   small: {
     padding: Spacing.padding.button.small,
     fontSize: Typography.fontSize.sm,
-    height: '30px',
+    height: Layout.height.button.small,
     minWidth: '80px',
   },
   medium: {
     padding: Spacing.padding.button.medium,
     fontSize: Typography.fontSize.md,
-    height: '40px',
+    height: Layout.height.button.medium,
     minWidth: '120px',
   },
   large: {
     padding: Spacing.padding.button.large,
     fontSize: Typography.fontSize.lg,
-    height: '50px',
+    height: Layout.height.button.large,
     minWidth: '160px',
+  },
+  xlarge: {
+    padding: '1rem 2.5rem',
+    fontSize: Typography.fontSize.xl,
+    height: '60px',
+    minWidth: '200px',
+    fontWeight: Typography.fontWeight.bold,
+  },
+  fullWidth: {
+    width: '100%',
+    padding: Spacing.padding.button.medium,
+    fontSize: Typography.fontSize.md,
   },
 };
 
@@ -158,6 +281,20 @@ export const SpecialButtonStyles = {
     aspectRatio: '1 / 1',
     minWidth: 'unset',
     padding: 0,
+  },
+  
+  // カプセル型ボタン
+  pill: {
+    borderRadius: Layout.borderRadius.pill,
+  },
+  
+  // 正方形ボタン
+  square: {
+    aspectRatio: '1 / 1',
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   
   // 難易度選択ボタン
@@ -182,9 +319,30 @@ export const SpecialButtonStyles = {
     },
   },
   
+  // 3Dボタン
+  threeDimensional: {
+    borderBottom: '4px solid rgba(0, 0, 0, 0.2)',
+    '&:active': {
+      borderBottom: '2px solid rgba(0, 0, 0, 0.2)',
+      marginTop: '2px',
+    },
+  },
+  
   // アイコン付きボタン
   withIcon: {
     gap: Spacing.sm,
+  },
+  
+  // アイコンのみのボタン
+  iconOnly: {
+    minWidth: 'unset',
+    width: Layout.height.button.medium,
+    padding: 0,
+  },
+  
+  // アニメーション付きボタン
+  animated: {
+    transition: `all ${Animation.duration.normal} ${Animation.easing.spring}`,
   },
   
   // アクティブ状態
@@ -203,6 +361,12 @@ export const SpecialButtonStyles = {
     color: 'rgba(255, 255, 255, 0.4)',
     boxShadow: 'none',
   },
+  
+  // フォーカス状態
+  focus: {
+    outline: `2px solid ${Colors.primary}`,
+    outlineOffset: '2px',
+  },
 };
 
 // アニメーション効果
@@ -214,6 +378,15 @@ export const ButtonAnimations = {
   tap: {
     transform: 'translateY(1px)',
     boxShadow: `0 3px 8px rgba(0, 0, 0, 0.1)`,
+  },
+  pulse: {
+    animation: `${Animation.keyframes.pulse} 2s ${Animation.easing.easeInOut} infinite`,
+  },
+  shake: {
+    animation: `${Animation.keyframes.errorShake} 0.5s ${Animation.easing.linear}`,
+  },
+  bounce: {
+    animation: `${Animation.keyframes.bounce} 1s ${Animation.easing.bounce}`,
   },
   // フレーマーモーション用設定
   framerMotion: {
@@ -233,13 +406,102 @@ export const ButtonAnimations = {
   },
 };
 
+/**
+ * ボタンスタイルを生成する関数
+ * @param {Object} options - スタイルオプション
+ * @param {string} options.variant - ボタンの種類 (primary, secondary, outline など)
+ * @param {string} options.size - ボタンのサイズ (small, medium, large など)
+ * @param {boolean} options.round - 丸型ボタンかどうか
+ * @param {boolean} options.pill - カプセル形状かどうか
+ * @param {boolean} options.square - 正方形ボタンかどうか
+ * @param {boolean} options.withIcon - アイコン付きかどうか
+ * @param {boolean} options.iconOnly - アイコンのみかどうか
+ * @param {boolean} options.fullWidth - 幅100%かどうか
+ * @param {boolean} options.animated - アニメーション付きかどうか
+ * @param {boolean} options.active - アクティブ状態かどうか
+ * @param {boolean} options.disabled - 無効状態かどうか
+ * @param {Object} options.customStyles - カスタムスタイルオブジェクト
+ * @returns {Object} スタイルオブジェクト
+ */
+export function createButtonStyle({
+  variant = 'primary',
+  size = 'medium',
+  round = false,
+  pill = false,
+  square = false,
+  withIcon = false,
+  iconOnly = false,
+  fullWidth = false,
+  animated = false,
+  active = false,
+  disabled = false,
+  customStyles = {},
+}) {
+  // 基本スタイル
+  let styles = { ...ButtonBaseStyle };
+  
+  // バリアント適用
+  if (ButtonVariants[variant]) {
+    styles = StyleHelpers.mergeStyles(styles, ButtonVariants[variant]);
+  }
+  
+  // サイズ適用
+  if (fullWidth && ButtonSizes.fullWidth) {
+    styles = StyleHelpers.mergeStyles(styles, ButtonSizes.fullWidth);
+  } else if (ButtonSizes[size]) {
+    styles = StyleHelpers.mergeStyles(styles, ButtonSizes[size]);
+  }
+  
+  // 特殊形状
+  if (round) {
+    styles = StyleHelpers.mergeStyles(styles, SpecialButtonStyles.round);
+  }
+  if (pill) {
+    styles = StyleHelpers.mergeStyles(styles, SpecialButtonStyles.pill);
+  }
+  if (square) {
+    styles = StyleHelpers.mergeStyles(styles, SpecialButtonStyles.square);
+  }
+  
+  // アイコン関連
+  if (withIcon) {
+    styles = StyleHelpers.mergeStyles(styles, SpecialButtonStyles.withIcon);
+  }
+  if (iconOnly) {
+    styles = StyleHelpers.mergeStyles(styles, SpecialButtonStyles.iconOnly);
+  }
+  
+  // アニメーション
+  if (animated) {
+    styles = StyleHelpers.mergeStyles(styles, SpecialButtonStyles.animated);
+  }
+  
+  // 状態
+  if (active) {
+    styles = StyleHelpers.mergeStyles(styles, SpecialButtonStyles.active);
+  }
+  if (disabled) {
+    styles = StyleHelpers.mergeStyles(styles, SpecialButtonStyles.disabled);
+  }
+  
+  // カスタムスタイル
+  if (Object.keys(customStyles).length > 0) {
+    styles = StyleHelpers.mergeStyles(styles, customStyles);
+  }
+  
+  return styles;
+}
+
 // ボタンのCSSクラスを動的に生成するヘルパー関数
 export function getButtonClassName({
   variant = 'default',
   size = 'medium',
   round = false,
+  pill = false,
   active = false,
   withIcon = false,
+  iconOnly = false,
+  fullWidth = false,
   disabled = false,
   className = '',
 }) {
@@ -256,22 +518,34 @@ export function getButtonClassName({
     classes.push(`button--${size}`);
   }
   
-  // 丸みを帯びたスタイル
+  // 形状
   if (round) {
     classes.push('button--round');
   }
   
-  // アイコン付き
+  if (pill) {
+    classes.push('button--pill');
+  }
+  
+  // 幅100%
+  if (fullWidth) {
+    classes.push('button--full-width');
+  }
+  
+  // アイコン関連
   if (withIcon) {
     classes.push('button--with-icon');
   }
   
-  // アクティブ状態
+  if (iconOnly) {
+    classes.push('button--icon-only');
+  }
+  
+  // 状態
   if (active) {
     classes.push('button--active');
   }
   
-  // 無効状態
   if (disabled) {
     classes.push('button--disabled');
   }
@@ -283,3 +557,93 @@ export function getButtonClassName({
   
   return classes.join(' ');
 }
+
+// ボタンプリセット
+export const ButtonPresets = {
+  // メインメニューボタン
+  mainMenuButton: createButtonStyle({
+    variant: 'menu',
+    size: 'large',
+    fullWidth: true,
+    animated: true,
+    customStyles: {
+      marginBottom: Spacing.md,
+      fontSize: Typography.fontSize.xl,
+      letterSpacing: Typography.letterSpacing.wide,
+    }
+  }),
+  
+  // 難易度選択ボタン
+  difficultyButton: createButtonStyle({
+    variant: 'outline',
+    size: 'medium',
+    animated: true,
+    customStyles: SpecialButtonStyles.difficulty,
+  }),
+  
+  // リトライボタン
+  retryButton: createButtonStyle({
+    variant: 'primary',
+    size: 'large',
+    withIcon: true,
+    animated: true,
+    customStyles: {
+      boxShadow: Layout.shadows.md,
+    }
+  }),
+  
+  // 戻るボタン
+  backButton: createButtonStyle({
+    variant: 'outline',
+    size: 'medium',
+    withIcon: true,
+    customStyles: {
+      marginTop: Spacing.lg,
+    }
+  }),
+  
+  // 設定トグル
+  settingToggle: createButtonStyle({
+    variant: 'toggle',
+    size: 'medium',
+    customStyles: {
+      width: '100px',
+    }
+  }),
+  
+  // アイコンボタン
+  iconButton: createButtonStyle({
+    variant: 'ghost',
+    size: 'medium',
+    round: true,
+    iconOnly: true,
+  }),
+  
+  // 共有ボタン
+  shareButton: createButtonStyle({
+    variant: 'secondary',
+    size: 'medium',
+    withIcon: true,
+  }),
+  
+  // サブミットボタン
+  submitButton: createButtonStyle({
+    variant: 'primary',
+    size: 'large',
+    animated: true,
+    customStyles: {
+      fontWeight: Typography.fontWeight.bold,
+    }
+  }),
+};
+
+export default {
+  ButtonBaseStyle,
+  ButtonVariants,
+  ButtonSizes,
+  SpecialButtonStyles,
+  ButtonAnimations,
+  createButtonStyle,
+  getButtonClassName,
+  ButtonPresets,
+};

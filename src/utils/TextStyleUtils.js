@@ -6,6 +6,8 @@
  * 複数のコンポーネントで一貫したテキスト表示を実現するために使用します。
  */
 
+import { Colors, Typography, Animation } from './DesignTokens';
+
 // テキストカラー関連の定数
 export const TextColors = {
   // 基本色
@@ -21,42 +23,42 @@ export const TextColors = {
   NOT_TYPED: 'var(--not-typed-color)',
   ERROR_TEXT: 'var(--error-color)',
 
-  // ランク別の色（KPM評価用）
-  RANK_GOD: '#ff00ff',
-  RANK_DIVINE: '#ff00cc',
-  RANK_LEGEND: '#9900ff',
-  RANK_SSS_PLUS: '#6600ff',
-  RANK_SSS: '#0033ff',
-  RANK_SS_PLUS: '#0099ff',
-  RANK_SS: '#00ccff',
-  RANK_S_PLUS: '#00ffcc',
-  RANK_S: '#00ff66',
-  RANK_A_PLUS: '#33ff00',
-  RANK_A: '#99ff00',
-  RANK_B_PLUS: '#ccff00',
-  RANK_B: '#ffff00',
-  RANK_C_PLUS: '#ffcc00',
-  RANK_C: '#ff9900',
-  RANK_D_PLUS: '#ff6600',
-  RANK_D: '#ff3300',
-  RANK_E_PLUS: '#ff0000',
-  RANK_E: '#cc0000',
-  RANK_ROOKIE: '#9370DB',
-  RANK_BEGINNER: '#6495ED',
+  // ランク別の色（DesignTokensから参照）
+  RANK_GOD: Colors.ranks.god,
+  RANK_DIVINE: Colors.ranks.divine,
+  RANK_LEGEND: Colors.ranks.legend,
+  RANK_SSS_PLUS: Colors.ranks.sssPlus,
+  RANK_SSS: Colors.ranks.sss,
+  RANK_SS_PLUS: Colors.ranks.ssPlus,
+  RANK_SS: Colors.ranks.ss,
+  RANK_S_PLUS: Colors.ranks.sPlus,
+  RANK_S: Colors.ranks.s,
+  RANK_A_PLUS: Colors.ranks.aPlus,
+  RANK_A: Colors.ranks.a,
+  RANK_B_PLUS: Colors.ranks.bPlus,
+  RANK_B: Colors.ranks.b,
+  RANK_C_PLUS: Colors.ranks.cPlus,
+  RANK_C: Colors.ranks.c,
+  RANK_D_PLUS: Colors.ranks.dPlus,
+  RANK_D: Colors.ranks.d,
+  RANK_E_PLUS: Colors.ranks.ePlus,
+  RANK_E: Colors.ranks.e,
+  RANK_ROOKIE: Colors.ranks.rookie,
+  RANK_BEGINNER: Colors.ranks.beginner,
 };
 
-// フォントサイズ関連の定数
+// フォントサイズ関連の定数（TypographyからFontSizeを参照）
 export const TextSizes = {
-  PROBLEM_TEXT: 'var(--problem-text-size)',
-  TYPING_TEXT: 'var(--typing-text-size)',
-  HEADING_XL: '2.25rem',
-  HEADING_LG: '2rem',
-  HEADING_MD: '1.5rem',
-  HEADING_SM: '1.25rem',
-  BODY_LG: '1.125rem',
-  BODY_MD: '1rem',
-  BODY_SM: '0.875rem',
-  CAPTION: '0.75rem',
+  PROBLEM_TEXT: Typography.fontSize.problemText,
+  TYPING_TEXT: Typography.fontSize.typingText,
+  HEADING_XL: Typography.fontSize['4xl'],
+  HEADING_LG: Typography.fontSize['3xl'],
+  HEADING_MD: Typography.fontSize['2xl'],
+  HEADING_SM: Typography.fontSize.xl,
+  BODY_LG: Typography.fontSize.lg,
+  BODY_MD: Typography.fontSize.md,
+  BODY_SM: Typography.fontSize.sm,
+  CAPTION: Typography.fontSize.xs,
 };
 
 // フォントスタイル関連の定数
@@ -64,10 +66,10 @@ export const TextStyles = {
   // 問題テキスト用（お題表示）
   problemText: {
     fontSize: TextSizes.PROBLEM_TEXT,
-    fontWeight: '700',
-    letterSpacing: '1px',
-    fontFamily: 'var(--font-normal)',
-    lineHeight: 'var(--problem-text-line-height)',
+    fontWeight: Typography.fontWeight.bold,
+    letterSpacing: Typography.letterSpacing.normal,
+    fontFamily: Typography.fontFamily.normal,
+    lineHeight: Typography.lineHeight.problemText,
     color: TextColors.PROBLEM_TEXT,
     textShadow: '0px 2px 10px rgba(0, 0, 0, 0.5)',
   },
@@ -75,36 +77,36 @@ export const TextStyles = {
   // タイピング入力表示用
   typingText: {
     fontSize: TextSizes.TYPING_TEXT,
-    fontWeight: '600',
-    letterSpacing: '1.5px',
-    fontFamily: 'var(--font-normal)',
-    lineHeight: 'var(--typing-text-line-height)',
+    fontWeight: Typography.fontWeight.semibold,
+    letterSpacing: Typography.letterSpacing.wide,
+    fontFamily: Typography.fontFamily.normal,
+    lineHeight: Typography.lineHeight.typingText,
     textShadow: '0 2px 6px rgba(0, 0, 0, 0.5)',
   },
   
   // タイピング入力の状態別スタイル
   typed: {
     color: TextColors.TYPED_TEXT,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     textShadow: '0px 0px 8px rgba(106, 255, 139, 0.4)',
   },
   
   current: {
     color: TextColors.CURRENT_INPUT,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     textShadow: '0px 0px 8px rgba(106, 255, 139, 0.4)',
   },
   
   nextChar: {
     color: TextColors.NEXT_CHAR,
-    fontWeight: '700',
+    fontWeight: Typography.fontWeight.bold,
     position: 'relative',
     textShadow: '0px 0px 8px rgba(255, 154, 40, 0.4)',
   },
   
   notTyped: {
     color: TextColors.NOT_TYPED,
-    opacity: '0.8',
+    opacity: Colors.opacity[80],
   },
   
   error: {
@@ -115,35 +117,35 @@ export const TextStyles = {
 
 // アニメーション関連の定数
 export const TextAnimations = {
-  errorShake: 'errorShake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both',
-  cursor: 'cursorBlink 1s infinite',
-  blink: 'blink 1.2s infinite',
+  errorShake: `${Animation.keyframes.errorShake} 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both`,
+  cursor: `${Animation.keyframes.cursorBlink} 1s infinite`,
+  blink: `${Animation.keyframes.blink} 1.2s infinite`,
 };
 
 // ランク別の色を取得する関数
 export function getRankColor(rank) {
   switch (rank?.toUpperCase()) {
-    case 'GOD': return TextColors.RANK_GOD;
-    case 'DIVINE': return TextColors.RANK_DIVINE;
-    case 'LEGEND': return TextColors.RANK_LEGEND;
-    case 'SSS+': return TextColors.RANK_SSS_PLUS;
-    case 'SSS': return TextColors.RANK_SSS;
-    case 'SS+': return TextColors.RANK_SS_PLUS;
-    case 'SS': return TextColors.RANK_SS;
-    case 'S+': return TextColors.RANK_S_PLUS;
-    case 'S': return TextColors.RANK_S;
-    case 'A+': return TextColors.RANK_A_PLUS;
-    case 'A': return TextColors.RANK_A;
-    case 'B+': return TextColors.RANK_B_PLUS;
-    case 'B': return TextColors.RANK_B;
-    case 'C+': return TextColors.RANK_C_PLUS;
-    case 'C': return TextColors.RANK_C;
-    case 'D+': return TextColors.RANK_D_PLUS;
-    case 'D': return TextColors.RANK_D;
-    case 'E+': return TextColors.RANK_E_PLUS;
-    case 'E': return TextColors.RANK_E;
-    case 'ROOKIE': return TextColors.RANK_ROOKIE;
-    case 'BEGINNER': return TextColors.RANK_BEGINNER;
+    case 'GOD': return Colors.ranks.god;
+    case 'DIVINE': return Colors.ranks.divine;
+    case 'LEGEND': return Colors.ranks.legend;
+    case 'SSS+': return Colors.ranks.sssPlus;
+    case 'SSS': return Colors.ranks.sss;
+    case 'SS+': return Colors.ranks.ssPlus;
+    case 'SS': return Colors.ranks.ss;
+    case 'S+': return Colors.ranks.sPlus;
+    case 'S': return Colors.ranks.s;
+    case 'A+': return Colors.ranks.aPlus;
+    case 'A': return Colors.ranks.a;
+    case 'B+': return Colors.ranks.bPlus;
+    case 'B': return Colors.ranks.b;
+    case 'C+': return Colors.ranks.cPlus;
+    case 'C': return Colors.ranks.c;
+    case 'D+': return Colors.ranks.dPlus;
+    case 'D': return Colors.ranks.d;
+    case 'E+': return Colors.ranks.ePlus;
+    case 'E': return Colors.ranks.e;
+    case 'ROOKIE': return Colors.ranks.rookie;
+    case 'BEGINNER': return Colors.ranks.beginner;
     default: return '#ffffff';
   }
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import AdminPopup from './AdminPopup';
+import AdminUtils from '../../utils/AdminUtils';
 
 /**
  * 管理者モードのコントローラーコンポーネント
@@ -16,8 +17,8 @@ const AdminController = ({ backgroundRef }) => {
 
   // コンポーネントマウント時に現在の管理者状態を確認
   useEffect(() => {
-    // localStorageから管理者状態を読み込む
-    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+    // AdminUtilsを使用して管理者状態を確認
+    const isAdmin = AdminUtils.isAdminMode();
     console.log('[管理者モード] 現在の状態:', isAdmin ? '有効' : '無効');
   }, []);
 
@@ -30,8 +31,8 @@ const AdminController = ({ backgroundRef }) => {
         e.preventDefault(); // デフォルトの動作をキャンセル
         console.log('[管理者モード] Ctrl + @ キーが検出されました');
 
-        // 管理者モードを有効化
-        localStorage.setItem('isAdmin', 'true');
+        // 管理者モードを有効化 - AdminUtilsを使用
+        AdminUtils.enableAdminMode();
         console.log('[管理者モード] 有効化されました');
 
         setIsAdminModalOpen(true); // 管理者モーダルを表示
@@ -53,12 +54,20 @@ const AdminController = ({ backgroundRef }) => {
     console.log('[管理者モード] モーダルを閉じました');
   };
 
+  // 管理者モードを無効化する処理
+  const disableAdminMode = () => {
+    AdminUtils.disableAdminMode();
+    console.log('[管理者モード] 無効化されました');
+    closeAdminModal();
+  };
+
   return (
     <>
       {/* 管理者設定モーダル - 背景への参照を渡す */}
       <AdminPopup 
         isOpen={isAdminModalOpen} 
         onClose={closeAdminModal} 
+        onDisable={disableAdminMode}
         backgroundRef={backgroundRef}
       />
     </>
