@@ -34,7 +34,7 @@ const TypingDisplay = memo(
 
       // 入力中の文字のスタイル
       const currentInputStyle = {
-        color: 'var(--current-input-color)',
+        color: 'var(--typed-text-color)', // 青色から確定済み文字と同じ緑色に変更
         opacity: 1,
       };
 
