@@ -109,6 +109,9 @@ export function useTypingGame({
     (key, timestamp) => {
       if (!typingSession || isCompleted) return { success: false };
 
+      // パフォーマンス測定開始（DEV環境のみ）
+      const perfStartTime = process.env.NODE_ENV === 'development' ? performance.now() : null;
+      
       // 統計の開始時間設定
       const now = timestamp || Date.now();
       if (!statistics.startTime) {
@@ -128,55 +131,63 @@ export function useTypingGame({
       const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
       const result = typingSession.processInput(halfWidthChar);
 
-      // Worker記録用のフラグ
-      const isCorrectInput = result.success;
-
-      // Worker入力履歴を記録（ワーカーに送信するため）
-      inputHistoryRef.current.push({
-        key: halfWidthChar,
-        isCorrect: isCorrectInput,
-        timestamp: now,
-        expectedKey: isCorrectInput
-          ? null
-          : typingSession.getCurrentExpectedKey?.(),
+      // ★重要な最適化: Worker記録は非同期バッチ処理に変更
+      // 即時フィードバックループとは切り離す
+      queueMicrotask(() => {
+        // Worker記録用のフラグ
+        const isCorrectInput = result.success;
+        
+        // Worker入力履歴を記録（ワーカーに送信するため）
+        inputHistoryRef.current.push({
+          key: halfWidthChar,
+          isCorrect: isCorrectInput,
+          timestamp: now,
+          expectedKey: isCorrectInput
+            ? null
+            : typingSession.getCurrentExpectedKey?.(),
+        });
       });
 
       if (result.success) {
-        // 効果音再生（これはメインスレッドで処理）
+        // 効果音再生（即時フィードバックの一部として最優先）
         if (playSound) {
           soundSystem.play('success');
         }
 
-        // 統計更新（カウンターのみ、バッチ処理向け）
-        setStatistics((prev) => ({
-          ...prev,
-          correctKeyCount: prev.correctKeyCount + 1,
-          currentProblemKeyCount: prev.currentProblemKeyCount + 1,
-        }));
-
-        // 色分け情報を更新（メインスレッドで処理、UIに即時反映）
+        // 色分け情報を更新（即時フィードバックの一部）
         setColoringInfo(typingSession.getColoringInfo());
+        
+        // 統計更新（即時ではない更新として分離）
+        queueMicrotask(() => {
+          setStatistics((prev) => ({
+            ...prev,
+            correctKeyCount: prev.correctKeyCount + 1,
+            currentProblemKeyCount: prev.currentProblemKeyCount + 1,
+          }));
+        });
 
         // 完了チェック（これはメインスレッドで処理）
         if (result.status === 'all_completed') {
           completeProblem();
         }
+        
+        // パフォーマンス測定終了（DEV環境のみ）
+        if (perfStartTime && process.env.NODE_ENV === 'development') {
+          const latency = performance.now() - perfStartTime;
+          if (latency > 8) { // 8ms (120fps相当)
+            console.warn(`[パフォーマンス警告] 正解キー処理に${latency.toFixed(2)}ms要りました`);
+          }
+        }
 
         return { success: true, status: result.status };
       } else {
-        // エラー処理（メインスレッドで処理、UIに即時反映）
-        setErrorCount((prev) => prev + 1);
-        setErrorAnimation(true);
-        setStatistics((prev) => ({
-          ...prev,
-          mistakeCount: prev.mistakeCount + 1,
-        }));
-
-        // エラー音再生
+        // エラー処理（即時フィードバックを優先）
         if (playSound) {
           soundSystem.play('error');
         }
-
+        
+        setErrorAnimation(true);
+        
         // エラーアニメーションリセット
         if (errorAnimationTimerRef.current) {
           clearTimeout(errorAnimationTimerRef.current);
@@ -186,6 +197,23 @@ export function useTypingGame({
           setErrorAnimation(false);
           errorAnimationTimerRef.current = null;
         }, 200);
+        
+        // 統計は非同期で更新（ユーザー体験に直結しない部分）
+        queueMicrotask(() => {
+          setErrorCount((prev) => prev + 1);
+          setStatistics((prev) => ({
+            ...prev,
+            mistakeCount: prev.mistakeCount + 1,
+          }));
+        });
+        
+        // パフォーマンス測定終了（DEV環境のみ）
+        if (perfStartTime && process.env.NODE_ENV === 'development') {
+          const latency = performance.now() - perfStartTime;
+          if (latency > 8) {
+            console.warn(`[パフォーマンス警告] エラー処理に${latency.toFixed(2)}ms要りました`);
+          }
+        }
 
         return { success: false, status: result.status };
       }
@@ -394,26 +422,64 @@ export function useTypingGame({
       if (!typingSession || isCompleted) {
         return { success: false, status: 'inactive_session' };
       }
+      
+      // パフォーマンス測定開始（DEV環境のみ）
+      const perfStartTime = process.env.NODE_ENV === 'development' ? performance.now() : null;
 
-      // 最適化された入力システムを使用（高速バッファリング）
+      // ★★重要な最適化★★
+      // 即時処理を優先（バッファリングせずにダイレクト処理）
+      const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
+      
+      // 入力パターン予測による最適化（頻出パターンのキャッシュチェック - 超高速パス）
+      const nextPossibleChars = typingSession.getNextPossibleChars?.();
+      if (nextPossibleChars && nextPossibleChars.has(halfWidthChar)) {
+        // 最も頻出するパスが確認できたので、最短パスで即時処理
+        const result = processInput(key);
+        
+        // パフォーマンス測定終了（DEV環境のみ）
+        if (perfStartTime && process.env.NODE_ENV === 'development') {
+          const latency = performance.now() - perfStartTime;
+          if (latency > 8) {
+            console.warn(`[パフォーマンス警告] ダイレクト入力処理に${latency.toFixed(2)}ms要りました`);
+          }
+        }
+        
+        return result;
+      }
+      
+      // 予測パスでない場合は、入力システムを使用（バッファリング）
       if (inputSystem.current) {
         inputSystem.current.addInput(key);
+        
+        // バッファサイズが1の場合は即時処理
+        // アイドル時の応答性を最大化
+        if (inputSystem.current.getBufferLength() === 1) {
+          queueMicrotask(() => {
+            inputSystem.current.processBuffer();
+          });
+        }
+        
+        // パフォーマンス測定終了（DEV環境のみ）
+        if (perfStartTime && process.env.NODE_ENV === 'development') {
+          const latency = performance.now() - perfStartTime;
+          if (latency > 5) { // バッファリングは高速なので閾値を下げる
+            console.warn(`[パフォーマンス警告] バッファ入力処理に${latency.toFixed(2)}ms要りました`);
+          }
+        }
+        
         return { success: true, status: 'buffered' };
       }
 
-      // フォールバック：キーバッファに入力を追加（FIFO）
+      // フォールバック：キーバッファに入力を追加して即時処理
       keyBufferRef.current.push(key);
-
-      // バッファ処理をリクエスト（まだ処理中でなければ）
-      if (!isProcessingRef.current) {
-        frameIdRef.current = requestAnimationFrame(() => {
-          // バッファ内の入力を処理
-          while (keyBufferRef.current.length > 0) {
-            const key = keyBufferRef.current.shift();
-            processInput(key);
-          }
-        });
-      }
+      
+      // rAFではなくqueueMicrotaskを使用して最速処理
+      queueMicrotask(() => {
+        if (keyBufferRef.current.length > 0) {
+          const key = keyBufferRef.current.shift();
+          processInput(key);
+        }
+      });
 
       return { success: true, status: 'buffered' };
     },

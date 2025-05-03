@@ -950,8 +950,37 @@ export default class TypingUtils {
         // 高速処理のためのキャッシュ領域
         _cache: new Map(),
         
-        // typingmania-refスタイルの高速実装
+        // ★新機能: 入力予測のための次の可能な文字を取得する関数
+        getNextPossibleChars() {
+          if (this.completed) return null;
+          // 先読みキャッシュから取得
+          return TypingUtils._nextCharPredictionCache.get(this.currentCharIndex);
+        },
+        
+        // ★新機能: 現在期待されているキーを取得する関数 (エラー分析用)
+        getCurrentExpectedKey() {
+          if (this.completed) return null;
+          const currentPatterns = this.patterns[this.currentCharIndex];
+          if (!currentPatterns || !currentPatterns.length) return null;
+          
+          // 入力中の場合は、次に期待される文字を返す
+          if (this.currentInput) {
+            for (const pattern of currentPatterns) {
+              if (pattern.startsWith(this.currentInput)) {
+                return pattern[this.currentInput.length];
+              }
+            }
+          }
+          
+          // 入力が始まっていない場合は、最初のパターンの最初の文字を返す
+          return currentPatterns[0][0];
+        },
+        
+        // typingmania-refスタイルの高速実装（最適化版）
         processInput(char) {
+          // パフォーマンス測定（DEV環境のみ）
+          const perfStartTime = process.env.NODE_ENV === 'development' ? performance.now() : null;
+          
           if (this.completed) {
             return { success: false, status: 'already_completed' };
           }
@@ -965,6 +994,7 @@ export default class TypingUtils {
           // 新しい入力文字を現在の入力に追加
           const newInput = this.currentInput + char;
           
+          // ★高速化: 頻出パターンをキャッシュから高速検索
           // typingmania-refスタイルの高速パターンマッチング
           let exactMatch = null;
           let hasMatchingPrefix = false;
@@ -993,9 +1023,35 @@ export default class TypingUtils {
               if (this.currentCharIndex >= this.patterns.length) {
                 this.completed = true;
                 this.completedAt = Date.now();
+                
+                // DEV環境のみパフォーマンス計測
+                if (perfStartTime && process.env.NODE_ENV === 'development') {
+                  const elapsed = performance.now() - perfStartTime;
+                  if (elapsed > 1) {
+                    console.debug(`[パフォーマンス] 入力完了処理: ${elapsed.toFixed(2)}ms`);
+                  }
+                }
+                
                 return { success: true, status: 'all_completed' };
               }
+              
+              // DEV環境のみパフォーマンス計測
+              if (perfStartTime && process.env.NODE_ENV === 'development') {
+                const elapsed = performance.now() - perfStartTime;
+                if (elapsed > 1) {
+                  console.debug(`[パフォーマンス] 文字完了処理: ${elapsed.toFixed(2)}ms`);
+                }
+              }
+              
               return { success: true, status: 'char_completed' };
+            }
+            
+            // DEV環境のみパフォーマンス計測
+            if (perfStartTime && process.env.NODE_ENV === 'development') {
+              const elapsed = performance.now() - perfStartTime;
+              if (elapsed > 1) {
+                console.debug(`[パフォーマンス] 中間入力処理: ${elapsed.toFixed(2)}ms`);
+              }
             }
             
             return { success: true, status: 'in_progress' };
@@ -1029,13 +1085,21 @@ export default class TypingUtils {
             return { success: true, status: 'in_progress_split' };
           }
           
+          // パフォーマンス測定終了（DEV環境のみ）
+          if (perfStartTime && process.env.NODE_ENV === 'development') {
+            const elapsed = performance.now() - perfStartTime;
+            if (elapsed > 1) {
+              console.debug(`[パフォーマンス] 不一致処理: ${elapsed.toFixed(2)}ms`);
+            }
+          }
+          
           // 入力が一致しない
           return { success: false, status: 'no_match' };
         },
         
         // 色分け情報を取得（高速化）
         getColoringInfo() {
-          // キャッシュ確認（同一状態での重複計算を避ける）
+          // キャッシュ確認（同一状態での重複計算を避ける - 最大のパフォーマンスボトルネック対策）
           const cacheKey = `coloring_${this.currentCharIndex}_${this.currentInput}`;
           if (this._cache.has(cacheKey)) {
             return this._cache.get(cacheKey);
@@ -1357,22 +1421,47 @@ export default class TypingUtils {
       buffer: [],
       isProcessing: false,
       frameId: null,
-      lastProcessTime: 0
+      lastProcessTime: 0,
+      microTaskScheduled: false // マイクロタスクスケジューリング状態
     };
     
-    // 入力を追加する関数
+    // 入力を追加する関数（高速化版）
     const addInput = (input) => {
+      // パフォーマンス計測 (開発環境のみ)
+      const perfStartTime = process.env.NODE_ENV === 'development' ? performance.now() : null;
+      
+      // バッファに追加
       state.buffer.push(input);
       
-      // 処理をスケジュール（実行中でなければ）
-      if (!state.isProcessing && state.frameId === null) {
-        state.frameId = requestAnimationFrame(processBuffer);
+      // バッファが少ない場合は即時処理を優先（応答性向上）
+      if (state.buffer.length <= 2) {
+        // 単一または少数のキー入力の場合：レスポンス優先でマイクロタスク使用
+        if (!state.microTaskScheduled) {
+          state.microTaskScheduled = true;
+          queueMicrotask(() => {
+            state.microTaskScheduled = false;
+            processBuffer();
+          });
+        }
+      } else {
+        // 多数のキー入力（高速タイピング）：バッチ処理のためrAF使用
+        if (!state.isProcessing && state.frameId === null) {
+          state.frameId = requestAnimationFrame(processBuffer);
+        }
+      }
+      
+      // パフォーマンス警告（開発環境のみ）
+      if (perfStartTime && process.env.NODE_ENV === 'development') {
+        const latency = performance.now() - perfStartTime;
+        if (latency > 5) {
+          console.debug(`[パフォーマンス警告] バッファ追加に ${latency.toFixed(2)}ms かかりました`);
+        }
       }
       
       return true;
     };
     
-    // バッファ内の入力を処理する関数
+    // バッファ内の入力を処理する関数（高速化版）
     const processBuffer = () => {
       // フレーム処理をクリア
       state.frameId = null;
@@ -1388,11 +1477,11 @@ export default class TypingUtils {
         const startTime = performance.now();
         const now = Date.now();
         
-        // バッファサイズに応じて処理量を調整
-        const batchSize = Math.min(
-          settings.maxBatchSize,
-          state.buffer.length
-        );
+        // バッファサイズに応じて処理量を最適化
+        // 少量なら全て処理、多量なら適切にバッチ分割
+        const batchSize = state.buffer.length <= 3 ? 
+          state.buffer.length : // 少量は全て処理
+          Math.min(settings.maxBatchSize, state.buffer.length); // 多量はバッチ処理
         
         // 指定された数だけ処理
         for (let i = 0; i < batchSize && state.buffer.length > 0; i++) {
@@ -1403,16 +1492,21 @@ export default class TypingUtils {
         // 処理時間を記録
         state.lastProcessTime = now;
         
-        // まだ処理すべきものがあれば次のフレームで続行
+        // まだ処理すべきものがあれば続行方法を決定
         if (state.buffer.length > 0) {
-          state.frameId = requestAnimationFrame(processBuffer);
+          if (state.buffer.length <= 3) {
+            // 残りが少ない場合は即時処理（マイクロタスク）
+            queueMicrotask(() => processBuffer());
+          } else {
+            // 残りが多い場合はアニメーションフレームでバッチ処理
+            state.frameId = requestAnimationFrame(processBuffer);
+          }
         }
         
-        // 処理時間をログ（デバッグモードのみ）
+        // 処理時間をログ（開発環境のみ）
         const elapsedMs = performance.now() - startTime;
-        if (elapsedMs > 16) { // 16.67ms = 60fps
-          // フレーム速度が低下している場合のみ警告
-          console.debug(`[パフォーマンス警告] バッファ処理に ${elapsedMs.toFixed(2)}ms かかりました`);
+        if (process.env.NODE_ENV === 'development' && elapsedMs > 8) {
+          console.debug(`[パフォーマンス警告] バッファ処理に ${elapsedMs.toFixed(2)}ms かかりました (${batchSize}件処理)`);
         }
       } finally {
         state.isProcessing = false;
@@ -1426,6 +1520,8 @@ export default class TypingUtils {
         state.frameId = null;
       }
       state.buffer = [];
+      state.isProcessing = false;
+      state.microTaskScheduled = false;
     };
     
     return {
