@@ -3,6 +3,7 @@
 import React from 'react';
 import { ToastProvider } from '../../contexts/ToastContext';
 import { GameProvider } from '../../contexts/GameContext';
+import { SoundProvider } from '../../contexts/SoundContext';
 
 /**
  * アプリケーション全体のプロバイダーをまとめて提供するラッパーコンポーネント
@@ -11,11 +12,14 @@ import { GameProvider } from '../../contexts/GameContext';
  */
 export default function Providers({ children }) {
   return (
-    // GameContextの外側にToastProviderを配置して、ゲーム状態に関係なく通知を表示できるようにします
+    // 最も外側にToastProviderを配置して、どのコンテキストからも通知を表示できるようにします
     <ToastProvider>
-      <GameProvider>
-        {children}
-      </GameProvider>
+      {/* SoundProviderをGameProviderの外側に配置して、ゲーム状態に依存せずに音声設定を管理します */}
+      <SoundProvider>
+        <GameProvider>
+          {children}
+        </GameProvider>
+      </SoundProvider>
     </ToastProvider>
   );
 }

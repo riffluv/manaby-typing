@@ -4,11 +4,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/MainMenu.module.css';
 import Image from 'next/image';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
+import { useSoundContext } from '../contexts/SoundContext';
 import soundSystem from '../utils/SoundUtils';
 import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import Modal from './common/Modal'; // 共通モーダルコンポーネント
 import Button, { ToggleButton } from './common/Button'; // 共通ボタンコンポーネント
+import SoundSettings from './common/SoundSettings'; // 共通サウンド設定コンポーネント
 import CreditsContent from './common/CreditsContent'; // 共通クレジットコンポーネント
 import { creditsData } from '../utils/CreditsData'; // クレジットデータ
 
@@ -36,6 +38,7 @@ export const useSettingsModal = () => {
 
 const MainMenu = () => {
   const { settings, setSettings } = useGameContext();
+  const { soundSystem, soundEnabled, sfxEnabled, bgmEnabled } = useSoundContext();
   const { goToScreen, isTransitioning } = usePageTransition();
   const mainContainerRef = useRef(null);
 
@@ -57,25 +60,21 @@ const MainMenu = () => {
       console.error('効果音の初期ロードに失敗:', err);
     });
 
-    // サウンド設定を適用
-    soundSystem.setEnabled(settings.soundEnabled);
-    
-    // BGMの設定を適用
-    soundSystem.setBgmEnabled(settings.bgmEnabled && settings.soundEnabled);
-    
-    // ロビーBGMを再生（設定がオンの場合のみ）
-    if (settings.bgmEnabled && settings.soundEnabled) {
+    // ロビーBGMを再生（全体のサウンドとBGM両方の設定がオンの場合のみ）
+    if (soundEnabled && bgmEnabled) {
       soundSystem.playBgm('lobby', true);
+      console.log('[MainMenu] BGM再生開始: soundEnabled=' + soundEnabled + ', bgmEnabled=' + bgmEnabled);
     } else {
-      // BGMが無効の場合は、既に再生中のBGMを停止する
+      // 全体のサウンドかBGMが無効の場合は、既に再生中のBGMを停止する
       soundSystem.stopBgm();
+      console.log('[MainMenu] BGM再生停止: soundEnabled=' + soundEnabled + ', bgmEnabled=' + bgmEnabled);
     }
-  }, [settings.soundEnabled, settings.bgmEnabled]);
+  }, [soundSystem, soundEnabled, bgmEnabled]);  // bgmEnabledも依存配列に追加
 
   // ボタン音を再生する関数
   const playButtonSound = () => {
-    if (settings.soundEnabled && settings.sfxEnabled) {
-      soundSystem.playSound('Button');
+    if (soundEnabled && sfxEnabled) {
+      soundSystem.playSound('button');
     }
   };
 
@@ -86,108 +85,6 @@ const MainMenu = () => {
       ...settings,
       difficulty,
     });
-  };
-
-  // サウンド全体の有効/無効を切り替える関数
-  const toggleSound = () => {
-    // サウンドOFF→ONの場合のみ、切り替え後に音を鳴らす
-    const willBeEnabled = !settings.soundEnabled;
-
-    setSettings({
-      ...settings,
-      soundEnabled: willBeEnabled,
-    });
-
-    // サウンドシステムの設定も更新
-    soundSystem.setEnabled(willBeEnabled);
-
-    if (willBeEnabled && settings.sfxEnabled) {
-      setTimeout(() => {
-        soundSystem.playSound('Button');
-      }, 100);
-    }
-  };
-
-  // BGMの有効/無効を切り替える関数
-  const toggleBgm = () => {
-    const willBeEnabled = !settings.bgmEnabled;
-
-    setSettings({
-      ...settings,
-      bgmEnabled: willBeEnabled,
-    });
-
-    // サウンドシステムの設定も更新
-    soundSystem.setBgmEnabled(willBeEnabled && settings.soundEnabled);
-
-    if (willBeEnabled && settings.soundEnabled && settings.sfxEnabled) {
-      setTimeout(() => {
-        soundSystem.playSound('Button');
-      }, 100);
-    }
-  };
-
-  // BGMの音量を変更する関数
-  const handleBgmVolumeChange = (e) => {
-    const newVolume = parseFloat(e.target.value);
-    setSettings({
-      ...settings,
-      bgmVolume: newVolume,
-    });
-
-    // サウンドシステムの設定も更新
-    soundSystem.setBgmVolume(newVolume);
-    
-    // スライダードラッグ中は効果音を鳴らさない（mouseupイベントで鳴らす）
-  };
-  
-  // BGM音量スライダーのドラッグ終了時に効果音を再生
-  const handleBgmVolumeChangeComplete = () => {
-    // 音量変更完了時にサンプル効果音を鳴らす
-    if (settings.sfxEnabled && settings.soundEnabled && settings.bgmEnabled) {
-      soundSystem.playSound('Button');
-    }
-  };
-
-  // 効果音の有効/無効を切り替える関数
-  const toggleSfx = () => {
-    const willBeEnabled = !settings.sfxEnabled;
-
-    setSettings({
-      ...settings,
-      sfxEnabled: willBeEnabled,
-    });
-
-    // サウンドシステムの設定も更新
-    soundSystem.setSfxEnabled(willBeEnabled && settings.soundEnabled);
-
-    if (willBeEnabled && settings.soundEnabled) {
-      setTimeout(() => {
-        soundSystem.playSound('Button');
-      }, 100);
-    }
-  };
-
-  // 効果音の音量を変更する関数
-  const handleSfxVolumeChange = (e) => {
-    const newVolume = parseFloat(e.target.value);
-    setSettings({
-      ...settings,
-      sfxVolume: newVolume,
-    });
-
-    // サウンドシステムの設定も更新
-    soundSystem.setSfxVolume(newVolume);
-
-    // スライダードラッグ中は効果音を鳴らない（mouseupイベントで鳴らす）
-  };
-  
-  // 効果音スライダーのドラッグ終了時に効果音を再生
-  const handleSfxVolumeChangeComplete = () => {
-    // 音量変更完了時にサンプル効果音を鳴らす
-    if (settings.sfxEnabled && settings.soundEnabled) {
-      soundSystem.playSound('Button');
-    }
   };
 
   // ゲーム画面に遷移する関数 - トランジション対応
@@ -308,63 +205,8 @@ const MainMenu = () => {
           </div>
         </div>
 
-        {/* BGM設定 */}
-        <div className={styles.settingSection}>
-          <h3 className={styles.sectionTitle}>BGM</h3>
-          <div className={styles.soundToggle}>
-            <ToggleButton isOn={settings.bgmEnabled} onToggle={toggleBgm} />
-          </div>
-          <div className={styles.volumeControl}>
-            <span className={styles.volumeLabel}>音量:</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={settings.bgmVolume || 1}
-              onChange={handleBgmVolumeChange}
-              onMouseUp={handleBgmVolumeChangeComplete} // マウスアップ時に効果音再生
-              onTouchEnd={handleBgmVolumeChangeComplete} // モバイル対応
-              className={styles.volumeSlider}
-              disabled={!settings.soundEnabled || !settings.bgmEnabled}
-            />
-            <span className={styles.volumeValue}>
-              {Math.round((settings.bgmVolume || 1) * 100)}%
-            </span>
-          </div>
-        </div>
-
-        {/* 効果音設定 */}
-        <div className={styles.settingSection}>
-          <h3 className={styles.sectionTitle}>効果音</h3>
-          <div className={styles.soundSettings}>
-            <div className={styles.soundToggle}>
-              <ToggleButton
-                isOn={settings.sfxEnabled}
-                onToggle={toggleSfx}
-                disabled={!settings.soundEnabled}
-              />
-            </div>
-            <div className={styles.volumeControl}>
-              <span className={styles.volumeLabel}>音量:</span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={settings.sfxVolume || 1}
-                onChange={handleSfxVolumeChange}
-                onMouseUp={handleSfxVolumeChangeComplete} // マウスアップ時に効果音再生
-                onTouchEnd={handleSfxVolumeChangeComplete} // モバイル対応
-                className={styles.volumeSlider}
-                disabled={!settings.soundEnabled || !settings.sfxEnabled}
-              />
-              <span className={styles.volumeValue}>
-                {Math.round((settings.sfxVolume || 1) * 100)}%
-              </span>
-            </div>
-          </div>
-        </div>
+        {/* サウンド設定 (共通コンポーネントを使用) */}
+        <SoundSettings className={styles.soundSettings} />
       </>
     );
   };

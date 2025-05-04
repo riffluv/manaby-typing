@@ -95,18 +95,10 @@ export const GameProvider = ({ children }) => {
       // 最終プレイ日を記録
       StorageUtils.saveLastPlayedDate();
 
-      // 初期BGMの再生 - ユーザーの設定に基づいて再生
-      if (savedSettings.soundEnabled && savedSettings.bgmEnabled) {
-        setTimeout(() => {
-          // ユーザーインタラクションの後で再生するために少し遅延させる
-          try {
-            soundSystem.playBgm('lobby', true);
-            console.log('[GameContext] ロビーBGM再生を開始しました');
-          } catch (error) {
-            console.error('[GameContext] BGM再生エラー:', error);
-          }
-        }, 1000); // 1秒後に再生開始
-      }
+      // 注意: BGMの再生はSoundContextが管理するようになったため、
+      // ここではBGMの自動再生を行わないように変更します
+      // SoundContext内で適切なローカルストレージの設定を読み込み、
+      // 適用するようになっています
 
       console.log('[GameContext] 初期化完了');
     } catch (error) {
@@ -150,24 +142,21 @@ export const GameProvider = ({ children }) => {
     }
   }, [settings.soundEnabled, settings.sfxEnabled, settings.sfxVolume, settings.bgmEnabled, settings.bgmVolume]);
 
-  // 画面遷移時にBGMを管理
+  // 画面遷移時の処理
   useEffect(() => {
     try {
-      // サウンドとBGMが有効な場合のみ再生
-      if (settings.soundEnabled && settings.bgmEnabled) {
-        // すべての画面で「Battle of the Emperor」を再生
-        soundSystem.playBgm('lobby', true);
-      }
-
       // 管理者モードの場合、画面に応じた背景を適用
       if (StorageUtils.isAdminMode()) {
         StorageUtils.applyScreenBackground(currentScreen);
         console.log(`[GameContext] 画面背景更新: ${currentScreen}`);
       }
+      
+      // 注意: BGMの再生はSoundContextが管理するため、
+      // ここではBGMの自動再生を行わないように変更しました
     } catch (error) {
-      console.error('[GameContext] 背景/BGM更新エラー:', error);
+      console.error('[GameContext] 背景更新エラー:', error);
     }
-  }, [currentScreen, settings.soundEnabled, settings.bgmEnabled]);
+  }, [currentScreen]);
 
   // ゲームをリセットする関数
   const resetGame = useCallback(() => {

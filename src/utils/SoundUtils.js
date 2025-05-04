@@ -38,6 +38,9 @@ class SoundUtils {
     // 効果音のオン/オフ設定
     this.sfxEnabled = true;
 
+    // ローカルストレージから設定を読み込む（存在する場合）
+    this._loadSettingsFromStorage();
+
     // サウンドプリセット定義
     this.soundPresets = {
       // 基本ゲーム効果音
@@ -66,6 +69,74 @@ class SoundUtils {
     }
 
     console.log('[DEBUG] サウンドシステム初期化完了');
+  }
+
+  /**
+   * ローカルストレージから設定を読み込む
+   * @private
+   */
+  _loadSettingsFromStorage() {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return;
+    }
+
+    try {
+      // BGM設定の読み込み
+      const storedBgmEnabled = localStorage.getItem('sound_bgmEnabled');
+      if (storedBgmEnabled !== null) {
+        this.bgmEnabled = storedBgmEnabled === 'true';
+      }
+
+      // BGM音量の読み込み
+      const storedBgmVolume = localStorage.getItem('sound_bgmVolume');
+      if (storedBgmVolume !== null) {
+        this.bgmVolume = parseFloat(storedBgmVolume);
+      }
+
+      // 効果音設定の読み込み
+      const storedSfxEnabled = localStorage.getItem('sound_sfxEnabled');
+      if (storedSfxEnabled !== null) {
+        this.sfxEnabled = storedSfxEnabled === 'true';
+      }
+
+      // 効果音音量の読み込み
+      const storedSfxVolume = localStorage.getItem('sound_sfxVolume');
+      if (storedSfxVolume !== null) {
+        this.volume = parseFloat(storedSfxVolume);
+      }
+
+      // サウンド全体の設定も読み込む
+      const storedSoundEnabled = localStorage.getItem('sound_soundEnabled');
+      if (storedSoundEnabled !== null) {
+        // サウンド全体がオフなら、BGMと効果音も無効にする（内部状態としては保持）
+        if (storedSoundEnabled === 'false') {
+          this.bgmElement?.pause();
+        }
+      }
+
+      console.log('[DEBUG] ローカルストレージから音声設定を読み込みました', {
+        bgmEnabled: this.bgmEnabled,
+        bgmVolume: this.bgmVolume,
+        sfxEnabled: this.sfxEnabled,
+        sfxVolume: this.volume,
+        soundEnabled: storedSoundEnabled === 'true'
+      });
+    } catch (err) {
+      console.error('設定の読み込みに失敗しました:', err);
+    }
+  }
+
+  /**
+   * 設定をローカルストレージに保存する
+   * SoundContextと連携するため、_saveSettingsToStorageは使用しません
+   * 代わりにSoundContextが設定を保存します
+   * @private
+   * @deprecated SoundContextが代わりに設定を保存します
+   */
+  _saveSettingsToStorage() {
+    // この関数は空にして、直接呼ばないようにする
+    // SoundContextがローカルストレージへの保存を一元管理
+    return;
   }
 
   /**
@@ -346,14 +417,9 @@ class SoundUtils {
       this.gainNode.gain.value = this.volume;
     }
     console.log(`[DEBUG] 効果音の音量を設定: ${this.volume}`);
-  }
-
-  /**
-   * 効果音の現在の音量を取得する
-   * @returns {number} 0.0〜1.0の間の値
-   */
-  getSfxVolume() {
-    return this.volume;
+    
+    // 設定をローカルストレージに保存
+    this._saveSettingsToStorage();
   }
 
   /**
@@ -369,6 +435,9 @@ class SoundUtils {
     this.sfxEnabled = enabled;
     this.gainNode.gain.value = enabled ? this.volume : 0;
     console.log(`[DEBUG] 効果音を${enabled ? '有効' : '無効'}にしました`);
+    
+    // 設定をローカルストレージに保存
+    this._saveSettingsToStorage();
   }
 
   /**
@@ -378,6 +447,51 @@ class SoundUtils {
   setEnabled(enabled) {
     this.setSfxEnabled(enabled);
     this.setBgmEnabled(enabled);
+    // 各メソッド内で個別に設定が保存されるので、ここでは保存しない
+  }
+
+  /**
+   * BGMの音量を設定する
+   * @param {number} value - 0.0〜1.0の間の値
+   */
+  setBgmVolume(value) {
+    this.bgmVolume = Math.max(0, Math.min(1, value));
+
+    // 現在再生中のBGMがあれば音量を変更
+    if (this.bgmElement) {
+      this.bgmElement.volume = this.bgmEnabled ? this.bgmVolume : 0;
+    }
+
+    console.log(`[DEBUG] BGMの音量を設定: ${this.bgmVolume}`);
+    
+    // 設定をローカルストレージに保存
+    this._saveSettingsToStorage();
+  }
+
+  /**
+   * BGMを有効/無効に切り替える
+   * @param {boolean} enabled - BGMを有効にするか
+   */
+  setBgmEnabled(enabled) {
+    this.bgmEnabled = enabled;
+
+    if (this.bgmElement) {
+      if (enabled) {
+        // 有効化する場合は再生を再開
+        this.bgmElement.volume = this.bgmVolume;
+        if (this.bgmElement.paused) {
+          this.resumeBgm();
+        }
+      } else {
+        // 無効化する場合は一時停止
+        this.bgmElement.pause();
+      }
+    }
+
+    console.log(`[DEBUG] BGMを${enabled ? '有効' : '無効'}にしました`);
+    
+    // 設定をローカルストレージに保存
+    this._saveSettingsToStorage();
   }
 
   /**
@@ -614,57 +728,43 @@ class SoundUtils {
   }
 
   /**
-   * BGMの音量を設定する
-   * @param {number} value - 0.0〜1.0の間の値
+   * 現在再生中のBGMの名前を取得する
+   * @returns {string|null} BGM名またはnull（再生なし）
    */
-  setBgmVolume(value) {
-    this.bgmVolume = Math.max(0, Math.min(1, value));
-
-    // 現在再生中のBGMがあれば音量を変更
-    if (this.bgmElement) {
-      this.bgmElement.volume = this.bgmEnabled ? this.bgmVolume : 0;
-    }
-
-    console.log(`[DEBUG] BGMの音量を設定: ${this.bgmVolume}`);
+  getCurrentBgm() {
+    return this.currentBgm;
   }
 
   /**
-   * BGMの現在の音量を取得する
-   * @returns {number} 0.0〜1.0の間の値
+   * 効果音の音量を取得する
+   * @returns {number} 効果音の音量 (0.0〜1.0)
+   */
+  getSfxVolume() {
+    return this.volume;
+  }
+
+  /**
+   * BGMの音量を取得する
+   * @returns {number} BGMの音量 (0.0〜1.0)
    */
   getBgmVolume() {
     return this.bgmVolume;
   }
 
   /**
-   * BGMを有効/無効に切り替える
-   * @param {boolean} enabled - BGMを有効にするか
+   * 効果音が有効かどうかを取得する
+   * @returns {boolean} 効果音が有効ならtrue
    */
-  setBgmEnabled(enabled) {
-    this.bgmEnabled = enabled;
-
-    if (this.bgmElement) {
-      if (enabled) {
-        // 有効化する場合は再生を再開
-        this.bgmElement.volume = this.bgmVolume;
-        if (this.bgmElement.paused) {
-          this.resumeBgm();
-        }
-      } else {
-        // 無効化する場合は一時停止
-        this.bgmElement.pause();
-      }
-    }
-
-    console.log(`[DEBUG] BGMを${enabled ? '有効' : '無効'}にしました`);
+  isSfxEnabled() {
+    return this.sfxEnabled;
   }
 
   /**
-   * 現在再生中のBGMの名前を取得する
-   * @returns {string|null} BGM名またはnull（再生なし）
+   * BGMが有効かどうかを取得する
+   * @returns {boolean} BGMが有効ならtrue
    */
-  getCurrentBgm() {
-    return this.currentBgm;
+  isBgmEnabled() {
+    return this.bgmEnabled;
   }
 }
 

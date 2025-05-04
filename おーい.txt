@@ -6,6 +6,8 @@ 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
 
 
 
+npm run dev:nodemon:mcp
+
 npm run dev:nodemon
 npx -y @modelcontextprotocol/server-github
 
@@ -174,3 +176,29 @@ Vercelアカウント（デプロイ先）
 typingmania-refの高速性はまさにそのコアとなるタイピング処理アルゴリズムにあり、現在の実装ではその精神をしっかり取り入れています。おそらく実用レベルでは、これ以上の最適化はわずかな改善しか見込めないでしょう。
 
 この状態で十分商品レベルの出来栄えだと思います！次はPWA化や他のユーザー体験向上に注力するのが良いでしょう！🚀
+
+
+企画・開発
+
+カフェイン中毒
+Google大先生
+
+デザイン・UI
+UIデザイナー名
+
+カフェイン中毒、Google大先生
+
+使用技術
+Next.js & React
+
+Framer Motion
+
+Web Audio API
+
+素材
+アイコン素材: Manaby
+フォント: Noto Sans JP (Google Fonts)
+効果音: freesound.org (CC0)
+BGM: xylophone-mini-dessert by Alex (CC BY 4.0)
+ライセンス
+© 2024 Manaby Typing Game. All Rights Reserved.

@@ -119,62 +119,49 @@
   font-family: var(--font-normal);
   font-size: 14px;
   margin-top: 15px;
-  text-shadow: 1px 1px 0 rgba(255, 140, 0, 0.5);
+  text-shadow: 2px 2px 0 rgba(255, 140, 0, 0.7);
+  animation: blink 1s infinite;
 }
 
 .shortcutHelp {
-  margin-top: 18px;
-  position: relative;
+  margin-top: 15px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  padding: 8px 15px;
+  border: 1px solid rgba(255, 140, 0, 0.4);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .shortcutList {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 28px;
-  position: relative;
+  gap: 12px;
 }
 
 .shortcutItem {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   font-family: var(--font-normal);
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
-  position: relative;
-}
-
-.shortcutItem::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 1px;
-  bottom: -4px;
-  left: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.6), transparent);
-  transition: width 0.3s ease;
-}
-
-.shortcutItem:hover::after {
-  width: 100%;
+  font-size: 9px;
+  color: #fff;
 }
 
 .shortcutItem kbd {
-  color: #ff8c00;
+  background-color: rgba(255, 140, 0, 0.3);
+  border: 1px solid rgba(255, 140, 0, 0.6);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 8px;
   font-family: var(--font-dot);
-  font-size: 14px;
-  font-weight: bold;
-  padding: 0;
-  margin: 0;
-  background: none;
-  border: none;
-  letter-spacing: 0.5px;
-  text-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
-}
-
-.shortcutItem span {
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
+  color: #fff;
+  min-width: 24px;
+  text-align: center;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* マスコットキャラクター関連 */
