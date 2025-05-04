@@ -318,6 +318,22 @@ const MainMenu = () => {
 
   return (
     <div className={styles.mainContainer} ref={mainContainerRef}>
+      {/* 右上に設定ボタンを配置 */}
+      <motion.div
+        className={styles.cornerButtonTop}
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+      >
+        <button
+          className={styles.iconButton}
+          onClick={handleOpenSettings}
+          aria-label="設定"
+        >
+          ⚙️
+        </button>
+      </motion.div>
+
       {/* マスコットキャラクター - アニメーション付き */}
       <motion.div
         className={styles.mascotContainer}
@@ -362,37 +378,6 @@ const MainMenu = () => {
           </button>
         </motion.div>
 
-        {/* メニューボタン - アニメーション付き */}
-        <motion.div
-          className={styles.buttonContainer}
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-        >
-          <motion.div variants={itemVariants}>
-            <Button
-              variant="default"
-              size="medium"
-              onClick={handleOpenSettings}
-              className="button--menu"
-              icon="⚙️"
-            >
-              <span className={styles.buttonText}>設定</span>
-            </Button>
-          </motion.div>
-          <motion.div variants={itemVariants}>
-            <Button
-              variant="default"
-              size="medium"
-              onClick={handleOpenCredits}
-              className="button--menu"
-              icon="ⓘ"
-            >
-              <span className={styles.buttonText}>クレジット</span>
-            </Button>
-          </motion.div>
-        </motion.div>
-
         <motion.div
           className={styles.instructions}
           initial={{ opacity: 0 }}
@@ -428,6 +413,22 @@ const MainMenu = () => {
           </motion.div>
         </motion.div>
       </div>
+
+      {/* 右下にクレジットボタンを配置 */}
+      <motion.div
+        className={styles.cornerButtonBottom}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+      >
+        <button
+          className={styles.creditLink}
+          onClick={handleOpenCredits}
+          aria-label="クレジット"
+        >
+          クレジット
+        </button>
+      </motion.div>
 
       {/* 設定モーダルと他のモーダル - 既存コード */}
       <Modal isOpen={showSettingsModal} onClose={handleCloseModal} title="設定">

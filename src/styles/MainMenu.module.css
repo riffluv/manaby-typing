@@ -22,6 +22,22 @@
   z-index: 5;
 }
 
+/* 右上の設定ボタン用コンテナ */
+.cornerButtonTop {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 10;
+}
+
+/* 右下のクレジットボタン用コンテナ */
+.cornerButtonBottom {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  z-index: 10;
+}
+
 /* アイコンボタンのスタイル */
 .iconButton {
   width: 36px;
@@ -37,6 +53,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   padding: 0;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }
 
 .iconButton:hover {
@@ -47,6 +64,26 @@
 
 .iconButton:active {
   transform: scale(0.95);
+}
+
+.creditLink {
+  background: none;
+  border: none;
+  color: rgba(255, 140, 0, 0.7);
+  font-family: var(--font-normal);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  padding: 5px;
+  text-decoration: underline;
+  opacity: 0.7;
+}
+
+.creditLink:hover {
+  color: #ff8c00;
+  opacity: 1;
+  text-shadow: 0 0 5px rgba(255, 140, 0, 0.5);
 }
 
 .mainContainer::before {
@@ -139,7 +176,6 @@
   box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
     inset 0 0 10px rgba(255, 140, 0, 0.3);
   position: relative;
-  overflow: hidden;
 }
 
 /* ホバー時の効果 */
@@ -365,415 +401,25 @@
   .buttonText {
     font-size: 9px;
   }
-}
 
-/* マスコットキャラクターコンテナ */
-.mascotContainer {
-  position: absolute;
-  left: 30px;
-  bottom: 30px;
-  z-index: 5;
-  animation: float 3s ease-in-out infinite;
-  filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.4));
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  overflow: visible;
-}
-
-/* マスコット画像 */
-.mascotImage {
-  width: auto;
-  height: auto;
-  max-width: 80px;
-  max-height: 80px;
-  transform-origin: center bottom;
-  animation: wiggle 6s ease-in-out infinite;
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  display: block;
-  -webkit-appearance: none;
-  appearance: none;
-  object-fit: contain;
-}
-
-/* ふわふわ浮かぶアニメーション */
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-15px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-/* ゆらゆら揺れるアニメーション */
-@keyframes wiggle {
-  0%,
-  100% {
-    transform: rotate(-5deg);
-  }
-  25% {
-    transform: rotate(0deg);
-  }
-  50% {
-    transform: rotate(5deg);
-  }
-  75% {
-    transform: rotate(0deg);
-  }
-}
-
-/* 音量コントロール関連のスタイル */
-.soundSettings {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-}
-
-.volumeControl {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  gap: 10px;
-}
-
-.volumeLabel {
-  color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
-  font-size: 12px;
-  min-width: 50px;
-}
-
-.volumeSlider {
-  flex: 1;
-  height: 6px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: rgba(255, 140, 0, 0.3);
-  border-radius: 3px;
-  outline: none;
-  cursor: pointer;
-}
-
-.volumeSlider:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* スライダーのつまみ部分 */
-.volumeSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #ff8c00;
-  box-shadow: 0 0 5px rgba(255, 140, 0, 0.8);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.volumeSlider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #ff8c00;
-  box-shadow: 0 0 5px rgba(255, 140, 0, 0.8);
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-
-.volumeSlider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 8px rgba(255, 140, 0, 1);
-}
-
-.volumeSlider::-moz-range-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 8px rgba(255, 140, 0, 1);
-}
-
-/* ショートカットヘルプ関連のスタイル */
-.shortcutHelp {
-  margin-top: 15px;
-  background-color: rgba(0, 0, 0, 0.7);
-  border-radius: 8px;
-  padding: 8px 15px;
-  border: 1px solid rgba(255, 140, 0, 0.4);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-.shortcutList {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-}
-
-.shortcutItem {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
-  font-size: 9px;
-  color: #fff;
-}
-
-.shortcutItem kbd {
-  background-color: rgba(255, 140, 0, 0.3);
-  border: 1px solid rgba(255, 140, 0, 0.6);
-  border-radius: 4px;
-  padding: 2px 5px;
-  font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
-  box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
-  color: #fff;
-  min-width: 24px;
-  text-align: center;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-}
-
-@media (max-width: 850px) {
-  .mainContainer {
-    width: 90vw;
-    height: 80vh;
+  .cornerButtonTop {
+    top: 10px;
+    right: 10px;
   }
 
-  .buttonContainer {
-    flex-direction: column;
-    gap: 10px;
+  .cornerButtonBottom {
+    bottom: 10px;
+    right: 10px;
   }
 
-  .menuButton {
-    width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
-    padding: 5px 10px;
-  }
-
-  .buttonIcon {
+  .iconButton {
+    width: 30px;
+    height: 30px;
     font-size: 14px;
-    margin-right: 6px;
   }
 
-  .buttonText {
-    font-size: 9px;
-  }
-}
-
-/* マスコットキャラクターコンテナ */
-.mascotContainer {
-  position: absolute;
-  left: 30px;
-  bottom: 30px;
-  z-index: 5;
-  animation: float 3s ease-in-out infinite;
-  filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.4));
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  overflow: visible;
-}
-
-/* マスコット画像 */
-.mascotImage {
-  width: auto;
-  height: auto;
-  max-width: 80px;
-  max-height: 80px;
-  transform-origin: center bottom;
-  animation: wiggle 6s ease-in-out infinite;
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  box-shadow: none !important;
-  display: block;
-  -webkit-appearance: none;
-  appearance: none;
-  object-fit: contain;
-}
-
-/* ふわふわ浮かぶアニメーション */
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-15px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-
-/* ゆらゆら揺れるアニメーション */
-@keyframes wiggle {
-  0%,
-  100% {
-    transform: rotate(-5deg);
-  }
-  25% {
-    transform: rotate(0deg);
-  }
-  50% {
-    transform: rotate(5deg);
-  }
-  75% {
-    transform: rotate(0deg);
-  }
-}
-
-/* 音量コントロール関連のスタイル */
-.soundSettings {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-}
-
-.volumeControl {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  gap: 10px;
-}
-
-.volumeLabel {
-  color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
-  font-size: 12px;
-  min-width: 50px;
-}
-
-.volumeSlider {
-  flex: 1;
-  height: 6px;
-  -webkit-appearance: none;
-  appearance: none;
-  background: rgba(255, 140, 0, 0.3);
-  border-radius: 3px;
-  outline: none;
-  cursor: pointer;
-}
-
-.volumeSlider:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* スライダーのつまみ部分 */
-.volumeSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #ff8c00;
-  box-shadow: 0 0 5px rgba(255, 140, 0, 0.8);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.volumeSlider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #ff8c00;
-  box-shadow: 0 0 5px rgba(255, 140, 0, 0.8);
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-
-.volumeSlider::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 8px rgba(255, 140, 0, 1);
-}
-
-.volumeSlider::-moz-range-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 8px rgba(255, 140, 0, 1);
-}
-
-/* ショートカットヘルプ関連のスタイル */
-.shortcutHelp {
-  margin-top: 15px;
-  background-color: rgba(0, 0, 0, 0.7);
-  border-radius: 8px;
-  padding: 8px 15px;
-  border: 1px solid rgba(255, 140, 0, 0.4);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-}
-
-.shortcutList {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px;
-}
-
-.shortcutItem {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
-  font-size: 9px;
-  color: #fff;
-}
-
-.shortcutItem kbd {
-  background-color: rgba(255, 140, 0, 0.3);
-  border: 1px solid rgba(255, 140, 0, 0.6);
-  border-radius: 4px;
-  padding: 2px 5px;
-  font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
-  box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
-  color: #fff;
-  min-width: 24px;
-  text-align: center;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-}
-
-@media (max-width: 850px) {
-  .mainContainer {
-    width: 90vw;
-    height: 80vh;
-  }
-
-  .buttonContainer {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .menuButton {
-    width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
-    padding: 5px 10px;
-  }
-
-  .buttonIcon {
-    font-size: 14px;
-    margin-right: 6px;
-  }
-
-  .buttonText {
-    font-size: 9px;
+  .creditLink {
+    font-size: 8px;
   }
 }
 
@@ -980,6 +626,26 @@
   .buttonText {
     font-size: 9px;
   }
+
+  .cornerButtonTop {
+    top: 10px;
+    right: 10px;
+  }
+
+  .cornerButtonBottom {
+    bottom: 10px;
+    right: 10px;
+  }
+
+  .iconButton {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .creditLink {
+    font-size: 8px;
+  }
 }
 
 /* マスコットキャラクターコンテナ */
@@ -1184,5 +850,25 @@
 
   .buttonText {
     font-size: 9px;
+  }
+
+  .cornerButtonTop {
+    top: 10px;
+    right: 10px;
+  }
+
+  .cornerButtonBottom {
+    bottom: 10px;
+    right: 10px;
+  }
+
+  .iconButton {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .creditLink {
+    font-size: 8px;
   }
 }

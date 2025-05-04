@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "Live Preview",
+      "workspacePath": "c:\\Users\\hr-hm\\Desktop\\typing-game6",
+      "problemMatcher": [],
+      "label": "Live Preview: サーバーを実行する",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
