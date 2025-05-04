@@ -5,23 +5,23 @@
  * 一貫性のあるUI設計を実現します。デザイントークンと連携して使用します。
  */
 
-import { Colors, Typography, Spacing, Layout, Animation, StyleHelpers } from './DesignTokens';
+import { Colors, Typography, Spacing, Animation, Effects, StyleHelpers } from './DesignTokens';
 
 // ボタンの基本スタイル
 export const ButtonBaseStyle = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontFamily: Typography.fontFamily.normal,
-  fontWeight: Typography.fontWeight.medium,
-  borderRadius: Layout.borderRadius.md,
+  fontFamily: Typography.fontFamilies.base,
+  fontWeight: Typography.fontWeights.medium,
+  borderRadius: Effects.border.radius.md,
   cursor: 'pointer',
   transition: `all ${Animation.duration.fast} ${Animation.easing.easeOut}`,
   border: 'none',
   outline: 'none',
   userSelect: 'none',
   textAlign: 'center',
-  lineHeight: Typography.lineHeight.normal,
+  lineHeight: Typography.lineHeights.normal,
   position: 'relative',
   overflow: 'hidden',
 };
@@ -188,10 +188,10 @@ export const ButtonVariants = {
     color: Colors.primary,
     border: `1px solid ${Colors.primary}`,
     padding: '0.75rem 1.5rem',
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    letterSpacing: Typography.letterSpacing.wide,
-    borderRadius: Layout.borderRadius.lg,
+    fontSize: Typography.fontSizes.lg,
+    fontWeight: Typography.fontWeights.bold,
+    letterSpacing: '2px',
+    borderRadius: Effects.border.radius.lg,
     backdropFilter: 'blur(5px)',
     '&:hover': {
       backgroundColor: 'rgba(255, 140, 0, 0.15)',
@@ -223,7 +223,7 @@ export const ButtonVariants = {
     backgroundColor: 'transparent',
     color: Colors.primary,
     border: `2px solid ${Colors.primary}`,
-    boxShadow: Layout.shadows.neon,
+    boxShadow: `0 0 10px ${Colors.primary}`,
     textShadow: `0 0 5px ${Colors.primary}`,
     '&:hover': {
       textShadow: `0 0 10px ${Colors.primary}`,
@@ -237,39 +237,39 @@ export const ButtonVariants = {
 export const ButtonSizes = {
   tiny: {
     padding: '0.15rem 0.5rem',
-    fontSize: Typography.fontSize.xs,
+    fontSize: Typography.fontSizes.xs,
     height: '24px',
     minWidth: '60px',
   },
   small: {
-    padding: Spacing.padding.button.small,
-    fontSize: Typography.fontSize.sm,
-    height: Layout.height.button.small,
+    padding: '0.5rem 1rem',
+    fontSize: Typography.fontSizes.sm,
+    height: '32px',
     minWidth: '80px',
   },
   medium: {
-    padding: Spacing.padding.button.medium,
-    fontSize: Typography.fontSize.md,
-    height: Layout.height.button.medium,
+    padding: '0.75rem 1.25rem',
+    fontSize: Typography.fontSizes.md,
+    height: '40px',
     minWidth: '120px',
   },
   large: {
-    padding: Spacing.padding.button.large,
-    fontSize: Typography.fontSize.lg,
-    height: Layout.height.button.large,
+    padding: '0.875rem 1.5rem',
+    fontSize: Typography.fontSizes.lg,
+    height: '48px',
     minWidth: '160px',
   },
   xlarge: {
     padding: '1rem 2.5rem',
-    fontSize: Typography.fontSize.xl,
+    fontSize: Typography.fontSizes.xl,
     height: '60px',
     minWidth: '200px',
-    fontWeight: Typography.fontWeight.bold,
+    fontWeight: Typography.fontWeights.bold,
   },
   fullWidth: {
     width: '100%',
-    padding: Spacing.padding.button.medium,
-    fontSize: Typography.fontSize.md,
+    padding: '0.75rem 1.25rem',
+    fontSize: Typography.fontSizes.md,
   },
 };
 
@@ -277,7 +277,7 @@ export const ButtonSizes = {
 export const SpecialButtonStyles = {
   // 丸型ボタン
   round: {
-    borderRadius: Layout.borderRadius.round,
+    borderRadius: '50%',
     aspectRatio: '1 / 1',
     minWidth: 'unset',
     padding: 0,
@@ -285,7 +285,7 @@ export const SpecialButtonStyles = {
   
   // カプセル型ボタン
   pill: {
-    borderRadius: Layout.borderRadius.pill,
+    borderRadius: '999px',
   },
   
   // 正方形ボタン
@@ -303,7 +303,7 @@ export const SpecialButtonStyles = {
     padding: '1rem 1.5rem',
     margin: '0.5rem',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    fontWeight: Typography.fontWeight.bold,
+    fontWeight: Typography.fontWeights.bold,
     border: '1px solid rgba(255, 255, 255, 0.1)',
     transition: `all ${Animation.duration.normal} ${Animation.easing.spring}`,
     '&:hover': {
@@ -336,7 +336,7 @@ export const SpecialButtonStyles = {
   // アイコンのみのボタン
   iconOnly: {
     minWidth: 'unset',
-    width: Layout.height.button.medium,
+    width: '40px',
     padding: 0,
   },
   
@@ -568,8 +568,8 @@ export const ButtonPresets = {
     animated: true,
     customStyles: {
       marginBottom: Spacing.md,
-      fontSize: Typography.fontSize.xl,
-      letterSpacing: Typography.letterSpacing.wide,
+      fontSize: Typography.fontSizes.xl,
+      letterSpacing: '2px', // Typography.letterSpacing.wideの代わりに直接指定
     }
   }),
   
@@ -588,7 +588,7 @@ export const ButtonPresets = {
     withIcon: true,
     animated: true,
     customStyles: {
-      boxShadow: Layout.shadows.md,
+      boxShadow: Effects.shadows.md,
     }
   }),
   
@@ -632,7 +632,7 @@ export const ButtonPresets = {
     size: 'large',
     animated: true,
     customStyles: {
-      fontWeight: Typography.fontWeight.bold,
+      fontWeight: Typography.fontWeights.bold,
     }
   }),
 };

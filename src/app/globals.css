@@ -3,24 +3,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap');
 
+/* Next.jsのフォント変数を使用 */
 :root {
   --background: #000000;
   --foreground: #ffffff;
   --primary-color: #ff8c00;
   --secondary-color: #ffa500;
-  --font-normal: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  --font-dot: 'Press Start 2P', cursive, system-ui;
-  --font-monospace: 'Source Code Pro', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  
+  /* フォントファミリー変数を使用 */
+  --font-normal: var(--font-noto-sans-jp), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  --font-dot: var(--font-press-start-2p), cursive, system-ui;
+  --font-monospace: var(--font-source-code-pro), var(--font-fira-code), Consolas, monospace;
 
   /* フォントサイズの統一 */
-  --font-size-xs: 10px;
-  --font-size-sm: 12px;
-  --font-size-md: 14px;
-  --font-size-lg: 18px;
-  --font-size-xl: 24px;
-  --font-size-2xl: 28px;
-  --font-size-3xl: 33px;
-  --font-size-4xl: 42px;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
 
   /* タイピングゲーム用の色変数 - お題テキスト関連 */
   --problem-text-color: #ffffff;
@@ -163,7 +166,7 @@ button {
   text-shadow: 0px 2px 10px rgba(0, 0, 0, 0.5);
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  word-break: break-all;
+  word-break: break-word;
   margin-bottom: 0.8rem; /* お題とローマ字の間隔を調整 */
 }
 
@@ -177,7 +180,7 @@ button {
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  word-break: break-all;
+  word-break: keep-all;
   background-color: rgba(0, 0, 0, 0.1); /* 背景色を追加して視認性向上 */
   padding: 0.8rem;
   border-radius: 8px;
