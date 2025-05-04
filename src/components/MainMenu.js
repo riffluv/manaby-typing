@@ -517,7 +517,7 @@ const MainMenu = () => {
           <motion.div
             className={styles.shortcutHelp}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.8 }}
+            animate={{ opacity: 1 }}
             transition={{ delay: 2.0, duration: 0.7 }}
           >
             <div className={styles.shortcutList}>
@@ -525,16 +525,10 @@ const MainMenu = () => {
                 <kbd>Space</kbd> <span>ゲーム開始</span>
               </div>
               <div className={styles.shortcutItem}>
-                <kbd>S</kbd> <span>設定</span>
-              </div>
-              <div className={styles.shortcutItem}>
-                <kbd>C</kbd> <span>クレジット</span>
-              </div>
-              <div className={styles.shortcutItem}>
                 <kbd>R</kbd> <span>ランキング</span>
               </div>
               <div className={styles.shortcutItem}>
-                <kbd>ESC</kbd> <span>戻る/閉じる</span>
+                <kbd>ESC</kbd> <span>メニューに戻る</span>
               </div>
             </div>
           </motion.div>
