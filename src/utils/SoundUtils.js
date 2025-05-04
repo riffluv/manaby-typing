@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * Web Audio APIを使用した効果音とBGMシステム
+ * Web Audio APIを使用した効果音システム
+ * シンプル化したバージョン - BGM機能を完全に削除
  */
 class SoundUtils {
   constructor() {
@@ -14,10 +15,6 @@ class SoundUtils {
       // Gainノードの作成（効果音の音量調整用）
       this.gainNode = this.context.createGain();
       this.gainNode.connect(this.context.destination);
-
-      // BGM用のGainノードを作成
-      this.bgmGainNode = this.context.createGain();
-      this.bgmGainNode.connect(this.context.destination);
     }
 
     // 効果音バッファを保持するオブジェクト
@@ -29,25 +26,14 @@ class SoundUtils {
     // 効果音のオン/オフ設定
     this.sfxEnabled = true;
 
-    // BGM関連の設定
-    this.bgmEnabled = true;
-    this.bgmVolume = 0.5; // デフォルトのBGM音量
-    this.currentBgm = null; // 現在再生中のBGMを保持
-    this.bgmAudio = null;   // BGM用のAudio要素
-
-    // サウンドプリセット定義
+    // サウンドプリセット定義 - シンプル化
     this.soundPresets = {
       // 基本ゲーム効果音
-      success: '/sounds/Hit05-1.mp3', // タイピング成功音
-      error: '/sounds/Hit04-1.mp3',   // タイピングエラー音
+      success: '/sounds/Hit05-1.mp3', // タイピング成功音（変更後）
+      error: '/sounds/Hit04-1.mp3', // タイピングエラー音
       complete: '/sounds/resultsound.mp3', // ゲームクリア音
-      button: '/sounds/buttonsound1.mp3',  // ボタンクリック音
+      button: '/sounds/buttonsound1.mp3', // ボタンクリック音
       level: '/sounds/xylophone-mini-dessert.mp3', // レベルアップ音
-    };
-
-    // BGMプリセット定義
-    this.bgmPresets = {
-      mainTheme: '/sounds/Battle of the Emperor.mp3', // メインテーマ曲
     };
 
     // キャッシュバスティング用のタイムスタンプ
@@ -58,6 +44,7 @@ class SoundUtils {
 
   /**
    * 効率的な音声読み込み - 重要な効果音だけを事前にロード、その他は遅延読み込み
+   * パフォーマンス最適化版
    * @returns {Promise} ロード完了時に解決されるPromise
    */
   async initializeAllSounds() {
@@ -333,141 +320,11 @@ class SoundUtils {
   }
 
   /**
-   * すべてのサウンドを有効/無効に切り替える (効果音のみ - 互換性のため残す)
+   * すべてのサウンドを有効/無効に切り替える (効果音のみ)
    * @param {boolean} enabled - サウンドを有効にするか
-   * @deprecated BGMとSFXを個別に設定するメソッドを使用してください
    */
   setEnabled(enabled) {
     this.setSfxEnabled(enabled);
-  }
-
-  // --- 新しいBGM関連のメソッド ---
-
-  /**
-   * BGMを再生する
-   * @param {string} name - 再生するBGMの名前
-   * @param {boolean} loop - ループ再生するかどうか (デフォルトはtrue)
-   */
-  playBgm(name, loop = true) {
-    // サーバーサイドレンダリング時または無効時は何もしない
-    if (typeof window === 'undefined' || !this.bgmEnabled) {
-      return;
-    }
-
-    // 既に同じBGMを再生中なら何もしない
-    if (this.currentBgm === name && this.bgmAudio && !this.bgmAudio.paused) {
-      return;
-    }
-
-    // 現在のBGMを停止
-    this.stopBgm();
-
-    const bgmUrl = this.bgmPresets[name];
-    if (!bgmUrl) {
-      console.error(`BGM「${name}」はプリセットに存在しません`);
-      return;
-    }
-
-    try {
-      // Audio要素を作成してBGMを再生
-      this.bgmAudio = new Audio(bgmUrl);
-      this.bgmAudio.loop = loop;
-      this.bgmAudio.volume = this.bgmVolume;
-      
-      // 再生開始前にユーザーインタラクションが必要な場合に備えてpromiseを返す
-      const playPromise = this.bgmAudio.play();
-      
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          // 自動再生ポリシーによる再生失敗を処理
-          console.warn(`BGM「${name}」の自動再生に失敗しました:`, error);
-          // ユーザーインタラクション後に再生を試みるためのフラグをセット
-          this._pendingBgmName = name;
-        });
-      }
-
-      this.currentBgm = name;
-      console.log(`[DEBUG] BGM「${name}」の再生を開始しました`);
-    } catch (error) {
-      console.error(`BGM「${name}」の再生に失敗しました:`, error);
-    }
-  }
-
-  /**
-   * 現在再生中のBGMを停止する
-   */
-  stopBgm() {
-    if (this.bgmAudio) {
-      this.bgmAudio.pause();
-      this.bgmAudio.currentTime = 0;
-      this.bgmAudio = null;
-    }
-    this.currentBgm = null;
-  }
-
-  /**
-   * BGMの音量を設定する
-   * @param {number} value - 0.0〜1.0の間の値
-   */
-  setBgmVolume(value) {
-    this.bgmVolume = Math.max(0, Math.min(1, value));
-    
-    if (this.bgmAudio && this.bgmEnabled) {
-      this.bgmAudio.volume = this.bgmVolume;
-    }
-    
-    console.log(`[DEBUG] BGMの音量を設定: ${this.bgmVolume}`);
-  }
-
-  /**
-   * BGMの現在の音量を取得する
-   * @returns {number} 0.0〜1.0の間の値
-   */
-  getBgmVolume() {
-    return this.bgmVolume;
-  }
-
-  /**
-   * BGMを有効/無効に切り替える
-   * @param {boolean} enabled - BGMを有効にするか
-   */
-  setBgmEnabled(enabled) {
-    this.bgmEnabled = enabled;
-    
-    if (this.bgmAudio) {
-      if (enabled) {
-        this.bgmAudio.volume = this.bgmVolume;
-        // 停止中だった場合は再開
-        if (this.bgmAudio.paused && this.currentBgm) {
-          this.bgmAudio.play().catch(err => {
-            console.warn('BGMの再開に失敗しました:', err);
-          });
-        }
-      } else {
-        this.bgmAudio.pause();
-      }
-    }
-    
-    console.log(`[DEBUG] BGMを${enabled ? '有効' : '無効'}にしました`);
-  }
-
-  /**
-   * ユーザーインタラクション後に保留中のBGMを再生する
-   * (ユーザークリックやタッチ等のイベントハンドラから呼び出す)
-   */
-  resumeBgmAfterInteraction() {
-    if (this._pendingBgmName && this.bgmEnabled) {
-      const name = this._pendingBgmName;
-      this._pendingBgmName = null;
-      this.playBgm(name);
-    } else if (this.bgmAudio && this.bgmAudio.paused && this.bgmEnabled) {
-      this.bgmAudio.play().catch(err => {
-        console.warn('ユーザーインタラクション後のBGM再開に失敗しました:', err);
-      });
-    }
-
-    // 同時にAudioContextも再開
-    this.resume();
   }
 
   /**
@@ -480,9 +337,7 @@ class SoundUtils {
     }
 
     if (this.context.state === 'suspended') {
-      this.context.resume().catch(err => {
-        console.error('AudioContextの再開に失敗:', err);
-      });
+      this.context.resume();
     }
   }
 

@@ -30,10 +30,9 @@ export const SCREENS = {
 // デフォルトのゲーム設定
 const DEFAULT_SETTINGS = {
   difficulty: DIFFICULTIES.NORMAL,
-  bgmEnabled: true,     // BGM有効/無効
-  sfxEnabled: true,     // 効果音有効/無効
-  sfxVolume: 1.0,       // 効果音音量
-  bgmVolume: 0.5,       // BGM音量
+  soundEnabled: true,
+  sfxEnabled: true,
+  sfxVolume: 1.0,
   requiredProblemCount: 8, // デフォルトお題数
 };
 
@@ -91,11 +90,6 @@ export const GameProvider = ({ children }) => {
       // 背景の適用 (管理者モードの場合)
       StorageUtils.applyBackgroundFromStorage();
 
-      // BGMの再生を開始
-      if (savedSettings.bgmEnabled !== false) {
-        soundSystem.playBgm('mainTheme', true);
-      }
-
       // 最終プレイ日を記録
       StorageUtils.saveLastPlayedDate();
       
@@ -124,24 +118,18 @@ export const GameProvider = ({ children }) => {
   // サウンド設定が変更されたらサウンドシステムに反映
   useEffect(() => {
     try {
+      // 後方互換性のために soundEnabled も使用
+      const isSoundEnabled = settings.soundEnabled;
+
       // 効果音の設定を反映
-      soundSystem.setSfxEnabled(settings.sfxEnabled);
+      soundSystem.setSfxEnabled(isSoundEnabled && settings.sfxEnabled);
       soundSystem.setSfxVolume(settings.sfxVolume);
-
-      // BGM設定を反映
-      soundSystem.setBgmEnabled(settings.bgmEnabled);
-      soundSystem.setBgmVolume(settings.bgmVolume);
-
-      // BGMが有効で、まだ再生されていなければ再生開始
-      if (settings.bgmEnabled && !soundSystem.currentBgm) {
-        soundSystem.playBgm('mainTheme', true);
-      }
       
-      console.log(`[GameContext] サウンド設定更新: SFX=${settings.sfxEnabled}, BGM=${settings.bgmEnabled}`);
+      console.log(`[GameContext] サウンド設定更新: SFX=${isSoundEnabled && settings.sfxEnabled}`);
     } catch (error) {
       console.error('[GameContext] サウンド設定更新エラー:', error);
     }
-  }, [settings.sfxEnabled, settings.sfxVolume, settings.bgmEnabled, settings.bgmVolume]);
+  }, [settings.soundEnabled, settings.sfxEnabled, settings.sfxVolume]);
 
   // 画面遷移時に背景を更新
   useEffect(() => {

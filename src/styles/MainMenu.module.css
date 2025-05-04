@@ -66,9 +66,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* space-betweenからcenterに変更 */
-  gap: 20px; /* 要素間の間隔を調整 */
-  height: 85%; /* 高さを少し調整 */
+  justify-content: center;
+  /* space-betweenからcenterに変更 */
+  gap: 20px;
+  /* 要素間の間隔を調整 */
+  height: 85%;
+  /* 高さを少し調整 */
   width: 90%;
   padding: 20px;
   z-index: 1;
@@ -86,7 +89,8 @@
 }
 
 .logoContainer {
-  margin: 10px 0 15px 0; /* マージン調整 */
+  margin: 10px 0 15px 0;
+  /* マージン調整 */
 }
 
 .startButton {
@@ -110,132 +114,12 @@
   image-rendering: pixelated;
 }
 
-/* 難易度ボタンとドロップダウンのスタイル - 新規追加 */
-.difficultyContainer {
-  position: relative;
-  width: 180px;
-  margin: 5px 0 15px;
-  z-index: 10;
-}
-
-.difficultyButton {
-  width: 100%;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.7);
-  border: 2px solid #ff8c00;
-  border-radius: 20px;
-  color: #ffffff;
-  font-size: 14px;
-  padding: 0 15px;
-  cursor: pointer;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.4),
-    inset 0 0 10px rgba(255, 140, 0, 0.2);
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
-}
-
-.difficultyButton::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: linear-gradient(rgba(255, 140, 0, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 140, 0, 0.1) 1px, transparent 1px);
-  background-size: 8px 8px;
-  z-index: -1;
-  opacity: 0.5;
-}
-
-.difficultyButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 140, 0, 0.6),
-    inset 0 0 15px rgba(255, 140, 0, 0.3);
-}
-
-.difficultyButton:active {
-  transform: translateY(1px);
-}
-
-.difficultyIcon {
-  margin-right: 8px;
-  font-size: 16px;
-}
-
-.dropdownArrow {
-  margin-left: 8px;
-  font-size: 10px;
-  transition: transform 0.3s;
-}
-
-.difficultyDropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 5px;
-  background-color: rgba(0, 0, 0, 0.9);
-  border: 2px solid #ff8c00;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8),
-    0 0 10px rgba(255, 140, 0, 0.5);
-  z-index: 20;
-}
-
-.difficultyOption {
-  width: 100%;
-  padding: 12px;
-  background-color: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(255, 140, 0, 0.3);
-  color: #ffffff;
-  font-size: 14px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.difficultyOption:last-child {
-  border-bottom: none;
-}
-
-.difficultyOption:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-}
-
-.difficultyOption.selected {
-  font-weight: bold;
-  text-shadow: 0 0 5px rgba(255, 255, 255, 0.7);
-}
-
-/* 難易度ごとの色付け */
-.difficultyOption:nth-child(1).selected {
-  background-color: rgba(0, 255, 0, 0.1);
-  box-shadow: inset 0 0 15px rgba(0, 255, 0, 0.2);
-}
-
-.difficultyOption:nth-child(2).selected {
-  background-color: rgba(255, 255, 0, 0.1);
-  box-shadow: inset 0 0 15px rgba(255, 255, 0, 0.2);
-}
-
-.difficultyOption:nth-child(3).selected {
-  background-color: rgba(255, 0, 0, 0.1);
-  box-shadow: inset 0 0 15px rgba(255, 0, 0, 0.2);
-}
-
 /* ボタンコンテナのスタイル */
 .buttonContainer {
   display: flex;
   justify-content: center;
-  gap: 30px; /* ボタン間の間隔を広げる */
+  gap: 30px;
+  /* ボタン間の間隔を広げる */
   margin: 10px 0;
   width: 100%;
 }
@@ -243,29 +127,37 @@
 /* メニューボタンの基本スタイル */
 .menuButton {
   display: flex;
-  flex-direction: row; /* 縦並びから横並びに変更 */
-  align-items: center; /* 中央揃え */
-  justify-content: center; /* 中央揃え */
-  padding: 6px 14px; /* パディングを調整 */
-  width: 130px; /* 幅を少し広げる */
-  height: 36px; /* 高さを50pxから36pxに低くする */
+  flex-direction: row;
+  /* 縦並びから横並びに変更 */
+  align-items: center;
+  /* 中央揃え */
+  justify-content: center;
+  /* 中央揃え */
+  padding: 6px 14px;
+  /* パディングを調整 */
+  width: 130px;
+  /* 幅を少し広げる */
+  height: 36px;
+  /* 高さを50pxから36pxに低くする */
   border: 2px solid #ff8c00;
   background-color: rgba(0, 0, 0, 0.7);
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-radius: 30px; /* 丸みをより強調 */
+  border-radius: 30px;
+  /* 丸みをより強調 */
   box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
     inset 0 0 10px rgba(255, 140, 0, 0.3);
   position: relative;
-  overflow: hidden;
 }
 
 /* ホバー時の効果 */
 .menuButton:hover {
-  transform: translateY(-2px); /* 少し控えめな浮き上がり効果 */
+  transform: translateY(-2px);
+  /* 少し控えめな浮き上がり効果 */
   box-shadow: 0 0 15px rgba(255, 140, 0, 0.8),
     inset 0 0 15px rgba(255, 140, 0, 0.5);
   border-color: #ffaa33;
@@ -273,21 +165,26 @@
 
 /* クリック時の効果 */
 .menuButton:active {
-  transform: translateY(1px); /* より微妙な押し込み効果 */
+  transform: translateY(1px);
+  /* より微妙な押し込み効果 */
   box-shadow: 0 0 5px rgba(255, 140, 0, 0.5),
     inset 0 0 5px rgba(255, 140, 0, 0.3);
 }
 
 /* ボタン内のアイコン */
 .buttonIcon {
-  font-size: 16px; /* アイコンサイズを調整 */
-  margin-right: 8px; /* 右マージンを追加して文字との間隔を確保 */
-  margin-bottom: 0; /* 底マージンを削除 */
+  font-size: 16px;
+  /* アイコンサイズを調整 */
+  margin-right: 8px;
+  /* 右マージンを追加して文字との間隔を確保 */
+  margin-bottom: 0;
+  /* 底マージンを削除 */
 }
 
 /* ボタン内のテキスト */
 .buttonText {
-  font-size: 10px; /* テキストサイズ */
+  font-size: 10px;
+  /* テキストサイズ */
   letter-spacing: 0.5px;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
@@ -310,9 +207,11 @@
 .instructions {
   text-align: center;
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 14px;
-  margin-top: 15px; /* マージン調整 */
+  margin-top: 15px;
+  /* マージン調整 */
   text-shadow: 2px 2px 0 rgba(255, 140, 0, 0.7);
   animation: blink 1s infinite;
 }
@@ -321,19 +220,23 @@
   0% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.03);
   }
+
   100% {
     transform: scale(1);
   }
 }
 
 @keyframes blink {
+
   0%,
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }
@@ -350,7 +253,8 @@
 
 /* セクションタイトル */
 .sectionTitle {
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
+  font-family: var(--font-dot);
+  /* ドットフォントを変数で指定 */
   color: #ff8c00;
   font-size: 16px;
   margin-top: 0;
@@ -370,7 +274,8 @@
   flex: 1;
   background-color: rgba(0, 0, 0, 0.7);
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   padding: 10px 5px;
   border: 2px solid #ff8c00;
@@ -399,7 +304,8 @@
   width: 100px;
   background-color: rgba(0, 0, 0, 0.7);
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 16px;
   padding: 10px 0;
   border: 2px solid #ff8c00;
@@ -430,7 +336,8 @@
 /* クレジットテキスト */
 .creditText {
   color: #ffffff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 16px;
   line-height: 1.5;
   margin: 0;
@@ -446,7 +353,8 @@
 /* クレジット項目 */
 .creditsItem {
   color: #ffffff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 16px;
   line-height: 1.5;
   margin-bottom: 8px;
@@ -461,6 +369,28 @@
   left: 0;
 }
 
+/* 右下のクレジットボタン用のスタイル */
+.creditButton {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  opacity: 0.7;
+}
+
+.creditButton:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
 @media (max-width: 850px) {
   .mainContainer {
     width: 90vw;
@@ -474,7 +404,8 @@
 
   .menuButton {
     width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
+    height: 34px;
+    /* モバイル表示時の高ささらに低く */
     padding: 5px 10px;
   }
 
@@ -486,44 +417,6 @@
   .buttonText {
     font-size: 9px;
   }
-}
-
-/* 角ボタン（右上と右下）のスタイル */
-.cornerButtonTop {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-.cornerButtonBottom {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-/* 角配置されたボタンのサイズと見た目を調整 */
-.cornerButton {
-  background-color: rgba(0, 0, 0, 0.7);
-  border-color: #ff8c00;
-  font-size: 11px;
-  padding: 5px 10px;
-  min-width: 70px;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.cornerButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 140, 0, 0.6),
-    inset 0 0 15px rgba(255, 140, 0, 0.3);
-}
-
-.cornerButton:active {
-  transform: translateY(1px);
 }
 
 /* マスコットキャラクターコンテナ */
@@ -564,9 +457,11 @@
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-15px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -574,16 +469,20 @@
 
 /* ゆらゆら揺れるアニメーション */
 @keyframes wiggle {
+
   0%,
   100% {
     transform: rotate(-5deg);
   }
+
   25% {
     transform: rotate(0deg);
   }
+
   50% {
     transform: rotate(5deg);
   }
+
   75% {
     transform: rotate(0deg);
   }
@@ -607,7 +506,8 @@
 
 .volumeLabel {
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   min-width: 50px;
 }
@@ -683,7 +583,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 9px;
   color: #fff;
 }
@@ -694,7 +595,8 @@
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
+  font-family: var(--font-dot);
+  /* ドットフォントを変数で指定 */
   box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
   color: #fff;
   min-width: 24px;
@@ -717,7 +619,8 @@
 
   .menuButton {
     width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
+    height: 34px;
+    /* モバイル表示時の高ささらに低く */
     padding: 5px 10px;
   }
 
@@ -729,44 +632,6 @@
   .buttonText {
     font-size: 9px;
   }
-}
-
-/* 角ボタン（右上と右下）のスタイル */
-.cornerButtonTop {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-.cornerButtonBottom {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-/* 角配置されたボタンのサイズと見た目を調整 */
-.cornerButton {
-  background-color: rgba(0, 0, 0, 0.7);
-  border-color: #ff8c00;
-  font-size: 11px;
-  padding: 5px 10px;
-  min-width: 70px;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.cornerButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 140, 0, 0.6),
-    inset 0 0 15px rgba(255, 140, 0, 0.3);
-}
-
-.cornerButton:active {
-  transform: translateY(1px);
 }
 
 /* マスコットキャラクターコンテナ */
@@ -807,9 +672,11 @@
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-15px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -817,16 +684,20 @@
 
 /* ゆらゆら揺れるアニメーション */
 @keyframes wiggle {
+
   0%,
   100% {
     transform: rotate(-5deg);
   }
+
   25% {
     transform: rotate(0deg);
   }
+
   50% {
     transform: rotate(5deg);
   }
+
   75% {
     transform: rotate(0deg);
   }
@@ -850,7 +721,8 @@
 
 .volumeLabel {
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   min-width: 50px;
 }
@@ -926,7 +798,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 9px;
   color: #fff;
 }
@@ -937,7 +810,8 @@
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
+  font-family: var(--font-dot);
+  /* ドットフォントを変数で指定 */
   box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
   color: #fff;
   min-width: 24px;
@@ -960,7 +834,8 @@
 
   .menuButton {
     width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
+    height: 34px;
+    /* モバイル表示時の高ささらに低く */
     padding: 5px 10px;
   }
 
@@ -972,44 +847,6 @@
   .buttonText {
     font-size: 9px;
   }
-}
-
-/* 角ボタン（右上と右下）のスタイル */
-.cornerButtonTop {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-.cornerButtonBottom {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-/* 角配置されたボタンのサイズと見た目を調整 */
-.cornerButton {
-  background-color: rgba(0, 0, 0, 0.7);
-  border-color: #ff8c00;
-  font-size: 11px;
-  padding: 5px 10px;
-  min-width: 70px;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.cornerButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 140, 0, 0.6),
-    inset 0 0 15px rgba(255, 140, 0, 0.3);
-}
-
-.cornerButton:active {
-  transform: translateY(1px);
 }
 
 /* マスコットキャラクターコンテナ */
@@ -1050,9 +887,11 @@
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-15px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -1060,16 +899,20 @@
 
 /* ゆらゆら揺れるアニメーション */
 @keyframes wiggle {
+
   0%,
   100% {
     transform: rotate(-5deg);
   }
+
   25% {
     transform: rotate(0deg);
   }
+
   50% {
     transform: rotate(5deg);
   }
+
   75% {
     transform: rotate(0deg);
   }
@@ -1093,7 +936,8 @@
 
 .volumeLabel {
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   min-width: 50px;
 }
@@ -1169,7 +1013,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 9px;
   color: #fff;
 }
@@ -1180,7 +1025,8 @@
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
+  font-family: var(--font-dot);
+  /* ドットフォントを変数で指定 */
   box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
   color: #fff;
   min-width: 24px;
@@ -1203,7 +1049,8 @@
 
   .menuButton {
     width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
+    height: 34px;
+    /* モバイル表示時の高ささらに低く */
     padding: 5px 10px;
   }
 
@@ -1215,44 +1062,6 @@
   .buttonText {
     font-size: 9px;
   }
-}
-
-/* 角ボタン（右上と右下）のスタイル */
-.cornerButtonTop {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-.cornerButtonBottom {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-/* 角配置されたボタンのサイズと見た目を調整 */
-.cornerButton {
-  background-color: rgba(0, 0, 0, 0.7);
-  border-color: #ff8c00;
-  font-size: 11px;
-  padding: 5px 10px;
-  min-width: 70px;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.cornerButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 140, 0, 0.6),
-    inset 0 0 15px rgba(255, 140, 0, 0.3);
-}
-
-.cornerButton:active {
-  transform: translateY(1px);
 }
 
 /* マスコットキャラクターコンテナ */
@@ -1293,9 +1102,11 @@
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-15px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -1303,16 +1114,20 @@
 
 /* ゆらゆら揺れるアニメーション */
 @keyframes wiggle {
+
   0%,
   100% {
     transform: rotate(-5deg);
   }
+
   25% {
     transform: rotate(0deg);
   }
+
   50% {
     transform: rotate(5deg);
   }
+
   75% {
     transform: rotate(0deg);
   }
@@ -1336,7 +1151,8 @@
 
 .volumeLabel {
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   min-width: 50px;
 }
@@ -1412,7 +1228,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 9px;
   color: #fff;
 }
@@ -1423,7 +1240,8 @@
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
+  font-family: var(--font-dot);
+  /* ドットフォントを変数で指定 */
   box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
   color: #fff;
   min-width: 24px;
@@ -1446,7 +1264,8 @@
 
   .menuButton {
     width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
+    height: 34px;
+    /* モバイル表示時の高ささらに低く */
     padding: 5px 10px;
   }
 
@@ -1458,44 +1277,6 @@
   .buttonText {
     font-size: 9px;
   }
-}
-
-/* 角ボタン（右上と右下）のスタイル */
-.cornerButtonTop {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-.cornerButtonBottom {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-/* 角配置されたボタンのサイズと見た目を調整 */
-.cornerButton {
-  background-color: rgba(0, 0, 0, 0.7);
-  border-color: #ff8c00;
-  font-size: 11px;
-  padding: 5px 10px;
-  min-width: 70px;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.cornerButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 140, 0, 0.6),
-    inset 0 0 15px rgba(255, 140, 0, 0.3);
-}
-
-.cornerButton:active {
-  transform: translateY(1px);
 }
 
 /* マスコットキャラクターコンテナ */
@@ -1536,9 +1317,11 @@
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-15px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -1546,16 +1329,20 @@
 
 /* ゆらゆら揺れるアニメーション */
 @keyframes wiggle {
+
   0%,
   100% {
     transform: rotate(-5deg);
   }
+
   25% {
     transform: rotate(0deg);
   }
+
   50% {
     transform: rotate(5deg);
   }
+
   75% {
     transform: rotate(0deg);
   }
@@ -1579,7 +1366,8 @@
 
 .volumeLabel {
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   min-width: 50px;
 }
@@ -1655,7 +1443,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 9px;
   color: #fff;
 }
@@ -1666,7 +1455,8 @@
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
+  font-family: var(--font-dot);
+  /* ドットフォントを変数で指定 */
   box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
   color: #fff;
   min-width: 24px;
@@ -1689,7 +1479,8 @@
 
   .menuButton {
     width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
+    height: 34px;
+    /* モバイル表示時の高ささらに低く */
     padding: 5px 10px;
   }
 
@@ -1701,44 +1492,6 @@
   .buttonText {
     font-size: 9px;
   }
-}
-
-/* 角ボタン（右上と右下）のスタイル */
-.cornerButtonTop {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-.cornerButtonBottom {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-/* 角配置されたボタンのサイズと見た目を調整 */
-.cornerButton {
-  background-color: rgba(0, 0, 0, 0.7);
-  border-color: #ff8c00;
-  font-size: 11px;
-  padding: 5px 10px;
-  min-width: 70px;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.cornerButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 140, 0, 0.6),
-    inset 0 0 15px rgba(255, 140, 0, 0.3);
-}
-
-.cornerButton:active {
-  transform: translateY(1px);
 }
 
 /* マスコットキャラクターコンテナ */
@@ -1779,9 +1532,11 @@
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-15px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -1789,16 +1544,20 @@
 
 /* ゆらゆら揺れるアニメーション */
 @keyframes wiggle {
+
   0%,
   100% {
     transform: rotate(-5deg);
   }
+
   25% {
     transform: rotate(0deg);
   }
+
   50% {
     transform: rotate(5deg);
   }
+
   75% {
     transform: rotate(0deg);
   }
@@ -1822,7 +1581,8 @@
 
 .volumeLabel {
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   min-width: 50px;
 }
@@ -1898,7 +1658,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 9px;
   color: #fff;
 }
@@ -1909,7 +1670,8 @@
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
+  font-family: var(--font-dot);
+  /* ドットフォントを変数で指定 */
   box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
   color: #fff;
   min-width: 24px;
@@ -1932,7 +1694,8 @@
 
   .menuButton {
     width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
+    height: 34px;
+    /* モバイル表示時の高ささらに低く */
     padding: 5px 10px;
   }
 
@@ -1944,44 +1707,6 @@
   .buttonText {
     font-size: 9px;
   }
-}
-
-/* 角ボタン（右上と右下）のスタイル */
-.cornerButtonTop {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-.cornerButtonBottom {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-/* 角配置されたボタンのサイズと見た目を調整 */
-.cornerButton {
-  background-color: rgba(0, 0, 0, 0.7);
-  border-color: #ff8c00;
-  font-size: 11px;
-  padding: 5px 10px;
-  min-width: 70px;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.cornerButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 140, 0, 0.6),
-    inset 0 0 15px rgba(255, 140, 0, 0.3);
-}
-
-.cornerButton:active {
-  transform: translateY(1px);
 }
 
 /* マスコットキャラクターコンテナ */
@@ -2022,9 +1747,11 @@
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-15px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -2032,16 +1759,20 @@
 
 /* ゆらゆら揺れるアニメーション */
 @keyframes wiggle {
+
   0%,
   100% {
     transform: rotate(-5deg);
   }
+
   25% {
     transform: rotate(0deg);
   }
+
   50% {
     transform: rotate(5deg);
   }
+
   75% {
     transform: rotate(0deg);
   }
@@ -2065,7 +1796,8 @@
 
 .volumeLabel {
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   min-width: 50px;
 }
@@ -2141,7 +1873,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 9px;
   color: #fff;
 }
@@ -2152,7 +1885,8 @@
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
+  font-family: var(--font-dot);
+  /* ドットフォントを変数で指定 */
   box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
   color: #fff;
   min-width: 24px;
@@ -2175,7 +1909,8 @@
 
   .menuButton {
     width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
+    height: 34px;
+    /* モバイル表示時の高ささらに低く */
     padding: 5px 10px;
   }
 
@@ -2187,44 +1922,6 @@
   .buttonText {
     font-size: 9px;
   }
-}
-
-/* 角ボタン（右上と右下）のスタイル */
-.cornerButtonTop {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-.cornerButtonBottom {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-/* 角配置されたボタンのサイズと見た目を調整 */
-.cornerButton {
-  background-color: rgba(0, 0, 0, 0.7);
-  border-color: #ff8c00;
-  font-size: 11px;
-  padding: 5px 10px;
-  min-width: 70px;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.cornerButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 140, 0, 0.6),
-    inset 0 0 15px rgba(255, 140, 0, 0.3);
-}
-
-.cornerButton:active {
-  transform: translateY(1px);
 }
 
 /* マスコットキャラクターコンテナ */
@@ -2265,9 +1962,11 @@
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-15px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -2275,16 +1974,20 @@
 
 /* ゆらゆら揺れるアニメーション */
 @keyframes wiggle {
+
   0%,
   100% {
     transform: rotate(-5deg);
   }
+
   25% {
     transform: rotate(0deg);
   }
+
   50% {
     transform: rotate(5deg);
   }
+
   75% {
     transform: rotate(0deg);
   }
@@ -2308,7 +2011,8 @@
 
 .volumeLabel {
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   min-width: 50px;
 }
@@ -2384,7 +2088,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 9px;
   color: #fff;
 }
@@ -2395,7 +2100,8 @@
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
+  font-family: var(--font-dot);
+  /* ドットフォントを変数で指定 */
   box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
   color: #fff;
   min-width: 24px;
@@ -2418,7 +2124,8 @@
 
   .menuButton {
     width: 120px;
-    height: 34px; /* モバイル表示時の高ささらに低く */
+    height: 34px;
+    /* モバイル表示時の高ささらに低く */
     padding: 5px 10px;
   }
 
@@ -2430,44 +2137,6 @@
   .buttonText {
     font-size: 9px;
   }
-}
-
-/* 角ボタン（右上と右下）のスタイル */
-.cornerButtonTop {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-.cornerButtonBottom {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  z-index: 10;
-}
-
-/* 角配置されたボタンのサイズと見た目を調整 */
-.cornerButton {
-  background-color: rgba(0, 0, 0, 0.7);
-  border-color: #ff8c00;
-  font-size: 11px;
-  padding: 5px 10px;
-  min-width: 70px;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.cornerButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 140, 0, 0.6),
-    inset 0 0 15px rgba(255, 140, 0, 0.3);
-}
-
-.cornerButton:active {
-  transform: translateY(1px);
 }
 
 /* マスコットキャラクターコンテナ */
@@ -2508,9 +2177,11 @@
   0% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-15px);
   }
+
   100% {
     transform: translateY(0px);
   }
@@ -2518,16 +2189,20 @@
 
 /* ゆらゆら揺れるアニメーション */
 @keyframes wiggle {
+
   0%,
   100% {
     transform: rotate(-5deg);
   }
+
   25% {
     transform: rotate(0deg);
   }
+
   50% {
     transform: rotate(5deg);
   }
+
   75% {
     transform: rotate(0deg);
   }
@@ -2551,7 +2226,8 @@
 
 .volumeLabel {
   color: #fff;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 12px;
   min-width: 50px;
 }
@@ -2627,7 +2303,8 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-normal); /* 通常フォントに変更 */
+  font-family: var(--font-normal);
+  /* 通常フォントに変更 */
   font-size: 9px;
   color: #fff;
 }
@@ -2638,7 +2315,8 @@
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 8px;
-  font-family: var(--font-dot); /* ドットフォントを変数で指定 */
+  font-family: var(--font-dot);
+  /* ドットフォントを変数で指定 */
   box-shadow: 0 2px 0 rgba(255, 140, 0, 0.4);
   color: #fff;
   min-width: 24px;
@@ -2646,4 +2324,54 @@
   display: inline-flex;
   justify-content: center;
   align-items: center;
+}
+
+@media (max-width: 850px) {
+  .mainContainer {
+    width: 90vw;
+    height: 80vh;
+  }
+
+  .buttonContainer {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .menuButton {
+    width: 120px;
+    height: 34px;
+    /* モバイル表示時の高ささらに低く */
+    padding: 5px 10px;
+  }
+
+  .buttonIcon {
+    font-size: 14px;
+    margin-right: 6px;
+  }
+
+  .buttonText {
+    font-size: 9px;
+  }
+}
+
+/* 右下のクレジットボタン用スタイル */
+.creditButton {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  background-color: rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  opacity: 0.7;
+}
+
+.creditButton:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.6);
 }
