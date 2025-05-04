@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "dev:nodemon": "nodemon --exec \"npx next dev\"",
-    "dev:bash": "npx nodemon"
+    "dev:bash": "npx nodemon",
+    "mcp": "npx @modelcontextprotocol/server-github",
+    "dev:with-mcp": "concurrently \"npm run dev\" \"npm run mcp\""
   },
   "dependencies": {
     "css-doodle": "^0.42.3",
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "@types/react": "19.1.2",
+    "concurrently": "^8.2.2",
     "nodemon": "^3.1.10",
     "typescript": "5.8.3"
   }
