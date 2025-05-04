@@ -496,6 +496,141 @@ class MCPContextManager {
     // 残っているメトリクスをすべて送信
     this.flushMetricsBuffer();
   }
+
+  /**
+   * ユーザーのタイピングパターン分析と推奨トレーニングを取得
+   * @returns {Promise<Object>} 分析結果と推奨トレーニング
+   */
+  async getTypingAnalysis() {
+    if (!this.mcpEnabled || typeof window === 'undefined') {
+      return { success: false, error: 'MCPサーバーに接続されていません' };
+    }
+    
+    try {
+      // MCPコネクションを取得
+      const mcpConnection = window._mcp || window.__MCP_CONNECTION__;
+      
+      if (!mcpConnection) {
+        return { success: false, error: 'MCPコネクションが見つかりません' };
+      }
+      
+      // MCPサーバーにタイピング分析をリクエスト
+      return new Promise((resolve) => {
+        const requestId = `analysis_${Date.now()}`;
+        
+        // レスポンスハンドラを一時的に設定
+        const originalOnMessage = mcpConnection.onMessage || mcpConnection.onmessage;
+        
+        const handleResponse = (event) => {
+          try {
+            const response = typeof event === 'object' ? 
+              (event.data ? event.data : event) : 
+              JSON.parse(event);
+            
+            if (response.requestId === requestId && response.type === 'typing_analysis') {
+              // レスポンスハンドラを元に戻す
+              if (typeof mcpConnection.onMessage === 'function') {
+                mcpConnection.onMessage = originalOnMessage;
+              } else if (typeof mcpConnection.onmessage === 'function') {
+                mcpConnection.onmessage = originalOnMessage;
+              }
+              
+              resolve({
+                success: true,
+                analysis: response.analysis,
+                recommendations: response.recommendations
+              });
+            }
+          } catch (err) {
+            console.error('[MCP] 分析レスポンス処理エラー:', err);
+          }
+        };
+        
+        // 一時的なメッセージハンドラを設定
+        if (typeof mcpConnection.onMessage === 'function') {
+          mcpConnection.onMessage = handleResponse;
+        } else if (typeof mcpConnection.onmessage === 'function') {
+          mcpConnection.onmessage = handleResponse;
+        }
+        
+        // 分析リクエストを送信
+        const analysisRequest = {
+          type: 'request_analysis',
+          requestId,
+          timestamp: Date.now(),
+          projectMetadata: PROJECT_METADATA
+        };
+        
+        if (typeof mcpConnection.sendMessage === 'function') {
+          mcpConnection.sendMessage('analysis:request', analysisRequest);
+        } else if (typeof mcpConnection.send === 'function') {
+          mcpConnection.send('analysis:request', analysisRequest);
+        } else {
+          resolve({ success: false, error: 'MCPコネクションに適切な送信メソッドがありません' });
+        }
+        
+        // タイムアウト処理
+        setTimeout(() => {
+          resolve({ 
+            success: false, 
+            error: '分析リクエストがタイムアウトしました',
+            fallbackRecommendations: this._generateFallbackRecommendations()
+          });
+          
+          // メッセージハンドラを元に戻す
+          if (typeof mcpConnection.onMessage === 'function') {
+            mcpConnection.onMessage = originalOnMessage;
+          } else if (typeof mcpConnection.onmessage === 'function') {
+            mcpConnection.onmessage = originalOnMessage;
+          }
+        }, 5000);
+      });
+    } catch (err) {
+      console.error('[MCP] タイピング分析リクエストエラー:', err);
+      return { 
+        success: false, 
+        error: err.message,
+        fallbackRecommendations: this._generateFallbackRecommendations() 
+      };
+    }
+  }
+  
+  /**
+   * フォールバック用の推奨トレーニングを生成
+   * MCPサーバーからの応答がない場合のバックアップ
+   * @private
+   */
+  _generateFallbackRecommendations() {
+    // メトリクスバッファから最近のタイピングイベントを抽出
+    const typingEvents = this.metricsBuffer.filter(
+      metric => metric.contextType === 'typing-event'
+    );
+    
+    // 簡易的な分析を実行
+    const mistakeCount = {};
+    let totalMistakes = 0;
+    
+    typingEvents.forEach(event => {
+      if (event.isCorrect === false && event.expectedKey) {
+        mistakeCount[event.expectedKey] = (mistakeCount[event.expectedKey] || 0) + 1;
+        totalMistakes++;
+      }
+    });
+    
+    // ミスの多いキーを特定
+    const problemKeys = Object.entries(mistakeCount)
+      .filter(([_, count]) => count >= 2)
+      .map(([key, count]) => ({ key, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+    
+    // 推奨トレーニングを生成
+    return {
+      problemKeys: problemKeys.map(item => item.key),
+      recommendedFocus: problemKeys.length > 0 ? '苦手なキーの練習' : 'スピードトレーニング',
+      recommendedMode: problemKeys.length > 0 ? 'practice' : 'speed',
+    };
+  }
 }
 
 // シングルトンインスタンスを作成
@@ -701,7 +836,8 @@ const MCPUtils = {
   setTypingMode: mcpManager.setTypingMode.bind(mcpManager),
   cleanup: mcpManager.cleanup.bind(mcpManager),
   useMCPContext,
-  MCPStatusDisplay
+  MCPStatusDisplay,
+  getTypingAnalysis: mcpManager.getTypingAnalysis.bind(mcpManager)
 };
 
 export default MCPUtils;
