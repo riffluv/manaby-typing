@@ -11,7 +11,7 @@
   position: relative;
   overflow: hidden;
   color: #e1e1e1;
-  /* font-familyを削除し、グローバルスタイルに依存 */
+  font-family: -apple-system, "Segoe UI", "Noto Sans JP", "Hiragino Sans", sans-serif; /* 基本フォントを追加 */
 }
 
 .gameContainer::before {
@@ -87,7 +87,7 @@
   max-width: 700px;
   background-color: rgba(0, 0, 0, 0.25);
   border-radius: 16px;
-  padding: 2rem 2.5rem; /* パディングを少し調整 */
+  padding: 1.8rem 2.2rem; /* パディングを調整 */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   text-align: center;
@@ -96,8 +96,54 @@
   transition: box-shadow 0.3s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
-  min-height: 180px; /* 最小高さを設定 */
-  /* max-heightを削除して高さを制限しない */
+  min-height: 180px; /* 最小高さを維持 */
+  height: auto; /* 高さを自動調整 */
+}
+
+/* お題表示エリア - 整理・統合されたスタイル */
+.problemContainer {
+  margin-bottom: 1rem; /* 間隔を狭めて調整 */
+  display: flex;
+  flex-direction: column;
+  position: relative; /* 位置指定のために追加 */
+}
+
+/* お題テキスト - フォントサイズと間隔を最適化 */
+.typingProblem {
+  width: 100%;
+  max-width: 95%; /* 幅を広げる */
+  margin: 0 auto 0.8rem; /* 下の間隔を縮小 */
+  padding: 0.5rem 1rem;
+  text-align: center;
+  display: block;
+  box-sizing: border-box;
+  font-size: 1.5rem; /* フォントサイズを明示的に指定 */
+  font-weight: 500; /* 少し太くする */
+  line-height: 1.6; /* 行間を調整 */
+  letter-spacing: 0.02em; /* 字間を少し広げる */
+}
+
+/* タイピング入力テキスト - フォントと可読性を大幅に改善 */
+.simpleTypingText {
+  width: 100%;
+  max-width: 95%;
+  min-height: 3.6rem;
+  margin: 0.5rem auto; /* 上下マージンを縮小 */
+  padding: 0.8rem;
+  background-color: rgba(0, 0, 0, 0.1); /* 背景を少し暗くして視認性を向上 */
+  border-radius: 8px;
+  text-align: center;
+  display: block;
+  position: relative;
+  border: none;
+  box-shadow: none;
+  box-sizing: border-box;
+  font-family: 'Cascadia Code', 'Source Code Pro', 'Fira Code', 'Consolas', monospace; /* タイピングに適した等幅フォントを指定 */
+  font-size: 1.25rem; /* フォントサイズを調整 */
+  line-height: 1.5; /* 行間を最適化 */
+  letter-spacing: 0.03em; /* 字間を広げて読みやすく */
+  white-space: pre-wrap; /* 改行を保持 */
+  overflow-wrap: break-word; /* 長い単語の折り返し */
 }
 
 .typingArea:focus-within {
@@ -106,51 +152,38 @@
     inset 0 0 0 1px rgba(255, 140, 0, 0.3);
 }
 
-/* お題表示エリア - 整理・統合されたスタイル */
-.problemContainer {
-  margin-bottom: 1.5rem;
+/* タイピングエリア全体のスタイルを改善 */
+.typingArea {
+  width: 90%;
+  max-width: 700px;
+  background-color: rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+  padding: 1.8rem 2.2rem; /* パディングを調整 */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  text-align: center;
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  position: relative;
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
+  min-height: 180px; /* 最小高さを維持 */
+  height: auto; /* 高さを自動調整 */
 }
 
-/* お題テキスト - レイアウト調整のみ（フォント関連はグローバルクラスへ） */
-.typingProblem {
-  width: 100%;
-  max-width: 90%;
-  margin: 0 auto 1.5rem;
-  padding: 0 10px;
-  text-align: center;
-  display: block;
-  box-sizing: border-box;
-}
-
-/* タイピング入力テキスト - レイアウト調整のみ（フォント関連はグローバルクラスへ） */
-.simpleTypingText {
-  width: 100%;
-  max-width: 90%;
-  min-height: 3.6rem;
-  margin: 0.8rem auto;
-  padding: 0.8rem;
-  background-color: transparent;
-  border-radius: 8px;
-  text-align: center;
-  display: block;
+/* 次の入力文字の強調表示 - より目立つようにする */
+.nextCharHighlight {
   position: relative;
-  border: none;
-  box-shadow: none;
-  box-sizing: border-box;
-}
-
-/* 古いtypingTextクラスのコンテナスタイル（互換性維持） */
-.typingText {
-  display: block;
-  width: 100%;
-  text-align: center;
-  white-space: pre-wrap;
-}
-
-.typingText::before {
-  display: none;
+  color: #ffa94d; /* より明るいオレンジに変更 */
+  text-shadow: 0 0 6px rgba(255, 154, 40, 0.6); /* シャドウを強調 */
+  font-weight: 700; /* より太く */
+  font-size: 1.35rem; /* 少し大きくする */
+  display: inline-block; /* インラインブロック要素に */
+  padding: 0 1px; /* 横パディングを追加 */
+  margin: 0 1px; /* 横マージンを追加 */
+  transform: translateY(-1px); /* 少し上に移動 */
+  background-color: rgba(255, 154, 40, 0.1); /* 薄い背景色 */
+  border-radius: 2px; /* 角を丸める */
 }
 
 /* アニメーション定義（スタイルではなくアニメーションの定義のみ） */
@@ -195,7 +228,9 @@
   margin-left: 0.2em;
   animation: cursorBlink 1s infinite;
   position: relative;
-  top: -0.1em;
+  top: 0; /* 位置調整 */
+  border-radius: 1px; /* 少し角を丸める */
+  box-shadow: 0 0 4px rgba(255, 140, 0, 0.5); /* 光る効果を追加 */
 }
 
 @keyframes cursorBlink {
@@ -208,12 +243,40 @@
   }
 }
 
-/* 次の入力文字の強調表示 - タイピングマニア風 */
-.nextCharHighlight {
-  position: relative;
-  color: #ff9a28; /* 濃い白からオレンジ色に変更 */
-  text-shadow: 0 0 4px rgba(255, 154, 40, 0.5); /* シャドウも合わせて調整 */
+/* 次の問題ヒント */
+.nextProblemHint {
+  position: absolute;
+  right: 20px;
+  bottom: 70px;
+  background-color: rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.nextProblemHint.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.nextProblemLabel {
+  color: #ff9a28;
   font-weight: 600;
+  font-size: 0.7rem;
+  margin-bottom: 3px;
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 /* ゲーム結果のスタイル強化 */
@@ -429,41 +492,5 @@
 .progressText {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 1px;
-}
-
-/* 次の問題ヒント */
-.nextProblemHint {
-  position: absolute;
-  right: 20px;
-  bottom: 70px;
-  background-color: rgba(0, 0, 0, 0.4);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-  max-width: 180px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(5px);
-  opacity: 0;
-  transform: translateY(10px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-.nextProblemHint.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.nextProblemLabel {
-  color: #ff9a28;
-  font-weight: 600;
-  font-size: 0.7rem;
-  margin-bottom: 3px;
-  display: block;
-  text-transform: uppercase;
   letter-spacing: 1px;
 }

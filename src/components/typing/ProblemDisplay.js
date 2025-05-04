@@ -4,9 +4,9 @@ import styles from '../../styles/GameScreen.module.css';
 import { Animation } from '../../utils/DesignTokens';
 
 /**
- * 問題表示コンポーネント
+ * 改良版問題表示コンポーネント
  * タイピングゲームのお題（問題文）を表示する
- * グローバルスタイルを使用したデザインシステム
+ * 改行に対応し、ローマ字との間隔を最適化
  *
  * @param {Object} props
  * @param {string} props.text - 表示する問題テキスト
@@ -20,9 +20,35 @@ const ProblemDisplay = ({ text = '', animate = true }) => {
     });
   }
 
+  // 改行があれば適切に処理するための関数
+  const renderTextWithLineBreaks = (content) => {
+    if (!content) return null;
+
+    // テキストを改行で分割
+    const lines = content.split('\n');
+
+    return (
+      <>
+        {lines.map((line, index) => (
+          <React.Fragment key={index}>
+            <span>{line}</span>
+            {index < lines.length - 1 && <br />}
+          </React.Fragment>
+        ))}
+      </>
+    );
+  };
+
   // アニメーションなしの場合
   if (!animate) {
-    return <p className={`typing-problem ${styles.typingProblem}`}>{text}</p>;
+    return (
+      <p
+        className={`typing-problem ${styles.typingProblem}`}
+        data-testid="problem-display"
+      >
+        {renderTextWithLineBreaks(text)}
+      </p>
+    );
   }
 
   // アニメーション効果付きの表示
@@ -31,14 +57,16 @@ const ProblemDisplay = ({ text = '', animate = true }) => {
       className={`typing-problem ${styles.typingProblem}`}
       initial={{ y: -10, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ 
-        delay: 0.2, 
-        duration: parseFloat(Animation.duration.slow), 
-        type: 'spring' 
+      transition={{
+        delay: 0.2,
+        duration: parseFloat(Animation.duration.slow),
+        type: 'spring',
+        stiffness: 120,
+        damping: 10,
       }}
       data-testid="problem-display"
     >
-      {text}
+      {renderTextWithLineBreaks(text)}
     </motion.p>
   );
 };
