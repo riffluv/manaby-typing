@@ -1,6 +1,5 @@
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import MCPClientWrapper from '../components/common/MCPClientWrapper';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -34,7 +33,6 @@ export default function RootLayout({ children }) {
         {/* ここではクライアントコンポーネントを直接インポートできないため、
             下層のページコンポーネントに背景を表示させる */}
         {children}
-        <MCPClientWrapper />
       </body>
     </html>
   );

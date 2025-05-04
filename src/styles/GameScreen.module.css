@@ -57,15 +57,17 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* 上部寄せに変更 */
+  justify-content: flex-start; /* 上部寄せに維持 */
   align-items: center;
   padding: 1.5rem;
   padding-bottom: 6.5rem; /* 下部の余白を増やしてゲームバーのスペースを確保 */
   z-index: 1;
-  position: relative; /* 相対位置指定を追加 */
-  overflow-y: auto; /* 長いお題でもスクロールできるように */
-  scrollbar-width: thin; /* スクロールバーを細く */
-  scrollbar-color: rgba(255, 140, 0, 0.3) rgba(0, 0, 0, 0.2); /* スクロールバーの色 */
+  position: relative;
+  overflow-y: auto; /* スクロール可能に維持 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 140, 0, 0.3) rgba(0, 0, 0, 0.2);
+  /* お題エリアを上半分に配置するための調整 */
+  min-height: 50vh; /* 画面の高さの半分以上を確保 */
 }
 
 .gameArea::-webkit-scrollbar {
@@ -87,7 +89,8 @@
   max-width: 700px;
   background-color: rgba(0, 0, 0, 0.25);
   border-radius: 16px;
-  padding: 2rem 2.5rem; /* パディングを少し調整 */
+  padding: 1.8rem 2rem; /* パディングを少し小さく調整 */
+  margin-top: 0.5rem; /* 上部マージンを追加 */
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   text-align: center;
@@ -96,8 +99,7 @@
   transition: box-shadow 0.3s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
-  min-height: 180px; /* 最小高さを設定 */
-  /* max-heightを削除して高さを制限しない */
+  min-height: 150px; /* 最小高さを少し小さく */
 }
 
 .typingArea:focus-within {
@@ -108,26 +110,35 @@
 
 /* お題表示エリア - 整理・統合されたスタイル */
 .problemContainer {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  padding: 0.5rem;
+  max-width: 100%; /* 幅を広げて中央揃えを確保 */
+  align-items: center; /* 子要素を中央揃えに */
+  justify-content: center;
 }
 
 /* お題テキスト - レイアウト調整のみ（フォント関連はグローバルクラスへ） */
 .typingProblem {
   width: 100%;
-  max-width: 90%;
-  margin: 0 auto 1.5rem;
-  padding: 0 10px;
+  max-width: 95%;
+  margin: 0 auto 1rem;
+  padding: 0.5rem 1rem;
   text-align: center;
   display: block;
   box-sizing: border-box;
+  /* 改行の問題に対処するためのスタイル */
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
 }
 
 /* タイピング入力テキスト - レイアウト調整のみ（フォント関連はグローバルクラスへ） */
 .simpleTypingText {
   width: 100%;
-  max-width: 90%;
+  max-width: 95%; /* 幅を広げて中央揃えを維持 */
   min-height: 3.6rem;
   margin: 0.8rem auto;
   padding: 0.8rem;

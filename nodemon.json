@@ -1,6 +1,6 @@
 {
-  "watch": ["src/**/*", "public/**/*", ".vscode/*.json"],
+  "watch": ["src/**/*", "public/**/*"],
   "ext": "js,jsx,ts,tsx,json,css",
   "ignore": ["node_modules", ".next"],
-  "exec": "concurrently \"next dev\" \"npx @modelcontextprotocol/server-github\""
+  "exec": "next dev"
 }
