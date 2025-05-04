@@ -26,6 +26,21 @@ class MCPContextManager {
     this.debugMode = process.env.NODE_ENV === 'development';
     this.mcpEnabled = typeof window !== 'undefined' && 
                       !!(window._mcp || window.__MCP_CONNECTION__);
+    
+    // パフォーマンス設定 - タイピング時の最適化
+    this.performanceSettings = {
+      // バッチサイズを増やして送信頻度を下げる（20→50）
+      maxBatchSize: 50,
+      // タイピング中は低頻度で送信
+      typingModeSendInterval: 2000, // ms
+      // 通常モードでの送信間隔
+      normalModeSendInterval: 1000, // ms
+      // 現在のモード
+      isInTypingMode: false
+    };
+    
+    // 定期送信用タイマー
+    this.flushTimer = null;
   }
 
   /**
@@ -50,6 +65,9 @@ class MCPContextManager {
           this.startPerformanceMonitoring();
         }
         
+        // 定期的なバッファフラッシュを開始
+        this.startPeriodicFlush();
+        
         this.isInitialized = true;
         console.log('[MCP] コンテキストマネージャー初期化完了');
       } else {
@@ -59,6 +77,42 @@ class MCPContextManager {
     } catch (err) {
       console.error('[MCP] 初期化エラー:', err);
       this.mcpEnabled = false;
+    }
+  }
+  
+  /**
+   * 定期的なメトリクスバッファのフラッシュを開始
+   */
+  startPeriodicFlush() {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+    }
+    
+    // モードに応じた間隔で設定
+    const interval = this.performanceSettings.isInTypingMode ? 
+      this.performanceSettings.typingModeSendInterval : 
+      this.performanceSettings.normalModeSendInterval;
+      
+    this.flushTimer = setInterval(() => {
+      this.flushMetricsBuffer();
+    }, interval);
+  }
+  
+  /**
+   * タイピングモードを設定（パフォーマンス最適化用）
+   * @param {boolean} isTypingMode - タイピング中かどうか
+   */
+  setTypingMode(isTypingMode) {
+    // 状態が変わった場合のみ処理
+    if (this.performanceSettings.isInTypingMode !== isTypingMode) {
+      this.performanceSettings.isInTypingMode = isTypingMode;
+      
+      // タイマーを再設定
+      this.startPeriodicFlush();
+      
+      if (this.debugMode) {
+        console.log(`[MCP] タイピングモード: ${isTypingMode ? '有効' : '無効'}`);
+      }
     }
   }
 
@@ -127,6 +181,9 @@ class MCPContextManager {
    */
   recordTypingInput(typingData) {
     if (!this.mcpEnabled) return;
+    
+    // タイピングモードを有効化
+    this.setTypingMode(true);
 
     try {
       const typingMetric = {
@@ -138,8 +195,8 @@ class MCPContextManager {
       // バッファリングして一度に送信する（パフォーマンス向上のため）
       this.metricsBuffer.push(typingMetric);
 
-      // バッファが一定量たまったらまとめて送信
-      if (this.metricsBuffer.length >= 20) {
+      // バッファが設定した最大サイズに達したらまとめて送信
+      if (this.metricsBuffer.length >= this.performanceSettings.maxBatchSize) {
         this.flushMetricsBuffer();
       }
     } catch (err) {
@@ -154,6 +211,15 @@ class MCPContextManager {
    */
   recordGameEvent(eventType, gameState) {
     if (!this.mcpEnabled) return;
+    
+    // イベントタイプに基づいてタイピングモードを設定
+    if (eventType === 'game_start' || eventType === 'typing_start') {
+      this.setTypingMode(true);
+    }
+    else if (eventType === 'game_end' || eventType === 'typing_end' || 
+             eventType === 'menu_screen' || eventType === 'result_screen') {
+      this.setTypingMode(false);
+    }
 
     try {
       const gameEvent = {
@@ -190,6 +256,14 @@ class MCPContextManager {
    */
   recordPerformanceMetric(metricName, value) {
     if (!this.mcpEnabled) return;
+    
+    // タイピングモード中は重要なメトリクスのみを記録
+    if (this.performanceSettings.isInTypingMode && 
+        metricName !== 'fps' && 
+        metricName !== 'longTask' &&
+        !metricName.startsWith('typing_')) {
+      return; // タイピング中は重要でないメトリクスをスキップ
+    }
 
     try {
       const metric = {
@@ -198,9 +272,14 @@ class MCPContextManager {
         timestamp: Date.now(),
         contextType: 'performance-metric'
       };
-
-      // パフォーマンスメトリクスはバッファリングせず直接送信
-      this.sendToMCP('performance:metric', metric);
+      
+      // タイピング中は直接送信ではなくバッファリング
+      if (this.performanceSettings.isInTypingMode) {
+        this.metricsBuffer.push(metric);
+      } else {
+        // 通常モードでは即時送信
+        this.sendToMCP('performance:metric', metric);
+      }
     } catch (err) {
       console.error(`[MCP] パフォーマンスメトリクス記録エラー: ${metricName}`, err);
     }
@@ -213,6 +292,9 @@ class MCPContextManager {
    */
   recordUXElement(elementType, data) {
     if (!this.mcpEnabled) return;
+    
+    // タイピングモード中はUX要素の記録をスキップ
+    if (this.performanceSettings.isInTypingMode) return;
 
     try {
       const uxData = {
@@ -316,13 +398,26 @@ class MCPContextManager {
       
       // メモリ使用量（対応ブラウザのみ）
       if (performance.memory) {
-        setInterval(() => {
-          this.recordPerformanceMetric('memory', {
-            usedJSHeapSize: performance.memory.usedJSHeapSize,
-            totalJSHeapSize: performance.memory.totalJSHeapSize,
-            jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
-          });
-        }, 10000);
+        // タイピング中は10秒ごと、通常時は5秒ごとに計測
+        let lastMemoryCheck = 0;
+        const checkMemory = () => {
+          const now = Date.now();
+          // タイピング中は頻度を下げる
+          const interval = this.performanceSettings.isInTypingMode ? 10000 : 5000;
+          
+          if (now - lastMemoryCheck >= interval) {
+            this.recordPerformanceMetric('memory', {
+              usedJSHeapSize: performance.memory.usedJSHeapSize,
+              totalJSHeapSize: performance.memory.totalJSHeapSize,
+              jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
+            });
+            lastMemoryCheck = now;
+          }
+          
+          setTimeout(checkMemory, 1000);
+        };
+        
+        checkMemory();
       }
       
       // ロング・タスクの検出
@@ -331,11 +426,16 @@ class MCPContextManager {
           PerformanceObserver.supportedEntryTypes.includes('longtask')) {
         const longTaskObserver = new PerformanceObserver((list) => {
           list.getEntries().forEach((entry) => {
-            this.recordPerformanceMetric('longTask', {
-              duration: entry.duration,
-              startTime: entry.startTime,
-              name: entry.name
-            });
+            // タイピング中は長い処理（50ms以上）のみを記録
+            const threshold = this.performanceSettings.isInTypingMode ? 50 : 30;
+            
+            if (entry.duration >= threshold) {
+              this.recordPerformanceMetric('longTask', {
+                duration: entry.duration,
+                startTime: entry.startTime,
+                name: entry.name
+              });
+            }
           });
         });
         
@@ -382,6 +482,20 @@ class MCPContextManager {
       console.error(`[MCP] MCP送信エラー (${channel}):`, err);
     }
   }
+  
+  /**
+   * クリーンアップ処理
+   */
+  cleanup() {
+    // タイマーをクリア
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+      this.flushTimer = null;
+    }
+    
+    // 残っているメトリクスをすべて送信
+    this.flushMetricsBuffer();
+  }
 }
 
 // シングルトンインスタンスを作成
@@ -426,7 +540,8 @@ export const useMCPContext = () => {
     recordTypingInput: mcpManager.recordTypingInput.bind(mcpManager),
     recordGameEvent: mcpManager.recordGameEvent.bind(mcpManager),
     recordPerformanceMetric: mcpManager.recordPerformanceMetric.bind(mcpManager),
-    recordUXElement: mcpManager.recordUXElement.bind(mcpManager)
+    recordUXElement: mcpManager.recordUXElement.bind(mcpManager),
+    setTypingMode: mcpManager.setTypingMode.bind(mcpManager)
   };
 };
 
@@ -439,7 +554,8 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
   const [status, setStatus] = useState({
     connected: mcpManager.mcpEnabled,
     metricsCount: 0,
-    lastUpdate: Date.now()
+    lastUpdate: Date.now(),
+    isTypingMode: mcpManager.performanceSettings?.isInTypingMode
   });
   
   // ステータス更新
@@ -450,7 +566,8 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
       setStatus({
         connected: mcpManager.mcpEnabled,
         metricsCount: mcpManager.metricsBuffer.length,
-        lastUpdate: Date.now()
+        lastUpdate: Date.now(),
+        isTypingMode: mcpManager.performanceSettings?.isInTypingMode
       });
     }, 2000);
     
@@ -552,6 +669,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
       <div style={{ marginBottom: '5px' }}>
         <div>接続状態: {status.connected ? '接続済み' : '未接続'}</div>
         <div>メトリクスバッファ: {status.metricsCount} 件</div>
+        <div>モード: {status.isTypingMode ? 'タイピング中' : '通常'}</div>
         <div>最終更新: {new Date(status.lastUpdate).toLocaleTimeString()}</div>
       </div>
       
@@ -580,6 +698,8 @@ const MCPUtils = {
   recordPerformanceMetric: mcpManager.recordPerformanceMetric.bind(mcpManager),
   recordUXElement: mcpManager.recordUXElement.bind(mcpManager),
   flushMetricsBuffer: mcpManager.flushMetricsBuffer.bind(mcpManager),
+  setTypingMode: mcpManager.setTypingMode.bind(mcpManager),
+  cleanup: mcpManager.cleanup.bind(mcpManager),
   useMCPContext,
   MCPStatusDisplay
 };
