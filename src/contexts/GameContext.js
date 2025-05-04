@@ -107,7 +107,7 @@ export const GameProvider = ({ children }) => {
           }
         }, 1000); // 1秒後に再生開始
       }
-      
+
       console.log('[GameContext] 初期化完了');
     } catch (error) {
       console.error('[GameContext] 初期化エラー:', error);
@@ -123,7 +123,7 @@ export const GameProvider = ({ children }) => {
       // 難易度変更時に問題リストを更新
       const updatedProblems = getRandomizedProblems(settings.difficulty);
       setProblems(updatedProblems);
-      
+
       console.log(`[GameContext] 難易度「${settings.difficulty}」に更新`);
     } catch (error) {
       console.error('[GameContext] 難易度更新エラー:', error);
@@ -139,11 +139,11 @@ export const GameProvider = ({ children }) => {
       // 効果音の設定を反映
       soundSystem.setSfxEnabled(isSoundEnabled && settings.sfxEnabled);
       soundSystem.setSfxVolume(settings.sfxVolume);
-      
+
       // BGM設定を反映
       soundSystem.setBgmEnabled(isSoundEnabled && settings.bgmEnabled);
       soundSystem.setBgmVolume(settings.bgmVolume);
-      
+
       console.log(`[GameContext] サウンド設定更新: SFX=${isSoundEnabled && settings.sfxEnabled}, BGM=${isSoundEnabled && settings.bgmEnabled}`);
     } catch (error) {
       console.error('[GameContext] サウンド設定更新エラー:', error);
@@ -158,7 +158,7 @@ export const GameProvider = ({ children }) => {
         // すべての画面で「Battle of the Emperor」を再生
         soundSystem.playBgm('lobby', true);
       }
-      
+
       // 管理者モードの場合、画面に応じた背景を適用
       if (StorageUtils.isAdminMode()) {
         StorageUtils.applyScreenBackground(currentScreen);
@@ -198,7 +198,7 @@ export const GameProvider = ({ children }) => {
         requiredProblemCount,
         playerName: StorageUtils.getUsername() || INITIAL_GAME_STATE.playerName,
       };
-      
+
       setGameState(resetState);
       console.log('[GameContext] ゲームリセット完了');
     } catch (error) {

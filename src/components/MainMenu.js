@@ -126,8 +126,13 @@ const MainMenu = () => {
 
     // サウンドシステムの設定も更新
     soundSystem.setBgmVolume(newVolume);
-
-    // 音量変更時にサンプル効果音を鳴らす
+    
+    // スライダードラッグ中は効果音を鳴らさない（mouseupイベントで鳴らす）
+  };
+  
+  // BGM音量スライダーのドラッグ終了時に効果音を再生
+  const handleBgmVolumeChangeComplete = () => {
+    // 音量変更完了時にサンプル効果音を鳴らす
     if (settings.sfxEnabled && settings.soundEnabled && settings.bgmEnabled) {
       soundSystem.playSound('Button');
     }
@@ -163,8 +168,13 @@ const MainMenu = () => {
     // サウンドシステムの設定も更新
     soundSystem.setSfxVolume(newVolume);
 
-    // 音量変更時にサンプル効果音を鳴らす
-    if (settings.sfxEnabled && settings.soundEnabled && newVolume > 0) {
+    // スライダードラッグ中は効果音を鳴らない（mouseupイベントで鳴らす）
+  };
+  
+  // 効果音スライダーのドラッグ終了時に効果音を再生
+  const handleSfxVolumeChangeComplete = () => {
+    // 音量変更完了時にサンプル効果音を鳴らす
+    if (settings.sfxEnabled && settings.soundEnabled) {
       soundSystem.playSound('Button');
     }
   };
@@ -302,6 +312,8 @@ const MainMenu = () => {
               step="0.01"
               value={settings.bgmVolume || 1}
               onChange={handleBgmVolumeChange}
+              onMouseUp={handleBgmVolumeChangeComplete} // マウスアップ時に効果音再生
+              onTouchEnd={handleBgmVolumeChangeComplete} // モバイル対応
               className={styles.volumeSlider}
               disabled={!settings.soundEnabled || !settings.bgmEnabled}
             />
@@ -331,6 +343,8 @@ const MainMenu = () => {
                 step="0.01"
                 value={settings.sfxVolume || 1}
                 onChange={handleSfxVolumeChange}
+                onMouseUp={handleSfxVolumeChangeComplete} // マウスアップ時に効果音再生
+                onTouchEnd={handleSfxVolumeChangeComplete} // モバイル対応
                 className={styles.volumeSlider}
                 disabled={!settings.soundEnabled || !settings.sfxEnabled}
               />
