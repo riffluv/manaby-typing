@@ -20,12 +20,10 @@ import TypingDisplay from './typing/TypingDisplay';
 import ProgressBar from './typing/ProgressBar';
 import ProblemDisplay from './typing/ProblemDisplay';
 import Button from './common/Button'; // 共通ボタンコンポーネントをインポート
-import TypingCoach from './typing/TypingCoach'; // タイピングコーチをインポート
-import MCPUtils from '../utils/MCPUtils'; // MCPユーティリティをインポート
 
 // デバッグ用コンソールログの追加
 console.log(
-  'DEBUG: UPDATED GameScreen.js has loaded! - ESC機能付き + 戻るボタンなし + useTypingGame対応 + コンポーネント分離 + パフォーマンス最適化 + 高さ固定と改行対応 + AI Coaching'
+  'DEBUG: UPDATED GameScreen.js has loaded! - ESC機能付き + 戻るボタンなし + useTypingGame対応 + コンポーネント分離 + パフォーマンス最適化 + 高さ固定と改行対応'
 );
 
 // リファクタリング後のコンポーネント実装
@@ -39,19 +37,9 @@ const GameScreen = () => {
 
   // 一時ローカル状態（互換性のために残す）
   const [soundsLoaded, setSoundsLoaded] = useState(false);
-  const [showCoach, setShowCoach] = useState(false); // コーチ表示をオフに変更
 
   // typingの参照を保持するためのref
   const typingRef = useRef(null);
-
-  // コーチとの対話を記録
-  const handleCoachInteraction = useCallback((actionType) => {
-    // MCPサーバーにコーチとの対話を記録
-    MCPUtils.recordUXElement('coach_interaction', {
-      actionType,
-      timestamp: Date.now()
-    });
-  }, []);
 
   // 問題完了時のコールバック
   const handleProblemComplete = useCallback(
@@ -115,14 +103,6 @@ const GameScreen = () => {
 
         console.log('【ゲームクリア】 統計情報計算結果:', stats);
 
-        // MCPサーバーにタイピング結果を送信
-        MCPUtils.recordGameEvent('game_end', {
-          currentScreen: SCREENS.GAME,
-          solvedCount: solvedCount,
-          isGameClear: true,
-          stats: stats
-        });
-
         // 1回のみの状態更新で、すべてのデータを一度に設定
         setGameState((prevState) => ({
           ...prevState,
@@ -173,13 +153,6 @@ const GameScreen = () => {
           インデックス: nextProblemIndex,
         });
 
-        // 問題の変更をMCPに記録
-        MCPUtils.recordGameEvent('problem_change', {
-          prevProblemIndex: problems.indexOf(gameState.currentProblem),
-          nextProblemIndex: nextProblemIndex,
-          solvedCount: solvedCount
-        });
-
         setGameState({
           ...gameState,
           currentProblem: nextProblem,
@@ -209,15 +182,6 @@ const GameScreen = () => {
   useEffect(() => {
     typingRef.current = typing;
   }, [typing]);
-
-  // コーチの表示制御 - コメントアウトして表示しないようにする
-  /*
-  useEffect(() => {
-    if (gameState.solvedCount >= 1) {
-      setShowCoach(true);
-    }
-  }, [gameState.solvedCount]);
-  */
 
   // サウンドの初期化 - 改良版
   useEffect(() => {
@@ -269,22 +233,10 @@ const GameScreen = () => {
 
     initSound();
 
-    // MCPサーバーにゲーム開始を通知
-    MCPUtils.recordGameEvent('game_start', {
-      currentScreen: SCREENS.GAME,
-      solvedCount: gameState.solvedCount || 0,
-      difficulty: gameState.difficulty || 'normal'
-    });
-    
-    // タイピングモードを有効化
-    MCPUtils.setTypingMode(true);
-
     // クリーンアップ関数
     return () => {
       isMounted = false; // コンポーネントがアンマウントされたことを記録
       console.log('[GameScreen] コンポーネントがアンマウントされます。');
-      // タイピングモードを無効化
-      MCPUtils.setTypingMode(false);
       // BGM停止処理を削除（レスポンス問題を解消）
       // soundSystem.stopBgm();
     };
@@ -302,13 +254,6 @@ const GameScreen = () => {
       if (e.key === 'Escape') {
         // 音声再生もgoToScreen関数に委譲する
         setTimeout(() => {
-          // MCPサーバーに記録
-          MCPUtils.recordGameEvent('game_exit', {
-            currentScreen: SCREENS.GAME,
-            exitType: 'esc_key',
-            solvedCount: gameState.solvedCount || 0
-          });
-          
           goToScreen(SCREENS.MAIN_MENU, {
             playSound: true,
             soundType: 'button',
@@ -344,31 +289,14 @@ const GameScreen = () => {
           hasStartedTyping: true,
           currentProblemStartTime: now, // 最初の問題の開始時間も設定
         }));
-        
-        // MCPサーバーにタイピング開始を通知
-        MCPUtils.recordGameEvent('typing_start', {
-          currentScreen: SCREENS.GAME,
-          problemIndex: gameState.currentProblemIndex || 0,
-          problemText: gameState.currentProblem?.displayText
-        });
       }
 
       // カスタムフックを使用して入力処理
       typing.handleInput(e.key);
-      
-      // タイピング入力をMCPに記録
-      MCPUtils.recordTypingInput({
-        key: e.key,
-        isCorrect: !typing.errorAnimation, // エラーアニメーションがない場合は正解
-        expectedKey: typing.typingSession?.patterns?.[typing.typingSession?.currentCharIndex]?.[0]?.charAt(0),
-        time: Date.now()
-      });
     },
     [
       gameState.isGameClear,
       gameState.hasStartedTyping,
-      gameState.currentProblem,
-      gameState.currentProblemIndex,
       typing,
       goToScreen,
       setGameState,
@@ -572,40 +500,16 @@ const GameScreen = () => {
         label="進行状況"
       />
 
-      {/* コーチを表示（2問目以降） - コメントアウトして表示しないようにする */}
-      {/*
-      {showCoach && (
-        <TypingCoach 
-          typingStats={{
-            kpm: typing.stats?.kpm || 0,
-            accuracy: typing.stats?.accuracy || 0, 
-            solvedCount: gameState.solvedCount
-          }}
-          currentProblem={gameState.currentProblem?.displayText}
-          onCoachInteraction={handleCoachInteraction}
-        />
-      )}
-      */}
-
       {/* 戻るボタンを追加 */}
       <div className={styles.controlsContainer}>
         <Button
           variant="default"
           size="small"
           className="button--control"
-          onClick={() => {
-            // MCPサーバーに記録
-            MCPUtils.recordGameEvent('game_exit', {
-              currentScreen: SCREENS.GAME,
-              exitType: 'button_click',
-              solvedCount: gameState.solvedCount || 0
-            });
-            
-            goToScreen(SCREENS.MAIN_MENU, {
-              playSound: true,
-              soundType: 'button',
-            });
-          }}
+          onClick={() => goToScreen(SCREENS.MAIN_MENU, {
+            playSound: true,
+            soundType: 'button',
+          })}
         >
           メニューに戻る
         </Button>

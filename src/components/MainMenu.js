@@ -5,7 +5,7 @@ import styles from '../styles/MainMenu.module.css';
 import Image from 'next/image';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
 import soundSystem from '../utils/SoundUtils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import Modal from './common/Modal'; // 共通モーダルコンポーネント
 import Button, { ToggleButton } from './common/Button'; // 共通ボタンコンポーネント
@@ -38,9 +38,12 @@ const MainMenu = () => {
   const { settings, setSettings } = useGameContext();
   const { goToScreen, isTransitioning } = usePageTransition();
   const mainContainerRef = useRef(null);
+  const difficultyRef = useRef(null);  // 難易度ドロップダウン参照用
 
   // モーダル表示状態を管理するstate
   const [showCredits, setShowCredits] = useState(false);
+  // 難易度ドロップダウン表示状態を管理
+  const [showDifficultyDropdown, setShowDifficultyDropdown] = useState(false);
 
   // グローバル設定モーダル状態を使用
   const {
@@ -49,6 +52,13 @@ const MainMenu = () => {
     openSettingsModal,
     closeSettingsModal,
   } = useSettingsModal();
+
+  // 難易度のラベルマッピング
+  const difficultyLabels = {
+    'easy': 'やさしい',
+    'normal': 'ふつう',
+    'hard': 'むずかしい'
+  };
 
   // コンポーネントがマウントされたときにサウンドシステムを初期化
   useEffect(() => {
@@ -59,13 +69,48 @@ const MainMenu = () => {
 
     // サウンド設定を適用
     soundSystem.setEnabled(settings.soundEnabled);
+
+    // ユーザーインタラクション後にBGM再生を試みる
+    const handleUserInteraction = () => {
+      soundSystem.resumeBgmAfterInteraction();
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('keydown', handleUserInteraction);
+    };
+
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('keydown', handleUserInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('keydown', handleUserInteraction);
+    };
   }, [settings.soundEnabled]);
+
+  // ドロップダウンを閉じるためのクリックイベントリスナー
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (difficultyRef.current && !difficultyRef.current.contains(event.target)) {
+        setShowDifficultyDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   // ボタン音を再生する関数
   const playButtonSound = () => {
     if (settings.soundEnabled && settings.sfxEnabled) {
       soundSystem.playSound('Button');
     }
+  };
+
+  // 難易度ドロップダウンの表示/非表示を切り替える関数
+  const toggleDifficultyDropdown = () => {
+    playButtonSound();
+    setShowDifficultyDropdown(!showDifficultyDropdown);
   };
 
   // 難易度を変更する関数
@@ -75,6 +120,8 @@ const MainMenu = () => {
       ...settings,
       difficulty,
     });
+    // 選択後にドロップダウンを閉じる
+    setShowDifficultyDropdown(false);
   };
 
   // サウンド全体の有効/無効を切り替える関数
@@ -97,6 +144,31 @@ const MainMenu = () => {
     }
   };
 
+  // BGMの有効/無効を切り替える関数
+  const toggleBgm = () => {
+    const willBeEnabled = !settings.bgmEnabled;
+    
+    setSettings({
+      ...settings,
+      bgmEnabled: willBeEnabled,
+    });
+
+    // サウンドシステムの設定も更新
+    soundSystem.setBgmEnabled(willBeEnabled);
+
+    // BGMがオンになる場合はすぐに再生
+    if (willBeEnabled && !soundSystem.currentBgm) {
+      soundSystem.playBgm('mainTheme', true);
+    }
+
+    // ボタン効果音を鳴らす
+    if (settings.sfxEnabled) {
+      setTimeout(() => {
+        soundSystem.playSound('Button');
+      }, 100);
+    }
+  };
+
   // 効果音の有効/無効を切り替える関数
   const toggleSfx = () => {
     const willBeEnabled = !settings.sfxEnabled;
@@ -107,9 +179,9 @@ const MainMenu = () => {
     });
 
     // サウンドシステムの設定も更新
-    soundSystem.setSfxEnabled(willBeEnabled && settings.soundEnabled);
+    soundSystem.setSfxEnabled(willBeEnabled);
 
-    if (willBeEnabled && settings.soundEnabled) {
+    if (willBeEnabled) {
       setTimeout(() => {
         soundSystem.playSound('Button');
       }, 100);
@@ -128,9 +200,21 @@ const MainMenu = () => {
     soundSystem.setSfxVolume(newVolume);
 
     // 音量変更時にサンプル効果音を鳴らす
-    if (settings.sfxEnabled && settings.soundEnabled && newVolume > 0) {
+    if (settings.sfxEnabled && newVolume > 0) {
       soundSystem.playSound('Button');
     }
+  };
+
+  // BGM音量を変更する関数
+  const handleBgmVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setSettings({
+      ...settings,
+      bgmVolume: newVolume,
+    });
+
+    // サウンドシステムの設定も更新
+    soundSystem.setBgmVolume(newVolume);
   };
 
   // ゲーム画面に遷移する関数 - トランジション対応
@@ -179,46 +263,59 @@ const MainMenu = () => {
     show: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300 } },
   };
 
+  // ドロップダウンのアニメーション設定
+  const dropdownVariants = {
+    hidden: { opacity: 0, y: -10, height: 0 },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      height: 'auto',
+      transition: { 
+        type: 'spring', 
+        stiffness: 500, 
+        damping: 25 
+      } 
+    },
+    exit: { 
+      opacity: 0, 
+      y: -10, 
+      height: 0,
+      transition: { 
+        duration: 0.2 
+      } 
+    }
+  };
+
   // 設定コンテンツをレンダリングする関数
   const renderSettingsContent = () => {
     return (
       <>
-        {/* 難易度設定 */}
+        {/* BGM設定 */}
         <div className={styles.settingSection}>
-          <h3 className={styles.sectionTitle}>難易度</h3>
-          <div className={styles.difficultyOptions}>
-            <Button
-              variant={settings.difficulty === 'easy' ? 'primary' : 'default'}
-              active={settings.difficulty === 'easy'}
-              onClick={() => handleDifficultyChange('easy')}
-              className="button--difficulty"
-            >
-              やさしい
-            </Button>
-            <Button
-              variant={settings.difficulty === 'normal' ? 'primary' : 'default'}
-              active={settings.difficulty === 'normal'}
-              onClick={() => handleDifficultyChange('normal')}
-              className="button--difficulty"
-            >
-              普通
-            </Button>
-            <Button
-              variant={settings.difficulty === 'hard' ? 'primary' : 'default'}
-              active={settings.difficulty === 'hard'}
-              onClick={() => handleDifficultyChange('hard')}
-              className="button--difficulty"
-            >
-              むずかしい
-            </Button>
-          </div>
-        </div>
-
-        {/* サウンド(全体)設定 */}
-        <div className={styles.settingSection}>
-          <h3 className={styles.sectionTitle}>サウンド（全体）</h3>
-          <div className={styles.soundToggle}>
-            <ToggleButton isOn={settings.soundEnabled} onToggle={toggleSound} />
+          <h3 className={styles.sectionTitle}>BGM</h3>
+          <div className={styles.soundSettings}>
+            <div className={styles.soundToggle}>
+              <ToggleButton 
+                isOn={settings.bgmEnabled} 
+                onToggle={toggleBgm} 
+              />
+            </div>
+            <div className={styles.volumeControl}>
+              <span className={styles.volumeLabel}>音量:</span>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={settings.bgmVolume || 0.5}
+                onChange={handleBgmVolumeChange}
+                className={styles.volumeSlider}
+                disabled={!settings.bgmEnabled}
+              />
+              <span className={styles.volumeValue}>
+                {Math.round((settings.bgmVolume || 0.5) * 100)}%
+              </span>
+            </div>
           </div>
         </div>
 
@@ -230,7 +327,6 @@ const MainMenu = () => {
               <ToggleButton
                 isOn={settings.sfxEnabled}
                 onToggle={toggleSfx}
-                disabled={!settings.soundEnabled}
               />
             </div>
             <div className={styles.volumeControl}>
@@ -243,7 +339,7 @@ const MainMenu = () => {
                 value={settings.sfxVolume || 1}
                 onChange={handleSfxVolumeChange}
                 className={styles.volumeSlider}
-                disabled={!settings.soundEnabled || !settings.sfxEnabled}
+                disabled={!settings.sfxEnabled}
               />
               <span className={styles.volumeValue}>
                 {Math.round((settings.sfxVolume || 1) * 100)}%
@@ -305,6 +401,11 @@ const MainMenu = () => {
         playButtonSound();
         goToScreen(SCREENS.RANKING);
       }
+      // Dキーで難易度ドロップダウンを開く/閉じる
+      else if ((e.key === 'd' || e.key === 'D') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        toggleDifficultyDropdown();
+      }
     };
 
     // キーボードイベントリスナーを登録
@@ -314,26 +415,10 @@ const MainMenu = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isTransitioning, showSettingsModal, showCredits, goToScreen]);
+  }, [isTransitioning, showSettingsModal, showCredits, goToScreen, showDifficultyDropdown]);
 
   return (
     <div className={styles.mainContainer} ref={mainContainerRef}>
-      {/* 右上に設定ボタンを配置 */}
-      <motion.div
-        className={styles.cornerButtonTop}
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-      >
-        <button
-          className={styles.iconButton}
-          onClick={handleOpenSettings}
-          aria-label="設定"
-        >
-          ⚙️
-        </button>
-      </motion.div>
-
       {/* マスコットキャラクター - アニメーション付き */}
       <motion.div
         className={styles.mascotContainer}
@@ -346,6 +431,42 @@ const MainMenu = () => {
           alt="Manaby Mario Mascot"
           className={styles.mascotImage}
         />
+      </motion.div>
+
+      {/* 設定ボタン (右上) */}
+      <motion.div 
+        className={styles.cornerButtonTop}
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.7, duration: 0.5 }}
+      >
+        <Button
+          variant="default"
+          size="small"
+          onClick={handleOpenSettings}
+          className={styles.cornerButton}
+          icon="⚙️"
+        >
+          <span className={styles.buttonText}>設定</span>
+        </Button>
+      </motion.div>
+
+      {/* クレジットボタン (右下) */}
+      <motion.div 
+        className={styles.cornerButtonBottom}
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.7, duration: 0.5 }}
+      >
+        <Button
+          variant="default"
+          size="small"
+          onClick={handleOpenCredits}
+          className={styles.cornerButton}
+          icon="ⓘ"
+        >
+          <span className={styles.buttonText}>クレジット</span>
+        </Button>
       </motion.div>
 
       <div className={styles.menuContainer}>
@@ -378,6 +499,62 @@ const MainMenu = () => {
           </button>
         </motion.div>
 
+        {/* 難易度ボタンとドロップダウン - 新しく追加 */}
+        <motion.div 
+          className={styles.difficultyContainer}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
+          ref={difficultyRef}
+        >
+          <motion.button 
+            className={styles.difficultyButton}
+            onClick={toggleDifficultyDropdown}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <span className={styles.difficultyIcon}>🎮</span>
+            難易度: {difficultyLabels[settings.difficulty]}
+            <span className={styles.dropdownArrow}>
+              {showDifficultyDropdown ? '▲' : '▼'}
+            </span>
+          </motion.button>
+          
+          <AnimatePresence>
+            {showDifficultyDropdown && (
+              <motion.div 
+                className={styles.difficultyDropdown}
+                variants={dropdownVariants}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <motion.button 
+                  className={`${styles.difficultyOption} ${settings.difficulty === 'easy' ? styles.selected : ''}`}
+                  onClick={() => handleDifficultyChange('easy')}
+                  whileHover={{ backgroundColor: 'rgba(0, 255, 0, 0.15)' }}
+                >
+                  やさしい
+                </motion.button>
+                <motion.button 
+                  className={`${styles.difficultyOption} ${settings.difficulty === 'normal' ? styles.selected : ''}`}
+                  onClick={() => handleDifficultyChange('normal')}
+                  whileHover={{ backgroundColor: 'rgba(255, 255, 0, 0.15)' }}
+                >
+                  ふつう
+                </motion.button>
+                <motion.button 
+                  className={`${styles.difficultyOption} ${settings.difficulty === 'hard' ? styles.selected : ''}`}
+                  onClick={() => handleDifficultyChange('hard')}
+                  whileHover={{ backgroundColor: 'rgba(255, 0, 0, 0.15)' }}
+                >
+                  むずかしい
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
         <motion.div
           className={styles.instructions}
           initial={{ opacity: 0 }}
@@ -398,6 +575,9 @@ const MainMenu = () => {
                 <kbd>Space</kbd> <span>ゲーム開始</span>
               </div>
               <div className={styles.shortcutItem}>
+                <kbd>D</kbd> <span>難易度変更</span>
+              </div>
+              <div className={styles.shortcutItem}>
                 <kbd>S</kbd> <span>設定</span>
               </div>
               <div className={styles.shortcutItem}>
@@ -413,22 +593,6 @@ const MainMenu = () => {
           </motion.div>
         </motion.div>
       </div>
-
-      {/* 右下にクレジットボタンを配置 */}
-      <motion.div
-        className={styles.cornerButtonBottom}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-      >
-        <button
-          className={styles.creditLink}
-          onClick={handleOpenCredits}
-          aria-label="クレジット"
-        >
-          クレジット
-        </button>
-      </motion.div>
 
       {/* 設定モーダルと他のモーダル - 既存コード */}
       <Modal isOpen={showSettingsModal} onClose={handleCloseModal} title="設定">

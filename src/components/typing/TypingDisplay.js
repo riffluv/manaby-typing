@@ -2,9 +2,9 @@ import React, { useMemo, memo } from 'react';
 import styles from '../../styles/GameScreen.module.css';
 
 /**
- * 改良版タイピング表示コンポーネント
- * 可読性と改行対応を強化
- * 等幅フォントと適切なスペーシングで視認性を向上
+ * シンプル化したタイピング表示コンポーネント
+ * すべてのタイピングテキストを中央揃えで表示
+ * グローバルCSSのクラスを使用して統一された表示を実現
  */
 const TypingDisplay = memo(
   ({
@@ -21,31 +21,20 @@ const TypingDisplay = memo(
         : displayRomaji;
     }, [displayRomaji]);
 
-    // 改行を含むテキストを適切に処理
+    // 現在の入力を含むテキスト表示 - useMemoでレンダリング最適化
     const displayText = useMemo(() => {
       if (!cleanDisplayRomaji) return null;
 
       // 全体が完了した場合
       if (isCompleted) {
-        // 改行を適切に処理するためにテキストを分割
-        const lines = cleanDisplayRomaji.split('\n');
-        return (
-          <>
-            {lines.map((line, index) => (
-              <React.Fragment key={index}>
-                <span className="typing-completed">{line}</span>
-                {index < lines.length - 1 && <br />}
-              </React.Fragment>
-            ))}
-          </>
-        );
+        return <span className="typing-completed">{cleanDisplayRomaji}</span>;
       }
 
       const typedLength = coloringInfo?.typedLength || 0;
       const currentInputLength = coloringInfo?.currentInputLength || 0;
       const currentPosition = coloringInfo?.currentPosition || 0;
 
-      // タイプしたテキストと残りのテキストに分割
+      // テキストを複数のパーツに分割（タイピングマニアのアプローチ）
       const typedText = cleanDisplayRomaji.substring(0, typedLength);
       const currentText = cleanDisplayRomaji.substring(
         currentPosition,
@@ -58,41 +47,23 @@ const TypingDisplay = memo(
         currentPosition + currentInputLength + 1
       );
 
-      // 改行を含む場合に適切に処理するヘルパー関数
-      const renderWithLineBreaks = (text, className) => {
-        if (!text) return null;
-        const lines = text.split('\n');
-        return (
-          <>
-            {lines.map((line, index) => (
-              <React.Fragment key={`${className}-${index}`}>
-                <span className={className}>{line}</span>
-                {index < lines.length - 1 && <br />}
-              </React.Fragment>
-            ))}
-          </>
-        );
-      };
-
       return (
         <>
-          {/* 入力済み部分 - 改行対応 */}
-          {typedText && renderWithLineBreaks(typedText, "typing-completed")}
+          {/* 入力済み部分 */}
+          {typedText && <span className="typing-completed">{typedText}</span>}
 
           {/* 現在の入力中部分 - 確定済みと同じ緑色で表示 */}
           {currentInput && (
             <span className="typing-completed">{currentInput}</span>
           )}
 
-          {/* 次に入力すべき文字を特別に強調 */}
+          {/* 次に入力すべき文字を特別に強調（タイピングマニア風） */}
           {nextChar && (
-            <span className={styles.nextCharHighlight}>
-              {nextChar === '\n' ? '↵' : nextChar}
-            </span>
+            <span className={styles.nextCharHighlight}>{nextChar}</span>
           )}
 
-          {/* 残りの未入力部分 - 改行対応 */}
-          {restText && renderWithLineBreaks(restText, styles.remainingText)}
+          {/* 残りの未入力部分 */}
+          {restText && <span style={{ color: '#757575' }}>{restText}</span>}
         </>
       );
     }, [
@@ -107,13 +78,11 @@ const TypingDisplay = memo(
         className={`typing-text ${styles.simpleTypingText} ${
           errorAnimation ? styles.errorShake : ''
         }`}
-        aria-live="polite"
-        aria-label={`タイピング領域: ${isCompleted ? '完了' : '入力中'}`}
       >
         {displayText}
 
         {/* タイピングマニア風のカーソルフィードバック */}
-        {!isCompleted && <span className={styles.typingCursor} aria-hidden="true"></span>}
+        {!isCompleted && <span className={styles.typingCursor}></span>}
       </div>
     );
   }

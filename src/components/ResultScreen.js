@@ -6,8 +6,6 @@ import { useGameContext, SCREENS } from '@/contexts/GameContext';
 import { usePageTransition } from './TransitionManager';
 import soundSystem from '../utils/SoundUtils'; // サウンドシステムを直接インポート
 import { saveGameRecord } from '../utils/RecordUtils'; // ローカルランキング保存用に追加
-import TypingAnalysis from './result/TypingAnalysis'; // タイピング分析コンポーネントをインポート
-import MCPUtils from '../utils/MCPUtils'; // MCPユーティリティをインポート
 
 /**
  * リザルト画面コンポーネント
@@ -74,18 +72,6 @@ const ResultScreen = ({
         );
         
         console.log('ResultScreen: ローカルランキングの保存結果:', saved);
-        
-        // MCPサーバーに結果を記録
-        MCPUtils.recordGameEvent('result_screen_viewed', {
-          currentScreen: SCREENS.RESULT,
-          stats: {
-            kpm,
-            accuracy,
-            totalTime: timeInSeconds,
-            missCount: mistakes,
-            rank
-          }
-        });
       } catch (error) {
         console.error('ResultScreen: ローカルランキング保存中にエラーが発生しました:', error);
       }
@@ -292,13 +278,6 @@ const ResultScreen = ({
   const handleRetryClick = (e) => {
     e.preventDefault();
     console.log('リトライボタンがクリックされました');
-    
-    // MCPに記録
-    MCPUtils.recordUXElement('button_click', {
-      button: 'retry',
-      screen: 'result'
-    });
-    
     if (typeof onClickRetry === 'function') {
       onClickRetry();
     } else {
@@ -309,13 +288,6 @@ const ResultScreen = ({
   const handleMenuClick = (e) => {
     e.preventDefault();
     console.log('メニューボタンがクリックされました');
-    
-    // MCPに記録
-    MCPUtils.recordUXElement('button_click', {
-      button: 'menu',
-      screen: 'result'
-    });
-    
     handleBackToMenu(); // 共通のハンドラを使用
   };
 
@@ -323,13 +295,6 @@ const ResultScreen = ({
   const handleRankingClick = (e) => {
     e.preventDefault();
     console.log('ランキングボタンがクリックされました');
-    
-    // MCPに記録
-    MCPUtils.recordUXElement('button_click', {
-      button: 'ranking',
-      screen: 'result'
-    });
-    
     if (typeof onClickRanking === 'function') {
       onClickRanking();
     } else {
@@ -402,9 +367,6 @@ const ResultScreen = ({
             <div className={styles.statValue}>{fixedStats.missCount}</div>
           </motion.div>
         </motion.div>
-        
-        {/* タイピング分析コンポーネントを追加 */}
-        <TypingAnalysis stats={safeStats} />
       </motion.div>
 
       <motion.div className={styles.buttonContainer} variants={itemVariants}>
