@@ -1,6 +1,10 @@
 github(API)
 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
   
+Tavily(API)
+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
+
+
 npm run dev:nodemon
 
 # 保存

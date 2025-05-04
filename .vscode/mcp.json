@@ -1,19 +1,11 @@
 {
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "github-token",
-      "description": "GitHub Personal Access Token",
-      "password": true
-    }
-  ],
   "servers": {
     "github": {
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-github"],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${input:github-token}"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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"
       }
     }
   }

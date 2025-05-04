@@ -14,7 +14,6 @@ import TypingUtils from '../utils/TypingUtils'; // KPM計算用にTypingUtilsを
 import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import { useTypingGame } from '../hooks/useTypingGame';
-import { useToast } from '../contexts/ToastContext';
 
 // コンポーネントをインポート
 import TypingDisplay from './typing/TypingDisplay';
@@ -32,7 +31,6 @@ const GameScreen = () => {
   // コンテキストから状態と関数を取得
   const { gameState, setGameState, problems } = useGameContext();
   const { goToScreen, isTransitioning } = usePageTransition();
-  const toast = useToast(); // トースト通知フックを使用
 
   // 問題クリアに必要なお題数
   const requiredProblemCount = gameState.requiredProblemCount || 5;
