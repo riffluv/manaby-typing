@@ -371,26 +371,32 @@
   left: 0;
 }
 
-/* 右下のクレジットボタン用のスタイル */
+/* 右下の情報アイコンボタン用のスタイル */
 .creditButton {
   position: absolute;
   bottom: 15px;
   right: 15px;
-  font-size: 0.8rem;
-  padding: 6px 12px;
-  background-color: rgba(0, 0, 0, 0.4);
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
   color: rgba(255, 255, 255, 0.7);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border: none;
   cursor: pointer;
   transition: all 0.3s ease;
   z-index: 10;
   opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .creditButton:hover {
   opacity: 1;
-  background-color: rgba(0, 0, 0, 0.6);
+  color: #ff8c00;
+  transform: scale(1.1);
 }
 
 /* 難易度選択ボタンのスタイル（横並びトグル式） */

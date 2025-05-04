@@ -464,13 +464,13 @@ const MainMenu = () => {
         </motion.div>
       </div>
 
-      {/* 右下にクレジットボタン（目立たないデザイン） */}
+      {/* 右下に情報アイコンボタン */}
       <button
         className={styles.creditButton}
         onClick={handleOpenCredits}
         aria-label="クレジット"
       >
-        クレジット
+        ⓘ
       </button>
 
       {/* 設定モーダルと他のモーダル - 既存コード */}
