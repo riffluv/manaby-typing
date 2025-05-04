@@ -1,0 +1,103 @@
+{
+  "id": "typing-optimizer",
+  "name": "タイピング最適化エージェント",
+  "version": "1.0.0",
+  "description": "タイピング処理の効率化とパフォーマンス最適化を行うエージェント",
+  "capabilities": [
+    "algorithm-optimization", 
+    "input-latency-reduction", 
+    "pattern-analysis",
+    "code-refactoring"
+  ],
+  "focus": {
+    "patterns": [
+      "src/hooks/useTypingGame.js",
+      "src/workers/typing-worker.js",
+      "src/utils/TypingUtils.js",
+      "src/utils/TypingWorkerManager.js"
+    ],
+    "metrics": [
+      "inputLatency",
+      "frameRate",
+      "memoryUsage",
+      "errorRate"
+    ]
+  },
+  "trigger": {
+    "events": [
+      "code-change",
+      "performance-degradation",
+      "manual-invocation"
+    ],
+    "threshold": {
+      "latency": {
+        "critical": 16,
+        "warning": 8
+      },
+      "errorRate": {
+        "critical": 0.15,
+        "warning": 0.05
+      }
+    }
+  },
+  "actions": [
+    {
+      "type": "optimize-algorithm",
+      "description": "タイピング判定アルゴリズムの最適化",
+      "target": "src/workers/typing-worker.js",
+      "priority": "high",
+      "maxImpact": "high"
+    },
+    {
+      "type": "optimize-memory",
+      "description": "メモリ使用量と入力バッファの最適化",
+      "target": "src/hooks/useTypingGame.js",
+      "priority": "medium",
+      "maxImpact": "medium"
+    },
+    {
+      "type": "input-pattern-analysis",
+      "description": "ユーザーの入力パターンを分析して予測精度を向上",
+      "target": "src/utils/TypingUtils.js",
+      "priority": "medium",
+      "maxImpact": "high"
+    },
+    {
+      "type": "latency-reduction",
+      "description": "高リフレッシュレートディスプレイに対応した入力遅延最適化",
+      "target": ["src/hooks/useTypingGame.js", "src/workers/typing-worker.js"],
+      "priority": "highest",
+      "maxImpact": "critical"
+    }
+  ],
+  "outputFormat": {
+    "suggestions": true,
+    "pullRequests": true,
+    "inlineComments": true,
+    "diagnostics": true
+  },
+  "learningSources": [
+    {
+      "type": "code-history",
+      "description": "コード変更の履歴から最適化パターンを学習"
+    },
+    {
+      "type": "user-input-data",
+      "description": "ユーザー入力データからタイピングパターンを分析"
+    },
+    {
+      "type": "performance-data",
+      "description": "実行時のパフォーマンスデータから最適化対象を特定" 
+    }
+  ],
+  "schedule": {
+    "analysisFrequency": "daily",
+    "reportFrequency": "weekly",
+    "urgentNotification": "immediate"
+  },
+  "collaborators": [
+    "performance-monitor",
+    "project-analyzer",
+    "metrics-collector"
+  ]
+}

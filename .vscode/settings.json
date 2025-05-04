@@ -1,6 +1,6 @@
 {
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  // "editor.defaultFormatter": "esbenp.prettier-vscode", // 無効な値のためコメントアウト
   "editor.tabSize": 2,
   "editor.detectIndentation": false,
   "editor.codeActionsOnSave": {
@@ -14,7 +14,6 @@
     "**/node_modules": true,
     "**/.DS_Store": true
   },
-  "mcp.rules": "../typing-game-mcp/server/rules.json",
   "mcp.server": "http://localhost:3000",
   "mcp.autoValidate": true,
   "liveServer.settings.port": 5501
