@@ -59,7 +59,18 @@ const MainMenu = () => {
 
     // サウンド設定を適用
     soundSystem.setEnabled(settings.soundEnabled);
-  }, [settings.soundEnabled]);
+    
+    // BGMの設定を適用
+    soundSystem.setBgmEnabled(settings.bgmEnabled && settings.soundEnabled);
+    
+    // ロビーBGMを再生（設定がオンの場合のみ）
+    if (settings.bgmEnabled && settings.soundEnabled) {
+      soundSystem.playBgm('lobby', true);
+    } else {
+      // BGMが無効の場合は、既に再生中のBGMを停止する
+      soundSystem.stopBgm();
+    }
+  }, [settings.soundEnabled, settings.bgmEnabled]);
 
   // ボタン音を再生する関数
   const playButtonSound = () => {
