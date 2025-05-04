@@ -162,6 +162,43 @@ const MainMenu = () => {
     closeSettingsModal();
   };
 
+  // 難易度を表示するテキスト（日本語表記）
+  const difficultyLabels = {
+    easy: 'やさしい',
+    normal: 'ふつう',
+    hard: 'むずかしい',
+  };
+
+  // 難易度選択メニューの表示状態
+  const [showDifficultyMenu, setShowDifficultyMenu] = useState(false);
+
+  // 難易度選択ボタンをクリックしたときの処理
+  const handleDifficultyButtonClick = () => {
+    playButtonSound();
+    setShowDifficultyMenu(!showDifficultyMenu);
+  };
+
+  // 難易度を選択したときの処理
+  const selectDifficulty = (difficulty) => {
+    playButtonSound();
+    handleDifficultyChange(difficulty);
+    setShowDifficultyMenu(false);
+  };
+
+  // 画面のどこかをクリックしたときにメニューを閉じる
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showDifficultyMenu && !event.target.closest(`.${styles.difficultySelector}`)) {
+        setShowDifficultyMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDifficultyMenu]);
+
   // メニュー項目のアニメーション設定
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -371,6 +408,24 @@ const MainMenu = () => {
               unoptimized
             />
           </button>
+        </motion.div>
+
+        {/* 難易度選択ボタン（横並びトグル式） - アニメーション付き */}
+        <motion.div
+          className={styles.difficultyToggleGroup}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
+        >
+          {Object.keys(difficultyLabels).map((key) => (
+            <button
+              key={key}
+              className={`${styles.difficultyToggleButton} ${settings.difficulty === key ? styles.active : ''}`}
+              onClick={() => handleDifficultyChange(key)}
+            >
+              {difficultyLabels[key]}
+            </button>
+          ))}
         </motion.div>
 
         <motion.div
