@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import TypingUtils from '../utils/TypingUtils';
 import soundSystem from '../utils/SoundUtils';
 import typingWorkerManager from '../utils/TypingWorkerManager';
+import MCPUtils from '../utils/MCPUtils';
 
 /**
  * タイピングゲームのコアロジックを扱うカスタムフック
@@ -68,7 +69,7 @@ export function useTypingGame({
   const isProcessingRef = useRef(false);
   const frameIdRef = useRef(null);
   
-  // 高リフレッシュレート対応のためのRAF処理の最適化
+  // 高リフレッシュレート対応のRAF処理の最適化
   const rafCallbackTimeRef = useRef(0);
   const displayRefreshRateRef = useRef(60); // デフォルト値、後で実測
   const frameIntervalRef = useRef(1000 / 60); // デフォルト16.67ms（60Hz）
