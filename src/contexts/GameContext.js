@@ -31,6 +31,8 @@ export const SCREENS = {
 const DEFAULT_SETTINGS = {
   difficulty: DIFFICULTIES.NORMAL,
   soundEnabled: true,
+  bgmEnabled: true,
+  bgmVolume: 0.5,
   sfxEnabled: true,
   sfxVolume: 1.0,
   requiredProblemCount: 8, // デフォルトお題数
@@ -92,6 +94,19 @@ export const GameProvider = ({ children }) => {
 
       // 最終プレイ日を記録
       StorageUtils.saveLastPlayedDate();
+
+      // 初期BGMの再生 - ユーザーの設定に基づいて再生
+      if (savedSettings.soundEnabled && savedSettings.bgmEnabled) {
+        setTimeout(() => {
+          // ユーザーインタラクションの後で再生するために少し遅延させる
+          try {
+            soundSystem.playBgm('lobby', true);
+            console.log('[GameContext] ロビーBGM再生を開始しました');
+          } catch (error) {
+            console.error('[GameContext] BGM再生エラー:', error);
+          }
+        }, 1000); // 1秒後に再生開始
+      }
       
       console.log('[GameContext] 初期化完了');
     } catch (error) {
@@ -118,31 +133,41 @@ export const GameProvider = ({ children }) => {
   // サウンド設定が変更されたらサウンドシステムに反映
   useEffect(() => {
     try {
-      // 後方互換性のために soundEnabled も使用
+      // 全体サウンド設定
       const isSoundEnabled = settings.soundEnabled;
 
       // 効果音の設定を反映
       soundSystem.setSfxEnabled(isSoundEnabled && settings.sfxEnabled);
       soundSystem.setSfxVolume(settings.sfxVolume);
       
-      console.log(`[GameContext] サウンド設定更新: SFX=${isSoundEnabled && settings.sfxEnabled}`);
+      // BGM設定を反映
+      soundSystem.setBgmEnabled(isSoundEnabled && settings.bgmEnabled);
+      soundSystem.setBgmVolume(settings.bgmVolume);
+      
+      console.log(`[GameContext] サウンド設定更新: SFX=${isSoundEnabled && settings.sfxEnabled}, BGM=${isSoundEnabled && settings.bgmEnabled}`);
     } catch (error) {
       console.error('[GameContext] サウンド設定更新エラー:', error);
     }
-  }, [settings.soundEnabled, settings.sfxEnabled, settings.sfxVolume]);
+  }, [settings.soundEnabled, settings.sfxEnabled, settings.sfxVolume, settings.bgmEnabled, settings.bgmVolume]);
 
-  // 画面遷移時に背景を更新
+  // 画面遷移時にBGMを管理
   useEffect(() => {
     try {
+      // サウンドとBGMが有効な場合のみ再生
+      if (settings.soundEnabled && settings.bgmEnabled) {
+        // すべての画面で「Battle of the Emperor」を再生
+        soundSystem.playBgm('lobby', true);
+      }
+      
       // 管理者モードの場合、画面に応じた背景を適用
       if (StorageUtils.isAdminMode()) {
         StorageUtils.applyScreenBackground(currentScreen);
         console.log(`[GameContext] 画面背景更新: ${currentScreen}`);
       }
     } catch (error) {
-      console.error('[GameContext] 背景更新エラー:', error);
+      console.error('[GameContext] 背景/BGM更新エラー:', error);
     }
-  }, [currentScreen]);
+  }, [currentScreen, settings.soundEnabled, settings.bgmEnabled]);
 
   // ゲームをリセットする関数
   const resetGame = useCallback(() => {

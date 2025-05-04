@@ -1,11 +1,15 @@
 github(API)
-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
-  
+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  
 Tavily(API)
 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
 
 
+
+
 npm run dev:nodemon
+npx -y @modelcontextprotocol/server-github
+
+
 
 # 保存
 git add .

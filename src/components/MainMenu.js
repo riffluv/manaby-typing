@@ -97,6 +97,42 @@ const MainMenu = () => {
     }
   };
 
+  // BGMの有効/無効を切り替える関数
+  const toggleBgm = () => {
+    const willBeEnabled = !settings.bgmEnabled;
+
+    setSettings({
+      ...settings,
+      bgmEnabled: willBeEnabled,
+    });
+
+    // サウンドシステムの設定も更新
+    soundSystem.setBgmEnabled(willBeEnabled && settings.soundEnabled);
+
+    if (willBeEnabled && settings.soundEnabled && settings.sfxEnabled) {
+      setTimeout(() => {
+        soundSystem.playSound('Button');
+      }, 100);
+    }
+  };
+
+  // BGMの音量を変更する関数
+  const handleBgmVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    setSettings({
+      ...settings,
+      bgmVolume: newVolume,
+    });
+
+    // サウンドシステムの設定も更新
+    soundSystem.setBgmVolume(newVolume);
+
+    // 音量変更時にサンプル効果音を鳴らす
+    if (settings.sfxEnabled && settings.soundEnabled && settings.bgmEnabled) {
+      soundSystem.playSound('Button');
+    }
+  };
+
   // 効果音の有効/無効を切り替える関数
   const toggleSfx = () => {
     const willBeEnabled = !settings.sfxEnabled;
@@ -251,11 +287,27 @@ const MainMenu = () => {
           </div>
         </div>
 
-        {/* サウンド(全体)設定 */}
+        {/* BGM設定 */}
         <div className={styles.settingSection}>
-          <h3 className={styles.sectionTitle}>サウンド（全体）</h3>
+          <h3 className={styles.sectionTitle}>BGM</h3>
           <div className={styles.soundToggle}>
-            <ToggleButton isOn={settings.soundEnabled} onToggle={toggleSound} />
+            <ToggleButton isOn={settings.bgmEnabled} onToggle={toggleBgm} />
+          </div>
+          <div className={styles.volumeControl}>
+            <span className={styles.volumeLabel}>音量:</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={settings.bgmVolume || 1}
+              onChange={handleBgmVolumeChange}
+              className={styles.volumeSlider}
+              disabled={!settings.soundEnabled || !settings.bgmEnabled}
+            />
+            <span className={styles.volumeValue}>
+              {Math.round((settings.bgmVolume || 1) * 100)}%
+            </span>
           </div>
         </div>
 
