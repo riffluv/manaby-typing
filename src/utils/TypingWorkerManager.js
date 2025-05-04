@@ -625,7 +625,59 @@ export class TypingWorkerManager {
   }
 }
 
+/**
+ * 入力予測キャッシュを初期化する
+ * 良く使われるキーシーケンスを事前に計算してレスポンスを向上させる
+ */
+async function initializePredictionCache() {
+  // 最も頻出する日本語入力パターンを事前計算
+  const commonSequences = [
+    'a', 'i', 'u', 'e', 'o',
+    'ka', 'ki', 'ku', 'ke', 'ko',
+    'sa', 'shi', 'su', 'se', 'so',
+    'ta', 'chi', 'tsu', 'te', 'to',
+    'na', 'ni', 'nu', 'ne', 'no'
+  ];
+
+  // Web Workerに通知
+  if (!typingWorkerManager._worker) {
+    await typingWorkerManager._initialize();
+  }
+  
+  if (typingWorkerManager._worker) {
+    return new Promise((resolve) => {
+      const callbackId = typingWorkerManager._getNextCallbackId();
+      
+      // コールバックを登録
+      typingWorkerManager._callbacks.set(callbackId, resolve);
+      
+      // Workerにメッセージを送信
+      typingWorkerManager._worker.postMessage({
+        type: 'initializePredictionCache',
+        callbackId,
+        priority: 'high',
+        data: { sequences: commonSequences }
+      });
+      
+      console.log('[最適化] 入力予測キャッシュを初期化しました');
+    });
+  }
+  
+  return Promise.resolve(false);
+}
+
 // シングルトンインスタンスを作成
 const typingWorkerManager = new TypingWorkerManager();
+
+// 初期化後に予測キャッシュを設定
+if (typeof window !== 'undefined') {
+  // ブラウザ環境でのみ実行
+  typingWorkerManager._initialize().then(() => {
+    // ディスプレイのリフレッシュレート検出後、予測キャッシュを初期化
+    setTimeout(() => {
+      initializePredictionCache();
+    }, 300); // 少し遅延させて他の初期化処理が完了してから実行
+  });
+}
 
 export default typingWorkerManager;

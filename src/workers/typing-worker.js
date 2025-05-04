@@ -346,6 +346,32 @@ function processInput(session, char) {
     metrics.processInputCalls++;
   }
   
+  // 予測キャッシュを確認（超高速パス）
+  if (self._predictionCache && session.currentInput) {
+    const predictionCacheKey = `prediction:${session.currentInput}:${char}`;
+    if (self._predictionCache.has(predictionCacheKey)) {
+      const prediction = self._predictionCache.get(predictionCacheKey);
+      
+      // キャッシュヒット統計を更新
+      if (performanceSettings.collectMetrics) {
+        metrics.predictionCacheHits = (metrics.predictionCacheHits || 0) + 1;
+      }
+      
+      // 統計情報を更新
+      if (performanceSettings.collectMetrics) {
+        const endTime = performance.now();
+        const processingTime = endTime - startTime;
+        metrics.totalProcessingTime += processingTime;
+        metrics.predictionCacheTime = (metrics.predictionCacheTime || 0) + processingTime;
+      }
+      
+      // 予測パスが有効な場合、パフォーマンスを最大化
+      // ここでは最適化のために予測結果を直接使用
+      session.currentInput += char;
+      char = prediction.nextInput.charAt(prediction.nextInput.length - 1);
+    }
+  }
+  
   // セッションが差分のみの場合、前回のセッションと統合
   if (session.isDiff && self._lastFullSession) {
     session = {
@@ -1099,10 +1125,74 @@ function updateOptimizationOptions(options) {
   return { success: true };
 }
 
+/**
+ * 入力予測キャッシュを初期化（高速レスポンスのため）
+ */
+function initializePredictionCache(data) {
+  const sequences = data.sequences || [];
+  
+  // パフォーマンス測定開始
+  const startTime = performance.now();
+  
+  if (!sequences.length) {
+    return { success: false, error: '予測シーケンスが指定されていません' };
+  }
+  
+  // 予測キャッシュの初期化
+  if (!self._predictionCache) {
+    self._predictionCache = new Map();
+  }
+  
+  // 各シーケンスを事前処理してキャッシュに格納
+  let cacheHits = 0;
+  const precomputedEntries = [];
+  
+  for (const sequence of sequences) {
+    // 各キーごとに予測入力処理を行い結果をキャッシュ
+    const chars = sequence.split('');
+    let currentInput = '';
+    
+    for (const char of chars) {
+      const nextInput = currentInput + char;
+      
+      // キャッシュキーを作成
+      const cacheKey = `prediction:${currentInput}:${char}`;
+      
+      // 既にキャッシュされていない場合のみ計算
+      if (!self._predictionCache.has(cacheKey)) {
+        // 予測結果をキャッシュに格納
+        self._predictionCache.set(cacheKey, {
+          nextInput,
+          isPredicted: true,
+          timestamp: Date.now()
+        });
+        precomputedEntries.push(cacheKey);
+      } else {
+        cacheHits++;
+      }
+      
+      currentInput = nextInput;
+    }
+  }
+  
+  // パフォーマンス測定終了
+  const endTime = performance.now();
+  const elapsedTime = endTime - startTime;
+  
+  return { 
+    success: true, 
+    cacheSize: self._predictionCache.size,
+    precomputedCount: precomputedEntries.length,
+    cacheHits,
+    elapsedTime
+  };
+}
+
 // Web Worker グローバルコンテキスト初期化
 self._lastFullSession = null; // 完全なセッションを保持するためのキャッシュ
 self._coloringCache = new Map(); // 色分け情報のキャッシュ
 self._lastColoringInfo = null;  // 最後の色分け情報
+self._predictionCache = new Map(); // 予測入力のキャッシュ
 
 /**
  * パフォーマンス監視間隔（秒）
@@ -1330,6 +1420,29 @@ self.onmessage = function (e) {
       }
       break;
 
+    case 'initializePredictionCache':
+      // 予測キャッシュの初期化
+      try {
+        const result = initializePredictionCache(data);
+        if (callbackId) {
+          self.postMessage({
+            type: 'initializePredictionCacheResult',
+            callbackId,
+            data: result,
+          });
+        }
+      } catch (err) {
+        console.error('Worker処理エラー (initializePredictionCache):', err);
+        if (callbackId) {
+          self.postMessage({
+            type: 'initializePredictionCacheResult',
+            callbackId,
+            data: { success: false, error: err.message },
+          });
+        }
+      }
+      break;
+
     default:
       console.warn('不明なメッセージタイプ:', type);
       break;
@@ -1353,6 +1466,7 @@ self.addEventListener('close', () => {
   self._coloringCache.clear();
   self._lastFullSession = null;
   self._lastColoringInfo = null;
+  self._predictionCache.clear();
   
   console.log('[Worker] リソース解放完了');
 });
