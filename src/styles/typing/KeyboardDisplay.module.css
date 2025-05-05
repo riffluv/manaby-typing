@@ -39,8 +39,8 @@
   border-radius: 5px;
   background-color: rgba(20, 20, 30, 0.8);
   color: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4), 
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   font-size: 14px;
   font-weight: 500;
   text-transform: uppercase;
@@ -56,7 +56,7 @@
   color: #ffffff;
   transform: translateY(1px);
   box-shadow: 0 0px 0 rgba(0, 0, 0, 0.4),
-              inset 0 0 8px rgba(255, 154, 40, 0.4);
+    inset 0 0 8px rgba(255, 154, 40, 0.4);
   border-color: rgba(255, 154, 40, 0.5);
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 }
@@ -76,18 +76,20 @@
     transform: translateY(0);
     background-color: rgba(255, 154, 40, 0.5);
     box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4),
-                inset 0 0 12px rgba(255, 255, 255, 0.3);
+      inset 0 0 12px rgba(255, 255, 255, 0.3);
   }
+
   30% {
     transform: translateY(2px);
     box-shadow: 0 0px 0 rgba(0, 0, 0, 0.4),
-                inset 0 0 12px rgba(255, 255, 255, 0.5);
+      inset 0 0 12px rgba(255, 255, 255, 0.5);
   }
+
   100% {
     transform: translateY(0);
     background-color: rgba(20, 20, 30, 0.8);
     box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 }
 
@@ -99,9 +101,12 @@
 }
 
 @keyframes keyError {
-  0%, 100% {
+
+  0%,
+  100% {
     background-color: rgba(255, 60, 60, 0.5);
   }
+
   50% {
     background-color: rgba(255, 60, 60, 0.8);
   }
@@ -123,10 +128,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.6;
     transform: scale(1);
   }
+
   50% {
     opacity: 1;
     transform: scale(1.05);

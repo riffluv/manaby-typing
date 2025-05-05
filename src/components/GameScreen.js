@@ -32,7 +32,7 @@ const GameScreen = () => {
 
   // 一時ローカル状態（互換性のために残す）
   const [soundsLoaded, setSoundsLoaded] = useState(false);
-  
+
   // 最後に押されたキー（キーボード表示用）
   const [lastPressedKey, setLastPressedKey] = useState('');
 
@@ -424,18 +424,7 @@ const GameScreen = () => {
         animate={animationVariants.header.animate}
         transition={animationVariants.header.transition}
       >
-        <Button
-          variant="default"
-          size="small"
-          className={styles.typing_game__back_button}
-          onClick={() => goToScreen(SCREENS.MAIN_MENU, {
-            playSound: true,
-            soundType: 'button',
-          })}
-        >
-          メニューに戻る
-        </Button>
-
+        {/* メニューに戻るボタンを削除 */}
         <motion.div
           className={styles.typing_game__level_display}
           initial={animationVariants.gameLevelScale.initial}
@@ -482,8 +471,18 @@ const GameScreen = () => {
         </div>
       </motion.main>
 
-      {/* ESCキーのショートカット案内 */}
-      <div className={styles.typing_game__shortcuts}>
+      {/* ESCキーのショートカット案内 - クリッカブルにする */}
+      <div
+        className={styles.typing_game__shortcuts}
+        onClick={() => {
+          soundSystem.play('button');
+          goToScreen(SCREENS.MAIN_MENU, {
+            playSound: true,
+            soundType: 'button',
+          });
+        }}
+        style={{ cursor: 'pointer' }} // クリック可能なことを示すカーソルスタイルを追加
+      >
         <span className={styles.typing_game__shortcut_item}>
           <kbd>Esc</kbd>: メニューに戻る
         </span>

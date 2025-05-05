@@ -57,9 +57,25 @@ const TypingDisplay = memo(
             <span className="typing-completed">{currentInput}</span>
           )}
 
-          {/* 次に入力すべき文字を特別に強調（タイピングマニア風） */}
+          {/* 次に入力すべき文字を特別に強調（オレンジ色で表示） */}
           {nextChar && (
-            <span className={styles.nextCharHighlight}>{nextChar}</span>
+            <span
+              style={{
+                position: 'relative',
+                color: '#ff9a28' /* オレンジに変更 */,
+                textShadow: '0 0 6px rgba(255, 154, 40, 0.6)',
+                fontWeight: '700',
+                fontSize: '1.25rem',
+                display: 'inline-block',
+                padding: '0 1px',
+                margin: '0 1px',
+                transform: 'translateY(-1px)',
+                backgroundColor: 'rgba(255, 154, 40, 0.1)',
+                borderRadius: '2px',
+              }}
+            >
+              {nextChar}
+            </span>
           )}
 
           {/* 残りの未入力部分 */}
@@ -75,9 +91,8 @@ const TypingDisplay = memo(
 
     return (
       <div
-        className={`typing-text ${styles.simpleTypingText} ${
-          errorAnimation ? styles.errorShake : ''
-        }`}
+        className={`typing-text ${styles.simpleTypingText} ${errorAnimation ? styles.errorShake : ''
+          }`}
       >
         {displayText}
 

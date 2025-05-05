@@ -112,7 +112,8 @@
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
-  margin: 0.5rem 0; /* 余白を少し減らして垂直方向のスペースを確保 */
+  margin: 0.5rem 0;
+  /* 余白を少し減らして垂直方向のスペースを確保 */
 }
 
 /* 問題エリア（要素） */
@@ -129,7 +130,8 @@
   transition: box-shadow 0.3s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
-  min-height: 140px; /* 高さを少し減らして垂直方向のスペースを確保 */
+  min-height: 140px;
+  /* 高さを少し減らして垂直方向のスペースを確保 */
   height: auto;
 }
 
@@ -143,17 +145,22 @@
 /* キーボード表示エリア（要素） */
 .typing_game__keyboard_area {
   width: 100%;
-  min-height: 180px; /* 高さを増やす（元：120px） */
-  max-width: 700px; /* 最大幅を制限 */
+  min-height: 180px;
+  /* 高さを増やす（元：120px） */
+  max-width: 700px;
+  /* 最大幅を制限 */
   border-radius: 10px;
   border: 1px dashed rgba(255, 140, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 0; /* 上下のパディングを追加 */
+  padding: 10px 0;
+  /* 上下のパディングを追加 */
   box-sizing: border-box;
-  margin-bottom: 20px; /* 下部にマージンを追加して、ショートカット表示と被らないようにする */
-  overflow: visible; /* オーバーフロー表示を許可 */
+  margin-bottom: 20px;
+  /* 下部にマージンを追加して、ショートカット表示と被らないようにする */
+  overflow: visible;
+  /* オーバーフロー表示を許可 */
 }
 
 /* 進行状況バーエリア（要素） */

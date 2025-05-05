@@ -26,11 +26,11 @@ const KeyboardCanvas = ({
   const animFrameRef = useRef(null);
   const containerRef = useRef(null);
   const isInitializedRef = useRef(false);
-  
+
   // キャンバスサイズを固定値として保持し、不要な再レンダリングを防止
   // 高さを増やす: 標準モードで200px、コンパクトモードで170pxに設定
-  const canvasSizeRef = useRef({ 
-    width: 0, 
+  const canvasSizeRef = useRef({
+    width: 0,
     height: compact ? 170 : 200,
     cssWidth: 0,
     cssHeight: compact ? 170 : 200
@@ -60,16 +60,16 @@ const KeyboardCanvas = ({
 
     const canvas = canvasRef.current;
     const container = containerRef.current;
-    
+
     // DOMのサイズを取得（一度だけでよい）
     const containerWidth = container.clientWidth;
     const height = compact ? 170 : 200; // 高さを増やす
     const scale = window.devicePixelRatio || 1;
-    
+
     // サイズが変わった場合のみ更新（不要な再設定を防止）
-    if (canvasSizeRef.current.cssWidth !== containerWidth || 
-        canvasSizeRef.current.cssHeight !== height) {
-      
+    if (canvasSizeRef.current.cssWidth !== containerWidth ||
+      canvasSizeRef.current.cssHeight !== height) {
+
       // キャンバスサイズを更新
       canvasSizeRef.current = {
         width: containerWidth * scale,
@@ -77,11 +77,11 @@ const KeyboardCanvas = ({
         cssWidth: containerWidth,
         cssHeight: height
       };
-      
+
       // 物理ピクセルサイズを設定
       canvas.width = canvasSizeRef.current.width;
       canvas.height = canvasSizeRef.current.height;
-      
+
       // CSSサイズを設定
       canvas.style.width = `${canvasSizeRef.current.cssWidth}px`;
       canvas.style.height = `${canvasSizeRef.current.cssHeight}px`;
@@ -91,20 +91,20 @@ const KeyboardCanvas = ({
   // コンポーネントのマウント時に一度だけキャンバスを初期化
   useEffect(() => {
     if (isInitializedRef.current) return;
-    
+
     // 初期化済みフラグを設定
     isInitializedRef.current = true;
-    
+
     // 初期サイズを設定
     resizeCanvas();
-    
+
     // リサイズイベントのリスナーを設定
     const handleResize = () => {
       resizeCanvas();
     };
-    
+
     window.addEventListener('resize', handleResize);
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
       if (animFrameRef.current) {
@@ -143,22 +143,22 @@ const KeyboardCanvas = ({
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    
+
     // 描画関数
     const drawKeyboard = () => {
       // 現在のキャンバスサイズを取得
       const { width, height, cssWidth, cssHeight } = canvasSizeRef.current;
-      
+
       // キャンバスをクリア
       ctx.clearRect(0, 0, width, height);
-      
+
       // スケール設定をリセット
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      
+
       // デバイスピクセル比に合わせてスケーリング
       const scale = window.devicePixelRatio || 1;
       ctx.scale(scale, scale);
-      
+
       // キーボードの背景
       ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
       ctx.fillRect(0, 0, cssWidth, cssHeight);
@@ -167,11 +167,11 @@ const KeyboardCanvas = ({
       const keyWidth = compact ? 35 : 45;
       const keyHeight = compact ? 30 : 35;
       const keyGap = compact ? 4 : 6;
-      const totalWidth = keyboardLayout.reduce((max, row) => 
-        Math.max(max, row.reduce((sum, key) => 
+      const totalWidth = keyboardLayout.reduce((max, row) =>
+        Math.max(max, row.reduce((sum, key) =>
           sum + (key[0] === 'space' ? keyWidth * 5 : keyWidth) + keyGap, 0)
         ), 0);
-      
+
       // キーボードの開始位置（中央揃え）- 上下の余白を調整
       const startX = (cssWidth - totalWidth) / 2;
       const startY = compact ? 15 : 20; // 上部の余白を増やす
@@ -179,9 +179,9 @@ const KeyboardCanvas = ({
       // 行ごとの描画
       keyboardLayout.forEach((row, rowIndex) => {
         // この行の全キーの幅を計算（中央揃えのため）
-        let rowWidth = row.reduce((sum, key) => 
+        let rowWidth = row.reduce((sum, key) =>
           sum + (key[0] === 'space' ? keyWidth * 5 : keyWidth) + keyGap, 0);
-          
+
         let x = startX + (totalWidth - rowWidth) / 2;
         const y = startY + rowIndex * (keyHeight + keyGap);
 
@@ -196,7 +196,7 @@ const KeyboardCanvas = ({
           const isError = keyState?.error;
           const pressTimestamp = keyState?.timestamp || 0;
           const pressDuration = Date.now() - pressTimestamp;
-          
+
           // キーの背景色
           let bgColor = 'rgba(20, 20, 30, 0.9)';
           if (isNextKey) {
@@ -204,11 +204,11 @@ const KeyboardCanvas = ({
           } else if (isPressed && pressDuration < 300) {
             // 押された直後の300ms間だけハイライト
             const alpha = Math.max(0, 0.5 - (pressDuration / 600));
-            bgColor = isError 
-              ? `rgba(255, 60, 60, ${alpha + 0.3})` 
+            bgColor = isError
+              ? `rgba(255, 60, 60, ${alpha + 0.3})`
               : `rgba(255, 154, 40, ${alpha + 0.2})`;
           }
-          
+
           // キーの影
           ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
           ctx.fillRect(x + 1, y + 3, keyW, keyHeight - 2);
@@ -220,8 +220,8 @@ const KeyboardCanvas = ({
           ctx.fill();
 
           // キーの境界線
-          ctx.strokeStyle = isNextKey 
-            ? 'rgba(255, 154, 40, 0.5)' 
+          ctx.strokeStyle = isNextKey
+            ? 'rgba(255, 154, 40, 0.5)'
             : 'rgba(0, 0, 0, 0.6)';
           ctx.lineWidth = isNextKey ? 1.5 : 1;
           ctx.beginPath();
@@ -229,19 +229,19 @@ const KeyboardCanvas = ({
           ctx.stroke();
 
           // キーのテキスト
-          ctx.fillStyle = isNextKey 
-            ? '#ffffff' 
+          ctx.fillStyle = isNextKey
+            ? '#ffffff'
             : 'rgba(255, 255, 255, 0.8)';
           ctx.font = `${compact ? '10' : '12'}px -apple-system, "Segoe UI", sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          
+
           // スペースキーの場合は特殊な表示
           if (isSpace) {
             ctx.fillText('Space', x + keyW / 2, y + keyHeight / 2);
           } else {
             ctx.fillText(keyChar, x + keyW / 2, y + keyHeight / 2 - 2);
-            
+
             // Shift文字（小さく表示）
             if (shiftChar) {
               ctx.font = `${compact ? '8' : '9'}px -apple-system, "Segoe UI", sans-serif`;
@@ -254,27 +254,27 @@ const KeyboardCanvas = ({
           if (isNextKey) {
             // パルスエフェクト
             const pulseSize = Math.sin(Date.now() / 500) * 2;
-            
+
             ctx.strokeStyle = 'rgba(255, 154, 40, 0.8)';
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.roundRect(
-              x - 2 - pulseSize/2, 
-              y - 2 - pulseSize/2, 
-              keyW + 4 + pulseSize, 
-              keyHeight + 4 + pulseSize, 
+              x - 2 - pulseSize / 2,
+              y - 2 - pulseSize / 2,
+              keyW + 4 + pulseSize,
+              keyHeight + 4 + pulseSize,
               6
             );
             ctx.stroke();
-            
+
             // 内側の光彩効果
             const gradient = ctx.createRadialGradient(
-              x + keyW/2, y + keyHeight/2, 0,
-              x + keyW/2, y + keyHeight/2, keyW/1.5
+              x + keyW / 2, y + keyHeight / 2, 0,
+              x + keyW / 2, y + keyHeight / 2, keyW / 1.5
             );
             gradient.addColorStop(0, 'rgba(255, 154, 40, 0.15)');
             gradient.addColorStop(1, 'rgba(255, 154, 40, 0)');
-            
+
             ctx.fillStyle = gradient;
             ctx.fill();
           }
@@ -300,9 +300,9 @@ const KeyboardCanvas = ({
   }, [compact, keyboardLayout, nextKey, resizeCanvas]);
 
   return (
-    <div className={styles.keyboard_canvas_container} ref={containerRef} style={{height: compact ? '170px' : '200px'}}>
-      <canvas 
-        ref={canvasRef} 
+    <div className={styles.keyboard_canvas_container} ref={containerRef} style={{ height: compact ? '170px' : '200px' }}>
+      <canvas
+        ref={canvasRef}
         className={styles.keyboard_canvas}
       />
     </div>
