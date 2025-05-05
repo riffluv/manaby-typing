@@ -7,6 +7,7 @@ import TransitionManager from '../components/TransitionManager';
 import Providers from '../components/common/Providers';
 import AdminController from '../components/admin/AdminController';
 import RetroBackground from '../components/backgrounds/RetroBackground';
+import MCPStatusWrapper from '../components/common/MCPStatusWrapper';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -33,6 +34,9 @@ export default function Home() {
           <TransitionManager />
           <AdminController backgroundRef={retroBackgroundRef} />
         </GameProvider>
+        
+        {/* MCP接続ステータス表示（右下隅に配置） */}
+        <MCPStatusWrapper position="bottom-right" />
       </div>
     </Providers>
   );

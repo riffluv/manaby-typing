@@ -1,5 +1,6 @@
 import './globals.css';
 import { fontClasses } from './fonts';  // fonts.jsからfontClassesをインポート
+import MCPInitializer from '../components/MCPInitializer';
 
 export const metadata = {
   title: 'タイピング練習ゲーム',
@@ -20,6 +21,9 @@ export default function RootLayout({ children }) {
           backgroundColor: '#111'
         }}
       >
+        {/* MCPサーバー接続初期化 */}
+        <MCPInitializer />
+        
         {/* ここではクライアントコンポーネントを直接インポートできないため、
             下層のページコンポーネントに背景を表示させる */}
         {children}

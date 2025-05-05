@@ -4,6 +4,8 @@ Tavily(API)
 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
 
 
+# GitHub リポジトリ
+https://github.com/riffluv/manaby-typing
 
 
 npm run dev:nodemon:mcp
@@ -11,7 +13,10 @@ npm run dev:nodemon:mcp
 npm run dev:nodemon
 npx -y @modelcontextprotocol/server-github
 
-
+# MCP接続にはリポジトリURLの環境変数設定が必要
+# set NEXT_PUBLIC_GITHUB_REPO=https://github.com/riffluv/manaby-typing
+# (またはWindows PowerShellの場合)
+# $env:NEXT_PUBLIC_GITHUB_REPO="https://github.com/riffluv/manaby-typing"
 
 # 保存
 git add .

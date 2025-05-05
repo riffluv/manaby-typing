@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 const PROJECT_METADATA = {
   name: 'Manaby Typing Game',
   version: '0.1.0',
-  repositoryUrl: process.env.NEXT_PUBLIC_GITHUB_REPO || 'https://github.com/user/manaby-typing-game',
+  repositoryUrl: process.env.NEXT_PUBLIC_GITHUB_REPO || 'https://github.com/riffluv/manaby-typing',
 };
 
 /**
