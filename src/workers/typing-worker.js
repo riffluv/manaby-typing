@@ -917,6 +917,320 @@ async function submitRanking(recordData) {
 }
 
 /**
+ * Firebase向けのデータ処理関数
+ * メインスレッドでFirebase SDKを使用する代わりに、
+ * 必要なデータ構造を整形してメインスレッドに返す
+ * @param {Object} recordData - 処理するデータ
+ * @returns {Object} Firebase用の整形されたデータ
+ */
+function prepareFirebaseData(recordData) {
+  const startTime = performance.now();
+
+  try {
+    // メトリクス更新
+    if (performanceSettings.collectMetrics) {
+      metrics.firebaseCallsPrep = (metrics.firebaseCallsPrep || 0) + 1;
+    }
+
+    // Firebase用のデータ構造
+    const firebaseRecord = {
+      timestamp: recordData.timestamp || Date.now(),
+      username: recordData.username || 'Anonymous',
+      score: recordData.score || 0,
+      kpm: recordData.kpm || 0,
+      accuracy: recordData.accuracy || 0,
+      rank: recordData.rank || 'F',
+      playTime: recordData.playTime || 0,
+      combo: recordData.maxCombo || 0,
+      gameMode: recordData.gameMode || 'standard',
+      deviceInfo: recordData.deviceInfo || { type: 'unknown' },
+      problemData: recordData.problemData || []
+    };
+
+    // 必要に応じてデータの追加検証や変換を行う
+    if (Array.isArray(firebaseRecord.problemData)) {
+      // 各問題データを整理し、必要なプロパティだけ抽出
+      firebaseRecord.problemData = firebaseRecord.problemData.map(problem => {
+        return {
+          id: problem.id || '',
+          text: problem.text || '',
+          timeMs: problem.timeMs || 0,
+          keyCount: problem.keyCount || 0,
+          missCount: problem.missCount || 0
+        };
+      });
+
+      // 合計の問題数
+      firebaseRecord.totalProblems = firebaseRecord.problemData.length;
+    }
+
+    // 統計情報を更新
+    if (performanceSettings.collectMetrics) {
+      const endTime = performance.now();
+      metrics.totalProcessingTime += (endTime - startTime);
+    }
+
+    return {
+      success: true,
+      data: firebaseRecord,
+    };
+  } catch (error) {
+    console.error('Firebase データ整形エラー:', error);
+    
+    // 統計情報を更新
+    if (performanceSettings.collectMetrics) {
+      const endTime = performance.now();
+      metrics.totalProcessingTime += (endTime - startTime);
+    }
+    
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * コンボ処理の計算（高速化・高リフレッシュレート対応版）
+ * @param {Object} comboData - コンボデータ
+ * @returns {Object} コンボ計算結果
+ */
+function calculateComboEffect(comboData) {
+  const startTime = performance.now();
+
+  // メトリクス更新
+  if (performanceSettings.collectMetrics) {
+    metrics.comboCalcCalls = (metrics.comboCalcCalls || 0) + 1;
+  }
+
+  // キャッシュキー
+  const cacheKey = `${comboData.combo}_${comboData.maxCombo}_${comboData.lastComboTimestamp}`;
+  if (cache.comboEffect && cache.comboEffect.has(cacheKey)) {
+    return cache.comboEffect.get(cacheKey);
+  }
+
+  // キャッシュが初期化されていなければ初期化
+  if (!cache.comboEffect) {
+    cache.comboEffect = new Map();
+  }
+
+  const { combo = 0, maxCombo = 0, lastComboTimestamp = 0 } = comboData;
+  const currentTime = Date.now();
+  const timeSinceLastCombo = currentTime - lastComboTimestamp;
+
+  // コンボエフェクトの計算
+  const result = {
+    combo,
+    maxCombo: Math.max(combo, maxCombo),
+    lastComboTimestamp: currentTime,
+    comboMultiplier: 1.0,
+    comboEffect: 'none',
+    comboColor: '#ffffff',
+    comboScale: 1.0,
+    comboPulse: 0,
+    comboMessage: '',
+  };
+
+  // コンボ乗数の計算（スコアボーナス用）
+  if (combo >= 100) {
+    result.comboMultiplier = 2.0;
+    result.comboEffect = 'super';
+    result.comboColor = '#ff00ff'; // パープル
+    result.comboScale = 1.5 + (Math.sin(currentTime / 100) * 0.2);
+    result.comboPulse = 0.8;
+    result.comboMessage = 'PERFECT!!!';
+  } else if (combo >= 50) {
+    result.comboMultiplier = 1.5;
+    result.comboEffect = 'great';
+    result.comboColor = '#ffcc00'; // オレンジ
+    result.comboScale = 1.3 + (Math.sin(currentTime / 150) * 0.15);
+    result.comboPulse = 0.5;
+    result.comboMessage = 'AWESOME!!';
+  } else if (combo >= 20) {
+    result.comboMultiplier = 1.2;
+    result.comboEffect = 'good';
+    result.comboColor = '#00ccff'; // ライトブルー
+    result.comboScale = 1.2 + (Math.sin(currentTime / 200) * 0.1);
+    result.comboPulse = 0.3;
+    result.comboMessage = 'GREAT!';
+  } else if (combo >= 10) {
+    result.comboMultiplier = 1.1;
+    result.comboEffect = 'small';
+    result.comboColor = '#00ff00'; // グリーン
+    result.comboScale = 1.1 + (Math.sin(currentTime / 250) * 0.05);
+    result.comboPulse = 0.2;
+    result.comboMessage = 'GOOD!';
+  }
+
+  // コンボ継続時間によって計算パラメーターを調整
+  if (timeSinceLastCombo < 2000) {
+    // 2秒以内のコンボはエフェクト強化
+    result.comboScale += 0.1;
+    result.comboPulse += 0.1;
+  } else if (timeSinceLastCombo > 5000) {
+    // 5秒以上経過したコンボは弱体化
+    result.comboScale = Math.max(1.0, result.comboScale - 0.2);
+    result.comboPulse = Math.max(0, result.comboPulse - 0.2);
+  }
+
+  // 高速化のためにキャッシュに保存
+  if (cache.comboEffect.size > performanceSettings.maxCacheSize) {
+    cache.comboEffect.clear();
+  }
+  cache.comboEffect.set(cacheKey, result);
+
+  // 統計情報を更新
+  if (performanceSettings.collectMetrics) {
+    const endTime = performance.now();
+    metrics.totalProcessingTime += (endTime - startTime);
+  }
+
+  return result;
+}
+
+/**
+ * 詳細なリザルト計算（WPM、精度、ランク分析を含む）
+ * @param {Object} resultData - 計算に必要なデータ
+ * @returns {Object} 詳細なリザルト情報
+ */
+function calculateDetailedResults(resultData) {
+  const startTime = performance.now();
+
+  // メトリクス更新
+  if (performanceSettings.collectMetrics) {
+    metrics.resultCalcCalls = (metrics.resultCalcCalls || 0) + 1;
+  }
+
+  const {
+    sessionData = {},
+    inputHistory = [],
+    startTime: gameStartTime,
+    endTime: gameEndTime,
+    correctCount = 0,
+    missCount = 0,
+    maxCombo = 0,
+    problemStats = [],
+  } = resultData;
+
+  // 基本的な集計データ
+  const totalKeystrokes = correctCount + missCount;
+  const accuracy = totalKeystrokes > 0 ? (correctCount / totalKeystrokes) * 100 : 0;
+  const elapsedTimeMs = gameEndTime - gameStartTime;
+  const elapsedTimeMinutes = elapsedTimeMs / 60000;
+
+  // 単語あたりの文字数（平均5文字として計算）
+  const CHARS_PER_WORD = 5;
+  // 正答キーストロークを単語数に変換
+  const wordCount = correctCount / CHARS_PER_WORD;
+  // WPM（1分あたりの単語数）計算
+  const wpm = elapsedTimeMinutes > 0 ? wordCount / elapsedTimeMinutes : 0;
+
+  // KPM（1分あたりのキーストローク数）計算
+  const kpm = elapsedTimeMinutes > 0 ? correctCount / elapsedTimeMinutes : 0;
+
+  // ランク計算
+  const rank = calculateRank(kpm);
+
+  // 入力パターン分析
+  const keyFrequency = {};
+  const errorPatterns = {};
+  let totalReactionTime = 0;
+  let reactionTimeCount = 0;
+  let prevTimestamp = null;
+
+  // 入力履歴の詳細分析
+  inputHistory.forEach((entry, index) => {
+    if (!entry) return;
+    
+    // キー頻度の分析
+    if (entry.key) {
+      keyFrequency[entry.key] = (keyFrequency[entry.key] || 0) + 1;
+    }
+
+    // エラー分析
+    if (!entry.isCorrect && entry.expectedKey) {
+      const errorPattern = `${entry.expectedKey}->${entry.key}`;
+      errorPatterns[errorPattern] = (errorPatterns[errorPattern] || 0) + 1;
+    }
+
+    // タイピング間隔（反応時間）の分析
+    if (prevTimestamp && entry.timestamp) {
+      const interval = entry.timestamp - prevTimestamp;
+      // 異常値（5秒以上）は分析から除外
+      if (interval < 5000) {
+        totalReactionTime += interval;
+        reactionTimeCount++;
+      }
+    }
+    
+    prevTimestamp = entry.timestamp;
+  });
+
+  // 平均反応時間（ミリ秒）
+  const averageReactionTime = reactionTimeCount > 0 ? totalReactionTime / reactionTimeCount : 0;
+
+  // スコア計算（精度とスピードのバランスを考慮）
+  const baseScore = kpm * (accuracy / 100);
+  const comboBonus = Math.min(maxCombo / 10, 20); // コンボボーナス（最大20%）
+  const totalScore = Math.round(baseScore * (1 + comboBonus / 100));
+
+  // 詳細な問題別統計
+  const detailedProblemStats = [];
+  if (Array.isArray(problemStats)) {
+    problemStats.forEach((problem, index) => {
+      if (!problem) return;
+      
+      const problemTimeMinutes = problem.problemElapsedMs / 60000;
+      const problemKPM = problemTimeMinutes > 0 ? problem.problemKeyCount / problemTimeMinutes : 0;
+      const problemAccuracy = problem.problemTotalCount > 0 
+        ? (problem.problemKeyCount / problem.problemTotalCount) * 100 
+        : 0;
+        
+      detailedProblemStats.push({
+        index,
+        kpm: problemKPM,
+        accuracy: problemAccuracy,
+        timeMs: problem.problemElapsedMs,
+        keyCount: problem.problemKeyCount,
+        missCount: problem.problemMissCount || (problem.problemTotalCount - problem.problemKeyCount)
+      });
+    });
+  }
+
+  // 結果データ
+  const result = {
+    totalKeystrokes,
+    correctCount,
+    missCount,
+    accuracy,
+    elapsedTimeMs,
+    elapsedTimeMinutes,
+    wordCount,
+    wpm,
+    kpm,
+    rank,
+    maxCombo,
+    averageReactionTime,
+    score: totalScore,
+    keyFrequency,
+    topErrors: Object.entries(errorPatterns)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([pattern, count]) => ({ pattern, count })),
+    problemStats: detailedProblemStats,
+    timestamp: Date.now()
+  };
+
+  // 統計情報を更新
+  if (performanceSettings.collectMetrics) {
+    const endTime = performance.now();
+    metrics.totalProcessingTime += (endTime - startTime);
+  }
+
+  return result;
+}
+
+/**
  * 入力履歴データの処理と集計（高リフレッシュレート対応版）
  * @param {Object} inputHistoryData - キー入力の履歴データ（フォーマットによって構造が異なる）
  */
@@ -1035,6 +1349,7 @@ function getMetrics() {
       processInputSize: cache.processInput.size,
       coloringInfoSize: cache.coloringInfo.size,
       statisticsSize: cache.statistics.size,
+      comboEffectSize: cache.comboEffect ? cache.comboEffect.size : 0
     },
     performanceSettings,
     // フレーム時間情報を追加（リフレッシュレート対応）
@@ -1139,16 +1454,27 @@ function initializePredictionCache(data) {
   };
 }
 
+/**
+ * 促音（っ）の分割入力処理の最適化
+ * @param {string} char - 入力された文字
+ * @param {Array} patterns - 現在の文字に対するローマ字パターン
+ * @param {string} currentInput - 現在の入力状態
+ * @returns {Object|null} 分割処理結果
+ */
+function optimizeSplitInput(char, patterns, currentInput) {
+  // 促音関連（未実装の場合は空のオブジェクトを返す）
+  // 実際の実装はゲームの設計によって異なるため、ダミー実装
+  return null;
+}
+
 // Web Worker グローバルコンテキスト初期化
 self._lastFullSession = null; // 完全なセッションを保持するためのキャッシュ
 self._coloringCache = new Map(); // 色分け情報のキャッシュ
 self._lastColoringInfo = null;  // 最後の色分け情報
 self._predictionCache = new Map(); // 予測入力のキャッシュ
 
-/**
- * パフォーマンス監視間隔（秒）
- * 定期的にメトリクスをメインスレッドに送信
- */
+// パフォーマンス監視間隔（秒）
+// 定期的にメトリクスをメインスレッドに送信
 let metricsReportingInterval = null;
 if (performanceSettings.collectMetrics) {
   metricsReportingInterval = setInterval(() => {
@@ -1308,6 +1634,66 @@ self.onmessage = function (e) {
       }
       break;
 
+    // 追加機能: Firebase連携データの準備
+    case 'prepareFirebaseData':
+      try {
+        const result = prepareFirebaseData(data);
+        self.postMessage({
+          type: 'prepareFirebaseDataResult',
+          callbackId,
+          priority: 'low',
+          data: result,
+        });
+      } catch (err) {
+        console.error('Worker処理エラー (prepareFirebaseData):', err);
+        self.postMessage({
+          type: 'prepareFirebaseDataResult',
+          callbackId,
+          data: { success: false, error: err.message },
+        });
+      }
+      break;
+
+    // 追加機能: コンボエフェクト計算
+    case 'calculateComboEffect':
+      try {
+        const result = calculateComboEffect(data);
+        self.postMessage({
+          type: 'calculateComboEffectResult',
+          callbackId,
+          priority: 'normal',
+          data: result,
+        });
+      } catch (err) {
+        console.error('Worker処理エラー (calculateComboEffect):', err);
+        self.postMessage({
+          type: 'calculateComboEffectResult',
+          callbackId,
+          data: { success: false, error: err.message },
+        });
+      }
+      break;
+
+    // 追加機能: 詳細なリザルト計算
+    case 'calculateDetailedResults':
+      try {
+        const result = calculateDetailedResults(data);
+        self.postMessage({
+          type: 'calculateDetailedResultsResult',
+          callbackId,
+          priority: 'low',
+          data: result,
+        });
+      } catch (err) {
+        console.error('Worker処理エラー (calculateDetailedResults):', err);
+        self.postMessage({
+          type: 'calculateDetailedResultsResult',
+          callbackId,
+          data: { success: false, error: err.message },
+        });
+      }
+      break;
+
     case 'ping':
       // 生存確認用
       self.postMessage({
@@ -1413,6 +1799,10 @@ self.addEventListener('close', () => {
   cache.processInput.clear();
   cache.coloringInfo.clear();
   cache.statistics.clear();
+  
+  if (cache.comboEffect) {
+    cache.comboEffect.clear();
+  }
 
   self._coloringCache.clear();
   self._lastFullSession = null;

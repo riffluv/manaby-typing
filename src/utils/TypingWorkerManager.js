@@ -623,6 +623,136 @@ export class TypingWorkerManager {
 
     return this._optimizationOptions;
   }
+
+  /**
+   * リザルト計算（WPM、精度、ランク分析など詳細な結果）
+   * @param {Object} resultData - リザルト計算に必要なデータ
+   * @returns {Promise} 詳細なリザルト情報を含むPromise
+   */
+  async calculateDetailedResults(resultData) {
+    if (!this._worker) {
+      try {
+        await this._initialize();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+
+    return new Promise((resolve) => {
+      const callbackId = this._getNextCallbackId();
+
+      // コールバックを登録
+      this._callbacks.set(callbackId, resolve);
+
+      // Workerにメッセージを送信
+      this._worker.postMessage({
+        type: 'calculateDetailedResults',
+        callbackId,
+        priority: 'low', // 優先度を下げる（メイン処理への影響を減らすため）
+        data: resultData,
+      });
+
+      // メトリクスの更新
+      this._metrics.messagesSent++;
+      this._metrics.totalMessages++;
+    });
+  }
+
+  /**
+   * コンボエフェクトの計算
+   * @param {Object} comboData - コンボデータ
+   * @returns {Promise} コンボエフェクト計算結果を含むPromise
+   */
+  async calculateComboEffect(comboData) {
+    if (!this._worker) {
+      try {
+        await this._initialize();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+
+    return new Promise((resolve) => {
+      const callbackId = this._getNextCallbackId();
+
+      // コールバックを登録
+      this._callbacks.set(callbackId, resolve);
+
+      // Workerにメッセージを送信
+      this._worker.postMessage({
+        type: 'calculateComboEffect',
+        callbackId,
+        priority: 'normal', // 通常の優先度（視覚効果に関わるため）
+        data: comboData,
+      });
+
+      // メトリクスの更新
+      this._metrics.messagesSent++;
+      this._metrics.totalMessages++;
+    });
+  }
+
+  /**
+   * Firebase用のデータ整形・準備
+   * @param {Object} recordData - 送信予定のデータ
+   * @returns {Promise} Firebase用の整形されたデータを含むPromise
+   */
+  async prepareFirebaseData(recordData) {
+    if (!this._worker) {
+      try {
+        await this._initialize();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+
+    return new Promise((resolve) => {
+      const callbackId = this._getNextCallbackId();
+
+      // コールバックを登録
+      this._callbacks.set(callbackId, resolve);
+
+      // Workerにメッセージを送信
+      this._worker.postMessage({
+        type: 'prepareFirebaseData',
+        callbackId,
+        priority: 'low', // 非重要タスク
+        data: recordData,
+      });
+
+      // メトリクスの更新
+      this._metrics.messagesSent++;
+      this._metrics.totalMessages++;
+    });
+  }
+
+  /**
+   * バッチ処理の実行
+   * @param {Array} tasks - 実行するタスクのリスト
+   * @returns {Promise} すべてのタスク結果を含むPromise
+   */
+  async executeBatch(tasks) {
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    return Promise.all(tasks.map(task => {
+      switch (task.type) {
+        case 'processInput':
+          return this.processInput(task.session, task.char, task.isCorrect);
+        case 'calculateStatistics':
+          return this.calculateStatistics(task.data);
+        case 'calculateComboEffect':
+          return this.calculateComboEffect(task.data);
+        case 'prepareFirebaseData':
+          return this.prepareFirebaseData(task.data);
+        case 'calculateDetailedResults':
+          return this.calculateDetailedResults(task.data);
+        default:
+          return Promise.reject(new Error(`不明なタスクタイプ: ${task.type}`));
+      }
+    }));
+  }
 }
 
 /**
