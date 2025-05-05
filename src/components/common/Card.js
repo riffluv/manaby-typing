@@ -54,8 +54,8 @@ const Card = ({
   };
 
   return (
-    <div 
-      className={cardClasses} 
+    <div
+      className={cardClasses}
       onClick={handleClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -73,17 +73,17 @@ const Card = ({
           {title && <h3 className={styles.card__title}>{title}</h3>}
         </div>
       )}
-      
+
       <div className={styles.card__content}>
         {children}
       </div>
-      
+
       {actions && (
         <div className={styles.card__actions}>
           {actions}
         </div>
       )}
-      
+
       {footer && (
         <div className={styles.card__footer}>
           {footer}

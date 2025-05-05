@@ -28,35 +28,49 @@
   --font-normal: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
   --font-dot: 'Press Start 2P', cursive, monospace;
   --font-mono: 'Source Code Pro', 'Fira Code', 'Cascadia Code', Consolas, monospace;
-  
+
   /* フォントサイズ */
-  --font-size-xs: 0.75rem;  /* 12px */
-  --font-size-sm: 0.875rem; /* 14px */
-  --font-size-md: 1rem;     /* 16px */
-  --font-size-lg: 1.125rem; /* 18px */
-  --font-size-xl: 1.25rem;  /* 20px */
-  --font-size-2xl: 1.5rem;  /* 24px */
-  --font-size-3xl: 1.875rem; /* 30px */
-  --font-size-4xl: 2.25rem;  /* 36px */
+  --font-size-xs: 0.75rem;
+  /* 12px */
+  --font-size-sm: 0.875rem;
+  /* 14px */
+  --font-size-md: 1rem;
+  /* 16px */
+  --font-size-lg: 1.125rem;
+  /* 18px */
+  --font-size-xl: 1.25rem;
+  /* 20px */
+  --font-size-2xl: 1.5rem;
+  /* 24px */
+  --font-size-3xl: 1.875rem;
+  /* 30px */
+  --font-size-4xl: 2.25rem;
+  /* 36px */
 
   /* フォントウェイト */
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  
+
   /* ラインハイト */
   --line-height-tight: 1.2;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.6;
-  
+
   /* スペーシング */
-  --spacing-xs: 0.25rem;  /* 4px */
-  --spacing-sm: 0.5rem;   /* 8px */
-  --spacing-md: 1rem;     /* 16px */
-  --spacing-lg: 1.5rem;   /* 24px */
-  --spacing-xl: 2rem;     /* 32px */
-  --spacing-2xl: 3rem;    /* 48px */
+  --spacing-xs: 0.25rem;
+  /* 4px */
+  --spacing-sm: 0.5rem;
+  /* 8px */
+  --spacing-md: 1rem;
+  /* 16px */
+  --spacing-lg: 1.5rem;
+  /* 24px */
+  --spacing-xl: 2rem;
+  /* 32px */
+  --spacing-2xl: 3rem;
+  /* 48px */
 
   /* アニメーション */
   --animation-duration-fast: 0.15s;
@@ -85,13 +99,13 @@
   --next-char-color: var(--color-primary-light);
   --not-typed-color: var(--color-text-muted);
   --error-color: var(--color-error);
-  
+
   /* テキストサイズ設定 */
   --problem-text-size: var(--font-size-4xl);
   --typing-text-size: var(--font-size-2xl);
   --problem-text-line-height: var(--line-height-tight);
   --typing-text-line-height: var(--line-height-normal);
-  
+
   /* 見出しスタイル */
   --heading-letter-spacing: 2px;
   --heading-color: var(--color-primary);
@@ -185,7 +199,7 @@ button {
   display: inline-block;
   text-transform: uppercase;
   image-rendering: pixelated;
-  
+
   /* ドット感を出すためのスタイル */
   background-image: radial-gradient(circle, var(--color-primary) 50%, transparent 50%);
   background-size: 4px 4px;
@@ -289,7 +303,7 @@ button {
     --problem-text-size: var(--font-size-3xl);
     --typing-text-size: var(--font-size-xl);
   }
-  
+
   .screen-title {
     font-size: var(--font-size-2xl);
   }
@@ -300,7 +314,7 @@ button {
     --problem-text-size: var(--font-size-2xl);
     --typing-text-size: var(--font-size-lg);
   }
-  
+
   .screen-title {
     font-size: var(--font-size-xl);
   }

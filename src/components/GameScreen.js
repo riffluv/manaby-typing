@@ -18,6 +18,7 @@ import { useTypingGame } from '../hooks/useTypingGame';
 // コンポーネントをインポート
 import TypingDisplay from './typing/TypingDisplay';
 import ProblemDisplay from './typing/ProblemDisplay';
+import CanvasKeyboard from './typing/CanvasKeyboard'; // 新しいキャンバスキーボードをインポート
 import Button from './common/Button'; // 共通ボタンコンポーネントをインポート
 
 // リファクタリング後のコンポーネント実装
@@ -31,6 +32,9 @@ const GameScreen = () => {
 
   // 一時ローカル状態（互換性のために残す）
   const [soundsLoaded, setSoundsLoaded] = useState(false);
+  
+  // 最後に押されたキー（キーボード表示用）
+  const [lastPressedKey, setLastPressedKey] = useState('');
 
   // typingの参照を保持するためのref
   const typingRef = useRef(null);
@@ -266,6 +270,9 @@ const GameScreen = () => {
         return;
       }
 
+      // 最後に押されたキーを更新（キーボード表示用）
+      setLastPressedKey(e.key);
+
       // AudioContextの状態がsuspendedの場合は再開
       soundSystem.resume();
 
@@ -395,6 +402,11 @@ const GameScreen = () => {
     []
   );
 
+  // 次に入力すべきキーを取得
+  const nextKey = useMemo(() => {
+    return typing.typingSession?.getCurrentExpectedKey?.() || '';
+  }, [typing]);
+
   // ゲームクリア状態の場合は何も表示しない - 早期リターン
   if (gameState.isGameClear === true) {
     console.log(
@@ -423,7 +435,7 @@ const GameScreen = () => {
         >
           メニューに戻る
         </Button>
-        
+
         <motion.div
           className={styles.typing_game__level_display}
           initial={animationVariants.gameLevelScale.initial}
@@ -459,11 +471,14 @@ const GameScreen = () => {
               className={styles.typing_game__input_display}
             />
           </div>
-          
-          {/* 将来的なKeyboardDisplay用のスペースを確保 */}
-          <div className={styles.typing_game__keyboard_area}>
-            {/* ここに将来的にKeyboardDisplayを追加 */}
-          </div>
+
+          {/* キャンバスキーボードを直接表示（お題エリアより大きめのサイズ） */}
+          <CanvasKeyboard
+            nextKey={nextKey}
+            lastPressedKey={lastPressedKey}
+            isError={typing.errorAnimation}
+            layout="jp"
+          />
         </div>
       </motion.main>
 

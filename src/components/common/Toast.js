@@ -32,30 +32,30 @@ const Toast = ({
   const toastConfig = useMemo(() => {
     switch (type) {
       case 'success':
-        return { 
-          icon: '✓', 
+        return {
+          icon: '✓',
           className: 'toast--success',
           ariaRole: 'status',
           ariaLive: 'polite'
         };
       case 'error':
-        return { 
-          icon: '✕', 
+        return {
+          icon: '✕',
           className: 'toast--error',
           ariaRole: 'alert',
           ariaLive: 'assertive'
         };
       case 'warning':
-        return { 
-          icon: '!', 
+        return {
+          icon: '!',
           className: 'toast--warning',
           ariaRole: 'status',
           ariaLive: 'polite'
         };
       case 'info':
       default:
-        return { 
-          icon: 'i', 
+        return {
+          icon: 'i',
           className: 'toast--info',
           ariaRole: 'status',
           ariaLive: 'polite'
@@ -97,8 +97,8 @@ const Toast = ({
   };
 
   // 表示位置に応じたアニメーションを選択
-  const animationVariant = position.includes('top') 
-    ? animations.topVariants 
+  const animationVariant = position.includes('top')
+    ? animations.topVariants
     : animations.bottomVariants;
 
   return (
@@ -120,8 +120,8 @@ const Toast = ({
               </div>
             )}
             <div className={styles.toast__message}>{message}</div>
-            <button 
-              className={styles.toast__close_button} 
+            <button
+              className={styles.toast__close_button}
               onClick={onClose}
               aria-label="通知を閉じる"
             >
@@ -130,7 +130,7 @@ const Toast = ({
           </div>
           {/* 自動で閉じるプログレスバー */}
           {duration > 0 && (
-            <motion.div 
+            <motion.div
               className={styles.toast__progress}
               initial={{ width: '100%' }}
               animate={{ width: 0 }}

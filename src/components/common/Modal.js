@@ -63,7 +63,7 @@ const Modal = ({
       // モーダル表示時はスクロールを禁止
       document.body.style.overflow = 'hidden';
     }
-    
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       // モーダル非表示時にスクロールを再開
@@ -78,7 +78,7 @@ const Modal = ({
     exit: { opacity: 0 },
     transition: { duration: 0.2 }
   };
-  
+
   const contentAnimations = {
     initial: { scale: 0.9, opacity: 0 },
     animate: { scale: 1, opacity: 1 },
@@ -94,7 +94,7 @@ const Modal = ({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div 
+        <div
           className={[modalClasses.base, modalClasses.size, modalClasses.custom].filter(Boolean).join(' ')}
           role="dialog"
           aria-labelledby="modal-title"
@@ -111,14 +111,14 @@ const Modal = ({
               {...contentAnimations}
             >
               <div className={styles.modal__header}>
-                <h2 
-                  className={styles.modal__title} 
+                <h2
+                  className={styles.modal__title}
                   id="modal-title"
                 >
                   {title}
                 </h2>
-                <button 
-                  className={styles.modal__close_button} 
+                <button
+                  className={styles.modal__close_button}
                   onClick={onClose}
                   aria-label="閉じる"
                 >

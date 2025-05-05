@@ -38,7 +38,7 @@ const ProgressBar = ({
 }) => {
   // 進捗率の計算（0〜100%）
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
-  
+
   // BEM記法に基づくクラス名の生成
   const progressBarClasses = [
     styles.progress_bar,
@@ -82,7 +82,7 @@ const ProgressBar = ({
             className={styles.progress_bar__fill}
             initial={{ width: 0 }}
             animate={{ width: `${percentage}%` }}
-            transition={{ 
+            transition={{
               type: 'spring',
               stiffness: 60,
               damping: 15

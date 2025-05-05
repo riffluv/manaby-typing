@@ -6,27 +6,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   /* サイズと形状 */
   padding: 10px 20px;
   border-radius: 8px;
   border: 2px solid var(--color-primary, #ff8c00);
-  
+
   /* 色と背景 */
   background-color: rgba(0, 0, 0, 0.7);
   color: var(--color-text, #ffffff);
-  
+
   /* テキスト */
   font-family: var(--font-normal);
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.5px;
   text-align: center;
-  
+
   /* インタラクション */
   cursor: pointer;
   transition: all 0.3s ease;
-  
+
   /* 特殊効果 */
   overflow: hidden;
   position: relative;
@@ -205,6 +205,7 @@
 
 /* ------ レスポンシブ対応 ------ */
 @media (max-width: 850px) {
+
   /* メニューボタンのタブレット/モバイル調整 */
   .button--menu {
     width: 120px;
@@ -217,7 +218,7 @@
     font-size: 14px;
     margin-right: 6px;
   }
-  
+
   /* 通常ボタンのタブレット/モバイル調整 */
   .button {
     padding: 8px 16px;
@@ -231,14 +232,14 @@
     padding: 6px 12px;
     font-size: 12px;
   }
-  
+
   .button--menu {
     width: 100px;
     height: 36px;
     padding: 6px 12px;
     font-size: 9px;
   }
-  
+
   .button__icon {
     margin-right: 4px;
     font-size: 12px;

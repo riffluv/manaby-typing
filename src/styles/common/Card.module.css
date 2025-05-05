@@ -145,7 +145,7 @@
 }
 
 /* カードグループ用スタイル */
-.card + .card {
+.card+.card {
   margin-top: var(--spacing-md, 1rem);
 }
 
@@ -170,7 +170,7 @@
   .card {
     background-color: rgba(0, 0, 0, 0.4);
   }
-  
+
   .card--elevated {
     background-color: rgba(20, 20, 20, 0.9);
   }

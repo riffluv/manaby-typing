@@ -79,11 +79,11 @@ const Input = forwardRef(({
         {prefix && (
           <span className={styles.input__prefix}>{prefix}</span>
         )}
-        
+
         {icon && iconPosition === 'left' && (
           <span className={styles.input__icon}>{icon}</span>
         )}
-        
+
         <input
           ref={ref}
           id={id}
@@ -97,23 +97,23 @@ const Input = forwardRef(({
           aria-describedby={`${id}-helper ${id}-error`}
           {...rest}
         />
-        
+
         {icon && iconPosition === 'right' && (
           <span className={styles.input__icon}>{icon}</span>
         )}
-        
+
         {suffix && (
           <span className={styles.input__suffix}>{suffix}</span>
         )}
       </div>
-      
+
       <div className={styles.input__feedback}>
         {helperText && (
           <p id={`${id}-helper`} className={styles.input__helper_text}>
             {helperText}
           </p>
         )}
-        
+
         {error && (
           <p id={`${id}-error`} className={styles.input__error_text}>
             {error}

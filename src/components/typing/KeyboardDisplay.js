@@ -27,7 +27,7 @@ const KeyboardDisplay = ({
 }) => {
   // キーボードレイアウト定義
   const [keyboardLayout, setKeyboardLayout] = useState([]);
-  
+
   // アクティブキーと最後に押されたキーの状態管理
   const [currentActiveKey, setCurrentActiveKey] = useState('');
   const [prevActiveKey, setPrevActiveKey] = useState('');
@@ -42,7 +42,7 @@ const KeyboardDisplay = ({
       ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', '\\'],
       ['space']
     ];
-    
+
     // 英語キーボードレイアウト
     const enLayout = [
       ['`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='],
@@ -51,7 +51,7 @@ const KeyboardDisplay = ({
       ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'],
       ['space']
     ];
-    
+
     setKeyboardLayout(layout === 'jp' ? jpLayout : enLayout);
   }, [layout]);
 
@@ -76,7 +76,7 @@ const KeyboardDisplay = ({
     const isSpace = key === 'space';
     const isActive = key.toLowerCase() === currentActiveKey?.toLowerCase();
     const isLastPressed = key.toLowerCase() === lastPressedKey?.toLowerCase();
-    
+
     const keyClasses = [
       styles.keyboard__key,
       isSpace ? styles['keyboard__key--space'] : '',
@@ -89,8 +89,8 @@ const KeyboardDisplay = ({
     const keyDisplay = isSpace ? '␣' : key;
 
     return (
-      <motion.div 
-        key={key} 
+      <motion.div
+        key={key}
         className={keyClasses}
         whileTap={{ scale: 0.95 }}
         transition={{ type: 'spring', stiffness: 400, damping: 17 }}

@@ -153,7 +153,7 @@
 }
 
 /* 状態修飾子：アイコン位置が右の場合 */
-.input--icon-right + .input__icon {
+.input--icon-right+.input__icon {
   right: 0;
   left: auto;
 }
@@ -202,11 +202,11 @@
   .input {
     background-color: rgba(0, 0, 0, 0.4);
   }
-  
+
   .input--filled {
     background-color: rgba(0, 0, 0, 0.5);
   }
-  
+
   .input--filled:focus {
     background-color: rgba(0, 0, 0, 0.6);
   }

@@ -11,7 +11,7 @@
   border-radius: var(--border-radius-md, 8px);
   overflow: hidden;
   z-index: 9999;
-  
+
   /* 背景と境界線 */
   background-color: rgba(30, 30, 30, 0.9);
   box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.3));
@@ -169,7 +169,7 @@
     min-width: 280px;
     max-width: calc(100vw - 40px);
   }
-  
+
   .toast--top-right,
   .toast--top-left,
   .toast--bottom-right,
@@ -180,13 +180,13 @@
     top: auto;
     max-width: calc(100vw - 20px);
   }
-  
+
   .toast__message {
     font-size: 13px;
   }
 }
 
 /* 複数のトーストが表示されたときのスタイル */
-.toast + .toast {
+.toast+.toast {
   margin-top: var(--spacing-sm, 8px);
 }

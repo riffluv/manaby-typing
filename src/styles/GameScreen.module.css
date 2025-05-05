@@ -22,10 +22,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: linear-gradient(
-      rgba(255, 140, 0, 0.03) 1px,
-      transparent 1px
-    ),
+  background-image: linear-gradient(rgba(255, 140, 0, 0.03) 1px,
+      transparent 1px),
     linear-gradient(90deg, rgba(255, 140, 0, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
   z-index: 0;
@@ -66,7 +64,8 @@
   color: rgba(255, 255, 255, 0.8);
   transition: all 0.2s;
   border-radius: 16px;
-  margin-right: auto; /* 左寄せに配置 */
+  margin-right: auto;
+  /* 左寄せに配置 */
 }
 
 .typing_game__back_button:hover {
@@ -113,7 +112,7 @@
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
-  margin: 1rem 0;
+  margin: 0.5rem 0; /* 余白を少し減らして垂直方向のスペースを確保 */
 }
 
 /* 問題エリア（要素） */
@@ -130,7 +129,7 @@
   transition: box-shadow 0.3s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
-  min-height: 160px;
+  min-height: 140px; /* 高さを少し減らして垂直方向のスペースを確保 */
   height: auto;
 }
 
@@ -144,12 +143,17 @@
 /* キーボード表示エリア（要素） */
 .typing_game__keyboard_area {
   width: 100%;
-  min-height: 120px;
+  min-height: 180px; /* 高さを増やす（元：120px） */
+  max-width: 700px; /* 最大幅を制限 */
   border-radius: 10px;
   border: 1px dashed rgba(255, 140, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 10px 0; /* 上下のパディングを追加 */
+  box-sizing: border-box;
+  margin-bottom: 20px; /* 下部にマージンを追加して、ショートカット表示と被らないようにする */
+  overflow: visible; /* オーバーフロー表示を許可 */
 }
 
 /* 進行状況バーエリア（要素） */
@@ -158,15 +162,22 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5px; /* 間隔を狭めて全体高さを縮小 */
+  gap: 1.5px;
+  /* 間隔を狭めて全体高さを縮小 */
   margin: 0;
-  position: absolute; /* stickyからabsoluteに変更 */
-  bottom: 30px; /* 下からの位置を調整 */
+  position: absolute;
+  /* stickyからabsoluteに変更 */
+  bottom: 30px;
+  /* 下からの位置を調整 */
   left: 50%;
-  transform: translateX(-50%); /* 中央配置 */
-  max-height: 50%; /* 高さを制限して半分程度に */
-  padding: 0; /* パディングをなくして余白を減らす */
-  z-index: 10; /* 他の要素より前面に表示 */
+  transform: translateX(-50%);
+  /* 中央配置 */
+  max-height: 50%;
+  /* 高さを制限して半分程度に */
+  padding: 0;
+  /* パディングをなくして余白を減らす */
+  z-index: 10;
+  /* 他の要素より前面に表示 */
 }
 
 /* 問題テキスト（要素） */
@@ -221,9 +232,21 @@
 
 /* エラー時のシェイクアニメーション */
 @keyframes errorShake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-5px); }
-  40%, 80% { transform: translateX(5px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
 }
 
 .typing_game__error_shake {
@@ -248,8 +271,15 @@
 }
 
 @keyframes cursorBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
 }
 
 /* コントロールボタンエリア（要素） */
@@ -330,9 +360,26 @@
 }
 
 /* レガシーサポート用（最小限のクラスのみ残す） */
-.gameContainer { composes: typing_game; }
-.gameHeader { composes: typing_game__header; }
-.gameArea { composes: typing_game__main; }
-.typingProblem { composes: typing_game__problem_text; }
-.simpleTypingText { composes: typing_game__input_display; }
-.progressContainer { composes: typing_game__progress_area; }
+.gameContainer {
+  composes: typing_game;
+}
+
+.gameHeader {
+  composes: typing_game__header;
+}
+
+.gameArea {
+  composes: typing_game__main;
+}
+
+.typingProblem {
+  composes: typing_game__problem_text;
+}
+
+.simpleTypingText {
+  composes: typing_game__input_display;
+}
+
+.progressContainer {
+  composes: typing_game__progress_area;
+}

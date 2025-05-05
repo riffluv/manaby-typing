@@ -86,16 +86,14 @@
 
 /* 修飾子: ストライプバリアント */
 .progress_bar--striped .progress_bar__fill {
-  background-image: linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.15) 25%,
-    transparent 25%,
-    transparent 50%,
-    rgba(255, 255, 255, 0.15) 50%,
-    rgba(255, 255, 255, 0.15) 75%,
-    transparent 75%,
-    transparent
-  );
+  background-image: linear-gradient(45deg,
+      rgba(255, 255, 255, 0.15) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgba(255, 255, 255, 0.15) 50%,
+      rgba(255, 255, 255, 0.15) 75%,
+      transparent 75%,
+      transparent);
   background-size: 1rem 1rem;
 }
 
@@ -109,9 +107,11 @@
   0% {
     transform: translateX(-100%);
   }
+
   50% {
     transform: translateX(40%);
   }
+
   100% {
     transform: translateX(200%);
   }
@@ -122,6 +122,7 @@
   0% {
     background-position: 0 0;
   }
+
   100% {
     background-position: 1rem 0;
   }

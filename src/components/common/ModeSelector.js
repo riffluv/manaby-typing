@@ -86,7 +86,7 @@ const ModeSelector = ({
               )}
 
               {isSelected && (
-                <motion.div 
+                <motion.div
                   className={styles.mode_selector__selection_indicator}
                   layoutId="selection-indicator"
                   transition={{ type: 'spring', duration: 0.3, bounce: 0.2 }}
