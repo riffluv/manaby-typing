@@ -150,7 +150,7 @@ export const GameProvider = ({ children }) => {
         StorageUtils.applyScreenBackground(currentScreen);
         console.log(`[GameContext] 画面背景更新: ${currentScreen}`);
       }
-      
+
       // 注意: BGMの再生はSoundContextが管理するため、
       // ここではBGMの自動再生を行わないように変更しました
     } catch (error) {

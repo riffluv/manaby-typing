@@ -417,7 +417,7 @@ class SoundUtils {
       this.gainNode.gain.value = this.volume;
     }
     console.log(`[DEBUG] 効果音の音量を設定: ${this.volume}`);
-    
+
     // 設定をローカルストレージに保存
     this._saveSettingsToStorage();
   }
@@ -435,7 +435,7 @@ class SoundUtils {
     this.sfxEnabled = enabled;
     this.gainNode.gain.value = enabled ? this.volume : 0;
     console.log(`[DEBUG] 効果音を${enabled ? '有効' : '無効'}にしました`);
-    
+
     // 設定をローカルストレージに保存
     this._saveSettingsToStorage();
   }
@@ -463,7 +463,7 @@ class SoundUtils {
     }
 
     console.log(`[DEBUG] BGMの音量を設定: ${this.bgmVolume}`);
-    
+
     // 設定をローカルストレージに保存
     this._saveSettingsToStorage();
   }
@@ -489,7 +489,7 @@ class SoundUtils {
     }
 
     console.log(`[DEBUG] BGMを${enabled ? '有効' : '無効'}にしました`);
-    
+
     // 設定をローカルストレージに保存
     this._saveSettingsToStorage();
   }

@@ -1,6 +1,13 @@
 {
-  "watch": ["src/**/*", "public/**/*"],
+  "watch": [
+    "src/**/*",
+    "public/**/*"
+  ],
   "ext": "js,jsx,ts,tsx,json,css",
-  "ignore": ["node_modules", ".next"],
-  "exec": "next dev"
+  "ignore": [
+    "node_modules",
+    ".next"
+  ],
+  "exec": "next dev -p 3005",
+  "verbose": true
 }

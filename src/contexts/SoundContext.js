@@ -1,7 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import soundSystem from '../utils/SoundUtils';
+
+// サウンド設定のストレージキー
+const STORAGE_KEYS = {
+  SOUND_ENABLED: 'sound_soundEnabled',
+  BGM_ENABLED: 'sound_bgmEnabled',
+  BGM_VOLUME: 'sound_bgmVolume',
+  SFX_ENABLED: 'sound_sfxEnabled',
+  SFX_VOLUME: 'sound_sfxVolume',
+};
 
 // サウンド設定のデフォルト値
 const DEFAULT_SOUND_SETTINGS = {
@@ -13,7 +22,7 @@ const DEFAULT_SOUND_SETTINGS = {
 };
 
 // サウンドコンテキストの作成
-const SoundContext = createContext();
+const SoundContext = createContext(null);
 
 /**
  * サウンド設定のコンテキストを使用するためのカスタムフック
@@ -29,165 +38,154 @@ export const useSoundContext = () => {
 
 /**
  * サウンド設定を管理するプロバイダーコンポーネント
- * @param {Object} props - コンポーネントのプロパティ
- * @param {React.ReactNode} props.children - 子コンポーネント
  */
 export const SoundProvider = ({ children }) => {
-  // ローカルストレージからサウンド設定を読み込む
-  const loadSoundSettings = () => {
-    if (typeof window === 'undefined') {
+  // サウンド設定をステートとして管理
+  const [soundSettings, setSoundSettings] = useState(DEFAULT_SOUND_SETTINGS);
+
+  // ローカルストレージからサウンド設定を読み込む関数
+  const loadSoundSettings = useCallback(() => {
+    if (typeof window === 'undefined' || !window.localStorage) {
       return DEFAULT_SOUND_SETTINGS;
     }
 
     try {
-      // sound_で始まるキーをすべて取得
-      const soundKeys = Object.keys(localStorage).filter(key => key.startsWith('sound_'));
-      if (soundKeys.length === 0) {
-        return DEFAULT_SOUND_SETTINGS;
-      }
-
-      // 保存されている設定を取得
-      const savedSettings = {
-        soundEnabled: localStorage.getItem('sound_soundEnabled') === 'true',
-        bgmEnabled: localStorage.getItem('sound_bgmEnabled') === 'true',
-        bgmVolume: parseFloat(localStorage.getItem('sound_bgmVolume') || '0.5'),
-        sfxEnabled: localStorage.getItem('sound_sfxEnabled') === 'true',
-        sfxVolume: parseFloat(localStorage.getItem('sound_sfxVolume') || '1.0'),
+      // ローカルストレージから設定を読み込む
+      const settings = {
+        soundEnabled: localStorage.getItem(STORAGE_KEYS.SOUND_ENABLED) === 'true',
+        bgmEnabled: localStorage.getItem(STORAGE_KEYS.BGM_ENABLED) === 'true',
+        bgmVolume: parseFloat(localStorage.getItem(STORAGE_KEYS.BGM_VOLUME) || '0.5'),
+        sfxEnabled: localStorage.getItem(STORAGE_KEYS.SFX_ENABLED) === 'true',
+        sfxVolume: parseFloat(localStorage.getItem(STORAGE_KEYS.SFX_VOLUME) || '1.0'),
       };
 
-      // 有効な値かどうかをチェック
+      // 値のバリデーション
       const validatedSettings = {
-        soundEnabled: savedSettings.soundEnabled !== null ? savedSettings.soundEnabled : DEFAULT_SOUND_SETTINGS.soundEnabled,
-        bgmEnabled: savedSettings.bgmEnabled !== null ? savedSettings.bgmEnabled : DEFAULT_SOUND_SETTINGS.bgmEnabled,
-        bgmVolume: isNaN(savedSettings.bgmVolume) ? DEFAULT_SOUND_SETTINGS.bgmVolume : savedSettings.bgmVolume,
-        sfxEnabled: savedSettings.sfxEnabled !== null ? savedSettings.sfxEnabled : DEFAULT_SOUND_SETTINGS.sfxEnabled,
-        sfxVolume: isNaN(savedSettings.sfxVolume) ? DEFAULT_SOUND_SETTINGS.sfxVolume : savedSettings.sfxVolume,
+        // ローカルストレージに値がなければデフォルト値を使用
+        soundEnabled: localStorage.getItem(STORAGE_KEYS.SOUND_ENABLED) !== null
+          ? settings.soundEnabled
+          : DEFAULT_SOUND_SETTINGS.soundEnabled,
+
+        bgmEnabled: localStorage.getItem(STORAGE_KEYS.BGM_ENABLED) !== null
+          ? settings.bgmEnabled
+          : DEFAULT_SOUND_SETTINGS.bgmEnabled,
+
+        // 数値のバリデーション
+        bgmVolume: isNaN(settings.bgmVolume)
+          ? DEFAULT_SOUND_SETTINGS.bgmVolume
+          : Math.max(0, Math.min(1, settings.bgmVolume)),
+
+        sfxEnabled: localStorage.getItem(STORAGE_KEYS.SFX_ENABLED) !== null
+          ? settings.sfxEnabled
+          : DEFAULT_SOUND_SETTINGS.sfxEnabled,
+
+        sfxVolume: isNaN(settings.sfxVolume)
+          ? DEFAULT_SOUND_SETTINGS.sfxVolume
+          : Math.max(0, Math.min(1, settings.sfxVolume)),
       };
 
+      console.log('[SoundContext] 設定を読み込みました:', validatedSettings);
       return validatedSettings;
     } catch (error) {
-      console.error('サウンド設定の読み込みに失敗しました:', error);
+      console.error('[SoundContext] 設定の読み込みに失敗しました:', error);
       return DEFAULT_SOUND_SETTINGS;
     }
-  };
+  }, []);
 
-  // サウンド設定を状態として管理
-  const [soundSettings, setSoundSettings] = useState(DEFAULT_SOUND_SETTINGS);
-  
+  // サウンド設定をローカルストレージに保存する関数
+  const saveSoundSettings = useCallback((settings) => {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return false;
+    }
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.SOUND_ENABLED, settings.soundEnabled);
+      localStorage.setItem(STORAGE_KEYS.BGM_ENABLED, settings.bgmEnabled);
+      localStorage.setItem(STORAGE_KEYS.BGM_VOLUME, settings.bgmVolume);
+      localStorage.setItem(STORAGE_KEYS.SFX_ENABLED, settings.sfxEnabled);
+      localStorage.setItem(STORAGE_KEYS.SFX_VOLUME, settings.sfxVolume);
+
+      console.log('[SoundContext] 設定を保存しました:', settings);
+      return true;
+    } catch (error) {
+      console.error('[SoundContext] 設定の保存に失敗しました:', error);
+      return false;
+    }
+  }, []);
+
   // 初期化処理
   useEffect(() => {
     // ローカルストレージから設定を読み込む
     const savedSettings = loadSoundSettings();
     setSoundSettings(savedSettings);
-    
+
     // SoundUtilsに設定を適用
     soundSystem.setSfxEnabled(savedSettings.soundEnabled && savedSettings.sfxEnabled);
     soundSystem.setSfxVolume(savedSettings.sfxVolume);
     soundSystem.setBgmEnabled(savedSettings.soundEnabled && savedSettings.bgmEnabled);
     soundSystem.setBgmVolume(savedSettings.bgmVolume);
-    
-    console.log('[SoundContext] 初期化完了', savedSettings);
-  }, []);
 
-  // サウンド設定をローカルストレージに保存する
-  const saveSoundSettings = (settings) => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    try {
-      localStorage.setItem('sound_soundEnabled', settings.soundEnabled);
-      localStorage.setItem('sound_bgmEnabled', settings.bgmEnabled);
-      localStorage.setItem('sound_bgmVolume', settings.bgmVolume);
-      localStorage.setItem('sound_sfxEnabled', settings.sfxEnabled);
-      localStorage.setItem('sound_sfxVolume', settings.sfxVolume);
-      return true;
-    } catch (error) {
-      console.error('サウンド設定の保存に失敗しました:', error);
-      return false;
-    }
-  };
+    console.log('[SoundContext] SoundUtilsに設定を適用しました');
+  }, [loadSoundSettings]);
 
   // サウンド設定を更新する関数
-  const updateSoundSettings = (newSettings) => {
-    const updatedSettings = { ...soundSettings, ...newSettings };
-    
-    // 状態を更新
-    setSoundSettings(updatedSettings);
-    
-    // SoundUtilsに設定を適用
-    if ('soundEnabled' in newSettings || 'sfxEnabled' in newSettings) {
-      soundSystem.setSfxEnabled(updatedSettings.soundEnabled && updatedSettings.sfxEnabled);
-    }
-    
-    if ('sfxVolume' in newSettings) {
-      soundSystem.setSfxVolume(updatedSettings.sfxVolume);
-    }
-    
-    if ('soundEnabled' in newSettings || 'bgmEnabled' in newSettings) {
-      soundSystem.setBgmEnabled(updatedSettings.soundEnabled && updatedSettings.bgmEnabled);
-    }
-    
-    if ('bgmVolume' in newSettings) {
-      soundSystem.setBgmVolume(updatedSettings.bgmVolume);
-    }
-    
-    // ローカルストレージに保存
-    saveSoundSettings(updatedSettings);
-    
-    return updatedSettings;
-  };
+  const updateSoundSettings = useCallback((newSettings) => {
+    setSoundSettings(prev => {
+      const updatedSettings = { ...prev, ...newSettings };
 
-  // 全体サウンドの有効/無効を切り替える
-  const toggleSound = () => {
-    const enabled = !soundSettings.soundEnabled;
-    updateSoundSettings({ soundEnabled: enabled });
-    
-    // 効果音をオンにした場合にボタン効果音を鳴らす
-    if (enabled && soundSettings.sfxEnabled) {
-      setTimeout(() => soundSystem.playSound('button'), 100);
-    }
-    
-    return enabled;
-  };
+      // SoundUtilsに設定を適用
+      if ('soundEnabled' in newSettings || 'sfxEnabled' in newSettings) {
+        soundSystem.setSfxEnabled(updatedSettings.soundEnabled && updatedSettings.sfxEnabled);
+      }
 
-  // BGMの有効/無効を切り替える
-  const toggleBGM = () => {
-    const enabled = !soundSettings.bgmEnabled;
-    updateSoundSettings({ bgmEnabled: enabled });
-    
-    // 効果音を鳴らす
-    if (soundSettings.soundEnabled && soundSettings.sfxEnabled) {
-      setTimeout(() => soundSystem.playSound('button'), 100);
-    }
-    
-    return enabled;
-  };
+      if ('sfxVolume' in newSettings) {
+        soundSystem.setSfxVolume(updatedSettings.sfxVolume);
+      }
 
-  // 効果音の有効/無効を切り替える
-  const toggleSFX = () => {
-    const enabled = !soundSettings.sfxEnabled;
-    updateSoundSettings({ sfxEnabled: enabled });
-    
-    // 効果音をオンにした場合にボタン効果音を鳴らす
-    if (soundSettings.soundEnabled && enabled) {
-      setTimeout(() => soundSystem.playSound('button'), 100);
-    }
-    
-    return enabled;
-  };
+      if ('soundEnabled' in newSettings || 'bgmEnabled' in newSettings) {
+        soundSystem.setBgmEnabled(updatedSettings.soundEnabled && updatedSettings.bgmEnabled);
+      }
 
-  // BGM音量を設定する
-  const setBGMVolume = (volume) => {
+      if ('bgmVolume' in newSettings) {
+        soundSystem.setBgmVolume(updatedSettings.bgmVolume);
+      }
+
+      // ローカルストレージに保存
+      saveSoundSettings(updatedSettings);
+
+      return updatedSettings;
+    });
+  }, [saveSoundSettings]);
+
+  // 各種サウンド設定を切り替えるヘルパー関数
+  const toggleSound = useCallback(() => {
+    updateSoundSettings({ soundEnabled: !soundSettings.soundEnabled });
+  }, [soundSettings.soundEnabled, updateSoundSettings]);
+
+  const toggleBGM = useCallback(() => {
+    updateSoundSettings({ bgmEnabled: !soundSettings.bgmEnabled });
+  }, [soundSettings.bgmEnabled, updateSoundSettings]);
+
+  const toggleSFX = useCallback(() => {
+    updateSoundSettings({ sfxEnabled: !soundSettings.sfxEnabled });
+  }, [soundSettings.sfxEnabled, updateSoundSettings]);
+
+  const setBGMVolume = useCallback((volume) => {
     updateSoundSettings({ bgmVolume: Math.max(0, Math.min(1, volume)) });
-  };
+  }, [updateSoundSettings]);
 
-  // 効果音音量を設定する
-  const setSFXVolume = (volume) => {
+  const setSFXVolume = useCallback((volume) => {
     updateSoundSettings({ sfxVolume: Math.max(0, Math.min(1, volume)) });
-  };
+  }, [updateSoundSettings]);
 
-  // コンテキストで提供する値
+  // サウンド効果の再生ヘルパー
+  const playButtonSound = useCallback(() => {
+    if (soundSettings.soundEnabled && soundSettings.sfxEnabled) {
+      soundSystem.playSound('button');
+    }
+  }, [soundSettings.soundEnabled, soundSettings.sfxEnabled]);
+
+  // 提供するコンテキスト値
   const contextValue = {
     // 設定値
     soundEnabled: soundSettings.soundEnabled,
@@ -195,7 +193,7 @@ export const SoundProvider = ({ children }) => {
     bgmVolume: soundSettings.bgmVolume,
     sfxEnabled: soundSettings.sfxEnabled,
     sfxVolume: soundSettings.sfxVolume,
-    
+
     // 関数
     toggleSound,
     toggleBGM,
@@ -203,7 +201,8 @@ export const SoundProvider = ({ children }) => {
     setBGMVolume,
     setSFXVolume,
     updateSoundSettings,
-    
+    playButtonSound,
+
     // サウンドシステムの参照
     soundSystem,
   };
