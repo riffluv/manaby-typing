@@ -1,81 +1,105 @@
-/* 共通ボタンスタイル - BEM記法に従って命名 */
+/* ボタンスタイル - BEM記法に完全準拠 */
+
+/* 基本ボタンスタイル - ブロック */
 .button {
+  /* レイアウト */
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px; /* 水平方向のパディングを統一 */
-  border: 2px solid #ff8c00;
+  
+  /* サイズと形状 */
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 2px solid var(--color-primary, #ff8c00);
+  
+  /* 色と背景 */
   background-color: rgba(0, 0, 0, 0.7);
-  color: #fff;
+  color: var(--color-text, #ffffff);
+  
+  /* テキスト */
   font-family: var(--font-normal);
   font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-align: center;
+  
+  /* インタラクション */
   cursor: pointer;
   transition: all 0.3s ease;
-  border-radius: 8px; /* 統一された角丸の半径 */
+  
+  /* 特殊効果 */
+  overflow: hidden;
+  position: relative;
   box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
     inset 0 0 10px rgba(255, 140, 0, 0.3);
-  position: relative;
-  overflow: hidden;
-  font-weight: 500; /* 統一されたフォントの太さ */
-  letter-spacing: 0.5px; /* 文字間隔を統一 */
 }
 
+/* ホバー状態 */
 .button:hover {
   background-color: rgba(255, 140, 0, 0.2);
   box-shadow: 0 0 15px rgba(255, 140, 0, 0.8),
     inset 0 0 15px rgba(255, 140, 0, 0.5);
 }
 
+/* アクティブ状態（クリック時） */
 .button:active {
   transform: scale(0.95);
 }
 
-.button:disabled {
+/* 無効状態 */
+.button:disabled,
+.button--disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
+  pointer-events: none;
 }
 
-/* ボタンバリエーション */
+/* ------ バリエーション (Modifiers) ------ */
+
+/* プライマリバリアント */
 .button--primary {
   background-color: rgba(255, 140, 0, 0.3);
+  border-color: var(--color-primary, #ff8c00);
 }
 
+/* セカンダリバリアント */
 .button--secondary {
   background-color: rgba(0, 0, 0, 0.5);
+  border-color: var(--color-secondary, #808080);
 }
 
+/* デンジャーバリアント */
 .button--danger {
   background-color: rgba(255, 0, 0, 0.3);
-  border-color: #ff3333;
+  border-color: var(--color-danger, #ff3333);
 }
 
+/* サクセスバリアント */
 .button--success {
   background-color: rgba(0, 255, 0, 0.3);
-  border-color: #33ff33;
+  border-color: var(--color-success, #33ff33);
 }
 
-/* ボタンサイズ */
+/* ------ サイズ (Modifiers) ------ */
+
+/* スモールサイズ */
 .button--small {
   font-size: 12px;
-  padding: 8px 16px; /* 縦横比を維持 */
-  border-radius: 6px; /* サイズに合わせた角丸 */
+  padding: 8px 16px;
+  border-radius: 6px;
 }
 
+/* ラージサイズ */
 .button--large {
   font-size: 16px;
-  padding: 12px 24px; /* 縦横比を維持 */
-  border-radius: 10px; /* サイズに合わせた角丸 */
+  padding: 12px 24px;
+  border-radius: 10px;
 }
 
+/* 丸形バリアント */
 .button--round {
   border-radius: 30px;
-}
-
-/* ボタンアイコン */
-.button__icon {
-  margin-right: 8px;
-  font-size: 16px;
 }
 
 /* アクティブ状態 */
@@ -84,44 +108,57 @@
   box-shadow: 0 0 10px rgba(255, 140, 0, 0.8);
 }
 
-/* トグルボタン */
+/* ------ アイコン (Element) ------ */
+
+/* ボタン内のアイコン要素 */
+.button__icon {
+  margin-right: 8px;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ------ 特殊ボタンタイプ ------ */
+
+/* トグルボタン (Modifier) */
 .toggle {
+  min-width: 80px;
   width: 100px;
   text-align: center;
   font-size: 16px;
   padding: 10px 0;
   border-radius: 30px;
+  transition: all 0.3s ease;
 }
 
+/* トグルオン状態 (Modifier) */
 .toggle--on {
   background-color: rgba(0, 255, 0, 0.3);
+  border-color: var(--color-success, #33ff33);
   box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
 }
 
+/* トグルオフ状態 (Modifier) */
 .toggle--off {
   background-color: rgba(255, 0, 0, 0.3);
+  border-color: var(--color-danger, #ff3333);
   box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
 
-/* メインメニュー用のボタンスタイル */
+/* ------ コンテキスト固有のバリエーション ------ */
+
+/* メニュー用ボタン (Modifier) */
 .button--menu {
   flex-direction: row;
-  padding: 10px 20px; /* 統一されたパディング */
   width: 130px;
-  height: 40px; /* 統一された高さ */
+  height: 40px;
   font-size: 12px;
-  border-radius: 8px; /* 統一された角丸 */
-  letter-spacing: 0.5px;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-.button--menu .button__icon {
-  font-size: 16px;
-  margin-right: 8px;
-  margin-bottom: 0;
-}
-
+/* メニューボタンのホバー状態 */
 .button--menu:hover {
   transform: translateY(-2px);
   box-shadow: 0 0 15px rgba(255, 140, 0, 0.8),
@@ -129,62 +166,81 @@
   border-color: #ffaa33;
 }
 
+/* メニューボタンのアクティブ状態 */
 .button--menu:active {
   transform: translateY(1px);
   box-shadow: 0 0 5px rgba(255, 140, 0, 0.5),
     inset 0 0 5px rgba(255, 140, 0, 0.3);
 }
 
-/* 難易度ボタン用のスタイル */
+/* 難易度選択ボタン (Modifier) */
 .button--difficulty {
   flex: 1;
   font-size: 12px;
-  padding: 10px 16px; /* パディングを統一 */
-  border-radius: 8px; /* 角丸を統一 */
+  min-width: 60px;
   background-color: rgba(0, 0, 0, 0.7);
-  width: auto;
 }
 
+/* 難易度選択ボタンのホバー状態 */
 .button--difficulty:hover {
   background-color: rgba(255, 140, 0, 0.2);
 }
 
+/* 難易度選択ボタンのアクティブ状態 */
 .button--difficulty.button--active {
   background-color: rgba(255, 140, 0, 0.4);
   box-shadow: 0 0 10px rgba(255, 140, 0, 0.6);
 }
 
-/* スタンダードなゲームコントロール用ボタン */
+/* コントロール用ボタン (Modifier) */
 .button--control {
   background-color: rgba(0, 0, 0, 0.7);
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  letter-spacing: 0.5px;
 }
 
-/* 戻るボタン用のスタイル */
+/* 戻るボタン (Modifier) */
 .button--back {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
 }
 
-/* メディアクエリ対応 */
+/* ------ レスポンシブ対応 ------ */
 @media (max-width: 850px) {
+  /* メニューボタンのタブレット/モバイル調整 */
   .button--menu {
     width: 120px;
     height: 38px;
-    padding: 8px 16px; /* パディングを調整 */
-    border-radius: 8px; /* 角丸を統一 */
+    padding: 8px 16px;
+    font-size: 10px;
   }
 
   .button--menu .button__icon {
     font-size: 14px;
     margin-right: 6px;
   }
+  
+  /* 通常ボタンのタブレット/モバイル調整 */
+  .button {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+}
 
+/* 小型スマートフォン向け調整 */
+@media (max-width: 480px) {
+  .button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
   .button--menu {
-    font-size: 10px;
+    width: 100px;
+    height: 36px;
+    padding: 6px 12px;
+    font-size: 9px;
+  }
+  
+  .button__icon {
+    margin-right: 4px;
+    font-size: 12px;
   }
 }

@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from '../../styles/common/Modal.module.css';
 
 /**
  * 再利用可能なモーダルコンポーネント
+ * BEM記法に準拠し、アクセシビリティに配慮した実装
+ * 
  * @param {Object} props - コンポーネントのプロパティ
  * @param {boolean} props.isOpen - モーダルの表示/非表示状態
  * @param {function} props.onClose - モーダルを閉じる関数
@@ -13,6 +15,8 @@ import styles from '../../styles/common/Modal.module.css';
  * @param {React.ReactNode} props.children - モーダル内に表示するコンテンツ
  * @param {string} [props.size='medium'] - モーダルのサイズ ('small', 'medium', 'large')
  * @param {boolean} [props.disableEscKey=false] - ESCキーでの閉じる機能を無効にするかどうか
+ * @param {boolean} [props.disableOverlayClick=false] - オーバーレイクリックでの閉じる機能を無効にするかどうか
+ * @param {string} [props.className=''] - 追加のカスタムクラス名
  * @returns {React.ReactElement}
  */
 const Modal = ({
@@ -22,76 +26,111 @@ const Modal = ({
   children,
   size = 'medium',
   disableEscKey = false,
+  disableOverlayClick = false,
+  className = '',
 }) => {
-  // サイズに応じたクラス名を設定
-  const sizeClass = size !== 'medium' ? `modal--${size}` : '';
+  // BEM記法に基づくクラス名を生成
+  const modalClasses = {
+    base: styles.modal,
+    size: size !== 'medium' ? styles[`modal--${size}`] : '',
+    custom: className,
+  };
 
-  // ESCキーでモーダルを閉じる機能
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen && !disableEscKey) {
-        e.preventDefault();
-        onClose();
-      }
-    };
-
-    // モーダルが開いている場合のみキーボードイベントをリスン
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
+  // キーボードイベントハンドラー
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Escape' && isOpen && !disableEscKey) {
+      e.preventDefault();
+      onClose();
     }
-
-    // クリーンアップ関数
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
   }, [isOpen, onClose, disableEscKey]);
 
-  if (!isOpen) {
-    return null;
-  }
+  // オーバーレイクリックハンドラー
+  const handleOverlayClick = useCallback((e) => {
+    if (!disableOverlayClick) {
+      onClose();
+    }
+  }, [onClose, disableOverlayClick]);
+
+  // コンテンツクリックでイベント伝播を阻止
+  const handleContentClick = (e) => {
+    e.stopPropagation();
+  };
+
+  // キーボードイベントの登録と解除
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      // モーダル表示時はスクロールを禁止
+      document.body.style.overflow = 'hidden';
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      // モーダル非表示時にスクロールを再開
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, handleKeyDown]);
+
+  // アニメーションバリアント
+  const overlayAnimations = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+    transition: { duration: 0.2 }
+  };
+  
+  const contentAnimations = {
+    initial: { scale: 0.9, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+    exit: { scale: 0.9, opacity: 0 },
+    transition: {
+      type: 'spring',
+      stiffness: 400,
+      damping: 30,
+      mass: 1
+    }
+  };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          className={`${styles.modal} ${styles[sizeClass]}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+        <div 
+          className={[modalClasses.base, modalClasses.size, modalClasses.custom].filter(Boolean).join(' ')}
+          role="dialog"
+          aria-labelledby="modal-title"
+          aria-modal="true"
         >
           <motion.div
             className={styles.modal__overlay}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose} // オーバーレイクリックでも閉じる
+            onClick={handleOverlayClick}
+            {...overlayAnimations}
           >
             <motion.div
               className={styles.modal__content}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{
-                type: 'spring',
-                stiffness: 400,
-                damping: 30,
-                mass: 1,
-                velocity: 0,
-              }}
-              onClick={(e) => e.stopPropagation()} // コンテンツクリックではイベント伝播を止める
+              onClick={handleContentClick}
+              {...contentAnimations}
             >
               <div className={styles.modal__header}>
-                <h2 className={styles.modal__title}>{title}</h2>
-                <button className={styles.modal__closeButton} onClick={onClose}>
+                <h2 
+                  className={styles.modal__title} 
+                  id="modal-title"
+                >
+                  {title}
+                </h2>
+                <button 
+                  className={styles.modal__close_button} 
+                  onClick={onClose}
+                  aria-label="閉じる"
+                >
                   ✕
                 </button>
               </div>
-
-              <div className={styles.modal__body}>{children}</div>
+              <div className={styles.modal__body}>
+                {children}
+              </div>
             </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
