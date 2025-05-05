@@ -113,12 +113,86 @@ export function useTypingGame({
   // WorkerからのデータをメインスレッドUIに反映する
   const workerUpdateUIRef = useRef(false);
 
+  // 入力履歴の最大サイズを制限する定数
+  const MAX_HISTORY_SIZE = 1000;
+
   // Web Workerとの通信ログを記録（デバッグ用）
   const logWorkerActivity = useCallback((action, details) => {
     if (DEBUG_WORKER) {
       console.log(`[Worker通信] ${action}:`, details);
     }
   }, []);
+
+  // 共通化: Workerに統計計算を依頼する関数
+  const requestWorkerStatistics = useCallback((updateUI = false) => {
+    if (!isCompleted && statistics.correctKeyCount > 0) {
+      logWorkerActivity('統計計算依頼', {
+        correctCount: statistics.correctKeyCount,
+        startTime: statistics.startTime
+      });
+
+      return typingWorkerManager
+        .calculateStatistics({
+          correctCount: statistics.correctKeyCount,
+          missCount: statistics.mistakeCount,
+          startTimeMs: statistics.startTime || Date.now(),
+          currentTimeMs: Date.now(),
+          problemStats: statistics.problemStats,
+        })
+        .then(result => {
+          // エラーチェックを強化
+          if (!result) {
+            console.warn('[Worker警告] 統計結果が取得できませんでした');
+            return null;
+          }
+
+          if (result.error) {
+            console.error('[Worker警告] 統計計算エラー:', result.error);
+            return null;
+          }
+
+          // 成功時の処理
+          if (updateUI || workerUpdateUIRef.current) {
+            lastStatsRef.current = {
+              ...lastStatsRef.current,
+              kpm: result.kpm || 0,
+              rank: result.rank || 'F',
+              accuracy: result.accuracy || 0,
+            };
+            workerUpdateUIRef.current = false;
+          }
+
+          return result;
+        })
+        .catch(err => {
+          console.error('[Worker統計計算エラー]:', err);
+
+          // エラー時にはローカル計算のフォールバック値を使用
+          if (updateUI || workerUpdateUIRef.current) {
+            const now = Date.now();
+            const correctCount = statistics.correctKeyCount;
+            const elapsedTimeMs = statistics.startTime ? (now - statistics.startTime) : 0;
+
+            if (elapsedTimeMs > 0 && correctCount > 0) {
+              const minutes = elapsedTimeMs / 60000;
+              const localKpm = Math.floor(correctCount / minutes);
+
+              lastStatsRef.current = {
+                ...lastStatsRef.current,
+                kpm: localKpm,
+                // シンプルな計算でフォールバック
+                rank: localKpm >= 300 ? 'A' : (localKpm >= 200 ? 'B' : (localKpm >= 100 ? 'C' : 'D')),
+              };
+            }
+
+            workerUpdateUIRef.current = false;
+          }
+
+          return null;
+        });
+    }
+    return Promise.resolve(null);
+  }, [statistics, isCompleted, logWorkerActivity]);
 
   // デバッグレポート - 定期的にタイピングの統計情報を表示
   useEffect(() => {
@@ -300,6 +374,12 @@ export function useTypingGame({
             ? null
             : typingSession.getCurrentExpectedKey?.(),
         });
+
+        // 入力履歴が最大サイズを超えた場合、古い履歴を削除
+        if (inputHistoryRef.current.length > MAX_HISTORY_SIZE) {
+          console.debug(`[最適化] 入力履歴を削減: ${inputHistoryRef.current.length} → ${MAX_HISTORY_SIZE / 2}件`);
+          inputHistoryRef.current = inputHistoryRef.current.slice(-Math.floor(MAX_HISTORY_SIZE / 2));
+        }
       });
 
       if (result.success) {
@@ -453,36 +533,8 @@ export function useTypingGame({
 
     if (typeof window !== 'undefined') {
       statsIntervalId = setInterval(() => {
-        // 問題が完了しておらず、十分な入力がある場合のみ統計を計算
-        if (!isCompleted && statistics.correctKeyCount > 0) {
-          // Workerに非同期で統計計算を依頼
-          typingWorkerManager
-            .calculateStatistics({
-              correctCount: statistics.correctKeyCount,
-              missCount: statistics.mistakeCount,
-              startTimeMs: statistics.startTime || Date.now(),
-              currentTimeMs: Date.now(),
-              problemStats: statistics.problemStats,
-            })
-            .then((result) => {
-              if (result && !result.error) {
-                // UIの更新フラグが立っている場合のみ更新
-                if (workerUpdateUIRef.current) {
-                  // KPM、ランク情報をWorkerの計算結果で更新
-                  lastStatsRef.current = {
-                    ...lastStatsRef.current,
-                    kpm: result.kpm,
-                    rank: result.rank,
-                    accuracy: result.accuracy,
-                  };
-                  workerUpdateUIRef.current = false;
-                }
-              }
-            })
-            .catch((err) => {
-              console.error('Worker統計計算エラー:', err);
-            });
-        }
+        // 共通化した関数を使用
+        requestWorkerStatistics();
       }, performanceConfig.statsUpdateInterval);
     }
 
@@ -501,9 +553,42 @@ export function useTypingGame({
     processInput,
     performanceConfig.maxBatchSize,
     performanceConfig.statsUpdateInterval,
-    statistics,
-    isCompleted,
+    requestWorkerStatistics,
   ]);
+
+  // パフォーマンスに基づいた自動最適化機能
+  useEffect(() => {
+    if (!DEBUG_PERFORMANCE) return;
+
+    const optimizeInterval = setInterval(() => {
+      if (typingDebugInfo.current.processingTime.length > 10) {
+        // 直近10回の処理時間の平均を計算
+        const avgTime = typingDebugInfo.current.processingTime
+          .slice(-10)
+          .reduce((a, b) => a + b, 0) / 10;
+
+        // フレーム時間の50%以上かかっている場合は最適化モードを強化
+        if (avgTime > frameIntervalRef.current * 0.5) {
+          const newBatchSize = Math.max(1, performanceConfig.maxBatchSize - 1);
+          if (newBatchSize !== performanceConfig.maxBatchSize) {
+            console.info(`[自動最適化] 処理遅延を検出: バッチサイズを ${performanceConfig.maxBatchSize} → ${newBatchSize} に調整`);
+            performanceConfig.maxBatchSize = newBatchSize;
+          }
+        }
+        // 処理に余裕がある場合は徐々にバッチサイズを戻す
+        else if (avgTime < frameIntervalRef.current * 0.2 && performanceConfig.maxBatchSize < 10) {
+          const newBatchSize = performanceConfig.maxBatchSize + 1;
+          console.info(`[自動最適化] 処理に余裕あり: バッチサイズを ${performanceConfig.maxBatchSize} → ${newBatchSize} に増加`);
+          performanceConfig.maxBatchSize = newBatchSize;
+        }
+
+        // 統計情報をリセット
+        typingDebugInfo.current.processingTime = [];
+      }
+    }, 2000); // 2秒ごとに最適化パラメータを調整
+
+    return () => clearInterval(optimizeInterval);
+  }, []);
 
   // セッションの初期化 - useCallbackでメモ化
   const initializeSession = useCallback((problem) => {
@@ -702,7 +787,7 @@ export function useTypingGame({
       inputSystem.current
         ? inputSystem.current.getBufferLength()
         : keyBufferRef.current.length,
-    []
+    [typingSession, isCompleted] // 入力セッションやステータス変更時に再評価
   );
 
   // 統計情報の計算 - useMemoで最適化
@@ -715,37 +800,12 @@ export function useTypingGame({
     const syncedUpdateInterval = setInterval(() => {
       // UIの更新フラグを設定
       workerUpdateUIRef.current = true;
-
-      // 問題が完了しておらず、十分な入力がある場合のみ統計を計算
-      if (!isCompleted && statistics.correctKeyCount > 0) {
-        // Workerに非同期で統計計算を依頼
-        typingWorkerManager
-          .calculateStatistics({
-            correctCount: statistics.correctKeyCount,
-            missCount: statistics.mistakeCount,
-            startTimeMs: statistics.startTime || Date.now(),
-            currentTimeMs: Date.now(),
-            problemStats: statistics.problemStats,
-          })
-          .then((result) => {
-            if (result && !result.error) {
-              // KPM、ランク情報をWorkerの計算結果で更新
-              lastStatsRef.current = {
-                ...lastStatsRef.current,
-                kpm: result.kpm,
-                rank: result.rank,
-                accuracy: result.accuracy,
-              };
-            }
-          })
-          .catch((err) => {
-            console.error('Worker統計計算エラー:', err);
-          });
-      }
+      // 共通化した関数を利用
+      requestWorkerStatistics(true);
     }, 500); // UI更新と統計計算を500msに統一
 
     return () => clearInterval(syncedUpdateInterval);
-  }, [statistics, isCompleted]);
+  }, [statistics, isCompleted, requestWorkerStatistics]);
 
   const stats = useMemo(() => {
     // パフォーマンス最適化: 統計情報の計算を遅延実行
