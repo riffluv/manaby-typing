@@ -276,8 +276,10 @@ class SoundUtils {
    * 効果音を再生する - 高速応答最適化版
    * 大文字小文字を区別せずに処理し、未ロード時は自動的にロード
    * @param {string} name - 再生する効果音の名前
+   * @param {Object} options - 再生オプション
+   * @param {boolean} options.immediate - trueの場合、最優先で即時再生（デフォルトfalse）
    */
-  playSound(name) {
+  playSound(name, options = {}) {
     // 効果音が無効化されている場合は何もしない
     if (typeof window === 'undefined' || !this.sfxEnabled) {
       return;
@@ -288,7 +290,12 @@ class SoundUtils {
 
     // バッファにあれば即時再生（最速パス）
     if (this.sfxBuffers[lowerName]) {
-      this._playBuffer(this.sfxBuffers[lowerName]);
+      // 即時再生フラグが立っている場合は優先処理
+      if (options.immediate) {
+        this._playBufferImmediate(this.sfxBuffers[lowerName]);
+      } else {
+        this._playBuffer(this.sfxBuffers[lowerName]);
+      }
       return;
     }
 
@@ -314,7 +321,12 @@ class SoundUtils {
         .then(() => {
           // ロード完了後すぐに再生
           if (this.sfxBuffers[lowerName]) {
-            this._playBuffer(this.sfxBuffers[lowerName]);
+            // 即時再生フラグが立っている場合は優先処理
+            if (options.immediate) {
+              this._playBufferImmediate(this.sfxBuffers[lowerName]);
+            } else {
+              this._playBuffer(this.sfxBuffers[lowerName]);
+            }
           }
         })
         .catch((err) =>
@@ -331,9 +343,10 @@ class SoundUtils {
   /**
    * 効果音を再生する (playSound のエイリアス - 互換性のため)
    * @param {string} name - 再生する効果音の名前
+   * @param {Object} options - 再生オプション
    */
-  play(name) {
-    return this.playSound(name);
+  play(name, options = {}) {
+    return this.playSound(name, options);
   }
 
   /**
@@ -364,6 +377,41 @@ class SoundUtils {
       this._playBufferInternal(buffer);
     } catch (error) {
       console.error(`効果音の再生処理中にエラーが発生しました:`, error);
+    }
+  }
+
+  /**
+   * バッファから効果音を最高優先度で即時再生する（タイピング音用）
+   * @param {AudioBuffer} buffer - 再生するオーディオバッファ
+   * @private
+   */
+  _playBufferImmediate(buffer) {
+    // サーバーサイドレンダリング時は何もしない
+    if (typeof window === 'undefined' || !this.context) {
+      return;
+    }
+
+    if (!buffer) {
+      console.warn('再生しようとしたバッファが存在しません');
+      return;
+    }
+
+    try {
+      // 最高優先度での処理（他の処理を待たない）
+      // AudioContextの状態チェックも省略して即時再生
+      const sourceNode = this.context.createBufferSource();
+      sourceNode.buffer = buffer;
+      sourceNode.connect(this.gainNode);
+
+      // 即時開始（開始時刻0で絶対的な優先度を確保）
+      sourceNode.start(0);
+
+      return true;
+    } catch (error) {
+      console.error(`効果音の即時再生に失敗しました:`, error);
+      // エラーが発生した場合は通常の再生方法にフォールバック
+      this._playBufferInternal(buffer);
+      return false;
     }
   }
 

@@ -387,9 +387,14 @@ export function useTypingGame({
       });
 
       if (result.success) {
-        // 効果音再生（即時フィードバックの一部として最優先）
+        // 効果音再生を最優先（即時フィードバックのために最上位に移動）
         if (playSound) {
-          soundSystem.play('success');
+          // AudioContextの状態を確認して音が確実に鳴るようにする
+          if (soundSystem.context && soundSystem.context.state === 'suspended') {
+            soundSystem.context.resume();
+          }
+          // 音声処理優先度を上げる（即時再生）
+          soundSystem.play('success', { immediate: true });
         }
 
         // 色分け情報を更新（即時フィードバックの一部）
