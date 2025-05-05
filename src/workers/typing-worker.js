@@ -4,6 +4,11 @@
  * 高リフレッシュレート対応版（低レイテンシ最適化）
  */
 
+// リファクタリング用のデバッグフラグ
+const DEBUG_WORKER = false;
+const DEBUG_CACHE = false;
+const DEBUG_PERF = false;
+
 // ローマ字変換マッピング（TypingUtilsから抽出）
 const romajiMap = {
   あ: ['a'],
@@ -196,6 +201,10 @@ const performanceSettings = {
   highRefreshRateOptimizations: true,
   // 検出されたディスプレイのリフレッシュレート
   detectedRefreshRate: 60,
+  // リファクタリング: エラーリカバリー機能
+  errorRecovery: true,
+  // リファクタリング: 入力バッファ最適化
+  optimizeInputBuffer: true
 };
 
 // パフォーマンスメトリクス
@@ -207,7 +216,14 @@ const metrics = {
   totalProcessingTime: 0,
   maxProcessingTime: 0,
   lastBatchSize: 0,
-  processingHistory: []
+  processingHistory: [],
+  // リファクタリング: エラー統計
+  errors: {
+    total: 0,
+    byType: {},
+    lastErrorTime: 0,
+    recoveredErrors: 0
+  }
 };
 
 // 処理結果のキャッシュ
@@ -224,6 +240,37 @@ let displayCapabilities = {
   highPrecisionTime: true,
   supportsSharedArrayBuffer: false
 };
+
+/**
+ * エラーハンドリングの中央処理
+ * @param {Error} error - エラーオブジェクト
+ * @param {string} context - エラーが発生した場所
+ * @param {boolean} isCritical - クリティカルなエラーかどうか
+ * @return {Object} エラー情報
+ */
+function handleError(error, context, isCritical = false) {
+  const errorType = error.name || 'UnknownError';
+
+  // メトリクスの更新
+  metrics.errors.total++;
+  metrics.errors.byType[errorType] = (metrics.errors.byType[errorType] || 0) + 1;
+  metrics.errors.lastErrorTime = Date.now();
+
+  // エラーログ
+  if (DEBUG_WORKER || isCritical) {
+    console.error(`[Worker Error] ${context}: ${error.message}`, error);
+  }
+
+  // エラー情報を返す
+  return {
+    error: true,
+    message: error.message,
+    type: errorType,
+    context,
+    timestamp: Date.now(),
+    isCritical
+  };
+}
 
 /**
  * 全角文字を半角文字に変換する関数
@@ -338,240 +385,191 @@ function convertFullWidthToHalfWidth(char) {
  * @returns {object} - 処理結果
  */
 function processInput(session, char) {
-  // パフォーマンス測定開始
-  const startTime = performance.now();
+  try {
+    // パフォーマンス測定開始
+    const startTime = performance.now();
 
-  // メトリクス更新
-  if (performanceSettings.collectMetrics) {
-    metrics.processInputCalls++;
-  }
-
-  // 予測キャッシュを確認（超高速パス）
-  if (self._predictionCache && session.currentInput) {
-    const predictionCacheKey = `prediction:${session.currentInput}:${char}`;
-    if (self._predictionCache.has(predictionCacheKey)) {
-      const prediction = self._predictionCache.get(predictionCacheKey);
-
-      // キャッシュヒット統計を更新
-      if (performanceSettings.collectMetrics) {
-        metrics.predictionCacheHits = (metrics.predictionCacheHits || 0) + 1;
-      }
-
-      // 統計情報を更新
-      if (performanceSettings.collectMetrics) {
-        const endTime = performance.now();
-        const processingTime = endTime - startTime;
-        metrics.totalProcessingTime += processingTime;
-        metrics.predictionCacheTime = (metrics.predictionCacheTime || 0) + processingTime;
-      }
-
-      // 予測パスが有効な場合、パフォーマンスを最大化
-      // ここでは最適化のために予測結果を直接使用
-      session.currentInput += char;
-      char = prediction.nextInput.charAt(prediction.nextInput.length - 1);
-    }
-  }
-
-  // セッションが差分のみの場合、前回のセッションと統合
-  if (session.isDiff && self._lastFullSession) {
-    session = {
-      ...self._lastFullSession,
-      ...session
-    };
-  } else if (session.isFullSync) {
-    // 完全なセッションの場合はキャッシュ
-    self._lastFullSession = { ...session };
-  }
-
-  // セッション変更なしの場合は前回の結果を再利用
-  if (session.unchanged) {
-    return { success: false, status: 'unchanged_session' };
-  }
-
-  if (!session || session.completed) {
-    return { success: false, status: 'already_completed' };
-  }
-
-  const currentPatterns = session.patterns[session.currentCharIndex];
-  if (!currentPatterns) {
-    return { success: false, status: 'invalid_state' };
-  }
-
-  // 新しい入力を追加
-  const newInput = session.currentInput + char;
-
-  // キャッシュキーを生成（高速化）
-  const cacheKey = `${session.currentCharIndex}:${newInput}`;
-
-  // キャッシュにヒットした場合は即時返却（高速処理パス）
-  if (cache.processInput.has(cacheKey)) {
-    const cachedResult = cache.processInput.get(cacheKey);
-
-    // 返却前に統計情報を更新
+    // メトリクス更新
     if (performanceSettings.collectMetrics) {
-      const endTime = performance.now();
-      const processingTime = endTime - startTime;
+      metrics.processInputCalls++;
+    }
 
-      metrics.totalProcessingTime += processingTime;
-      if (processingTime > metrics.maxProcessingTime) {
-        metrics.maxProcessingTime = processingTime;
-      }
+    // 予測キャッシュを確認（超高速パス）
+    if (self._predictionCache && session.currentInput) {
+      const predictionCacheKey = `prediction:${session.currentInput}:${char}`;
+      if (self._predictionCache.has(predictionCacheKey)) {
+        const prediction = self._predictionCache.get(predictionCacheKey);
 
-      // 高リフレッシュレート環境での処理時間トラッキング
-      if (performanceSettings.highRefreshRateOptimizations) {
-        const targetFrameTime = 1000 / performanceSettings.detectedRefreshRate;
-        if (processingTime > targetFrameTime / 4) {
-          // フレームタイム1/4以上かかるなら記録（パフォーマンス問題の可能性）
-          metrics.processingHistory.push({
-            type: 'processInput',
-            time: processingTime,
-            cached: true,
-            timestamp: Date.now()
-          });
+        // キャッシュヒット統計を更新
+        if (performanceSettings.collectMetrics) {
+          metrics.predictionCacheHits = (metrics.predictionCacheHits || 0) + 1;
         }
-      }
-    }
-
-    return cachedResult;
-  }
-
-  // パターンマッチング（高速処理版）
-  let exactMatch = null;
-  let hasMatchingPrefix = false;
-
-  for (let i = 0; i < currentPatterns.length; i++) {
-    const pattern = currentPatterns[i];
-    if (pattern === newInput) {
-      exactMatch = pattern;
-      break;
-    }
-    if (pattern.startsWith(newInput)) {
-      hasMatchingPrefix = true;
-    }
-  }
-
-  if (exactMatch || hasMatchingPrefix) {
-    // 新しいセッションオブジェクトを作成（イミュータブルに）
-    // 差分更新のため、必要な属性だけ更新
-    const updatedSession = {
-      currentCharIndex: session.currentCharIndex,
-      typedRomaji: session.typedRomaji,
-      currentInput: newInput,
-      completed: session.completed,
-      completedAt: session.completedAt,
-      isDiff: true
-    };
-
-    if (exactMatch) {
-      // 文字入力完了
-      updatedSession.typedRomaji += exactMatch;
-      updatedSession.currentCharIndex++;
-      updatedSession.currentInput = '';
-
-      // すべての文字が入力完了したか
-      if (updatedSession.currentCharIndex >= session.patterns.length) {
-        updatedSession.completed = true;
-        updatedSession.completedAt = Date.now();
-
-        const result = {
-          success: true,
-          status: 'all_completed',
-          session: updatedSession,
-        };
-
-        // キャッシュに保存（次回高速化のため）
-        if (cache.processInput.size > performanceSettings.maxCacheSize) {
-          // キャッシュサイズ管理
-          cache.processInput.clear();
-        }
-        cache.processInput.set(cacheKey, result);
 
         // 統計情報を更新
         if (performanceSettings.collectMetrics) {
           const endTime = performance.now();
           const processingTime = endTime - startTime;
           metrics.totalProcessingTime += processingTime;
-          if (processingTime > metrics.maxProcessingTime) {
-            metrics.maxProcessingTime = processingTime;
-          }
+          metrics.predictionCacheTime = (metrics.predictionCacheTime || 0) + processingTime;
         }
 
-        return result;
+        // 予測パスが有効な場合、パフォーマンスを最大化
+        // ここでは最適化のために予測結果を直接使用
+        session.currentInput += char;
+        char = prediction.nextInput.charAt(prediction.nextInput.length - 1);
       }
+    }
 
-      const result = {
-        success: true,
-        status: 'char_completed',
-        session: updatedSession,
+    // セッションが差分のみの場合、前回のセッションと統合
+    if (session.isDiff && self._lastFullSession) {
+      session = {
+        ...self._lastFullSession,
+        ...session
       };
+    } else if (session.isFullSync) {
+      // 完全なセッションの場合はキャッシュ
+      self._lastFullSession = { ...session };
+    }
 
-      // キャッシュに保存
-      if (cache.processInput.size > performanceSettings.maxCacheSize) {
-        cache.processInput.clear();
+    // セッション変更なしの場合は前回の結果を再利用
+    if (session.unchanged) {
+      return { success: false, status: 'unchanged_session' };
+    }
+
+    if (!session || session.completed) {
+      return { success: false, status: 'already_completed' };
+    }
+
+    // リファクタリング: セッションのバリデーションを追加
+    if (!Array.isArray(session.patterns) || !session.patterns[session.currentCharIndex]) {
+      return {
+        success: false,
+        status: 'invalid_state',
+        error: handleError(
+          new Error('Invalid session state or missing pattern'),
+          'processInput: session validation',
+          false
+        )
+      };
+    }
+
+    const currentPatterns = session.patterns[session.currentCharIndex];
+
+    // 新しい入力を追加
+    const newInput = session.currentInput + char;
+
+    // キャッシュキーを生成（高速化）
+    const cacheKey = `${session.currentCharIndex}:${newInput}`;
+
+    // キャッシュにヒットした場合は即時返却（高速処理パス）
+    if (cache.processInput.has(cacheKey)) {
+      const cachedResult = cache.processInput.get(cacheKey);
+
+      // リファクタリング: キャッシュヒット統計
+      if (DEBUG_CACHE) {
+        console.log(`[Worker Cache] ProcessInput キャッシュヒット: ${cacheKey}`);
       }
-      cache.processInput.set(cacheKey, result);
 
-      // 統計情報を更新
+      // 返却前に統計情報を更新
       if (performanceSettings.collectMetrics) {
         const endTime = performance.now();
-        metrics.totalProcessingTime += (endTime - startTime);
+        const processingTime = endTime - startTime;
+
+        metrics.totalProcessingTime += processingTime;
+        if (processingTime > metrics.maxProcessingTime) {
+          metrics.maxProcessingTime = processingTime;
+        }
+
+        // 高リフレッシュレート環境での処理時間トラッキング
+        if (performanceSettings.highRefreshRateOptimizations) {
+          const targetFrameTime = 1000 / performanceSettings.detectedRefreshRate;
+          if (processingTime > targetFrameTime / 4) {
+            // フレームタイム1/4以上かかるなら記録（パフォーマンス問題の可能性）
+            metrics.processingHistory.push({
+              type: 'processInput',
+              time: processingTime,
+              cached: true,
+              timestamp: Date.now()
+            });
+          }
+        }
       }
 
-      return result;
+      return {
+        ...cachedResult,
+        cached: true
+      };
     }
 
-    const result = {
-      success: true,
-      status: 'in_progress',
-      session: updatedSession,
-    };
+    // パターンマッチング（高速処理版）
+    let exactMatch = null;
+    let hasMatchingPrefix = false;
 
-    // キャッシュに保存
-    if (cache.processInput.size > performanceSettings.maxCacheSize) {
-      cache.processInput.clear();
+    // リファクタリング: パターンマッチングを最適化（高速化）
+    if (currentPatterns.includes(newInput)) {
+      exactMatch = newInput;
+    } else {
+      // 完全一致がない場合のみプレフィックス確認
+      for (let i = 0; i < currentPatterns.length; i++) {
+        if (currentPatterns[i].startsWith(newInput)) {
+          hasMatchingPrefix = true;
+          break;
+        }
+      }
     }
-    cache.processInput.set(cacheKey, result);
 
-    // 統計情報を更新
-    if (performanceSettings.collectMetrics) {
-      const endTime = performance.now();
-      metrics.totalProcessingTime += (endTime - startTime);
-    }
+    if (exactMatch || hasMatchingPrefix) {
+      // 新しいセッションオブジェクトを作成（イミュータブルに）
+      // 差分更新のため、必要な属性だけ更新
+      const updatedSession = {
+        currentCharIndex: session.currentCharIndex,
+        typedRomaji: session.typedRomaji,
+        currentInput: newInput,
+        completed: session.completed,
+        completedAt: session.completedAt,
+        isDiff: true
+      };
 
-    return result;
-  }
+      if (exactMatch) {
+        // 文字入力完了
+        updatedSession.typedRomaji += exactMatch;
+        updatedSession.currentCharIndex++;
+        updatedSession.currentInput = '';
 
-  // 分割入力処理（例：「し」に対して「shi」の「s」「hi」)
-  const splitResult = optimizeSplitInput(
-    char,
-    currentPatterns,
-    session.currentInput
-  );
+        // すべての文字が入力完了したか
+        if (updatedSession.currentCharIndex >= session.patterns.length) {
+          updatedSession.completed = true;
+          updatedSession.completedAt = Date.now();
 
-  if (splitResult) {
-    // 分割処理が有効 - 差分更新として必要な属性のみ
-    const updatedSession = {
-      currentCharIndex: session.currentCharIndex,
-      typedRomaji: session.typedRomaji,
-      currentInput: splitResult.secondPart,
-      completed: session.completed,
-      completedAt: session.completedAt,
-      isDiff: true
-    };
+          const result = {
+            success: true,
+            status: 'all_completed',
+            session: updatedSession,
+          };
 
-    if (splitResult.secondPart === splitResult.matchedPattern) {
-      // 文字入力完了
-      updatedSession.typedRomaji += splitResult.matchedPattern;
-      updatedSession.currentCharIndex++;
-      updatedSession.currentInput = '';
+          // キャッシュに保存（次回高速化のため）
+          if (cache.processInput.size > performanceSettings.maxCacheSize) {
+            // キャッシュサイズ管理
+            cache.processInput.clear();
+          }
+          cache.processInput.set(cacheKey, result);
 
-      if (updatedSession.currentCharIndex >= session.patterns.length) {
-        updatedSession.completed = true;
-        updatedSession.completedAt = Date.now();
+          // 統計情報を更新
+          if (performanceSettings.collectMetrics) {
+            const endTime = performance.now();
+            const processingTime = endTime - startTime;
+            metrics.totalProcessingTime += processingTime;
+            if (processingTime > metrics.maxProcessingTime) {
+              metrics.maxProcessingTime = processingTime;
+            }
+          }
+
+          return result;
+        }
 
         const result = {
           success: true,
-          status: 'all_completed',
+          status: 'char_completed',
           session: updatedSession,
         };
 
@@ -592,7 +590,7 @@ function processInput(session, char) {
 
       const result = {
         success: true,
-        status: 'char_completed_split',
+        status: 'in_progress',
         session: updatedSession,
       };
 
@@ -611,11 +609,99 @@ function processInput(session, char) {
       return result;
     }
 
-    const result = {
-      success: true,
-      status: 'in_progress_split',
-      session: updatedSession,
-    };
+    // 分割入力処理（例：「し」に対して「shi」の「s」「hi」)
+    const splitResult = optimizeSplitInput(
+      char,
+      currentPatterns,
+      session.currentInput
+    );
+
+    if (splitResult) {
+      // 分割処理が有効 - 差分更新として必要な属性のみ
+      const updatedSession = {
+        currentCharIndex: session.currentCharIndex,
+        typedRomaji: session.typedRomaji,
+        currentInput: splitResult.secondPart,
+        completed: session.completed,
+        completedAt: session.completedAt,
+        isDiff: true
+      };
+
+      if (splitResult.secondPart === splitResult.matchedPattern) {
+        // 文字入力完了
+        updatedSession.typedRomaji += splitResult.matchedPattern;
+        updatedSession.currentCharIndex++;
+        updatedSession.currentInput = '';
+
+        if (updatedSession.currentCharIndex >= session.patterns.length) {
+          updatedSession.completed = true;
+          updatedSession.completedAt = Date.now();
+
+          const result = {
+            success: true,
+            status: 'all_completed',
+            session: updatedSession,
+          };
+
+          // キャッシュに保存
+          if (cache.processInput.size > performanceSettings.maxCacheSize) {
+            cache.processInput.clear();
+          }
+          cache.processInput.set(cacheKey, result);
+
+          // 統計情報を更新
+          if (performanceSettings.collectMetrics) {
+            const endTime = performance.now();
+            metrics.totalProcessingTime += (endTime - startTime);
+          }
+
+          return result;
+        }
+
+        const result = {
+          success: true,
+          status: 'char_completed_split',
+          session: updatedSession,
+        };
+
+        // キャッシュに保存
+        if (cache.processInput.size > performanceSettings.maxCacheSize) {
+          cache.processInput.clear();
+        }
+        cache.processInput.set(cacheKey, result);
+
+        // 統計情報を更新
+        if (performanceSettings.collectMetrics) {
+          const endTime = performance.now();
+          metrics.totalProcessingTime += (endTime - startTime);
+        }
+
+        return result;
+      }
+
+      const result = {
+        success: true,
+        status: 'in_progress_split',
+        session: updatedSession,
+      };
+
+      // キャッシュに保存
+      if (cache.processInput.size > performanceSettings.maxCacheSize) {
+        cache.processInput.clear();
+      }
+      cache.processInput.set(cacheKey, result);
+
+      // 統計情報を更新
+      if (performanceSettings.collectMetrics) {
+        const endTime = performance.now();
+        metrics.totalProcessingTime += (endTime - startTime);
+      }
+
+      return result;
+    }
+
+    // 入力が一致しない
+    const result = { success: false, status: 'no_match' };
 
     // キャッシュに保存
     if (cache.processInput.size > performanceSettings.maxCacheSize) {
@@ -630,78 +716,138 @@ function processInput(session, char) {
     }
 
     return result;
+  } catch (error) {
+    // リファクタリング: エラーハンドリングを追加
+    const errorInfo = handleError(error, 'processInput', true);
+
+    return {
+      success: false,
+      status: 'error',
+      error: errorInfo.message,
+      errorDetails: errorInfo
+    };
   }
-
-  // 入力が一致しない
-  const result = { success: false, status: 'no_match' };
-
-  // キャッシュに保存
-  if (cache.processInput.size > performanceSettings.maxCacheSize) {
-    cache.processInput.clear();
-  }
-  cache.processInput.set(cacheKey, result);
-
-  // 統計情報を更新
-  if (performanceSettings.collectMetrics) {
-    const endTime = performance.now();
-    metrics.totalProcessingTime += (endTime - startTime);
-  }
-
-  return result;
 }
 
 /**
  * 色分け情報を取得（高リフレッシュレート最適化版）
  */
 function getColoringInfo(session) {
-  // パフォーマンス測定開始
-  const startTime = performance.now();
+  try {
+    // パフォーマンス測定開始
+    const startTime = performance.now();
 
-  // メトリクス更新
-  if (performanceSettings.collectMetrics) {
-    metrics.coloringInfoCalls++;
-  }
+    // メトリクス更新
+    if (performanceSettings.collectMetrics) {
+      metrics.coloringInfoCalls++;
+    }
 
-  // セッションが差分のみの場合、前回のセッションと統合
-  if (session.isDiff && self._lastFullSession) {
-    session = {
-      ...self._lastFullSession,
-      ...session
-    };
-  } else if (session.isFullSync) {
-    // 完全なセッションの場合はキャッシュ
-    self._lastFullSession = { ...session };
-  }
+    // セッションが差分のみの場合、前回のセッションと統合
+    if (session.isDiff && self._lastFullSession) {
+      session = {
+        ...self._lastFullSession,
+        ...session
+      };
+    } else if (session.isFullSync) {
+      // 完全なセッションの場合はキャッシュ
+      self._lastFullSession = { ...session };
+    }
 
-  // セッション変更なしの場合は前回の結果を再利用
-  if (session.unchanged && self._lastColoringInfo) {
-    return self._lastColoringInfo;
-  }
+    // セッション変更なしの場合は前回の結果を再利用
+    if (session.unchanged && self._lastColoringInfo) {
+      return self._lastColoringInfo;
+    }
 
-  if (!session) {
-    return {
-      typedLength: 0,
-      currentInputLength: 0,
-      currentPosition: 0,
+    // リファクタリング: セッションバリデーション
+    if (!session) {
+      return {
+        typedLength: 0,
+        currentInputLength: 0,
+        currentPosition: 0,
+        completed: false,
+        error: 'セッションがありません'
+      };
+    }
+
+    // キャッシュキーを作成
+    const cacheKey = `${session.currentCharIndex}_${session.currentInput}_${session.completed}`;
+    if (self._coloringCache && self._coloringCache.has(cacheKey)) {
+      // リファクタリング: キャッシュヒット統計
+      if (DEBUG_CACHE) {
+        console.log(`[Worker Cache] ColoringInfo キャッシュヒット: ${cacheKey}`);
+      }
+
+      return self._coloringCache.get(cacheKey);
+    }
+
+    if (session.completed) {
+      const result = {
+        typedLength: session.displayRomaji ? session.displayRomaji.length : 0,
+        currentInputLength: 0,
+        currentPosition: session.displayRomaji ? session.displayRomaji.length : 0,
+        currentDisplay: '',
+        completed: true,
+        completedAt: session.completedAt,
+      };
+
+      // リファクタリング: キャッシュが存在しない場合は初期化
+      if (!self._coloringCache) {
+        self._coloringCache = new Map();
+      }
+
+      // キャッシュに保存
+      self._coloringCache.set(cacheKey, result);
+      self._lastColoringInfo = result;
+
+      // 統計情報を更新
+      if (performanceSettings.collectMetrics) {
+        const endTime = performance.now();
+        metrics.totalProcessingTime += (endTime - startTime);
+      }
+
+      return result;
+    }
+
+    // リファクタリング: 追加のバリデーション
+    if (!Array.isArray(session.displayIndices)) {
+      const errorInfo = handleError(
+        new Error('セッションの表示インデックスが不正です'),
+        'getColoringInfo',
+        false
+      );
+
+      return {
+        typedLength: 0,
+        currentInputLength: 0,
+        currentPosition: 0,
+        completed: false,
+        error: errorInfo.message
+      };
+    }
+
+    // 事前計算済みのインデックスを使用（高速化）
+    const typedIndex =
+      session.currentCharIndex > 0
+        ? session.displayIndices[session.currentCharIndex]
+        : 0;
+
+    const currentPosition =
+      session.currentCharIndex < session.patterns.length
+        ? session.displayIndices[session.currentCharIndex]
+        : session.displayRomaji ? session.displayRomaji.length : 0;
+
+    const result = {
+      typedLength: typedIndex,
+      currentInputLength: session.currentInput ? session.currentInput.length : 0,
+      currentPosition: currentPosition,
+      currentDisplay: '',
       completed: false,
     };
-  }
 
-  // キャッシュキーを作成
-  const cacheKey = `${session.currentCharIndex}_${session.currentInput}_${session.completed}`;
-  if (self._coloringCache.has(cacheKey)) {
-    return self._coloringCache.get(cacheKey);
-  }
-
-  if (session.completed) {
-    const result = {
-      typedLength: session.displayRomaji.length,
-      currentInputLength: 0,
-      currentPosition: session.displayRomaji.length,
-      currentDisplay: '',
-      completed: true,
-      completedAt: session.completedAt,
-    };
+    // リファクタリング: キャッシュが存在しない場合は初期化
+    if (!self._coloringCache) {
+      self._coloringCache = new Map();
+    }
 
     // キャッシュに保存
     self._coloringCache.set(cacheKey, result);
@@ -714,38 +860,18 @@ function getColoringInfo(session) {
     }
 
     return result;
+  } catch (error) {
+    // リファクタリング: エラーハンドリングを追加
+    const errorInfo = handleError(error, 'getColoringInfo', false);
+
+    return {
+      typedLength: 0,
+      currentInputLength: 0,
+      currentPosition: 0,
+      completed: false,
+      error: errorInfo.message
+    };
   }
-
-  // 事前計算済みのインデックスを使用（高速化）
-  const typedIndex =
-    session.currentCharIndex > 0
-      ? session.displayIndices[session.currentCharIndex]
-      : 0;
-
-  const currentPosition =
-    session.currentCharIndex < session.patterns.length
-      ? session.displayIndices[session.currentCharIndex]
-      : session.displayRomaji.length;
-
-  const result = {
-    typedLength: typedIndex,
-    currentInputLength: session.currentInput.length,
-    currentPosition: currentPosition,
-    currentDisplay: '',
-    completed: false,
-  };
-
-  // キャッシュに保存
-  self._coloringCache.set(cacheKey, result);
-  self._lastColoringInfo = result;
-
-  // 統計情報を更新
-  if (performanceSettings.collectMetrics) {
-    const endTime = performance.now();
-    metrics.totalProcessingTime += (endTime - startTime);
-  }
-
-  return result;
 }
 
 /**
@@ -976,13 +1102,13 @@ function prepareFirebaseData(recordData) {
     };
   } catch (error) {
     console.error('Firebase データ整形エラー:', error);
-    
+
     // 統計情報を更新
     if (performanceSettings.collectMetrics) {
       const endTime = performance.now();
       metrics.totalProcessingTime += (endTime - startTime);
     }
-    
+
     return {
       success: false,
       error: error.message,
@@ -1141,7 +1267,7 @@ function calculateDetailedResults(resultData) {
   // 入力履歴の詳細分析
   inputHistory.forEach((entry, index) => {
     if (!entry) return;
-    
+
     // キー頻度の分析
     if (entry.key) {
       keyFrequency[entry.key] = (keyFrequency[entry.key] || 0) + 1;
@@ -1162,7 +1288,7 @@ function calculateDetailedResults(resultData) {
         reactionTimeCount++;
       }
     }
-    
+
     prevTimestamp = entry.timestamp;
   });
 
@@ -1179,13 +1305,13 @@ function calculateDetailedResults(resultData) {
   if (Array.isArray(problemStats)) {
     problemStats.forEach((problem, index) => {
       if (!problem) return;
-      
+
       const problemTimeMinutes = problem.problemElapsedMs / 60000;
       const problemKPM = problemTimeMinutes > 0 ? problem.problemKeyCount / problemTimeMinutes : 0;
-      const problemAccuracy = problem.problemTotalCount > 0 
-        ? (problem.problemKeyCount / problem.problemTotalCount) * 100 
+      const problemAccuracy = problem.problemTotalCount > 0
+        ? (problem.problemKeyCount / problem.problemTotalCount) * 100
         : 0;
-        
+
       detailedProblemStats.push({
         index,
         kpm: problemKPM,
@@ -1497,292 +1623,322 @@ if (performanceSettings.collectMetrics) {
  * 高リフレッシュレート対応版（レイテンシ最小化）
  */
 self.onmessage = function (e) {
-  // パフォーマンス測定開始
-  const receiveTime = performance.now();
+  try {
+    // パフォーマンス測定開始
+    const receiveTime = performance.now();
 
-  const { type, data, callbackId, priority } = e.data;
+    const { type, data, callbackId, priority } = e.data;
 
-  switch (type) {
-    case 'processInput':
-      // 高優先度の入力処理として実行
-      try {
-        const { session, char } = data;
-        const normalizedChar = convertFullWidthToHalfWidth(char.toLowerCase());
-        const result = processInput(session, normalizedChar);
+    switch (type) {
+      case 'processInput':
+        // 高優先度の入力処理として実行
+        try {
+          const { session, char } = data;
+          if (!session || !char) {
+            throw new Error('Invalid input: session or char is missing');
+          }
+          const normalizedChar = convertFullWidthToHalfWidth(char.toLowerCase());
+          const result = processInput(session, normalizedChar);
 
-        // 結果をメインスレッドに返す（優先度情報付き）
-        self.postMessage({
-          type: 'processInputResult',
-          callbackId,
-          priority: 'high', // 入力処理は常に高優先度
-          data: result,
-        });
-
-        // 処理時間を計測
-        const processingTime = performance.now() - receiveTime;
-
-        // 高リフレッシュレート環境でのパフォーマンス警告
-        const targetFrameTime = performanceSettings.detectedRefreshRate ?
-          1000 / performanceSettings.detectedRefreshRate : 16.67;
-
-        if (performanceSettings.highRefreshRateOptimizations &&
-          processingTime > targetFrameTime / 2) {
-          // フレームタイムの半分以上かかる場合は記録
-          metrics.processingHistory.push({
-            type: 'processInput',
-            time: processingTime,
-            cached: !!result.cached,
-            timestamp: Date.now()
-          });
-
-          console.warn(
-            `[Worker] 高レイテンシ入力処理: ${processingTime.toFixed(2)}ms` +
-            `（目標: ${(targetFrameTime / 2).toFixed(2)}ms）`
-          );
-        }
-      } catch (err) {
-        console.error('Worker処理エラー (processInput):', err);
-        self.postMessage({
-          type: 'processInputResult',
-          callbackId,
-          priority: 'high',
-          data: { success: false, status: 'worker_error', error: err.message },
-        });
-      }
-      break;
-
-    case 'getColoringInfo':
-      // 色分け情報を計算
-      try {
-        const coloringInfo = getColoringInfo(data.session);
-
-        // 結果をメインスレッドに返す
-        self.postMessage({
-          type: 'coloringInfoResult',
-          callbackId,
-          priority: 'normal', // 色分けは標準優先度
-          data: coloringInfo,
-        });
-      } catch (err) {
-        console.error('Worker処理エラー (getColoringInfo):', err);
-        self.postMessage({
-          type: 'coloringInfoResult',
-          callbackId,
-          data: { error: err.message },
-        });
-      }
-      break;
-
-    case 'calculateStatistics':
-      // 統計情報を計算
-      try {
-        const result = calculateStatistics(data);
-        self.postMessage({
-          type: 'calculateStatisticsResult',
-          callbackId,
-          priority: 'low', // 統計計算は低優先度
-          data: result,
-        });
-      } catch (err) {
-        console.error('Worker処理エラー (calculateStatistics):', err);
-        self.postMessage({
-          type: 'calculateStatisticsResult',
-          callbackId,
-          data: { error: err.message },
-        });
-      }
-      break;
-
-    case 'submitRanking':
-      // ランキング送信処理（非同期）
-      submitRanking(data)
-        .then((result) => {
+          // 結果をメインスレッドに返す（優先度情報付き）
           self.postMessage({
-            type: 'submitRankingResult',
+            type: 'processInputResult',
             callbackId,
-            priority: 'low', // ランキング送信は低優先度
+            priority: 'high', // 入力処理は常に高優先度
             data: result,
           });
-        })
-        .catch((err) => {
-          console.error('Worker処理エラー (submitRanking):', err);
+
+          // 処理時間を計測
+          const processingTime = performance.now() - receiveTime;
+
+          // 高リフレッシュレート環境でのパフォーマンス警告
+          const targetFrameTime = performanceSettings.detectedRefreshRate ?
+            1000 / performanceSettings.detectedRefreshRate : 16.67;
+
+          if (performanceSettings.highRefreshRateOptimizations &&
+            processingTime > targetFrameTime / 2) {
+            // フレームタイムの半分以上かかる場合は記録
+            metrics.processingHistory.push({
+              type: 'processInput',
+              time: processingTime,
+              cached: !!result.cached,
+              timestamp: Date.now()
+            });
+
+            if (DEBUG_PERF) {
+              console.warn(
+                `[Worker] 高レイテンシ入力処理: ${processingTime.toFixed(2)}ms` +
+                `（目標: ${(targetFrameTime / 2).toFixed(2)}ms）`
+              );
+            }
+          }
+        } catch (err) {
+          // リファクタリング: エラーハンドリングを強化
+          const errorInfo = handleError(err, 'onmessage:processInput', true);
+          console.error('Worker処理エラー (processInput):', err);
           self.postMessage({
-            type: 'submitRankingResult',
+            type: 'processInputResult',
+            callbackId,
+            priority: 'high',
+            data: {
+              success: false,
+              status: 'worker_error',
+              error: err.message,
+              errorDetails: errorInfo
+            },
+          });
+        }
+        break;
+
+      case 'getColoringInfo':
+        // 色分け情報を計算
+        try {
+          const coloringInfo = getColoringInfo(data.session);
+
+          // 結果をメインスレッドに返す
+          self.postMessage({
+            type: 'coloringInfoResult',
+            callbackId,
+            priority: 'normal', // 色分けは標準優先度
+            data: coloringInfo,
+          });
+        } catch (err) {
+          console.error('Worker処理エラー (getColoringInfo):', err);
+          self.postMessage({
+            type: 'coloringInfoResult',
+            callbackId,
+            data: { error: err.message },
+          });
+        }
+        break;
+
+      case 'calculateStatistics':
+        // 統計情報を計算
+        try {
+          const result = calculateStatistics(data);
+          self.postMessage({
+            type: 'calculateStatisticsResult',
+            callbackId,
+            priority: 'low', // 統計計算は低優先度
+            data: result,
+          });
+        } catch (err) {
+          console.error('Worker処理エラー (calculateStatistics):', err);
+          self.postMessage({
+            type: 'calculateStatisticsResult',
+            callbackId,
+            data: { error: err.message },
+          });
+        }
+        break;
+
+      case 'submitRanking':
+        // ランキング送信処理（非同期）
+        submitRanking(data)
+          .then((result) => {
+            self.postMessage({
+              type: 'submitRankingResult',
+              callbackId,
+              priority: 'low', // ランキング送信は低優先度
+              data: result,
+            });
+          })
+          .catch((err) => {
+            console.error('Worker処理エラー (submitRanking):', err);
+            self.postMessage({
+              type: 'submitRankingResult',
+              callbackId,
+              data: { success: false, error: err.message },
+            });
+          });
+        break;
+
+      case 'processInputHistory':
+        // 入力履歴の処理と集計
+        try {
+          const result = processInputHistory(data);
+          self.postMessage({
+            type: 'processInputHistoryResult',
+            callbackId,
+            priority: 'low', // 履歴処理は低優先度
+            data: result,
+          });
+        } catch (err) {
+          console.error('Worker処理エラー (processInputHistory):', err);
+          self.postMessage({
+            type: 'processInputHistoryResult',
             callbackId,
             data: { success: false, error: err.message },
           });
-        });
-      break;
+        }
+        break;
 
-    case 'processInputHistory':
-      // 入力履歴の処理と集計
-      try {
-        const result = processInputHistory(data);
-        self.postMessage({
-          type: 'processInputHistoryResult',
-          callbackId,
-          priority: 'low', // 履歴処理は低優先度
-          data: result,
-        });
-      } catch (err) {
-        console.error('Worker処理エラー (processInputHistory):', err);
-        self.postMessage({
-          type: 'processInputHistoryResult',
-          callbackId,
-          data: { success: false, error: err.message },
-        });
-      }
-      break;
+      // 追加機能: Firebase連携データの準備
+      case 'prepareFirebaseData':
+        try {
+          const result = prepareFirebaseData(data);
+          self.postMessage({
+            type: 'prepareFirebaseDataResult',
+            callbackId,
+            priority: 'low',
+            data: result,
+          });
+        } catch (err) {
+          console.error('Worker処理エラー (prepareFirebaseData):', err);
+          self.postMessage({
+            type: 'prepareFirebaseDataResult',
+            callbackId,
+            data: { success: false, error: err.message },
+          });
+        }
+        break;
 
-    // 追加機能: Firebase連携データの準備
-    case 'prepareFirebaseData':
-      try {
-        const result = prepareFirebaseData(data);
-        self.postMessage({
-          type: 'prepareFirebaseDataResult',
-          callbackId,
-          priority: 'low',
-          data: result,
-        });
-      } catch (err) {
-        console.error('Worker処理エラー (prepareFirebaseData):', err);
-        self.postMessage({
-          type: 'prepareFirebaseDataResult',
-          callbackId,
-          data: { success: false, error: err.message },
-        });
-      }
-      break;
+      // 追加機能: コンボエフェクト計算
+      case 'calculateComboEffect':
+        try {
+          const result = calculateComboEffect(data);
+          self.postMessage({
+            type: 'calculateComboEffectResult',
+            callbackId,
+            priority: 'normal',
+            data: result,
+          });
+        } catch (err) {
+          console.error('Worker処理エラー (calculateComboEffect):', err);
+          self.postMessage({
+            type: 'calculateComboEffectResult',
+            callbackId,
+            data: { success: false, error: err.message },
+          });
+        }
+        break;
 
-    // 追加機能: コンボエフェクト計算
-    case 'calculateComboEffect':
-      try {
-        const result = calculateComboEffect(data);
-        self.postMessage({
-          type: 'calculateComboEffectResult',
-          callbackId,
-          priority: 'normal',
-          data: result,
-        });
-      } catch (err) {
-        console.error('Worker処理エラー (calculateComboEffect):', err);
-        self.postMessage({
-          type: 'calculateComboEffectResult',
-          callbackId,
-          data: { success: false, error: err.message },
-        });
-      }
-      break;
+      // 追加機能: 詳細なリザルト計算
+      case 'calculateDetailedResults':
+        try {
+          const result = calculateDetailedResults(data);
+          self.postMessage({
+            type: 'calculateDetailedResultsResult',
+            callbackId,
+            priority: 'low',
+            data: result,
+          });
+        } catch (err) {
+          console.error('Worker処理エラー (calculateDetailedResults):', err);
+          self.postMessage({
+            type: 'calculateDetailedResultsResult',
+            callbackId,
+            data: { success: false, error: err.message },
+          });
+        }
+        break;
 
-    // 追加機能: 詳細なリザルト計算
-    case 'calculateDetailedResults':
-      try {
-        const result = calculateDetailedResults(data);
+      case 'ping':
+        // 生存確認用
         self.postMessage({
-          type: 'calculateDetailedResultsResult',
+          type: 'pong',
           callbackId,
-          priority: 'low',
-          data: result,
+          data: { received: Date.now() },
         });
-      } catch (err) {
-        console.error('Worker処理エラー (calculateDetailedResults):', err);
-        self.postMessage({
-          type: 'calculateDetailedResultsResult',
-          callbackId,
-          data: { success: false, error: err.message },
-        });
-      }
-      break;
+        break;
 
-    case 'ping':
-      // 生存確認用
+      case 'getMetrics':
+        // メトリクス情報取得（リファクタリングで拡張）
+        self.postMessage({
+          type: 'metricsResult',
+          callbackId,
+          data: getMetrics(),
+        });
+        break;
+
+      case 'setDisplayCapabilities':
+        // ディスプレイ機能情報を設定
+        try {
+          const result = setDisplayCapabilities(data);
+          if (callbackId) {
+            self.postMessage({
+              type: 'setDisplayCapabilitiesResult',
+              callbackId,
+              data: result,
+            });
+          }
+        } catch (err) {
+          console.error('Worker処理エラー (setDisplayCapabilities):', err);
+          if (callbackId) {
+            self.postMessage({
+              type: 'setDisplayCapabilitiesResult',
+              callbackId,
+              data: { success: false, error: err.message },
+            });
+          }
+        }
+        break;
+
+      case 'updateOptimizationOptions':
+        // 最適化設定の更新
+        try {
+          const result = updateOptimizationOptions(data);
+          if (callbackId) {
+            self.postMessage({
+              type: 'updateOptimizationOptionsResult',
+              callbackId,
+              data: result,
+            });
+          }
+        } catch (err) {
+          console.error('Worker処理エラー (updateOptimizationOptions):', err);
+          if (callbackId) {
+            self.postMessage({
+              type: 'updateOptimizationOptionsResult',
+              callbackId,
+              data: { success: false, error: err.message },
+            });
+          }
+        }
+        break;
+
+      case 'initializePredictionCache':
+        // 予測キャッシュの初期化
+        try {
+          const result = initializePredictionCache(data);
+          if (callbackId) {
+            self.postMessage({
+              type: 'initializePredictionCacheResult',
+              callbackId,
+              data: result,
+            });
+          }
+        } catch (err) {
+          console.error('Worker処理エラー (initializePredictionCache):', err);
+          if (callbackId) {
+            self.postMessage({
+              type: 'initializePredictionCacheResult',
+              callbackId,
+              data: { success: false, error: err.message },
+            });
+          }
+        }
+        break;
+
+      default:
+        console.warn('不明なメッセージタイプ:', type);
+        break;
+    }
+  } catch (error) {
+    // リファクタリング: グローバルエラーハンドリング
+    const errorInfo = handleError(error, 'onmessage:global', true);
+
+    // エラーをメインスレッドに報告（安全な方法で）
+    try {
       self.postMessage({
-        type: 'pong',
-        data: { received: Date.now() },
+        type: 'worker_error',
+        error: error.message,
+        errorInfo
       });
-      break;
-
-    case 'getMetrics':
-      // メトリクス情報取得
-      self.postMessage({
-        type: 'metricsResult',
-        callbackId,
-        data: getMetrics(),
-      });
-      break;
-
-    case 'setDisplayCapabilities':
-      // ディスプレイ機能情報を設定
-      try {
-        const result = setDisplayCapabilities(data);
-        if (callbackId) {
-          self.postMessage({
-            type: 'setDisplayCapabilitiesResult',
-            callbackId,
-            data: result,
-          });
-        }
-      } catch (err) {
-        console.error('Worker処理エラー (setDisplayCapabilities):', err);
-        if (callbackId) {
-          self.postMessage({
-            type: 'setDisplayCapabilitiesResult',
-            callbackId,
-            data: { success: false, error: err.message },
-          });
-        }
-      }
-      break;
-
-    case 'updateOptimizationOptions':
-      // 最適化設定の更新
-      try {
-        const result = updateOptimizationOptions(data);
-        if (callbackId) {
-          self.postMessage({
-            type: 'updateOptimizationOptionsResult',
-            callbackId,
-            data: result,
-          });
-        }
-      } catch (err) {
-        console.error('Worker処理エラー (updateOptimizationOptions):', err);
-        if (callbackId) {
-          self.postMessage({
-            type: 'updateOptimizationOptionsResult',
-            callbackId,
-            data: { success: false, error: err.message },
-          });
-        }
-      }
-      break;
-
-    case 'initializePredictionCache':
-      // 予測キャッシュの初期化
-      try {
-        const result = initializePredictionCache(data);
-        if (callbackId) {
-          self.postMessage({
-            type: 'initializePredictionCacheResult',
-            callbackId,
-            data: result,
-          });
-        }
-      } catch (err) {
-        console.error('Worker処理エラー (initializePredictionCache):', err);
-        if (callbackId) {
-          self.postMessage({
-            type: 'initializePredictionCacheResult',
-            callbackId,
-            data: { success: false, error: err.message },
-          });
-        }
-      }
-      break;
-
-    default:
-      console.warn('不明なメッセージタイプ:', type);
-      break;
+    } catch (e) {
+      // 内部エラーを黙らせる - ワーカーが機能しないことを避ける
+      console.error('Worker内部エラー:', e);
+    }
   }
 };
 
@@ -1799,15 +1955,22 @@ self.addEventListener('close', () => {
   cache.processInput.clear();
   cache.coloringInfo.clear();
   cache.statistics.clear();
-  
+
   if (cache.comboEffect) {
     cache.comboEffect.clear();
   }
 
-  self._coloringCache.clear();
+  if (self._coloringCache) {
+    self._coloringCache.clear();
+  }
   self._lastFullSession = null;
   self._lastColoringInfo = null;
-  self._predictionCache.clear();
 
-  console.log('[Worker] リソース解放完了');
+  if (self._predictionCache) {
+    self._predictionCache.clear();
+  }
+
+  if (DEBUG_WORKER) {
+    console.log('[Worker] リソース解放完了');
+  }
 });

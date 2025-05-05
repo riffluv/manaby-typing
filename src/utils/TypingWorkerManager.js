@@ -3,6 +3,10 @@
  * メインスレッドのブロッキングを防ぎ、タイピングの反応速度を最大化
  * 高リフレッシュレート対応版（応答性最適化）
  */
+
+// リファクタリング用のデバッグフラグ（動作確認後にはfalseに戻す）
+const DEBUG_WORKER_MANAGER = false;
+
 export class TypingWorkerManager {
   constructor() {
     this._worker = null;
@@ -11,6 +15,13 @@ export class TypingWorkerManager {
     this._lastSession = null;
     this._initializationPromise = null;
     this._inputHistory = []; // 入力履歴を保持
+
+    // リファクタリング用のリトライ関連情報を追加
+    this._errorCount = 0;
+    this._retryCount = 0;
+    this._lastErrorTime = 0;
+    this._workerReady = false;
+    this._workerInitRetryTimeout = null;
 
     // 高速化オプション（高リフレッシュレート対応）
     this._optimizationOptions = {
@@ -34,12 +45,132 @@ export class TypingWorkerManager {
       messagesSent: 0,
       messagesReceived: 0,
       lastLatency: 0,
+      errorCount: 0,
+      recoveryCount: 0,
+      lastActivity: Date.now()
     };
 
     // 自動初期化 - ただしブラウザ環境の場合のみ
     if (typeof window !== 'undefined') {
       this._initialize();
     }
+
+    // リファクタリング: Worker状態の監視機能を追加
+    if (DEBUG_WORKER_MANAGER) {
+      this._startHealthCheck();
+    }
+  }
+
+  /**
+   * Workerの健全性チェック - リファクタリング時のデバッグ用
+   * @private
+   */
+  _startHealthCheck() {
+    if (typeof window === 'undefined') return;
+
+    const healthCheckInterval = setInterval(() => {
+      if (!this._worker) {
+        if (DEBUG_WORKER_MANAGER) console.log('[Worker監視] Workerが初期化されていません。');
+        return;
+      }
+
+      const now = Date.now();
+      // 最後のアクティビティから30秒以上経過している場合は健全性確認
+      if (now - this._metrics.lastActivity > 30000) {
+        this._pingWorker()
+          .then(() => {
+            if (DEBUG_WORKER_MANAGER) console.log('[Worker監視] 健全性確認完了: 応答あり');
+          })
+          .catch(err => {
+            console.warn('[Worker監視] 健全性確認失敗、再初期化します:', err);
+            this._reinitializeWorker();
+          });
+      }
+    }, 30000); // 30秒ごとにチェック
+
+    // クリーンアップ関数を返す（必要に応じて使用）
+    return () => clearInterval(healthCheckInterval);
+  }
+
+  /**
+   * Workerの生存確認
+   * @returns {Promise} 応答を受け取ったら解決するPromise
+   * @private
+   */
+  _pingWorker() {
+    return new Promise((resolve, reject) => {
+      if (!this._worker) {
+        return reject(new Error('Worker is not initialized'));
+      }
+
+      const timeout = setTimeout(() => {
+        reject(new Error('Worker ping timeout'));
+      }, 2000);
+
+      const callbackId = this._getNextCallbackId();
+
+      this._callbacks.set(callbackId, (data) => {
+        clearTimeout(timeout);
+        this._metrics.lastActivity = Date.now();
+        resolve(data);
+      });
+
+      this._worker.postMessage({
+        type: 'ping',
+        callbackId,
+        data: { sent: Date.now() }
+      });
+    });
+  }
+
+  /**
+   * Workerを再初期化する
+   * @private
+   */
+  _reinitializeWorker() {
+    this._retryCount++;
+
+    if (this._worker) {
+      try {
+        this._worker.terminate();
+      } catch (e) {
+        console.error('Worker終了時にエラー:', e);
+      }
+      this._worker = null;
+    }
+
+    // コールバックをクリア（タイムアウトしたリクエストを解決するため）
+    const pendingCallbacks = [...this._callbacks.entries()];
+    this._callbacks.clear();
+
+    // 少し待ってから初期化
+    setTimeout(() => {
+      this._initialize()
+        .then(() => {
+          console.log(`[リファクタリング] Workerを再初期化しました (${this._retryCount}回目の再試行)`);
+          this._metrics.recoveryCount++;
+
+          // 失敗したコールバックに再試行エラーを通知
+          pendingCallbacks.forEach(([id, callback]) => {
+            callback({ error: 'Worker was reinitialized', recovered: true });
+          });
+        })
+        .catch(err => {
+          console.error('Worker再初期化に失敗:', err);
+
+          // 失敗したコールバックにエラーを通知
+          pendingCallbacks.forEach(([id, callback]) => {
+            callback({ error: 'Worker reinitialization failed', recovered: false });
+          });
+
+          // 最大5回まで再試行
+          if (this._retryCount < 5) {
+            this._workerInitRetryTimeout = setTimeout(() => {
+              this._reinitializeWorker();
+            }, 3000);
+          }
+        });
+    }, 500);
   }
 
   /**
@@ -72,6 +203,9 @@ export class TypingWorkerManager {
           const startTime = performance.now();
 
           const { type, data, callbackId, priority } = e.data;
+
+          // リファクタリング: アクティビティ時間を更新
+          this._metrics.lastActivity = Date.now();
 
           // メトリクスの更新
           this._metrics.messagesReceived++;
@@ -112,10 +246,28 @@ export class TypingWorkerManager {
           this._processWorkerMessage(type, data, callbackId);
         };
 
-        // エラーハンドラの設定
+        // エラーハンドラの設定 - リファクタリングで改善
         this._worker.onerror = (error) => {
           console.error('Typing Worker error:', error);
-          reject(error);
+
+          // エラー統計の更新
+          this._errorCount++;
+          this._metrics.errorCount++;
+          this._lastErrorTime = Date.now();
+
+          // 初期化中のエラーの場合は拒否
+          if (!this._workerReady) {
+            this._initializationPromise = null;
+            reject(error);
+            return;
+          }
+
+          // 稼働中のエラーの場合は深刻度に応じて処理
+          if (this._errorCount > 5 && this._errorCount - this._retryCount > 3) {
+            // エラーが多発する場合は再初期化
+            console.warn('Worker エラーが多発しています。再初期化します...');
+            this._reinitializeWorker();
+          }
         };
 
         // 生存確認のメッセージを送信
@@ -130,9 +282,11 @@ export class TypingWorkerManager {
             type: 'setDisplayCapabilities',
             data: capabilities,
           });
-        });
 
-        resolve();
+          // 初期化成功
+          this._workerReady = true;
+          resolve();
+        });
       } catch (error) {
         console.error('Failed to initialize Typing Worker:', error);
         // Workerの初期化に失敗した場合は、フラグをリセット
@@ -301,8 +455,8 @@ export class TypingWorkerManager {
   }
 
   /**
-   * パフォーマンスメトリクスを取得
-   * @returns {Object} 現在のパフォーマンスメトリクス
+   * パフォーマンスメトリクスを取得（リファクタリングで拡張）
+   * @returns {Object} 現在のパフォーマンスメトリクスと診断情報
    */
   getPerformanceMetrics() {
     // 平均処理時間を計算
@@ -310,11 +464,63 @@ export class TypingWorkerManager {
       ? this._metrics.totalProcessingTime / this._metrics.messagesReceived
       : 0;
 
+    // Workerのメトリクスも取得
+    let workerMetrics = null;
+    const getWorkerMetricsPromise = this.getWorkerMetrics();
+
+    // リファクタリングで拡張したメトリクス情報
     return {
       ...this._metrics,
       avgProcessingTime,
       messagesPerSecond: this._metrics.messagesSent / (performance.now() / 1000),
+      diagnostics: {
+        workerReady: this._workerReady,
+        retryCount: this._retryCount,
+        errorCount: this._errorCount,
+        lastErrorTime: this._lastErrorTime,
+        callbacksCount: this._callbacks.size,
+        inputHistorySize: this._inputHistory.length
+      },
+      workerMetrics: getWorkerMetricsPromise, // Promiseを返す
     };
+  }
+
+  /**
+   * Workerの内部メトリクスを取得
+   * @returns {Promise} Worker内部のメトリクス情報を含むPromise
+   */
+  async getWorkerMetrics() {
+    if (!this._worker) {
+      try {
+        await this._initialize();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+
+    return new Promise((resolve) => {
+      const callbackId = this._getNextCallbackId();
+
+      // タイムアウト処理
+      const timeout = setTimeout(() => {
+        if (this._callbacks.has(callbackId)) {
+          this._callbacks.delete(callbackId);
+          resolve({ error: 'Worker metrics request timeout' });
+        }
+      }, 3000);
+
+      // コールバックを登録
+      this._callbacks.set(callbackId, (result) => {
+        clearTimeout(timeout);
+        resolve(result);
+      });
+
+      // Workerにメッセージを送信
+      this._worker.postMessage({
+        type: 'getMetrics',
+        callbackId,
+      });
+    });
   }
 
   /**
@@ -588,9 +794,21 @@ export class TypingWorkerManager {
   }
 
   /**
-   * リソースの解放
+   * リソースの解放（リファクタリングで改善）
    */
   terminate() {
+    // 健全性チェックを停止
+    if (this._healthCheckInterval) {
+      clearInterval(this._healthCheckInterval);
+      this._healthCheckInterval = null;
+    }
+
+    // 再試行タイマーをクリア
+    if (this._workerInitRetryTimeout) {
+      clearTimeout(this._workerInitRetryTimeout);
+      this._workerInitRetryTimeout = null;
+    }
+
     if (this._worker) {
       this._worker.terminate();
       this._worker = null;
@@ -601,6 +819,7 @@ export class TypingWorkerManager {
     this._inputHistory = [];
     this._batchedTasks = [];
     this._batchProcessScheduled = false;
+    this._workerReady = false;
   }
 
   /**

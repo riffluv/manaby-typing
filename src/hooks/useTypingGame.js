@@ -4,6 +4,11 @@ import soundSystem from '../utils/SoundUtils';
 import typingWorkerManager from '../utils/TypingWorkerManager';
 import MCPUtils from '../utils/MCPUtils';
 
+// デバッグフラグ - リファクタリング後の動作確認用
+const DEBUG_TYPING = false;
+const DEBUG_WORKER = false;
+const DEBUG_PERFORMANCE = false;
+
 /**
  * タイピングゲームのコアロジックを扱うカスタムフック
  * typingmania-refを参考にした高性能実装に対応
@@ -25,6 +30,17 @@ export function useTypingGame({
 } = {}) {
   // パフォーマンスのためにレンダリングカウントを追跡（開発用）
   const renderCount = useRef(0);
+
+  // リファクタリング用のデバッグ情報
+  const typingDebugInfo = useRef({
+    totalProcessed: 0,
+    cachedHits: 0,
+    workerCalls: 0,
+    errorCount: 0,
+    processingTime: [],
+    lastActivityTime: Date.now(),
+    predictedPathHits: 0
+  });
 
   // 初回レンダリング時だけコンソールに表示
   useEffect(() => {
@@ -97,6 +113,44 @@ export function useTypingGame({
   // WorkerからのデータをメインスレッドUIに反映する
   const workerUpdateUIRef = useRef(false);
 
+  // Web Workerとの通信ログを記録（デバッグ用）
+  const logWorkerActivity = useCallback((action, details) => {
+    if (DEBUG_WORKER) {
+      console.log(`[Worker通信] ${action}:`, details);
+    }
+  }, []);
+
+  // デバッグレポート - 定期的にタイピングの統計情報を表示
+  useEffect(() => {
+    if (!DEBUG_TYPING) return;
+
+    const intervalId = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastActivity = now - typingDebugInfo.current.lastActivityTime;
+
+      // 最近アクティビティがあった場合のみログを表示
+      if (timeSinceLastActivity < 5000) {
+        const avgProcessingTime = typingDebugInfo.current.processingTime.length > 0
+          ? typingDebugInfo.current.processingTime.reduce((a, b) => a + b, 0) / typingDebugInfo.current.processingTime.length
+          : 0;
+
+        console.log('⌨️ タイピング処理統計:', {
+          総処理数: typingDebugInfo.current.totalProcessed,
+          キャッシュヒット: typingDebugInfo.current.cachedHits,
+          予測ヒット: typingDebugInfo.current.predictedPathHits,
+          Worker呼び出し: typingDebugInfo.current.workerCalls,
+          エラー数: typingDebugInfo.current.errorCount,
+          平均処理時間: `${avgProcessingTime.toFixed(2)}ms`,
+        });
+
+        // 統計情報をリセット
+        typingDebugInfo.current.processingTime = [];
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
   // クリーンアップ関数
   useEffect(() => {
     return () => {
@@ -117,13 +171,100 @@ export function useTypingGame({
     };
   }, []);
 
+  // 問題完了時の処理 - useCallbackでメモ化（先に定義して後でprocessInputから参照できるようにする）
+  const completeProblem = useCallback(() => {
+    if (isCompleted) return; // 既に完了している場合は処理しない（重複防止）
+
+    setIsCompleted(true);
+
+    // 問題ごとのKPMを計算
+    const now = Date.now();
+    const problemElapsedMs = statistics.currentProblemStartTime
+      ? now - statistics.currentProblemStartTime
+      : 0;
+    const problemKeyCount = statistics.currentProblemKeyCount || 0;
+
+    // KPM計算（キー数 ÷ 分）
+    let problemKPM = 0;
+    if (problemElapsedMs > 0 && problemKeyCount > 0) {
+      const minutes = problemElapsedMs / 60000; // ミリ秒を分に変換
+      problemKPM = Math.floor(problemKeyCount / minutes); // Weather Typing風に小数点以下切り捨て
+    }
+
+    // 問題の詳細データを作成（KPM計算関数に渡すためのフォーマット）
+    const problemData = {
+      problemKeyCount,
+      problemElapsedMs,
+      problemKPM,
+    };
+
+    // 新しい問題データを配列に追加
+    const updatedProblemStats = [
+      ...(statistics.problemStats || []),
+      problemData,
+    ];
+
+    // 統計情報を更新
+    setStatistics((prev) => ({
+      ...prev,
+      problemKPMs: [...(prev.problemKPMs || []), problemKPM],
+      problemStats: updatedProblemStats, // WeTyping公式計算のための詳細データ
+    }));
+
+    // Web Workerを使用して入力履歴の分析を行う
+    typingWorkerManager
+      .processInputHistory()
+      .then((result) => {
+        if (result && result.success && result.data) {
+          const analysisData = result.data;
+          console.debug('[Web Worker] 入力履歴の分析結果:', analysisData);
+
+          // 頻度の高いエラーパターンや速度変化などの情報があればログに記録
+          if (
+            analysisData.errorPatterns &&
+            Object.keys(analysisData.errorPatterns).length > 0
+          ) {
+            const topErrors = Object.entries(analysisData.errorPatterns)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 3);
+            console.info('[Web Worker] 頻出エラーパターン:', topErrors);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('[Web Worker] 入力履歴の分析に失敗:', err);
+      });
+
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('[useTypingGame] 問題完了:', {
+        problemKPM,
+        problemElapsedMs,
+        problemKeyCount,
+      });
+    }
+
+    // コールバックを呼び出し
+    onProblemComplete({
+      problemKPM,
+      problemElapsedMs,
+      problemKeyCount,
+      updatedProblemStats,
+    });
+  }, [statistics, onProblemComplete, isCompleted]);
+
   // メインスレッドで処理する入力ハンドリング（高速化バージョン）
   const processInput = useCallback(
     (key, timestamp) => {
       if (!typingSession || isCompleted) return { success: false };
 
-      // パフォーマンス測定開始（DEV環境のみ）
-      const perfStartTime = process.env.NODE_ENV === 'development' ? performance.now() : null;
+      // デバッグ統計情報の更新
+      if (DEBUG_TYPING) {
+        typingDebugInfo.current.totalProcessed++;
+        typingDebugInfo.current.lastActivityTime = Date.now();
+      }
+
+      // パフォーマンス測定開始
+      const perfStartTime = performance.now();
 
       // 統計の開始時間設定
       const now = timestamp || Date.now();
@@ -184,9 +325,11 @@ export function useTypingGame({
           completeProblem();
         }
 
-        // パフォーマンス測定終了（DEV環境のみ）
-        if (perfStartTime && process.env.NODE_ENV === 'development') {
-          const latency = performance.now() - perfStartTime;
+        // パフォーマンス測定
+        const latency = performance.now() - perfStartTime;
+        if (DEBUG_PERFORMANCE) {
+          typingDebugInfo.current.processingTime.push(latency);
+
           if (latency > 8) { // 8ms (120fps相当)
             console.warn(`[パフォーマンス警告] 正解キー処理に${latency.toFixed(2)}ms要りました`);
           }
@@ -220,18 +363,21 @@ export function useTypingGame({
           }));
         });
 
-        // パフォーマンス測定終了（DEV環境のみ）
-        if (perfStartTime && process.env.NODE_ENV === 'development') {
-          const latency = performance.now() - perfStartTime;
-          if (latency > 8) {
-            console.warn(`[パフォーマンス警告] エラー処理に${latency.toFixed(2)}ms要りました`);
-          }
+        // デバッグ統計情報の更新
+        if (DEBUG_TYPING) {
+          typingDebugInfo.current.errorCount++;
+        }
+
+        // パフォーマンス測定
+        const latency = performance.now() - perfStartTime;
+        if (DEBUG_PERFORMANCE && latency > 8) {
+          console.warn(`[パフォーマンス警告] エラー処理に${latency.toFixed(2)}ms要りました`);
         }
 
         return { success: false, status: result.status };
       }
     },
-    [typingSession, statistics, isCompleted, playSound]
+    [typingSession, statistics, isCompleted, playSound, completeProblem]
   );
 
   // ディスプレイのリフレッシュレートを検出して最適化する機能（コンポーネント初期化時に1回実行）
@@ -407,87 +553,6 @@ export function useTypingGame({
       initializeSession(initialProblem);
     }
   }, [initialProblem, initializeSession]);
-
-  // 問題完了時の処理 - useCallbackでメモ化
-  const completeProblem = useCallback(() => {
-    if (isCompleted) return; // 既に完了している場合は処理しない（重複防止）
-
-    setIsCompleted(true);
-
-    // 問題ごとのKPMを計算
-    const now = Date.now();
-    const problemElapsedMs = statistics.currentProblemStartTime
-      ? now - statistics.currentProblemStartTime
-      : 0;
-    const problemKeyCount = statistics.currentProblemKeyCount || 0;
-
-    // KPM計算（キー数 ÷ 分）
-    let problemKPM = 0;
-    if (problemElapsedMs > 0 && problemKeyCount > 0) {
-      const minutes = problemElapsedMs / 60000; // ミリ秒を分に変換
-      problemKPM = Math.floor(problemKeyCount / minutes); // Weather Typing風に小数点以下切り捨て
-    }
-
-    // 問題の詳細データを作成（KPM計算関数に渡すためのフォーマット）
-    const problemData = {
-      problemKeyCount,
-      problemElapsedMs,
-      problemKPM,
-    };
-
-    // 新しい問題データを配列に追加
-    const updatedProblemStats = [
-      ...(statistics.problemStats || []),
-      problemData,
-    ];
-
-    // 統計情報を更新
-    setStatistics((prev) => ({
-      ...prev,
-      problemKPMs: [...(prev.problemKPMs || []), problemKPM],
-      problemStats: updatedProblemStats, // WeTyping公式計算のための詳細データ
-    }));
-
-    // Web Workerを使用して入力履歴の分析を行う
-    typingWorkerManager
-      .processInputHistory()
-      .then((result) => {
-        if (result && result.success && result.data) {
-          const analysisData = result.data;
-          console.debug('[Web Worker] 入力履歴の分析結果:', analysisData);
-
-          // 頻度の高いエラーパターンや速度変化などの情報があればログに記録
-          if (
-            analysisData.errorPatterns &&
-            Object.keys(analysisData.errorPatterns).length > 0
-          ) {
-            const topErrors = Object.entries(analysisData.errorPatterns)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 3);
-            console.info('[Web Worker] 頻出エラーパターン:', topErrors);
-          }
-        }
-      })
-      .catch((err) => {
-        console.error('[Web Worker] 入力履歴の分析に失敗:', err);
-      });
-
-    if (process.env.NODE_ENV === 'development') {
-      console.debug('[useTypingGame] 問題完了:', {
-        problemKPM,
-        problemElapsedMs,
-        problemKeyCount,
-      });
-    }
-
-    // コールバックを呼び出し
-    onProblemComplete({
-      problemKPM,
-      problemElapsedMs,
-      problemKeyCount,
-      updatedProblemStats,
-    });
-  }, [statistics, onProblemComplete, isCompleted]);
 
   // 最適化された入力処理 - handleInput関数の改善版
   const handleInput = useCallback(
