@@ -11,8 +11,9 @@ import { Animation } from '../../utils/DesignTokens';
  * @param {Object} props
  * @param {string} props.text - 表示する問題テキスト
  * @param {boolean} props.animate - アニメーション効果を適用するかどうか
+ * @param {string} props.className - 追加で適用するCSSクラス名
  */
-const ProblemDisplay = ({ text = '', animate = true }) => {
+const ProblemDisplay = ({ text = '', animate = true, className = '' }) => {
   // パフォーマンス向上のためコンソール出力を開発環境のみに制限
   if (process.env.NODE_ENV === 'development') {
     console.debug('[ProblemDisplay] レンダリング:', {
@@ -39,11 +40,14 @@ const ProblemDisplay = ({ text = '', animate = true }) => {
     );
   };
 
+  // クラス名を結合（修正: GameScreenから渡されるclassNameを優先的に使用）
+  const combinedClassName = `typing-problem ${styles.typingProblem} ${className}`.trim();
+
   // アニメーションなしの場合
   if (!animate) {
     return (
       <p
-        className={`typing-problem ${styles.typingProblem}`}
+        className={combinedClassName}
         data-testid="problem-display"
       >
         {renderTextWithLineBreaks(text)}
@@ -54,7 +58,7 @@ const ProblemDisplay = ({ text = '', animate = true }) => {
   // アニメーション効果付きの表示
   return (
     <motion.p
-      className={`typing-problem ${styles.typingProblem}`}
+      className={combinedClassName}
       initial={{ y: -10, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{
@@ -74,7 +78,9 @@ const ProblemDisplay = ({ text = '', animate = true }) => {
 // シンプルな比較関数: テキストと animate プロパティが変わったときのみ再レンダリング
 const arePropsEqual = (prevProps, nextProps) => {
   return (
-    prevProps.text === nextProps.text && prevProps.animate === nextProps.animate
+    prevProps.text === nextProps.text && 
+    prevProps.animate === nextProps.animate &&
+    prevProps.className === nextProps.className
   );
 };
 

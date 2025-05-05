@@ -1,0 +1,200 @@
+.main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'Noto Sans JP', sans-serif;
+  line-height: 1.6;
+}
+
+.main h1 {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #333;
+  text-align: center;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 1rem;
+}
+
+.main h2 {
+  font-size: 1.5rem;
+  margin: 1.5rem 0 1rem;
+  color: #444;
+}
+
+.status {
+  background-color: #f5f5f5;
+  padding: 1rem;
+  border-radius: 5px;
+  margin-bottom: 2rem;
+}
+
+.status p {
+  margin: 0.5rem 0;
+}
+
+.warning {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.testArea {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.testInputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.testInputs div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.testInputs label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: bold;
+}
+
+.testInputs input {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.testInputs input[type="number"] {
+  width: 100px;
+}
+
+.testInputs button {
+  margin-top: auto;
+  padding: 0.5rem 1rem;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  height: 38px;
+}
+
+.testInputs button:hover:not(:disabled) {
+  background-color: #2980b9;
+}
+
+.testInputs button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.result {
+  background-color: #f9f9f9;
+  padding: 1rem;
+  border-radius: 4px;
+  border-left: 4px solid #3498db;
+}
+
+.result h3 {
+  margin-top: 0;
+  color: #3498db;
+  font-size: 1.2rem;
+}
+
+.success {
+  color: #27ae60;
+  font-weight: bold;
+}
+
+.error {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.scoreResult {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #3498db;
+}
+
+.matchBar {
+  height: 10px;
+  width: 100%;
+  background-color: #ecf0f1;
+  border-radius: 5px;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.matchFill {
+  height: 100%;
+  background-color: #2ecc71;
+  transition: width 0.3s ease;
+}
+
+.benchmarkButton {
+  padding: 0.75rem 1.5rem;
+  background-color: #9b59b6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.benchmarkButton:hover:not(:disabled) {
+  background-color: #8e44ad;
+}
+
+.benchmarkButton:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.benchmarkResults {
+  margin-top: 1.5rem;
+  background-color: #f9f9f9;
+  padding: 1.5rem;
+  border-radius: 4px;
+  border-left: 4px solid #9b59b6;
+}
+
+.benchmarkResults h3 {
+  margin-top: 0;
+  color: #9b59b6;
+  font-size: 1.2rem;
+}
+
+.benchmarkItem {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.benchmarkItem:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.benchmarkItem h4 {
+  margin: 0.5rem 0;
+  color: #555;
+}
+
+.benchmarkDiff {
+  font-weight: bold;
+  color: #16a085;
+  margin-top: 0.5rem;
+}

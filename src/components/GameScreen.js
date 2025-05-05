@@ -398,6 +398,28 @@ const GameScreen = () => {
           repeatDelay: 1,
         },
       },
+      problemArea: {
+        initial: { opacity: 0, y: 15 },
+        animate: { opacity: 1, y: 0 },
+        transition: { delay: 0.2, duration: 0.3 },
+      },
+      keyboard: {
+        initial: { opacity: 0, y: 25 },
+        animate: { opacity: 1, y: 0 },
+        transition: { delay: 0.3, duration: 0.4 },
+      },
+      shortcut: {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        transition: { delay: 0.5, duration: 0.3 },
+        whileHover: { scale: 1.05 },
+      },
+      // 新しいステータス表示用のアニメーション
+      status: {
+        initial: { opacity: 0, scale: 0.9 },
+        animate: { opacity: 1, scale: 1 },
+        transition: { delay: 0.4, duration: 0.3 },
+      },
     }),
     []
   );
@@ -415,77 +437,114 @@ const GameScreen = () => {
     return null;
   }
 
-  // 通常のゲーム画面のみ表示 - BEM記法に準拠
+  // KPM情報の計算
+  const currentKpm = typing.stats?.kpm || 0;
+  const accuracy = typing.stats?.accuracy || 100;
+
+  // ゲーム画面レイアウトの最適化
   return (
-    <div className={styles.typing_game}>
-      <motion.header
-        className={styles.typing_game__header}
-        initial={animationVariants.header.initial}
-        animate={animationVariants.header.animate}
-        transition={animationVariants.header.transition}
-      >
-        {/* メニューに戻るボタンを削除 */}
-        <motion.div
-          className={styles.typing_game__level_display}
-          initial={animationVariants.gameLevelScale.initial}
-          animate={animationVariants.gameLevelScale.animate}
-          transition={animationVariants.gameLevelScale.transition}
+    <div className={styles.typing_game_wrapper}>
+      <div className={styles.typing_game}>
+        <motion.header
+          className={styles.typing_game__header}
+          initial={animationVariants.header.initial}
+          animate={animationVariants.header.animate}
+          transition={animationVariants.header.transition}
         >
-          お題: {gameState.solvedCount + 1}/{requiredProblemCount}
-        </motion.div>
-      </motion.header>
+          <motion.div
+            className={styles.typing_game__level_display}
+            initial={animationVariants.gameLevelScale.initial}
+            animate={animationVariants.gameLevelScale.animate}
+            transition={animationVariants.gameLevelScale.transition}
+          >
+            お題: {gameState.solvedCount + 1}/{requiredProblemCount}
+          </motion.div>
 
-      <motion.main
-        className={styles.typing_game__main}
-        initial={animationVariants.gameArea.initial}
-        animate={animationVariants.gameArea.animate}
-        transition={animationVariants.gameArea.transition}
-      >
-        <div className={styles.typing_game__content_area}>
-          {/* お題エリア - リファクタリング済み */}
-          <div className={styles.typing_game__problem_area}>
-            {/* 問題表示コンポーネント */}
-            <ProblemDisplay
-              text={gameState.currentProblem?.displayText || ''}
-              className={styles.typing_game__problem_text}
-            />
+          {/* タイピングステータス表示 - 新しく追加 */}
+          <motion.div
+            className={styles.typing_game__status}
+            initial={animationVariants.status.initial}
+            animate={animationVariants.status.animate}
+            transition={animationVariants.status.transition}
+          >
+            <span className={styles.typing_game__status_item}>
+              KPM: <strong>{Math.round(currentKpm)}</strong>
+            </span>
+            <span className={styles.typing_game__status_item}>
+              正確さ: <strong>{Math.round(accuracy)}%</strong>
+            </span>
+          </motion.div>
+        </motion.header>
 
-            {/* 入力エリア */}
-            <TypingDisplay
-              displayRomaji={typing.displayRomaji}
-              coloringInfo={typing.coloringInfo}
-              isCompleted={typing.isCompleted}
-              currentInput={typing.typingSession?.currentInput || ''}
-              errorAnimation={typing.errorAnimation}
-              className={styles.typing_game__input_display}
-            />
+        <motion.main
+          className={styles.typing_game__main}
+          initial={animationVariants.gameArea.initial}
+          animate={animationVariants.gameArea.animate}
+          transition={animationVariants.gameArea.transition}
+        >
+          <div className={styles.typing_game__content_area}>
+            {/* お題エリア - アニメーションを追加 */}
+            <motion.div
+              className={styles.typing_game__problem_area}
+              initial={animationVariants.problemArea.initial}
+              animate={animationVariants.problemArea.animate}
+              transition={animationVariants.problemArea.transition}
+            >
+              {/* 問題表示コンポーネント */}
+              <ProblemDisplay
+                text={gameState.currentProblem?.displayText || ''}
+                className={styles.typing_game__problem_text}
+              />
+
+              {/* 入力エリア */}
+              <TypingDisplay
+                displayRomaji={typing.displayRomaji}
+                coloringInfo={typing.coloringInfo}
+                isCompleted={typing.isCompleted}
+                currentInput={typing.typingSession?.currentInput || ''}
+                errorAnimation={typing.errorAnimation}
+                className={styles.typing_game__input_display}
+              />
+            </motion.div>
+
+            {/* キャンバスキーボードを直接表示 - マージンを調整して空白を減らす */}
+            <motion.div
+              className={styles.canvas_keyboard_container}
+              initial={animationVariants.keyboard.initial}
+              animate={animationVariants.keyboard.animate}
+              transition={animationVariants.keyboard.transition}
+              style={{ width: '100%', marginBottom: '0.5rem' }}
+            >
+              <CanvasKeyboard
+                nextKey={nextKey}
+                lastPressedKey={lastPressedKey}
+                isError={typing.errorAnimation}
+                layout="jp"
+              />
+            </motion.div>
           </div>
+        </motion.main>
 
-          {/* キャンバスキーボードを直接表示（お題エリアより大きめのサイズ） */}
-          <CanvasKeyboard
-            nextKey={nextKey}
-            lastPressedKey={lastPressedKey}
-            isError={typing.errorAnimation}
-            layout="jp"
-          />
-        </div>
-      </motion.main>
-
-      {/* ESCキーのショートカット案内 - クリッカブルにする */}
-      <div
-        className={styles.typing_game__shortcuts}
-        onClick={() => {
-          soundSystem.play('button');
-          goToScreen(SCREENS.MAIN_MENU, {
-            playSound: true,
-            soundType: 'button',
-          });
-        }}
-        style={{ cursor: 'pointer' }} // クリック可能なことを示すカーソルスタイルを追加
-      >
-        <span className={styles.typing_game__shortcut_item}>
-          <kbd>Esc</kbd>: メニューに戻る
-        </span>
+        {/* ESCショートカットをヘッダーの外に移動して絶対配置 */}
+        <motion.div
+          className={styles.typing_game__shortcuts_inside}
+          onClick={() => {
+            soundSystem.play('button');
+            goToScreen(SCREENS.MAIN_MENU, {
+              playSound: true,
+              soundType: 'button',
+            });
+          }}
+          style={{ cursor: 'pointer' }}
+          initial={animationVariants.shortcut.initial}
+          animate={animationVariants.shortcut.animate}
+          transition={animationVariants.shortcut.transition}
+          whileHover={animationVariants.shortcut.whileHover}
+        >
+          <span className={styles.typing_game__shortcut_item}>
+            <kbd>Esc</kbd>
+          </span>
+        </motion.div>
       </div>
     </div>
   );

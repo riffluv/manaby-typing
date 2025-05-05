@@ -1,3 +1,10 @@
+/* 最外側のラッパー要素 - SPA画面の外にESCボタンを配置するため */
+.typing_game_wrapper {
+  position: relative;
+  width: 800px;
+  margin: 0 auto;
+}
+
 /* ゲーム全体のコンテナ（BEM記法のブロック） */
 .typing_game {
   display: flex;
@@ -9,9 +16,10 @@
   border: 2px solid rgba(255, 140, 0, 0.5);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.4), inset 0 0 30px rgba(255, 140, 0, 0.1);
   position: relative;
-  overflow: hidden;
+  overflow: hidden; /* スクロールバーを非表示に明示的に設定 */
   color: #e1e1e1;
   font-family: -apple-system, "Segoe UI", "Noto Sans JP", "Hiragino Sans", sans-serif;
+  box-sizing: border-box; /* ボックスモデルを明示的に指定 */
 }
 
 /* グリッドパターン背景効果 */
@@ -29,17 +37,19 @@
   z-index: 0;
 }
 
-/* ゲームヘッダー（要素） */
+/* ゲームヘッダー（要素） - 修正してレイアウトを調整 */
 .typing_game__header {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* 要素を均等に配置 */
   align-items: center;
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1rem;
   background-color: rgba(0, 0, 0, 0.2);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  z-index: 1;
+  z-index: 10; /* 他の要素より前面に */
   height: 50px;
   box-sizing: border-box;
+  width: 100%;
+  position: relative; /* 相対位置指定で内部要素を配置可能に */
 }
 
 /* レベル表示（要素） */
@@ -49,23 +59,47 @@
   letter-spacing: 1px;
   color: #ff9a28;
   text-shadow: 0px 0px 10px rgba(255, 154, 40, 0.3);
-  padding: 0.4rem 0.9rem;
+  padding: 0.4rem 1rem;
   background-color: rgba(0, 0, 0, 0.3);
   border-radius: 20px;
   border: 1px solid rgba(255, 154, 40, 0.3);
+  transition: all 0.2s ease;
 }
 
-/* 戻るボタン（要素） */
+/* 新しいステータス表示エリア */
+.typing_game__status {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.typing_game__status_item {
+  font-size: 0.85rem;
+  color: #e1e1e1;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.typing_game__status_item strong {
+  color: #ff9a28;
+  font-size: 0.95rem;
+}
+
+/* 戻るボタン（要素） - 念のため残しておく */
 .typing_game__back_button {
-  font-size: 0.75rem;
-  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
   background-color: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.8);
   transition: all 0.2s;
   border-radius: 16px;
   margin-right: auto;
-  /* 左寄せに配置 */
 }
 
 .typing_game__back_button:hover {
@@ -74,22 +108,22 @@
   border-color: rgba(255, 140, 0, 0.3);
 }
 
-/* メインゲームエリア（要素） */
+/* メインゲームエリア（要素） - メインコンテンツの空白を最適化 */
 .typing_game__main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: space-between; /* 上下の要素間に適切なスペースを配置 */
   align-items: center;
-  padding: 1rem 1.2rem 3rem;
+  padding: 1.25rem 1rem 0.75rem; /* 上部のパディングを少し増やし、下部を減らす */
   z-index: 1;
   position: relative;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 140, 0, 0.3) rgba(0, 0, 0, 0.2);
+  overflow: hidden; /* スクロールしないように変更 */
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* スクロールバーのスタイル */
+/* スクロールバースタイルは残しておくが、オーバーフロー時のみ表示 */
 .typing_game__main::-webkit-scrollbar {
   width: 6px;
 }
@@ -104,25 +138,27 @@
   border-radius: 3px;
 }
 
-/* コンテンツエリア（要素） */
+/* コンテンツエリア（要素） - 全体の高さを最適化 */
 .typing_game__content_area {
   width: 100%;
-  max-width: 750px;
+  max-width: 700px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
-  margin: 0.5rem 0;
-  /* 余白を少し減らして垂直方向のスペースを確保 */
+  gap: 1rem; /* 要素間のスペースを最適化 */
+  margin: 0;
+  box-sizing: border-box;
+  height: 100%; /* 高さを100%に設定して空間を最大限利用 */
+  justify-content: space-between; /* 上下に均等配置 */
 }
 
-/* 問題エリア（要素） */
+/* 問題エリア（要素） - サイズ最適化 */
 .typing_game__problem_area {
   width: 100%;
   background-color: rgba(0, 0, 0, 0.25);
   border-radius: 16px;
-  padding: 1.8rem 1.8rem 1.2rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2),
+  padding: 1.25rem 1.25rem 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   text-align: center;
   border: 1px solid rgba(255, 140, 0, 0.15);
@@ -130,9 +166,10 @@
   transition: box-shadow 0.3s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
-  min-height: 140px;
-  /* 高さを少し減らして垂直方向のスペースを確保 */
+  min-height: 120px;
   height: auto;
+  gap: 0.8rem;
+  box-sizing: border-box;
 }
 
 /* フォーカス時の問題エリアの効果 */
@@ -142,69 +179,38 @@
     inset 0 0 0 1px rgba(255, 140, 0, 0.3);
 }
 
-/* キーボード表示エリア（要素） */
-.typing_game__keyboard_area {
+/* Canvasキーボード用の新しいコンテナ - サイズを最適化 */
+.canvas_keyboard_container {
   width: 100%;
-  min-height: 180px;
-  /* 高さを増やす（元：120px） */
-  max-width: 700px;
-  /* 最大幅を制限 */
-  border-radius: 10px;
-  border: 1px dashed rgba(255, 140, 0, 0.1);
   display: flex;
-  align-items: center;
   justify-content: center;
-  padding: 10px 0;
-  /* 上下のパディングを追加 */
-  box-sizing: border-box;
-  margin-bottom: 20px;
-  /* 下部にマージンを追加して、ショートカット表示と被らないようにする */
-  overflow: visible;
-  /* オーバーフロー表示を許可 */
-}
-
-/* 進行状況バーエリア（要素） */
-.typing_game__progress_area {
-  width: 85%;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1.5px;
-  /* 間隔を狭めて全体高さを縮小 */
-  margin: 0;
-  position: absolute;
-  /* stickyからabsoluteに変更 */
-  bottom: 30px;
-  /* 下からの位置を調整 */
-  left: 50%;
-  transform: translateX(-50%);
-  /* 中央配置 */
-  max-height: 50%;
-  /* 高さを制限して半分程度に */
-  padding: 0;
-  /* パディングをなくして余白を減らす */
-  z-index: 10;
-  /* 他の要素より前面に表示 */
+  position: relative;
+  margin-top: auto; /* 上部コンテンツとの間に自動マージンを追加 */
+  flex-grow: 1; /* 残りの垂直スペースを埋める */
 }
 
 /* 問題テキスト（要素） */
 .typing_game__problem_text {
   width: 100%;
-  margin: 0 0 1rem;
+  margin: 0 0 0.5rem;
   text-align: center;
-  font-size: 1.4rem;
+  font-size: 1.5rem; /* 2.0remから1.5remに縮小 */
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 1.3;
   letter-spacing: 0.02em;
   color: #ffffff;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  padding: 0.2rem;
+  box-sizing: border-box;
+  font-family: var(--font-noto-sans-jp), -apple-system, "Segoe UI", "Hiragino Sans", sans-serif;
 }
 
 /* 入力テキスト表示（要素） */
 .typing_game__input_display {
   width: 100%;
   min-height: 2rem;
-  padding: 0.4rem 0.5rem;
+  padding: 0.3rem;
   border-radius: 8px;
   text-align: center;
   display: block;
@@ -213,13 +219,14 @@
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
   font-family: 'Cascadia Code', 'Source Code Pro', 'Fira Code', 'Consolas', monospace;
-  font-size: 1.15rem;
-  line-height: 1.4;
+  font-size: 1.5rem; /* 1remから1.5remに拡大 */
+  line-height: 1.3;
   letter-spacing: 0.03em;
   white-space: pre-wrap;
   overflow-wrap: break-word;
   color: #e0e0e0;
-  margin-bottom: 0;
+  margin-bottom: 0.2rem;
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 /* 次の入力文字の強調表示（要素） */
@@ -230,7 +237,7 @@
   font-weight: 700;
   font-size: 1.25rem;
   display: inline-block;
-  padding: 0 1px;
+  padding: 0 2px;
   margin: 0 1px;
   transform: translateY(-1px);
   background-color: rgba(255, 154, 40, 0.1);
@@ -239,19 +246,13 @@
 
 /* エラー時のシェイクアニメーション */
 @keyframes errorShake {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: translateX(0);
   }
-
-  20%,
-  60% {
+  20%, 60% {
     transform: translateX(-5px);
   }
-
-  40%,
-  80% {
+  40%, 80% {
     transform: translateX(5px);
   }
 }
@@ -278,92 +279,42 @@
 }
 
 @keyframes cursorBlink {
-
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
-
   50% {
     opacity: 0.3;
   }
 }
 
-/* コントロールボタンエリア（要素） */
-.typing_game__controls {
+/* ESCショートカットのスタイル（左下に配置） */
+.typing_game__shortcuts_inside {
   position: absolute;
-  bottom: 20px;
-  right: 20px;
-  display: flex;
-  gap: 10px;
-  z-index: 15;
-}
-
-/* ESCガイド表示 */
-.typing_game__esc_guide {
-  position: absolute;
-  left: 20px;
-  bottom: 20px;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  background-color: rgba(0, 0, 0, 0.4);
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  backdrop-filter: blur(5px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  z-index: 10;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.typing_game__esc_guide::before {
-  content: 'ESC';
-  background-color: rgba(255, 140, 0, 0.2);
-  color: #ff9a28;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 700;
-  font-size: 0.75rem;
-  border: 1px solid rgba(255, 140, 0, 0.3);
-}
-
-/* キーボードショートカット案内 */
-.typing_game__shortcuts {
-  position: absolute;
-  bottom: 15px;
   left: 15px;
-  z-index: 10;
+  bottom: 15px;
+  z-index: 20;
   display: flex;
   align-items: center;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
+  gap: 0.5rem;
 }
 
 .typing_game__shortcut_item {
-  display: flex;
-  align-items: center;
-  margin-right: 12px;
+  padding: 0.3rem 0.6rem;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 140, 0, 0.3);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
 }
 
 .typing_game__shortcut_item kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  padding: 2px 6px;
-  margin-right: 5px;
-  font-family: monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #ff9a28;
-  min-width: 20px;
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+  font-family: 'Source Code Pro', monospace;
+}
+
+.typing_game__shortcut_item:hover {
+  background-color: rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 140, 0, 0.6);
 }
 
 /* レガシーサポート用（最小限のクラスのみ残す） */
@@ -387,6 +338,56 @@
   composes: typing_game__input_display;
 }
 
-.progressContainer {
-  composes: typing_game__progress_area;
+/* レスポンシブ対応 */
+@media screen and (max-width: 840px) {
+  .typing_game_wrapper {
+    width: 100%;
+  }
+  
+  .typing_game {
+    width: 100%;
+    height: 100vh;
+    border: none;
+    border-radius: 0;
+  }
+  
+  .typing_game__content_area {
+    max-width: 100%;
+  }
+  
+  .typing_game__problem_area {
+    padding: 1.25rem 1.25rem 1rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .typing_game__header {
+    padding: 0.8rem;
+    height: 50px;
+    flex-wrap: wrap;
+  }
+  
+  .typing_game__level_display {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .typing_game__status {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .typing_game__main {
+    padding: 1rem 1rem 1.5rem;
+  }
+  
+  .typing_game__problem_text {
+    font-size: 1.2rem;
+  }
+  
+  .typing_game__input_display {
+    font-size: 1rem;
+  }
 }
