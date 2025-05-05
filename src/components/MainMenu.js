@@ -173,41 +173,96 @@ const MainMenu = () => {
   // 設定コンテンツをレンダリングする関数
   const renderSettingsContent = () => {
     return (
-      <>
-        {/* 難易度設定 */}
-        <div className={styles.settingSection}>
-          <h3 className={styles.sectionTitle}>難易度</h3>
-          <div className={styles.difficultyOptions}>
-            <Button
-              variant={settings.difficulty === 'easy' ? 'primary' : 'default'}
-              active={settings.difficulty === 'easy'}
-              onClick={() => handleDifficultyChange('easy')}
-              className="button--difficulty"
-            >
-              やさしい
-            </Button>
-            <Button
-              variant={settings.difficulty === 'normal' ? 'primary' : 'default'}
-              active={settings.difficulty === 'normal'}
-              onClick={() => handleDifficultyChange('normal')}
-              className="button--difficulty"
-            >
-              普通
-            </Button>
-            <Button
-              variant={settings.difficulty === 'hard' ? 'primary' : 'default'}
-              active={settings.difficulty === 'hard'}
-              onClick={() => handleDifficultyChange('hard')}
-              className="button--difficulty"
-            >
-              むずかしい
-            </Button>
+      <div className={styles.settingsContainer}>
+        {/* ゲーム設定セクション */}
+        <div className={styles.settingsSection}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionIcon}>🎮</div>
+            <h3 className={styles.sectionTitle}>ゲーム設定</h3>
+          </div>
+          
+          {/* 難易度設定パネル */}
+          <div className={styles.settingsPanel}>
+            <div className={styles.settingRow}>
+              <div className={styles.settingLabelGroup}>
+                <label className={styles.settingLabel}>難易度</label>
+                <span className={styles.settingDescription}>
+                  問題の難しさを設定します
+                </span>
+              </div>
+              
+              <div className={styles.difficultySelector}>
+                {Object.keys(difficultyLabels).map((key) => (
+                  <button
+                    key={key}
+                    className={`${styles.difficultyButton} ${settings.difficulty === key ? styles.active : ''}`}
+                    onClick={() => handleDifficultyChange(key)}
+                    aria-pressed={settings.difficulty === key}
+                  >
+                    <span className={styles.difficultyIcon}>
+                      {key === 'easy' ? '😊' : key === 'normal' ? '😐' : '😰'}
+                    </span>
+                    <span className={styles.difficultyLabel}>{difficultyLabels[key]}</span>
+                    {settings.difficulty === key && (
+                      <span className={styles.activeMark}>✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* サウンド設定 (共通コンポーネントを使用) */}
-        <SoundSettings className={styles.soundSettings} />
-      </>
+        {/* 区切り線（装飾付き） */}
+        <div className={styles.settingsDivider}>
+          <div className={styles.dividerLine}></div>
+          <div className={styles.dividerIcon}>🔊</div>
+          <div className={styles.dividerLine}></div>
+        </div>
+
+        {/* サウンド設定セクション */}
+        <div className={styles.settingsSection}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionIcon}>🎵</div>
+            <h3 className={styles.sectionTitle}>音声設定</h3>
+          </div>
+          
+          <div className={styles.settingsPanel}>
+            {/* 強化されたサウンド設定コンポーネントを使用 */}
+            <SoundSettings 
+              className={styles.enhancedSoundSettings} 
+              showVolumeIndicator={true}
+              showEffects={true}
+            />
+          </div>
+        </div>
+
+        {/* ショートカット一覧 */}
+        <div className={styles.keyboardShortcuts}>
+          <div className={styles.shortcutsHeader}>
+            <div className={styles.shortcutsIcon}>⌨️</div>
+            <span>キーボードショートカット</span>
+          </div>
+          <div className={styles.shortcutsList}>
+            <div className={styles.shortcutItem}>
+              <kbd>Space</kbd>
+              <span>ゲーム開始</span>
+            </div>
+            <div className={styles.shortcutItem}>
+              <kbd>S</kbd>
+              <span>設定を開く</span>
+            </div>
+            <div className={styles.shortcutItem}>
+              <kbd>R</kbd>
+              <span>ランキング表示</span>
+            </div>
+            <div className={styles.shortcutItem}>
+              <kbd>ESC</kbd>
+              <span>メニューに戻る</span>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   };
 

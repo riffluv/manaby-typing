@@ -34,7 +34,8 @@
 .modal__content {
   width: 500px;
   max-width: 90%;
-  max-height: calc(100vh - 40px);
+  /* SPA画面(800x600px)に最適化：最大高さを制限 */
+  max-height: 520px; /* 600pxより小さく設定し、余白を確保 */
   background-color: #121212;
   border: 4px solid var(--color-primary, #ff8c00);
   border-radius: 8px;
@@ -62,10 +63,11 @@
 /* モーダル本文（要素） */
 .modal__body {
   padding: 20px;
-  overflow-y: auto;
+  overflow-y: auto; /* 常にスクロール可能に */
   overflow-x: hidden;
   flex-grow: 1;
-  max-height: calc(100vh - 130px);
+  /* 最大高さを計算：モーダル最大高さ - ヘッダー高さ - パディング */
+  max-height: calc(520px - 60px - 40px);
   scrollbar-width: thin;
   scrollbar-color: var(--color-primary, #ff8c00) rgba(0, 0, 0, 0.3);
 }
@@ -125,10 +127,20 @@
 /* モーダルサイズバリエーション（修飾子） */
 .modal--small .modal__content {
   max-width: 400px;
+  max-height: 450px; /* 小さいモーダルの高さも制限 */
+}
+
+.modal--small .modal__body {
+  max-height: calc(450px - 60px - 40px);
 }
 
 .modal--large .modal__content {
   max-width: 800px;
+  max-height: 520px; /* 大きいモーダルも画面内に収める */
+}
+
+.modal--large .modal__body {
+  max-height: calc(520px - 60px - 40px);
 }
 
 /* レスポンシブ対応 */

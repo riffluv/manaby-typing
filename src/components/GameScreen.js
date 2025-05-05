@@ -542,7 +542,7 @@ const GameScreen = () => {
           whileHover={animationVariants.shortcut.whileHover}
         >
           <span className={styles.typing_game__shortcut_item}>
-            <kbd>Esc</kbd>
+            <kbd>Esc</kbd> <span className={styles.typing_game__shortcut_text}>メニューへ</span>
           </span>
         </motion.div>
       </div>
