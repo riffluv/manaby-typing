@@ -44,7 +44,7 @@ export function useTypingGame({
 
   // 入力履歴の管理（統計計算用）
   const inputHistoryRef = useRef([]);
-  
+
   // エラーアニメーション用のタイマーID
   const errorAnimationTimerRef = useRef(null);
 
@@ -98,7 +98,7 @@ export function useTypingGame({
 
       // 現在の時間を記録
       const now = Date.now();
-      
+
       // 統計の開始時間設定
       if (!statistics.startTime) {
         setStatistics((prev) => ({
@@ -115,7 +115,7 @@ export function useTypingGame({
 
       // 入力文字を半角に変換
       const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key.toLowerCase());
-      
+
       // typingmania-ref風の単純処理パス
       const result = typingSession.processInput(halfWidthChar);
 
@@ -123,10 +123,8 @@ export function useTypingGame({
       if (result.success) {
         // 効果音再生
         if (playSound) {
-          if (soundSystem.context && soundSystem.context.state === 'suspended') {
-            soundSystem.context.resume();
-          }
-          soundSystem.play('success', { immediate: true });
+          // シンプル化したSoundUtilsでの再生方法
+          soundSystem.playSound('success');
         }
 
         // 色分け情報を更新
@@ -155,7 +153,8 @@ export function useTypingGame({
       } else {
         // エラー処理
         if (playSound) {
-          soundSystem.play('error');
+          // シンプル化したSoundUtilsでの再生方法
+          soundSystem.playSound('error');
         }
 
         // エラーアニメーション

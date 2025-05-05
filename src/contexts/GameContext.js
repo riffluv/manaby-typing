@@ -95,15 +95,13 @@ export const GameProvider = ({ children }) => {
       // 最終プレイ日を記録
       StorageUtils.saveLastPlayedDate();
 
-      // ★タイピングゲーム最適化: サウンドシステムの最適化
-      console.log('[GameContext] サウンドシステムの最適化を実行...');
-      // 高リフレッシュレート環境でも安定したタイミングで音を鳴らせるよう最適化
-      soundSystem.optimizeForLowLatency();
+      // サウンドシステムの初期化
+      console.log('[GameContext] サウンドシステムの初期化を実行...');
 
-      // 最重要な効果音を先行ロード（応答性確保のため）
+      // 基本的な効果音を先行ロード（応答性確保のため）
       soundSystem.initializeAllSounds().then(success => {
         if (success) {
-          console.log('[GameContext] 効果音の先行ロード完了。タイピング最適化有効。');
+          console.log('[GameContext] 効果音の先行ロード完了');
         }
       });
 
