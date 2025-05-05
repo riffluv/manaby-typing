@@ -19,10 +19,20 @@ class SoundUtils {
       // BGM用のGainノード（BGM専用の音量調整用）
       this.bgmGainNode = this.context.createGain();
       this.bgmGainNode.connect(this.context.destination);
+
+      // タイピング音専用の高速レスポンス用Gainノード
+      this.typingGainNode = this.context.createGain();
+      this.typingGainNode.connect(this.context.destination);
     }
 
     // 効果音バッファを保持するオブジェクト
     this.sfxBuffers = {};
+
+    // タイピング音専用のキャッシュ (超高速アクセス用)
+    this.typingSoundBuffers = {
+      success: null,
+      error: null
+    };
 
     // BGMの状態管理
     this.currentBgm = null;
@@ -67,6 +77,9 @@ class SoundUtils {
         window.addEventListener(eventType, this._handleUserInteraction.bind(this), { once: false, passive: true });
       });
     }
+
+    // タイピング音のパフォーマンス最適化用フラグ
+    this.isOptimizedForTyping = false;
 
     console.log('[DEBUG] サウンドシステム初期化完了');
   }
@@ -186,6 +199,12 @@ class SoundUtils {
         if (this.soundPresets[name]) {
           criticalLoadPromises.push(
             this.loadSound(name, this.soundPresets[name])
+              .then(() => {
+                // タイピング音は専用キャッシュにも保存
+                if (name === 'success' || name === 'error') {
+                  this.typingSoundBuffers[name] = this.sfxBuffers[name.toLowerCase()];
+                }
+              })
           );
         }
       }
@@ -193,6 +212,9 @@ class SoundUtils {
       // 重要な効果音を先に読み込み終える
       await Promise.all(criticalLoadPromises);
       console.log('重要な効果音のロードが完了しました');
+      
+      // タイピング処理の最適化を有効化
+      this.optimizeForTypingPerformance();
 
       // その他の効果音は非同期で読み込み（ユーザー体験を妨げない）
       const nonCriticalSounds = Object.entries(this.soundPresets).filter(
@@ -401,7 +423,15 @@ class SoundUtils {
       // AudioContextの状態チェックも省略して即時再生
       const sourceNode = this.context.createBufferSource();
       sourceNode.buffer = buffer;
-      sourceNode.connect(this.gainNode);
+
+      // タイピング音最適化モードが有効な場合は専用ゲインノードを使用
+      // すべてのノードが同じAudioContextに属していることを確認
+      if (this.isOptimizedForTyping && this.typingGainNode && this.typingGainNode.context === this.context) {
+        sourceNode.connect(this.typingGainNode);
+      } else {
+        // フォールバック：通常のゲインノードを使用
+        sourceNode.connect(this.gainNode);
+      }
 
       // 即時開始（開始時刻0で絶対的な優先度を確保）
       sourceNode.start(0);
@@ -971,6 +1001,134 @@ class SoundUtils {
       return false;
     } catch (err) {
       console.warn('低レイテンシー最適化に失敗:', err);
+      return false;
+    }
+  }
+
+  /**
+   * タイピングゲームの処理に最適化された超低レイテンシーの効果音再生
+   * typingmania-refのサウンドエンジンにインスパイアされた実装
+   * @param {string} type - 再生する効果音のタイプ ('success' または 'error')
+   */
+  playTypingSound(type) {
+    // 効果音が無効化されているか、ブラウザ環境でない場合は何もしない
+    if (typeof window === 'undefined' || !this.sfxEnabled) {
+      return;
+    }
+
+    try {
+      const buffer = type === 'error' ? this.typingSoundBuffers.error : this.typingSoundBuffers.success;
+
+      // バッファがない場合は代替処理
+      if (!buffer) {
+        // バッファが読み込まれていない場合はプリロードを試みる
+        if (type === 'error' || type === 'success') {
+          if (!this.sfxBuffers[type.toLowerCase()]) {
+            // 通常のバッファにもない場合はロード
+            this.loadSound(type, this.soundPresets[type])
+              .then(() => {
+                // 成功したら専用キャッシュにも保存
+                this.typingSoundBuffers[type] = this.sfxBuffers[type.toLowerCase()];
+                // 再帰的に再生を試みる
+                this.playTypingSound(type);
+              })
+              .catch(err => console.warn(`タイピング音「${type}」のロードに失敗:`, err));
+          } else {
+            // 通常のバッファにはあるが専用キャッシュにない場合は複製
+            this.typingSoundBuffers[type] = this.sfxBuffers[type.toLowerCase()];
+            // 再帰的に再生を試みる
+            this.playTypingSound(type);
+          }
+        }
+        return;
+      }
+
+      // === 超高速再生パス ===
+      // 最小限のオーバーヘッドでWeb Audio APIを使用
+      const sourceNode = this.context.createBufferSource();
+      sourceNode.buffer = buffer;
+      
+      // タイピング専用のゲインノードの一貫性を確認
+      if (this.typingGainNode && this.typingGainNode.context === this.context) {
+        // 同じコンテキストに属している場合のみ専用ノードを使用
+        sourceNode.connect(this.typingGainNode);
+      } else {
+        // 異なるコンテキストの場合や問題がある場合は通常のゲインノードを使用
+        sourceNode.connect(this.gainNode);
+        
+        // 問題を検出した場合は、タイピング専用ノードを再作成
+        if (this.typingGainNode && this.typingGainNode.context !== this.context) {
+          console.warn('[タイピング音] AudioContext不一致を検出。ノードを再作成します');
+          try {
+            // タイピング専用ゲインノードを再作成
+            this.typingGainNode = this.context.createGain();
+            this.typingGainNode.connect(this.context.destination);
+            this.typingGainNode.gain.value = this.sfxEnabled ? this.volume : 0;
+          } catch (e) {
+            console.error('[タイピング音] ゲインノード再作成エラー:', e);
+          }
+        }
+      }
+      
+      // 即時再生開始（レイテンシーを最小限に）
+      sourceNode.start(0);
+      
+      return true;
+    } catch (error) {
+      // エラー時は通常の再生にフォールバック
+      console.debug(`タイピング音の超高速再生に失敗: ${error.message}`);
+      const soundName = type === 'error' ? 'error' : 'success';
+      this.playSound(soundName, { immediate: true });
+      return false;
+    }
+  }
+
+  /**
+   * タイピングゲームのパフォーマンスを最適化する
+   * タイピング音に特化した設定を適用
+   */
+  optimizeForTypingPerformance() {
+    if (typeof window === 'undefined' || !this.context) {
+      return false;
+    }
+
+    try {
+      // すでに最適化済みなら何もしない
+      if (this.isOptimizedForTyping) {
+        return true;
+      }
+
+      console.log('[サウンド] タイピングパフォーマンス最適化を適用します...');
+
+      // タイピング専用のゲインノード音量を設定
+      this.typingGainNode.gain.value = this.sfxEnabled ? this.volume : 0;
+
+      // サクセス音とエラー音を専用バッファに確保
+      if (this.sfxBuffers['success']) {
+        this.typingSoundBuffers.success = this.sfxBuffers['success'];
+      }
+      if (this.sfxBuffers['error']) {
+        this.typingSoundBuffers.error = this.sfxBuffers['error'];
+      }
+
+      // AudioContextの状態を確認し、必要なら再開
+      if (this.context.state === 'suspended') {
+        this.context.resume();
+      }
+
+      // 最適化フラグをオン
+      this.isOptimizedForTyping = true;
+
+      // すでにキャッシュされたタイピング音があるか確認
+      const hasCachedTypingSounds = 
+        this.typingSoundBuffers.success !== null &&
+        this.typingSoundBuffers.error !== null;
+
+      console.log(`[サウンド] タイピングパフォーマンス最適化完了 (キャッシュ状態: ${hasCachedTypingSounds ? '準備完了' : '読み込み中'})`);
+
+      return true;
+    } catch (err) {
+      console.warn('[サウンド] タイピングパフォーマンス最適化に失敗:', err);
       return false;
     }
   }

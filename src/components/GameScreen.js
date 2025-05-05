@@ -287,26 +287,31 @@ const GameScreen = () => {
         }));
       }
 
-      // サウンド処理で競合を防ぐためのフラグオブジェクトを作成
+      // === タイピングサウンド最適化 ===
+      // 確実に一度だけサウンドが鳴るように音声処理のフラグを作成
       const customSoundHandling = {
         preventDefaultSound: false
       };
 
-      // typingmania-refスタイルの最適化: 予測パスのチェック
+      // 入力予測による最適化パス - typingmania-refスタイル
       const typingSession = typing?.typingSession;
       if (typingSession && typingSession.getNextPossibleChars) {
         const possibleChars = typingSession.getNextPossibleChars();
         if (possibleChars) {
           const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(e.key.toLowerCase());
 
-          // 次の入力として可能性がある場合は超最適化パスを使用
+          // 次の入力として可能性がある場合（正解の場合）
           if (possibleChars.has(halfWidthChar)) {
-            // useTypingGameの内部音声再生を無効化（音声の二重再生を防止）
+            // useTypingGameの内部音声再生を無効化
             customSoundHandling.preventDefaultSound = true;
-
-            // 先行してサウンドのみを再生（知覚遅延の最小化）
-            // この処理は超低レイテンシーで行われ、音声と入力処理の間の遅延をなくす
-            soundSystem.playUltraFast('success');
+            
+            // 専用の最適化された高速サウンドメソッドを使用
+            // これにより音声と入力処理の同期遅延を解消
+            soundSystem.playTypingSound('success');
+          } else {
+            // 不正解の場合はエラー音を再生
+            customSoundHandling.preventDefaultSound = true;
+            soundSystem.playTypingSound('error');
           }
         }
       }
