@@ -180,7 +180,7 @@ const MainMenu = () => {
             <div className={styles.sectionIcon}>🎮</div>
             <h3 className={styles.sectionTitle}>ゲーム設定</h3>
           </div>
-          
+
           {/* 難易度設定パネル */}
           <div className={styles.settingsPanel}>
             <div className={styles.settingRow}>
@@ -190,7 +190,7 @@ const MainMenu = () => {
                   問題の難しさを設定します
                 </span>
               </div>
-              
+
               <div className={styles.difficultySelector}>
                 {Object.keys(difficultyLabels).map((key) => (
                   <button
@@ -226,11 +226,11 @@ const MainMenu = () => {
             <div className={styles.sectionIcon}>🎵</div>
             <h3 className={styles.sectionTitle}>音声設定</h3>
           </div>
-          
+
           <div className={styles.settingsPanel}>
             {/* 強化されたサウンド設定コンポーネントを使用 */}
-            <SoundSettings 
-              className={styles.enhancedSoundSettings} 
+            <SoundSettings
+              className={styles.enhancedSoundSettings}
               showVolumeIndicator={true}
               showEffects={true}
             />

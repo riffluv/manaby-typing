@@ -779,18 +779,63 @@ export class TypingWorkerManager {
   }
 
   /**
+   * 内部: 次のコールバックIDを取得
+   * @returns {number} 一意のコールバックID
+   * @private
+   */
+  _getNextCallbackId() {
+    // 整数のオーバーフローを防止するために1,000,000でリセット
+    if (this._callbackId > 1000000) {
+      this._callbackId = 0;
+    }
+    return this._callbackId++;
+  }
+
+  /**
    * 入力履歴をクリア
    */
   clearInputHistory() {
     this._inputHistory = [];
+    this._metrics.historyClears++;
   }
 
   /**
-   * コールバックIDの生成
-   * @returns {number} 一意のコールバックID
+   * 入力履歴を定期的にクリーンアップする (メモリリーク防止)
+   * @returns {boolean} クリーンアップが実行されたかどうか
    */
-  _getNextCallbackId() {
-    return this._callbackId++;
+  cleanupInputHistory() {
+    const MAX_HISTORY_LENGTH = 500;
+    const REDUCE_TO_SIZE = 250;
+
+    if (this._inputHistory.length > MAX_HISTORY_LENGTH) {
+      console.info(`[最適化] TypingWorkerManager入力履歴を削減: ${this._inputHistory.length} → ${REDUCE_TO_SIZE}件`);
+      this._inputHistory = this._inputHistory.slice(-REDUCE_TO_SIZE);
+      this._metrics.historyCleanups++;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Web Workerの統計を取得
+   */
+  async getWorkerStatistics() {
+    if (!this._worker) {
+      await this._initialize();
+    }
+
+    return new Promise((resolve) => {
+      const callbackId = this._getNextCallbackId();
+
+      // コールバックを登録
+      this._callbacks.set(callbackId, resolve);
+
+      // Workerにメッセージを送信
+      this._worker.postMessage({
+        type: 'getStatistics',
+        callbackId,
+      });
+    });
   }
 
   /**

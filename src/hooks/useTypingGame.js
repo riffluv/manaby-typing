@@ -9,6 +9,10 @@ const DEBUG_TYPING = false;
 const DEBUG_WORKER = false;
 const DEBUG_PERFORMANCE = false;
 
+// 定期クリーンアップのための定数を追加
+const HISTORY_CLEANUP_INTERVAL = 30000; // 30秒ごとにクリーンアップ
+const MAX_HISTORY_SIZE = 500; // 変更：1000 → 500に削減
+
 /**
  * タイピングゲームのコアロジックを扱うカスタムフック
  * typingmania-refを参考にした高性能実装に対応
@@ -538,12 +542,24 @@ export function useTypingGame({
       }, performanceConfig.statsUpdateInterval);
     }
 
+    // 定期的に入力履歴をクリーンアップするインターバル
+    let cleanupIntervalId = null;
+    if (typeof window !== 'undefined') {
+      cleanupIntervalId = setInterval(() => {
+        // 入力履歴を定期的にクリーンアップ
+        typingWorkerManager.cleanupInputHistory();
+      }, HISTORY_CLEANUP_INTERVAL);
+    }
+
     return () => {
       if (inputSystem.current) {
         inputSystem.current.cleanup();
       }
       if (statsIntervalId) {
         clearInterval(statsIntervalId);
+      }
+      if (cleanupIntervalId) {
+        clearInterval(cleanupIntervalId);
       }
 
       // Worker履歴をクリア
