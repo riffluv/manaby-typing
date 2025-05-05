@@ -17,14 +17,8 @@ import { useTypingGame } from '../hooks/useTypingGame';
 
 // コンポーネントをインポート
 import TypingDisplay from './typing/TypingDisplay';
-import ProgressBar from './typing/ProgressBar';
 import ProblemDisplay from './typing/ProblemDisplay';
 import Button from './common/Button'; // 共通ボタンコンポーネントをインポート
-
-// デバッグ用コンソールログの追加
-console.log(
-  'DEBUG: UPDATED GameScreen.js has loaded! - ESC機能付き + 戻るボタンなし + useTypingGame対応 + コンポーネント分離 + パフォーマンス最適化 + 高さ固定と改行対応'
-);
 
 // リファクタリング後のコンポーネント実装
 const GameScreen = () => {
@@ -208,9 +202,6 @@ const GameScreen = () => {
         // すべての効果音を読み込み
         await soundSystem.initializeAllSounds();
 
-        // BGM再生コードを削除（レスポンス問題を解消）
-        // soundSystem.playBgm('game', true);
-
         // コンポーネントがアンマウントされていなければ状態を更新
         if (isMounted) {
           // 音声システムのステータスをコンソールに出力
@@ -237,8 +228,6 @@ const GameScreen = () => {
     return () => {
       isMounted = false; // コンポーネントがアンマウントされたことを記録
       console.log('[GameScreen] コンポーネントがアンマウントされます。');
-      // BGM停止処理を削除（レスポンス問題を解消）
-      // soundSystem.stopBgm();
     };
   }, []);
 
@@ -377,41 +366,6 @@ const GameScreen = () => {
     goToScreen,
   ]);
 
-  // 進行状況の計算（ゲーム全体の進捗を表示するように修正）- useMemoで最適化
-  const progressPercentage = useMemo(() => {
-    // ゲームの全体進捗を計算
-    if (!problems || !gameState.currentProblem) return 0;
-
-    // UI表示用の強制100%指定があればそれを優先
-    if (gameState.uiCompletePercent === 100) {
-      return 100;
-    }
-
-    // 解答済みの問題数
-    const solvedCount = gameState.solvedCount || 0;
-    // 必要な問題総数
-    const totalProblems = requiredProblemCount;
-
-    // 現在の問題の進捗（0～1の範囲）
-    // カスタムフックから進捗を取得
-    const currentProblemProgress = typing.progressPercentage / 100;
-
-    // 全体の進捗率を計算
-    // 既に解いた問題 + 現在の問題の進捗 / 合計問題数
-    const overallProgress =
-      (solvedCount + currentProblemProgress) / totalProblems;
-
-    // パーセンテージに変換して返す（0～100）
-    return Math.floor(overallProgress * 100);
-  }, [
-    typing.progressPercentage,
-    gameState.solvedCount,
-    gameState.currentProblem,
-    gameState.uiCompletePercent,
-    problems,
-    requiredProblemCount,
-  ]);
-
   // アニメーション用のバリアント - 再レンダリング間で一定に保つために useMemo を使用
   const animationVariants = useMemo(
     () => ({
@@ -449,63 +403,19 @@ const GameScreen = () => {
     return null;
   }
 
-  // 通常のゲーム画面のみ表示
+  // 通常のゲーム画面のみ表示 - BEM記法に準拠
   return (
-    <div className={styles.gameContainer}>
-      <motion.div
-        className={styles.gameHeader}
+    <div className={styles.typing_game}>
+      <motion.header
+        className={styles.typing_game__header}
         initial={animationVariants.header.initial}
         animate={animationVariants.header.animate}
         transition={animationVariants.header.transition}
       >
-        <motion.div
-          className={styles.gameLevel}
-          initial={animationVariants.gameLevelScale.initial}
-          animate={animationVariants.gameLevelScale.animate}
-          transition={animationVariants.gameLevelScale.transition}
-        >
-          お題: {gameState.solvedCount + 1}/{requiredProblemCount}
-        </motion.div>
-      </motion.div>
-
-      <motion.div
-        className={styles.gameArea}
-        initial={animationVariants.gameArea.initial}
-        animate={animationVariants.gameArea.animate}
-        transition={animationVariants.gameArea.transition}
-      >
-        <div className={styles.typingArea}>
-          <div className={styles.problemContainer}>
-            {/* 問題表示コンポーネントを使用 */}
-            <ProblemDisplay
-              text={gameState.currentProblem?.displayText || ''}
-            />
-
-            {/* シンプル版のTypingDisplayコンポーネントを使用 */}
-            <TypingDisplay
-              displayRomaji={typing.displayRomaji}
-              coloringInfo={typing.coloringInfo}
-              isCompleted={typing.isCompleted}
-              currentInput={typing.typingSession?.currentInput || ''}
-              errorAnimation={typing.errorAnimation}
-            />
-          </div>
-        </div>
-      </motion.div>
-
-      {/* 進行状況バー - 新しいコンポーネントを使用 */}
-      <ProgressBar
-        percentage={progressPercentage}
-        showText={true}
-        label="進行状況"
-      />
-
-      {/* 戻るボタンを追加 */}
-      <div className={styles.controlsContainer}>
         <Button
           variant="default"
           size="small"
-          className="button--control"
+          className={styles.typing_game__back_button}
           onClick={() => goToScreen(SCREENS.MAIN_MENU, {
             playSound: true,
             soundType: 'button',
@@ -513,6 +423,55 @@ const GameScreen = () => {
         >
           メニューに戻る
         </Button>
+        
+        <motion.div
+          className={styles.typing_game__level_display}
+          initial={animationVariants.gameLevelScale.initial}
+          animate={animationVariants.gameLevelScale.animate}
+          transition={animationVariants.gameLevelScale.transition}
+        >
+          お題: {gameState.solvedCount + 1}/{requiredProblemCount}
+        </motion.div>
+      </motion.header>
+
+      <motion.main
+        className={styles.typing_game__main}
+        initial={animationVariants.gameArea.initial}
+        animate={animationVariants.gameArea.animate}
+        transition={animationVariants.gameArea.transition}
+      >
+        <div className={styles.typing_game__content_area}>
+          {/* お題エリア - リファクタリング済み */}
+          <div className={styles.typing_game__problem_area}>
+            {/* 問題表示コンポーネント */}
+            <ProblemDisplay
+              text={gameState.currentProblem?.displayText || ''}
+              className={styles.typing_game__problem_text}
+            />
+
+            {/* 入力エリア */}
+            <TypingDisplay
+              displayRomaji={typing.displayRomaji}
+              coloringInfo={typing.coloringInfo}
+              isCompleted={typing.isCompleted}
+              currentInput={typing.typingSession?.currentInput || ''}
+              errorAnimation={typing.errorAnimation}
+              className={styles.typing_game__input_display}
+            />
+          </div>
+          
+          {/* 将来的なKeyboardDisplay用のスペースを確保 */}
+          <div className={styles.typing_game__keyboard_area}>
+            {/* ここに将来的にKeyboardDisplayを追加 */}
+          </div>
+        </div>
+      </motion.main>
+
+      {/* ESCキーのショートカット案内 */}
+      <div className={styles.typing_game__shortcuts}>
+        <span className={styles.typing_game__shortcut_item}>
+          <kbd>Esc</kbd>: メニューに戻る
+        </span>
       </div>
     </div>
   );
