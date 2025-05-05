@@ -887,8 +887,8 @@ export default class TypingUtils {
   }
 
   /**
-   * タイピングセッションの管理クラス - 分割入力最適化バージョン
-   * typingmania-refの実装を参考にした高速処理
+   * タイピングセッションの管理クラス - typingmania-ref風に単純化
+   * 効率的な入力処理のためにシンプルな設計に変更
    */
   static createTypingSession(problem) {
     if (!problem || !problem.kanaText) {
@@ -896,23 +896,18 @@ export default class TypingUtils {
       return null;
     }
 
-    // かな文字列を正規化（全て小文字のひらがなに変換）
+    // かな文字列を正規化
     const kana = wanakana.toHiragana(problem.kanaText.trim().toLowerCase());
 
-    // 先読みキャッシュを準備（パフォーマンス向上）
-    this.precomputeNextCharPredictions(kana);
-
     try {
-      // かな文字列をローマ字パターンに分解（高速化）
+      // かな文字列をローマ字パターンに分解
       const patterns = this.parseTextToRomajiPatterns(kana);
 
-      // メモリ効率とパフォーマンスのため事前計算値を確保
-      // typingmania-refに倣った実装: 必要な情報を事前に計算して静的保持
+      // 表示用ローマ字を生成
       const displayIndices = [];
-      const patternLengths = [];
       let currentIndex = 0;
-
-      // パターンを反復処理する代わりに、一度の走査で必要なデータを全て収集
+      
+      // 表示用ローマ字を構築
       const displayRomaji = patterns.map((pattern, i) => {
         // 現在の表示位置を記録
         displayIndices[i] = currentIndex;
@@ -924,235 +919,211 @@ export default class TypingUtils {
           pattern[0]
         );
 
-        // パターンの長さを保存
-        patternLengths[i] = shortestPattern.length;
-
         // インデックスを更新
         currentIndex += shortestPattern.length;
-
         return shortestPattern;
       }).join('');
 
-      // typingmania-refスタイルの効率的なセッションオブジェクト
+      // シンプルなタイピングセッションオブジェクト
       const typingSession = {
         originalText: problem.displayText,
         kanaText: kana,
         displayRomaji,
         patterns,
-        patternLengths,
         displayIndices,
         currentCharIndex: 0,
         typedRomaji: '',
         currentInput: '',
         completed: false,
-        completedAt: null,
 
-        // 高速処理のためのキャッシュ領域
-        _cache: new Map(),
-
-        // ★新機能: 入力予測のための次の可能な文字を取得する関数
+        // 次に入力可能な文字を取得
         getNextPossibleChars() {
           if (this.completed) return null;
-          // 先読みキャッシュから取得
-          return TypingUtils._nextCharPredictionCache.get(this.currentCharIndex);
+          
+          const currentPatterns = this.patterns[this.currentCharIndex];
+          if (!currentPatterns || !currentPatterns.length) return null;
+          
+          const possibleChars = new Set();
+          
+          // 現在の入力に続く可能性のある文字を収集
+          for (const pattern of currentPatterns) {
+            if (pattern.startsWith(this.currentInput) && 
+                this.currentInput.length < pattern.length) {
+              possibleChars.add(pattern[this.currentInput.length]);
+            }
+          }
+          
+          return possibleChars;
         },
 
-        // ★新機能: 現在期待されているキーを取得する関数 (エラー分析用)
+        // 現在期待されているキーを取得
         getCurrentExpectedKey() {
           if (this.completed) return null;
+          
           const currentPatterns = this.patterns[this.currentCharIndex];
           if (!currentPatterns || !currentPatterns.length) return null;
 
-          // 入力中の場合は、次に期待される文字を返す
           if (this.currentInput) {
             for (const pattern of currentPatterns) {
-              if (pattern.startsWith(this.currentInput)) {
+              if (pattern.startsWith(this.currentInput) && 
+                  this.currentInput.length < pattern.length) {
                 return pattern[this.currentInput.length];
               }
             }
           }
-
-          // 入力が始まっていない場合は、最初のパターンの最初の文字を返す
+          
           return currentPatterns[0][0];
         },
 
-        // typingmania-refスタイルの高速実装（最適化版）
+        // シンプルな入力処理
         processInput(char) {
-          // パフォーマンス測定（DEV環境のみ）
-          const perfStartTime = process.env.NODE_ENV === 'development' ? performance.now() : null;
-
           if (this.completed) {
             return { success: false, status: 'already_completed' };
           }
 
-          // 現在のパターンに対する有効な入力かを確認
           const currentPatterns = this.patterns[this.currentCharIndex];
           if (!currentPatterns) {
             return { success: false, status: 'invalid_state' };
           }
 
-          // 新しい入力文字を現在の入力に追加
+          // 新しい入力文字を追加
           const newInput = this.currentInput + char;
 
-          // ★高速化: 頻出パターンをキャッシュから高速検索
-          // typingmania-refスタイルの高速パターンマッチング
-          let exactMatch = null;
-          let hasMatchingPrefix = false;
-
-          for (let i = 0; i < currentPatterns.length; i++) {
-            const pattern = currentPatterns[i];
+          // 完全一致または前方一致をチェック
+          let exactMatch = false;
+          let prefixMatch = false;
+          
+          for (const pattern of currentPatterns) {
             if (pattern === newInput) {
-              exactMatch = pattern;
+              exactMatch = true;
               break;
             }
             if (pattern.startsWith(newInput)) {
-              hasMatchingPrefix = true;
+              prefixMatch = true;
             }
           }
 
-          if (exactMatch || hasMatchingPrefix) {
-            this.currentInput = newInput;
+          // 入力を更新
+          this.currentInput = newInput;
 
-            if (exactMatch) {
-              // この文字の入力が完了
-              this.typedRomaji += exactMatch;
-              this.currentCharIndex++;
-              this.currentInput = '';
+          if (exactMatch) {
+            // 文字入力完了
+            this.typedRomaji += newInput;
+            this.currentCharIndex++;
+            this.currentInput = '';
 
-              // すべての文字を入力完了したかチェック
-              if (this.currentCharIndex >= this.patterns.length) {
-                this.completed = true;
-                this.completedAt = Date.now();
-
-                // DEV環境のみパフォーマンス計測
-                if (perfStartTime && process.env.NODE_ENV === 'development') {
-                  const elapsed = performance.now() - perfStartTime;
-                  if (elapsed > 1) {
-                    console.debug(`[パフォーマンス] 入力完了処理: ${elapsed.toFixed(2)}ms`);
-                  }
-                }
-
-                return { success: true, status: 'all_completed' };
-              }
-
-              // DEV環境のみパフォーマンス計測
-              if (perfStartTime && process.env.NODE_ENV === 'development') {
-                const elapsed = performance.now() - perfStartTime;
-                if (elapsed > 1) {
-                  console.debug(`[パフォーマンス] 文字完了処理: ${elapsed.toFixed(2)}ms`);
-                }
-              }
-
-              return { success: true, status: 'char_completed' };
+            // すべて完了したかチェック
+            if (this.currentCharIndex >= this.patterns.length) {
+              this.completed = true;
+              return { success: true, status: 'all_completed' };
             }
-
-            // DEV環境のみパフォーマンス計測
-            if (perfStartTime && process.env.NODE_ENV === 'development') {
-              const elapsed = performance.now() - perfStartTime;
-              if (elapsed > 1) {
-                console.debug(`[パフォーマンス] 中間入力処理: ${elapsed.toFixed(2)}ms`);
-              }
-            }
-
+            
+            return { success: true, status: 'char_completed' };
+          } 
+          
+          if (prefixMatch) {
+            // 途中まで正しい入力
             return { success: true, status: 'in_progress' };
           }
 
-          // typingmania-refの分割入力処理を適用
-          const splitResult = TypingUtils.optimizeSplitInput(
-            char,
-            currentPatterns,
-            this.currentInput
-          );
-
-          if (splitResult) {
-            // 分割処理が有効
-            this.currentInput = splitResult.secondPart;
-
-            // 文字が完全一致したかチェック
-            if (splitResult.secondPart === splitResult.matchedPattern) {
-              this.typedRomaji += splitResult.matchedPattern;
-              this.currentCharIndex++;
-              this.currentInput = '';
-
-              if (this.currentCharIndex >= this.patterns.length) {
-                this.completed = true;
-                this.completedAt = Date.now();
-                return { success: true, status: 'all_completed' };
-              }
-              return { success: true, status: 'char_completed_split' };
-            }
-
-            return { success: true, status: 'in_progress_split' };
+          // 分割入力の処理
+          const result = this._tryProcessSplitInput(char, currentPatterns);
+          if (result.success) {
+            return result;
           }
 
-          // パフォーマンス測定終了（DEV環境のみ）
-          if (perfStartTime && process.env.NODE_ENV === 'development') {
-            const elapsed = performance.now() - perfStartTime;
-            if (elapsed > 1) {
-              console.debug(`[パフォーマンス] 不一致処理: ${elapsed.toFixed(2)}ms`);
-            }
-          }
-
-          // 入力が一致しない
+          // マッチしない場合は元の入力を復元
+          this.currentInput = newInput.slice(0, -1);
           return { success: false, status: 'no_match' };
         },
 
-        // 色分け情報を取得（高速化）
-        getColoringInfo() {
-          // キャッシュ確認（同一状態での重複計算を避ける - 最大のパフォーマンスボトルネック対策）
-          const cacheKey = `coloring_${this.currentCharIndex}_${this.currentInput}`;
-          if (this._cache.has(cacheKey)) {
-            return this._cache.get(cacheKey);
+        // 分割入力の処理（内部メソッド）
+        _tryProcessSplitInput(char, currentPatterns) {
+          // すでに入力済みの文字があれば分割処理をチェック
+          if (this.currentInput.length <= 1) {
+            return { success: false };
           }
 
+          // 最後の入力を分割してみる
+          const prevInput = this.currentInput.slice(0, -1);
+          const lastChar = this.currentInput.slice(-1);
+
+          // 前部分が完全一致するか確認
+          let prevMatched = false;
+          for (const pattern of currentPatterns) {
+            if (pattern === prevInput) {
+              prevMatched = true;
+              break;
+            }
+          }
+
+          if (prevMatched) {
+            // 前部分を確定
+            this.typedRomaji += prevInput;
+            this.currentCharIndex++;
+            
+            // 完了チェック
+            if (this.currentCharIndex >= this.patterns.length) {
+              this.completed = true;
+              return { success: true, status: 'all_completed' };
+            }
+            
+            // 残りの文字を次の入力として処理
+            this.currentInput = lastChar;
+            
+            // 新しい位置で再度チェック
+            const nextPatterns = this.patterns[this.currentCharIndex];
+            if (!nextPatterns) {
+              return { success: true, status: 'split_continue' };
+            }
+            
+            // 次の入力とマッチするか確認
+            for (const pattern of nextPatterns) {
+              if (pattern.startsWith(lastChar)) {
+                return { success: true, status: 'split_continue' };
+              }
+            }
+          }
+          
+          return { success: false };
+        },
+
+        // 色分け情報を取得（シンプル化）
+        getColoringInfo() {
           if (this.completed) {
-            const completeInfo = {
+            return {
               typedLength: this.displayRomaji.length,
               currentInputLength: 0,
               currentPosition: this.displayRomaji.length,
-              currentDisplay: '',
-              completed: true,
-              completedAt: this.completedAt,
+              completed: true
             };
-            this._cache.set(cacheKey, completeInfo);
-            return completeInfo;
           }
 
-          // 事前計算済みのインデックスを使用
+          // 入力済み部分の長さ
           const typedIndex = this.currentCharIndex > 0 ?
             this.displayIndices[this.currentCharIndex] : 0;
 
+          // 現在位置
           const currentPosition = this.currentCharIndex < this.patterns.length ?
             this.displayIndices[this.currentCharIndex] : this.displayRomaji.length;
 
-          const result = {
+          return {
             typedLength: typedIndex,
             currentInputLength: this.currentInput.length,
             currentPosition: currentPosition,
-            currentDisplay: '',
-            completed: false,
+            completed: false
           };
-
-          // キャッシュに保存
-          this._cache.set(cacheKey, result);
-          return result;
         },
 
-        // 進捗率計算（高速化）
+        // 進捗率計算
         getCompletionPercentage() {
           if (this.completed) return 100;
           return this.patterns.length > 0 ?
             Math.floor((this.currentCharIndex / this.patterns.length) * 100) : 0;
-        },
-
-        // メモリ使用効率化
-        clearCache() {
-          this._cache.clear();
         }
       };
 
       return typingSession;
-
     } catch (error) {
       console.error('タイピングセッションの作成中にエラー:', error);
       return null;
