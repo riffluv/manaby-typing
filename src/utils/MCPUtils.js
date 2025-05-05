@@ -24,8 +24,8 @@ class MCPContextManager {
     this.metricsBuffer = [];
     this.contextSessions = new Map();
     this.debugMode = process.env.NODE_ENV === 'development';
-    this.mcpEnabled = typeof window !== 'undefined' && 
-                      !!(window._mcp || window.__MCP_CONNECTION__);
+    this.mcpEnabled = typeof window !== 'undefined' &&
+      !!(window._mcp || window.__MCP_CONNECTION__);
   }
 
   /**
@@ -44,12 +44,12 @@ class MCPContextManager {
 
         // グローバルエラーハンドラ登録
         window.addEventListener('error', this.handleGlobalError.bind(this));
-        
+
         // パフォーマンスモニタリング開始
         if (typeof window.performance !== 'undefined') {
           this.startPerformanceMonitoring();
         }
-        
+
         this.isInitialized = true;
         console.log('[MCP] コンテキストマネージャー初期化完了');
       } else {
@@ -79,7 +79,7 @@ class MCPContextManager {
       };
 
       this.sendToMCP('module:load', moduleData);
-      
+
       if (this.debugMode) {
         console.log(`[MCP] モジュール読み込み: ${moduleId} (${modulePath})`);
       }
@@ -105,7 +105,7 @@ class MCPContextManager {
 
       // レンダリング時間を計測するためのセッション開始
       if (!this.contextSessions.has(componentName)) {
-        this.contextSessions.set(componentName, { 
+        this.contextSessions.set(componentName, {
           startTime: timestamp,
           renderCount: 1
         });
@@ -129,17 +129,28 @@ class MCPContextManager {
     if (!this.mcpEnabled) return;
 
     try {
+      // Web Workerからのデータを受け入れられるよう、データ形式を標準化
       const typingMetric = {
         timestamp: Date.now(),
         ...typingData,
-        contextType: 'typing-event'
+        contextType: 'typing-event',
+        source: typingData.fromWorker ? 'worker' : 'main-thread',
+        perfData: {
+          latency: typingData.latency || null,
+          frameTime: typingData.frameTime || null,
+          processingTime: typingData.processingTime || null,
+          isHighFrequency: typingData.isHighFrequency || false
+        }
       };
 
       // バッファリングして一度に送信する（パフォーマンス向上のため）
       this.metricsBuffer.push(typingMetric);
 
+      // 高リフレッシュレート環境の場合、小さめのバッチサイズでフラッシュ
+      const batchThreshold = typingData.isHighFrequency ? 10 : 20;
+
       // バッファが一定量たまったらまとめて送信
-      if (this.metricsBuffer.length >= 20) {
+      if (this.metricsBuffer.length >= batchThreshold) {
         this.flushMetricsBuffer();
       }
     } catch (err) {
@@ -174,7 +185,7 @@ class MCPContextManager {
       };
 
       this.sendToMCP('game:event', gameEvent);
-      
+
       if (this.debugMode) {
         console.log(`[MCP] ゲームイベント: ${eventType}`);
       }
@@ -246,7 +257,7 @@ class MCPContextManager {
       };
 
       this.sendToMCP('error:global', errorData);
-      
+
       console.error('[MCP] グローバルエラー検出:', errorData);
     } catch (err) {
       console.error('[MCP] エラー処理中のエラー:', err);
@@ -268,16 +279,16 @@ class MCPContextManager {
       };
 
       this.sendToMCP('metrics:batch', batchData);
-      
+
       // バッファをクリア
       this.metricsBuffer = [];
-      
+
       if (this.debugMode) {
         console.log(`[MCP] メトリクスバッチ送信: ${batchData.metricsCount}件`);
       }
     } catch (err) {
       console.error('[MCP] メトリクスバッファ送信エラー:', err);
-      
+
       // エラー発生時もバッファをクリアする（メモリリーク防止）
       this.metricsBuffer = [];
     }
@@ -296,24 +307,24 @@ class MCPContextManager {
       const measureFPS = () => {
         const now = performance.now();
         frameCount++;
-        
+
         // 1秒ごとにFPS計測
         if (now - lastFrameTime >= 1000) {
           const fps = Math.round((frameCount * 1000) / (now - lastFrameTime));
           this.recordPerformanceMetric('fps', fps);
-          
+
           frameCount = 0;
           lastFrameTime = now;
         }
-        
+
         requestAnimationFrame(measureFPS);
       };
-      
+
       // FPS計測開始
       if (typeof requestAnimationFrame === 'function') {
         requestAnimationFrame(measureFPS);
       }
-      
+
       // メモリ使用量（対応ブラウザのみ）
       if (performance.memory) {
         setInterval(() => {
@@ -324,11 +335,11 @@ class MCPContextManager {
           });
         }, 10000);
       }
-      
+
       // ロング・タスクの検出
-      if (typeof PerformanceObserver === 'function' && 
-          PerformanceObserver.supportedEntryTypes && 
-          PerformanceObserver.supportedEntryTypes.includes('longtask')) {
+      if (typeof PerformanceObserver === 'function' &&
+        PerformanceObserver.supportedEntryTypes &&
+        PerformanceObserver.supportedEntryTypes.includes('longtask')) {
         const longTaskObserver = new PerformanceObserver((list) => {
           list.getEntries().forEach((entry) => {
             this.recordPerformanceMetric('longTask', {
@@ -338,7 +349,7 @@ class MCPContextManager {
             });
           });
         });
-        
+
         longTaskObserver.observe({ entryTypes: ['longtask'] });
       }
     } catch (err) {
@@ -357,19 +368,19 @@ class MCPContextManager {
     try {
       // MCPコネクションを取得
       const mcpConnection = window._mcp || window.__MCP_CONNECTION__;
-      
+
       if (!mcpConnection) {
         console.warn('[MCP] MCPコネクションが見つかりません');
         return;
       }
-      
+
       // プロジェクトメタデータを追加
       const enrichedData = {
         ...data,
         projectMetadata: PROJECT_METADATA,
         timestamp: data.timestamp || Date.now()
       };
-      
+
       // MCPサーバーにデータを送信
       if (typeof mcpConnection.sendMessage === 'function') {
         mcpConnection.sendMessage(channel, enrichedData);
@@ -399,13 +410,13 @@ export const useMCPContext = () => {
     mcpManager.initialize().then(() => {
       setIsActive(mcpManager.mcpEnabled);
     });
-    
+
     // クリーンアップ関数
     return () => {
       mcpManager.flushMetricsBuffer();
     };
   }, []);
-  
+
   // コンポーネント名を自動検出
   useEffect(() => {
     try {
@@ -413,14 +424,14 @@ export const useMCPContext = () => {
       const componentStack = new Error().stack;
       const componentNameMatch = componentStack && componentStack.match(/at ([A-Z][A-Za-z0-9$_]+) /);
       const componentName = componentNameMatch ? componentNameMatch[1] : 'UnknownComponent';
-      
+
       // コンポーネントのレンダリングを登録
       mcpManager.registerComponentRender(componentName);
     } catch (err) {
       // エラー処理を省略（MCP機能は非クリティカル）
     }
   }, []);
-  
+
   return {
     isActive,
     recordTypingInput: mcpManager.recordTypingInput.bind(mcpManager),
@@ -441,11 +452,11 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
     metricsCount: 0,
     lastUpdate: Date.now()
   });
-  
+
   // ステータス更新
   useEffect(() => {
     mcpManager.initialize();
-    
+
     const updateInterval = setInterval(() => {
       setStatus({
         connected: mcpManager.mcpEnabled,
@@ -453,10 +464,10 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
         lastUpdate: Date.now()
       });
     }, 2000);
-    
+
     return () => clearInterval(updateInterval);
   }, []);
-  
+
   // 表示位置のスタイル定義
   const positionStyles = {
     'bottom-right': {
@@ -484,7 +495,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
       zIndex: 9999
     }
   };
-  
+
   // インジケーターのスタイル定義
   const indicatorStyle = {
     width: '12px',
@@ -494,7 +505,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
     display: 'inline-block',
     marginRight: '8px'
   };
-  
+
   // 最小化表示のスタイル
   const minimizedStyle = {
     ...positionStyles[position],
@@ -507,7 +518,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
     display: 'flex',
     alignItems: 'center'
   };
-  
+
   // 展開表示のスタイル
   const expandedStyle = {
     ...positionStyles[position],
@@ -518,11 +529,11 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
     width: '250px',
     fontSize: '12px'
   };
-  
+
   if (typeof window === 'undefined') {
     return null; // サーバーサイドレンダリング時は何も表示しない
   }
-  
+
   // 最小表示の場合
   if (!isExpanded) {
     return (
@@ -532,7 +543,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
       </div>
     );
   }
-  
+
   // 展開表示の場合
   return (
     <div style={expandedStyle}>
@@ -541,23 +552,23 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
           <div style={indicatorStyle}></div>
           <span style={{ fontWeight: 'bold' }}>MCP Status</span>
         </div>
-        <div 
-          style={{ cursor: 'pointer' }} 
+        <div
+          style={{ cursor: 'pointer' }}
           onClick={() => setIsExpanded(false)}
         >
           ×
         </div>
       </div>
-      
+
       <div style={{ marginBottom: '5px' }}>
         <div>接続状態: {status.connected ? '接続済み' : '未接続'}</div>
         <div>メトリクスバッファ: {status.metricsCount} 件</div>
         <div>最終更新: {new Date(status.lastUpdate).toLocaleTimeString()}</div>
       </div>
-      
-      <div 
-        style={{ 
-          textAlign: 'center', 
+
+      <div
+        style={{
+          textAlign: 'center',
           marginTop: '10px',
           padding: '5px',
           backgroundColor: '#2196F3',

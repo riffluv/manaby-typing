@@ -340,23 +340,23 @@ function convertFullWidthToHalfWidth(char) {
 function processInput(session, char) {
   // パフォーマンス測定開始
   const startTime = performance.now();
-  
+
   // メトリクス更新
   if (performanceSettings.collectMetrics) {
     metrics.processInputCalls++;
   }
-  
+
   // 予測キャッシュを確認（超高速パス）
   if (self._predictionCache && session.currentInput) {
     const predictionCacheKey = `prediction:${session.currentInput}:${char}`;
     if (self._predictionCache.has(predictionCacheKey)) {
       const prediction = self._predictionCache.get(predictionCacheKey);
-      
+
       // キャッシュヒット統計を更新
       if (performanceSettings.collectMetrics) {
         metrics.predictionCacheHits = (metrics.predictionCacheHits || 0) + 1;
       }
-      
+
       // 統計情報を更新
       if (performanceSettings.collectMetrics) {
         const endTime = performance.now();
@@ -364,14 +364,14 @@ function processInput(session, char) {
         metrics.totalProcessingTime += processingTime;
         metrics.predictionCacheTime = (metrics.predictionCacheTime || 0) + processingTime;
       }
-      
+
       // 予測パスが有効な場合、パフォーマンスを最大化
       // ここでは最適化のために予測結果を直接使用
       session.currentInput += char;
       char = prediction.nextInput.charAt(prediction.nextInput.length - 1);
     }
   }
-  
+
   // セッションが差分のみの場合、前回のセッションと統合
   if (session.isDiff && self._lastFullSession) {
     session = {
@@ -382,7 +382,7 @@ function processInput(session, char) {
     // 完全なセッションの場合はキャッシュ
     self._lastFullSession = { ...session };
   }
-  
+
   // セッション変更なしの場合は前回の結果を再利用
   if (session.unchanged) {
     return { success: false, status: 'unchanged_session' };
@@ -402,21 +402,21 @@ function processInput(session, char) {
 
   // キャッシュキーを生成（高速化）
   const cacheKey = `${session.currentCharIndex}:${newInput}`;
-  
+
   // キャッシュにヒットした場合は即時返却（高速処理パス）
   if (cache.processInput.has(cacheKey)) {
     const cachedResult = cache.processInput.get(cacheKey);
-    
+
     // 返却前に統計情報を更新
     if (performanceSettings.collectMetrics) {
       const endTime = performance.now();
       const processingTime = endTime - startTime;
-      
+
       metrics.totalProcessingTime += processingTime;
       if (processingTime > metrics.maxProcessingTime) {
         metrics.maxProcessingTime = processingTime;
       }
-      
+
       // 高リフレッシュレート環境での処理時間トラッキング
       if (performanceSettings.highRefreshRateOptimizations) {
         const targetFrameTime = 1000 / performanceSettings.detectedRefreshRate;
@@ -431,7 +431,7 @@ function processInput(session, char) {
         }
       }
     }
-    
+
     return cachedResult;
   }
 
@@ -472,20 +472,20 @@ function processInput(session, char) {
       if (updatedSession.currentCharIndex >= session.patterns.length) {
         updatedSession.completed = true;
         updatedSession.completedAt = Date.now();
-        
+
         const result = {
           success: true,
           status: 'all_completed',
           session: updatedSession,
         };
-        
+
         // キャッシュに保存（次回高速化のため）
         if (cache.processInput.size > performanceSettings.maxCacheSize) {
           // キャッシュサイズ管理
           cache.processInput.clear();
         }
         cache.processInput.set(cacheKey, result);
-        
+
         // 統計情報を更新
         if (performanceSettings.collectMetrics) {
           const endTime = performance.now();
@@ -495,28 +495,28 @@ function processInput(session, char) {
             metrics.maxProcessingTime = processingTime;
           }
         }
-        
+
         return result;
       }
-      
+
       const result = {
         success: true,
         status: 'char_completed',
         session: updatedSession,
       };
-      
+
       // キャッシュに保存
       if (cache.processInput.size > performanceSettings.maxCacheSize) {
         cache.processInput.clear();
       }
       cache.processInput.set(cacheKey, result);
-      
+
       // 統計情報を更新
       if (performanceSettings.collectMetrics) {
         const endTime = performance.now();
         metrics.totalProcessingTime += (endTime - startTime);
       }
-      
+
       return result;
     }
 
@@ -525,19 +525,19 @@ function processInput(session, char) {
       status: 'in_progress',
       session: updatedSession,
     };
-    
+
     // キャッシュに保存
     if (cache.processInput.size > performanceSettings.maxCacheSize) {
       cache.processInput.clear();
     }
     cache.processInput.set(cacheKey, result);
-    
+
     // 統計情報を更新
     if (performanceSettings.collectMetrics) {
       const endTime = performance.now();
       metrics.totalProcessingTime += (endTime - startTime);
     }
-    
+
     return result;
   }
 
@@ -568,46 +568,46 @@ function processInput(session, char) {
       if (updatedSession.currentCharIndex >= session.patterns.length) {
         updatedSession.completed = true;
         updatedSession.completedAt = Date.now();
-        
+
         const result = {
           success: true,
           status: 'all_completed',
           session: updatedSession,
         };
-        
+
         // キャッシュに保存
         if (cache.processInput.size > performanceSettings.maxCacheSize) {
           cache.processInput.clear();
         }
         cache.processInput.set(cacheKey, result);
-        
+
         // 統計情報を更新
         if (performanceSettings.collectMetrics) {
           const endTime = performance.now();
           metrics.totalProcessingTime += (endTime - startTime);
         }
-        
+
         return result;
       }
-      
+
       const result = {
         success: true,
         status: 'char_completed_split',
         session: updatedSession,
       };
-      
+
       // キャッシュに保存
       if (cache.processInput.size > performanceSettings.maxCacheSize) {
         cache.processInput.clear();
       }
       cache.processInput.set(cacheKey, result);
-      
+
       // 統計情報を更新
       if (performanceSettings.collectMetrics) {
         const endTime = performance.now();
         metrics.totalProcessingTime += (endTime - startTime);
       }
-      
+
       return result;
     }
 
@@ -616,37 +616,37 @@ function processInput(session, char) {
       status: 'in_progress_split',
       session: updatedSession,
     };
-    
+
     // キャッシュに保存
     if (cache.processInput.size > performanceSettings.maxCacheSize) {
       cache.processInput.clear();
     }
     cache.processInput.set(cacheKey, result);
-    
+
     // 統計情報を更新
     if (performanceSettings.collectMetrics) {
       const endTime = performance.now();
       metrics.totalProcessingTime += (endTime - startTime);
     }
-    
+
     return result;
   }
 
   // 入力が一致しない
   const result = { success: false, status: 'no_match' };
-  
+
   // キャッシュに保存
   if (cache.processInput.size > performanceSettings.maxCacheSize) {
     cache.processInput.clear();
   }
   cache.processInput.set(cacheKey, result);
-  
+
   // 統計情報を更新
   if (performanceSettings.collectMetrics) {
     const endTime = performance.now();
     metrics.totalProcessingTime += (endTime - startTime);
   }
-  
+
   return result;
 }
 
@@ -656,12 +656,12 @@ function processInput(session, char) {
 function getColoringInfo(session) {
   // パフォーマンス測定開始
   const startTime = performance.now();
-  
+
   // メトリクス更新
   if (performanceSettings.collectMetrics) {
     metrics.coloringInfoCalls++;
   }
-  
+
   // セッションが差分のみの場合、前回のセッションと統合
   if (session.isDiff && self._lastFullSession) {
     session = {
@@ -672,7 +672,7 @@ function getColoringInfo(session) {
     // 完全なセッションの場合はキャッシュ
     self._lastFullSession = { ...session };
   }
-  
+
   // セッション変更なしの場合は前回の結果を再利用
   if (session.unchanged && self._lastColoringInfo) {
     return self._lastColoringInfo;
@@ -702,17 +702,17 @@ function getColoringInfo(session) {
       completed: true,
       completedAt: session.completedAt,
     };
-    
+
     // キャッシュに保存
     self._coloringCache.set(cacheKey, result);
     self._lastColoringInfo = result;
-    
+
     // 統計情報を更新
     if (performanceSettings.collectMetrics) {
       const endTime = performance.now();
       metrics.totalProcessingTime += (endTime - startTime);
     }
-    
+
     return result;
   }
 
@@ -734,67 +734,18 @@ function getColoringInfo(session) {
     currentDisplay: '',
     completed: false,
   };
-  
+
   // キャッシュに保存
   self._coloringCache.set(cacheKey, result);
   self._lastColoringInfo = result;
-  
+
   // 統計情報を更新
   if (performanceSettings.collectMetrics) {
     const endTime = performance.now();
     metrics.totalProcessingTime += (endTime - startTime);
   }
-  
+
   return result;
-}
-
-/**
- * 入力の分割最適化 - 高リフレッシュレート対応版
- */
-function optimizeSplitInput(input, patterns, currentInput = '') {
-  if (!input || !patterns || !patterns.length) return null;
-
-  // キャッシュキー
-  const cacheKey = `split_${currentInput}_${input}`;
-  if (cache.processInput.has(cacheKey)) {
-    return cache.processInput.get(cacheKey);
-  }
-
-  // 完全一致するか確認
-  const fullInput = currentInput + input;
-
-  // すべてのパターンについて、分割可能性をチェック
-  for (let splitPoint = 1; splitPoint < fullInput.length; splitPoint++) {
-    const firstPart = fullInput.substring(0, splitPoint);
-    const secondPart = fullInput.substring(splitPoint);
-
-    // 現在のパターンのいずれかが第2部分で始まるか確認
-    for (const pattern of patterns) {
-      if (pattern.startsWith(secondPart)) {
-        const result = {
-          firstPart,
-          secondPart,
-          matchedPattern: pattern,
-        };
-        
-        // キャッシュに保存
-        if (cache.processInput.size > performanceSettings.maxCacheSize) {
-          cache.processInput.clear();
-        }
-        cache.processInput.set(cacheKey, result);
-        
-        return result;
-      }
-    }
-  }
-
-  // キャッシュに保存（negative caching）
-  if (cache.processInput.size > performanceSettings.maxCacheSize) {
-    cache.processInput.clear();
-  }
-  cache.processInput.set(cacheKey, null);
-  
-  return null;
 }
 
 /**
@@ -806,12 +757,12 @@ function optimizeSplitInput(input, patterns, currentInput = '') {
 function calculateStatistics(statsData) {
   // パフォーマンス測定開始
   const startTime = performance.now();
-  
+
   // メトリクス更新
   if (performanceSettings.collectMetrics) {
     metrics.statsCalls++;
   }
-  
+
   const {
     correctCount,
     missCount,
@@ -819,7 +770,7 @@ function calculateStatistics(statsData) {
     currentTimeMs,
     problemStats = [],
   } = statsData;
-  
+
   // キャッシュキー
   const cacheKey = `${correctCount}_${missCount}_${startTimeMs}_${currentTimeMs}_${problemStats.length}`;
   if (cache.statistics.has(cacheKey)) {
@@ -887,13 +838,13 @@ function calculateStatistics(statsData) {
 
   // ランク計算
   result.rank = calculateRank(result.kpm);
-  
+
   // キャッシュに保存
   if (cache.statistics.size > performanceSettings.maxCacheSize) {
     cache.statistics.clear();
   }
   cache.statistics.set(cacheKey, result);
-  
+
   // 統計情報を更新
   if (performanceSettings.collectMetrics) {
     const endTime = performance.now();
@@ -971,24 +922,24 @@ async function submitRanking(recordData) {
  */
 function processInputHistory(inputHistoryData) {
   let inputHistory;
-  
+
   // バイナリデータの場合は展開
   if (inputHistoryData.format === 'binary' && inputHistoryData.buffer instanceof ArrayBuffer) {
     inputHistory = [];
     const view = new DataView(inputHistoryData.buffer);
-    
+
     for (let i = 0; i < inputHistoryData.length; i++) {
       const offset = i * 16;
       const timestamp = view.getUint32(offset);
       const isCorrect = view.getUint8(offset + 4) === 1;
-      
+
       // キーコードからキャラクタに変換（シンプル版）
       let key = '';
       const keyCode = view.getUint8(offset + 5);
       if (keyCode > 0) {
         key = String.fromCharCode(keyCode);
       }
-      
+
       inputHistory.push({
         key,
         isCorrect,
@@ -1087,7 +1038,7 @@ function getMetrics() {
     },
     performanceSettings,
     // フレーム時間情報を追加（リフレッシュレート対応）
-    frameTimeTarget: performanceSettings.detectedRefreshRate ? 
+    frameTimeTarget: performanceSettings.detectedRefreshRate ?
       1000 / performanceSettings.detectedRefreshRate : 16.67,
     recentProcessingHistory: metrics.processingHistory.slice(-10)
   };
@@ -1098,11 +1049,11 @@ function getMetrics() {
  */
 function setDisplayCapabilities(capabilities) {
   displayCapabilities = { ...capabilities };
-  
+
   // 設定を更新
   if (displayCapabilities.refreshRate) {
     performanceSettings.detectedRefreshRate = displayCapabilities.refreshRate;
-    
+
     // リフレッシュレートが高い場合の特別な最適化
     if (displayCapabilities.refreshRate >= 120) {
       performanceSettings.responseOptimization = 'high';
@@ -1113,7 +1064,7 @@ function setDisplayCapabilities(capabilities) {
       console.log('[Worker] 超高リフレッシュレート検出、極限最適化モード有効化');
     }
   }
-  
+
   return { success: true };
 }
 
@@ -1130,34 +1081,34 @@ function updateOptimizationOptions(options) {
  */
 function initializePredictionCache(data) {
   const sequences = data.sequences || [];
-  
+
   // パフォーマンス測定開始
   const startTime = performance.now();
-  
+
   if (!sequences.length) {
     return { success: false, error: '予測シーケンスが指定されていません' };
   }
-  
+
   // 予測キャッシュの初期化
   if (!self._predictionCache) {
     self._predictionCache = new Map();
   }
-  
+
   // 各シーケンスを事前処理してキャッシュに格納
   let cacheHits = 0;
   const precomputedEntries = [];
-  
+
   for (const sequence of sequences) {
     // 各キーごとに予測入力処理を行い結果をキャッシュ
     const chars = sequence.split('');
     let currentInput = '';
-    
+
     for (const char of chars) {
       const nextInput = currentInput + char;
-      
+
       // キャッシュキーを作成
       const cacheKey = `prediction:${currentInput}:${char}`;
-      
+
       // 既にキャッシュされていない場合のみ計算
       if (!self._predictionCache.has(cacheKey)) {
         // 予測結果をキャッシュに格納
@@ -1170,17 +1121,17 @@ function initializePredictionCache(data) {
       } else {
         cacheHits++;
       }
-      
+
       currentInput = nextInput;
     }
   }
-  
+
   // パフォーマンス測定終了
   const endTime = performance.now();
   const elapsedTime = endTime - startTime;
-  
-  return { 
-    success: true, 
+
+  return {
+    success: true,
     cacheSize: self._predictionCache.size,
     precomputedCount: precomputedEntries.length,
     cacheHits,
@@ -1205,7 +1156,7 @@ if (performanceSettings.collectMetrics) {
       type: 'metrics',
       data: getMetrics(),
     });
-    
+
     // 古いデータをクリア（メモリ管理）
     if (metrics.processingHistory.length > 100) {
       // 古い履歴を半分だけ残す
@@ -1222,9 +1173,9 @@ if (performanceSettings.collectMetrics) {
 self.onmessage = function (e) {
   // パフォーマンス測定開始
   const receiveTime = performance.now();
-  
+
   const { type, data, callbackId, priority } = e.data;
-  
+
   switch (type) {
     case 'processInput':
       // 高優先度の入力処理として実行
@@ -1240,16 +1191,16 @@ self.onmessage = function (e) {
           priority: 'high', // 入力処理は常に高優先度
           data: result,
         });
-        
+
         // 処理時間を計測
         const processingTime = performance.now() - receiveTime;
-        
+
         // 高リフレッシュレート環境でのパフォーマンス警告
-        const targetFrameTime = performanceSettings.detectedRefreshRate ? 
+        const targetFrameTime = performanceSettings.detectedRefreshRate ?
           1000 / performanceSettings.detectedRefreshRate : 16.67;
-          
-        if (performanceSettings.highRefreshRateOptimizations && 
-            processingTime > targetFrameTime / 2) {
+
+        if (performanceSettings.highRefreshRateOptimizations &&
+          processingTime > targetFrameTime / 2) {
           // フレームタイムの半分以上かかる場合は記録
           metrics.processingHistory.push({
             type: 'processInput',
@@ -1257,7 +1208,7 @@ self.onmessage = function (e) {
             cached: !!result.cached,
             timestamp: Date.now()
           });
-          
+
           console.warn(
             `[Worker] 高レイテンシ入力処理: ${processingTime.toFixed(2)}ms` +
             `（目標: ${(targetFrameTime / 2).toFixed(2)}ms）`
@@ -1364,7 +1315,7 @@ self.onmessage = function (e) {
         data: { received: Date.now() },
       });
       break;
-      
+
     case 'getMetrics':
       // メトリクス情報取得
       self.postMessage({
@@ -1373,7 +1324,7 @@ self.onmessage = function (e) {
         data: getMetrics(),
       });
       break;
-      
+
     case 'setDisplayCapabilities':
       // ディスプレイ機能情報を設定
       try {
@@ -1396,7 +1347,7 @@ self.onmessage = function (e) {
         }
       }
       break;
-      
+
     case 'updateOptimizationOptions':
       // 最適化設定の更新
       try {
@@ -1457,16 +1408,16 @@ self.addEventListener('close', () => {
   if (metricsReportingInterval) {
     clearInterval(metricsReportingInterval);
   }
-  
+
   // キャッシュをクリア
   cache.processInput.clear();
   cache.coloringInfo.clear();
   cache.statistics.clear();
-  
+
   self._coloringCache.clear();
   self._lastFullSession = null;
   self._lastColoringInfo = null;
   self._predictionCache.clear();
-  
+
   console.log('[Worker] リソース解放完了');
 });

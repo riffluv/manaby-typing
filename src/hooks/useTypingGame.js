@@ -20,7 +20,7 @@ import MCPUtils from '../utils/MCPUtils';
 export function useTypingGame({
   initialProblem = null,
   playSound = true,
-  onProblemComplete = () => {},
+  onProblemComplete = () => { },
   throttleMs = 0, // 0に変更：高リフレッシュレート向けに調整可能に
 } = {}) {
   // パフォーマンスのためにレンダリングカウントを追跡（開発用）
@@ -68,7 +68,7 @@ export function useTypingGame({
   const lastProcessTimeRef = useRef(0);
   const isProcessingRef = useRef(false);
   const frameIdRef = useRef(null);
-  
+
   // 高リフレッシュレート対応のRAF処理の最適化
   const rafCallbackTimeRef = useRef(0);
   const displayRefreshRateRef = useRef(60); // デフォルト値、後で実測
@@ -124,7 +124,7 @@ export function useTypingGame({
 
       // パフォーマンス測定開始（DEV環境のみ）
       const perfStartTime = process.env.NODE_ENV === 'development' ? performance.now() : null;
-      
+
       // 統計の開始時間設定
       const now = timestamp || Date.now();
       if (!statistics.startTime) {
@@ -149,7 +149,7 @@ export function useTypingGame({
       queueMicrotask(() => {
         // Worker記録用のフラグ
         const isCorrectInput = result.success;
-        
+
         // Worker入力履歴を記録（ワーカーに送信するため）
         inputHistoryRef.current.push({
           key: halfWidthChar,
@@ -169,7 +169,7 @@ export function useTypingGame({
 
         // 色分け情報を更新（即時フィードバックの一部）
         setColoringInfo(typingSession.getColoringInfo());
-        
+
         // 統計更新（即時ではない更新として分離）
         queueMicrotask(() => {
           setStatistics((prev) => ({
@@ -183,7 +183,7 @@ export function useTypingGame({
         if (result.status === 'all_completed') {
           completeProblem();
         }
-        
+
         // パフォーマンス測定終了（DEV環境のみ）
         if (perfStartTime && process.env.NODE_ENV === 'development') {
           const latency = performance.now() - perfStartTime;
@@ -198,9 +198,9 @@ export function useTypingGame({
         if (playSound) {
           soundSystem.play('error');
         }
-        
+
         setErrorAnimation(true);
-        
+
         // エラーアニメーションリセット
         if (errorAnimationTimerRef.current) {
           clearTimeout(errorAnimationTimerRef.current);
@@ -210,7 +210,7 @@ export function useTypingGame({
           setErrorAnimation(false);
           errorAnimationTimerRef.current = null;
         }, 200);
-        
+
         // 統計は非同期で更新（ユーザー体験に直結しない部分）
         queueMicrotask(() => {
           setErrorCount((prev) => prev + 1);
@@ -219,7 +219,7 @@ export function useTypingGame({
             mistakeCount: prev.mistakeCount + 1,
           }));
         });
-        
+
         // パフォーマンス測定終了（DEV環境のみ）
         if (perfStartTime && process.env.NODE_ENV === 'development') {
           const latency = performance.now() - perfStartTime;
@@ -238,33 +238,33 @@ export function useTypingGame({
   useEffect(() => {
     // ブラウザ環境でない場合はスキップ
     if (typeof window === 'undefined') return;
-    
+
     let rafId;
     let frameCount = 0;
     let lastTimestamp = performance.now();
     let measuring = true;
-    
+
     // リフレッシュレート測定用の関数
     const measureRefreshRate = (timestamp) => {
       if (!measuring) return;
-      
+
       frameCount++;
       const elapsed = timestamp - lastTimestamp;
-      
+
       // 1秒間測定
       if (elapsed >= 1000) {
         // 測定したフレームレートを保存（上限は300Hz）
         const detectedFPS = Math.min(Math.round(frameCount * 1000 / elapsed), 300);
         displayRefreshRateRef.current = detectedFPS;
         frameIntervalRef.current = 1000 / detectedFPS;
-        
+
         console.log(`[パフォーマンス] ディスプレイリフレッシュレート: ${detectedFPS}Hz`);
-        
+
         // 高リフレッシュレートの場合の最適化設定を調整
         if (detectedFPS > 60) {
           console.log(`[パフォーマンス] 高リフレッシュレート(${detectedFPS}Hz)を検出、最適化モード有効`);
           performanceConfig.highRefreshRateOptions.targetFrameTime = Math.floor(1000 / detectedFPS) - 1;
-          
+
           // 144Hz以上の場合はさらに特別な最適化を適用
           if (detectedFPS >= 144) {
             console.log('[パフォーマンス] 超高リフレッシュレートモード有効化');
@@ -272,17 +272,17 @@ export function useTypingGame({
             performanceConfig.maxBatchSize = 5; // より小さなバッチサイズでレイテンシを最小化
           }
         }
-        
+
         measuring = false;
         return;
       }
-      
+
       rafId = requestAnimationFrame(measureRefreshRate);
     };
-    
+
     // 測定開始
     rafId = requestAnimationFrame(measureRefreshRate);
-    
+
     // クリーンアップ
     return () => {
       measuring = false;
@@ -489,78 +489,116 @@ export function useTypingGame({
     });
   }, [statistics, onProblemComplete, isCompleted]);
 
-  // 入力をバッファに追加するだけの高速な関数 - 高リフレッシュレート対応版
+  // 最適化された入力処理 - handleInput関数の改善版
   const handleInput = useCallback(
     (key) => {
       if (!typingSession || isCompleted) {
         return { success: false, status: 'inactive_session' };
       }
-      
+
       // パフォーマンス測定開始（DEV環境のみ）
       const perfStartTime = process.env.NODE_ENV === 'development' ? performance.now() : null;
 
+      // 入力プロセスが高リフレッシュレート対応かどうか判定
+      const isHighRefreshRate = displayRefreshRateRef.current >= 120;
+
       // ★★重要な最適化★★
-      // 即時処理を優先（バッファリングせずにダイレクト処理）
-      const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key);
-      
-      // 入力パターン予測による最適化（頻出パターンのキャッシュチェック - 超高速パス）
+      // 最優先処理パス: 入力予測マッチング（超高速パス）
+      // 予測される次の文字であれば、バッファリングせずに直接処理
+      const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key.toLowerCase());
       const nextPossibleChars = typingSession.getNextPossibleChars?.();
+
       if (nextPossibleChars && nextPossibleChars.has(halfWidthChar)) {
         // 最も頻出するパスが確認できたので、最短パスで即時処理
         const result = processInput(key);
-        
+
+        // Worker記録をマイクロタスクでスケジュール（応答性優先）
+        queueMicrotask(() => {
+          const workerData = {
+            key: halfWidthChar,
+            isCorrect: result.success,
+            timestamp: Date.now(),
+            predictedPath: true, // 予測パスを使用
+            isHighRefreshRate
+          };
+
+          // MCPにメトリクスとして記録（パフォーマンス分析用）
+          if (typeof MCPUtils !== 'undefined' && MCPUtils.recordTypingInput) {
+            MCPUtils.recordTypingInput(workerData);
+          }
+        });
+
         // パフォーマンス測定終了（DEV環境のみ）
         if (perfStartTime && process.env.NODE_ENV === 'development') {
           const latency = performance.now() - perfStartTime;
-          if (latency > (1000 / displayRefreshRateRef.current / 2)) { // リフレッシュレートに基づく閾値
-            console.warn(`[パフォーマンス警告] ダイレクト入力処理に${latency.toFixed(2)}ms要りました（目標: ${(1000 / displayRefreshRateRef.current / 2).toFixed(2)}ms）`);
+          if (isHighRefreshRate && latency > (1000 / displayRefreshRateRef.current / 3)) {
+            console.warn(`[パフォーマンス警告] 予測パス入力処理に${latency.toFixed(2)}ms要りました（目標: ${(1000 / displayRefreshRateRef.current / 3).toFixed(2)}ms）`);
           }
         }
-        
+
         return result;
       }
-      
-      // 予測パスでない場合は、入力システムを使用（バッファリング）
+
+      // 標準処理パス: 最適化されたバッファリングシステム
       if (inputSystem.current) {
+        // バッファにキーを追加
         inputSystem.current.addInput(key);
-        
-        // 高リフレッシュレート対応: バッファサイズとリフレッシュレートに応じて処理戦略を調整
+
+        // バッファ処理戦略を決定（環境に適応）
         const bufferLength = inputSystem.current.getBufferLength();
-        
+
         if (bufferLength === 1) {
-          // アイドル時の応答性を最大化: マイクロタスクを使用
-          queueMicrotask(() => {
-            inputSystem.current.processBuffer();
-          });
-        } else if (bufferLength > 1 && displayRefreshRateRef.current >= 120) {
-          // 高リフレッシュレートディスプレイでの複数入力: 次のフレームを待たずに即時処理
-          inputSystem.current.processBuffer();
-        }
-        
-        // パフォーマンス測定終了（DEV環境のみ）
-        if (perfStartTime && process.env.NODE_ENV === 'development') {
-          const latency = performance.now() - perfStartTime;
-          const targetLatency = 1000 / displayRefreshRateRef.current / 4; // 例: 240Hzなら約1ms
-          if (latency > targetLatency) {
-            console.warn(`[パフォーマンス警告] バッファ入力処理に${latency.toFixed(2)}ms要りました（目標: ${targetLatency.toFixed(2)}ms）`);
+          // 単一キー入力: 応答性優先でマイクロタスク使用
+          if (!isProcessingRef.current) {
+            isProcessingRef.current = true;
+            queueMicrotask(() => {
+              inputSystem.current.processBuffer();
+              isProcessingRef.current = false;
+            });
+          }
+        } else if (bufferLength > 1) {
+          if (isHighRefreshRate) {
+            // 高リフレッシュレート環境: バッファ即時処理
+            if (!isProcessingRef.current) {
+              isProcessingRef.current = true;
+              inputSystem.current.processBuffer();
+              isProcessingRef.current = false;
+            }
+          } else {
+            // 標準環境: アニメーションフレームで処理（60Hz最適化）
+            if (!frameIdRef.current) {
+              frameIdRef.current = requestAnimationFrame(() => {
+                inputSystem.current.processBuffer();
+                frameIdRef.current = null;
+              });
+            }
           }
         }
-        
+
+        // パフォーマンス警告（開発環境のみ）
+        if (perfStartTime && process.env.NODE_ENV === 'development') {
+          const latency = performance.now() - perfStartTime;
+          const targetLatency = isHighRefreshRate ? 2 : 8; // 高リフレッシュレートなら2ms、それ以外は8ms
+          if (latency > targetLatency) {
+            console.warn(`[パフォーマンス警告] バッファ入力処理に${latency.toFixed(2)}ms要りました（目標: ${targetLatency}ms）`);
+          }
+        }
+
         return { success: true, status: 'buffered' };
       }
 
-      // フォールバック：キーバッファに入力を追加して即時処理
+      // フォールバックパス: キーバッファに追加
       keyBufferRef.current.push(key);
-      
-      // 高リフレッシュレート対応: 直接処理を優先（遅延を最小化）
-      if (displayRefreshRateRef.current > 60) {
-        // 即時実行（非同期ではなく同期的に）で最低レイテンシを実現
-        if (keyBufferRef.current.length > 0) {
-          const key = keyBufferRef.current.shift();
+
+      // 非同期処理戦略の決定
+      if (isHighRefreshRate) {
+        // 高リフレッシュレート: 即時処理
+        const key = keyBufferRef.current.shift();
+        if (key) {
           return processInput(key);
         }
       } else {
-        // 標準リフレッシュレートの場合は従来通りマイクロタスクでスケジュール
+        // 標準リフレッシュレート: マイクロタスクでスケジュール
         queueMicrotask(() => {
           if (keyBufferRef.current.length > 0) {
             const key = keyBufferRef.current.shift();
@@ -612,7 +650,7 @@ export function useTypingGame({
     const syncedUpdateInterval = setInterval(() => {
       // UIの更新フラグを設定
       workerUpdateUIRef.current = true;
-      
+
       // 問題が完了しておらず、十分な入力がある場合のみ統計を計算
       if (!isCompleted && statistics.correctKeyCount > 0) {
         // Workerに非同期で統計計算を依頼
@@ -640,7 +678,7 @@ export function useTypingGame({
           });
       }
     }, 500); // UI更新と統計計算を500msに統一
-    
+
     return () => clearInterval(syncedUpdateInterval);
   }, [statistics, isCompleted]);
 

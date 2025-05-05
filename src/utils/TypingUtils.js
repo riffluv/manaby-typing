@@ -25,7 +25,7 @@ const romajiMap = {
   と: ['to'],
   な: ['na'],
   に: ['ni'],
-     ぬ: ['nu'],
+  ぬ: ['nu'],
   ね: ['ne'],
   の: ['no'],
   は: ['ha'],
@@ -62,7 +62,7 @@ const romajiMap = {
   ぜ: ['ze'],
   ぞ: ['zo'],
   だ: ['da'],
-     ぢ: ['di', 'ji'],
+  ぢ: ['di', 'ji'],
   づ: ['du', 'zu'],
   で: ['de'],
   ど: ['do'],
@@ -594,7 +594,7 @@ export default class TypingUtils {
   static generateDisplayRomaji(kanaText) {
     // デバッグ用フラグ - 必要に応じて有効にする
     const enableDebug = false;
-    
+
     // デバッグログを条件付きで出力
     if (enableDebug) console.log('【ローマ字変換】入力かな:', kanaText);
 
@@ -626,7 +626,7 @@ export default class TypingUtils {
    */
   static getMinimalRomaji(kanaText) {
     const romaji = [];
-    for (let i = 0; i < kanaText.length; ) {
+    for (let i = 0; i < kanaText.length;) {
       // 文字の組み合わせを検出し最短のパターンを選択
       if (i < kanaText.length - 1) {
         const combination = kanaText.substr(i, 2);
@@ -672,13 +672,13 @@ export default class TypingUtils {
   static calculateWeatherTypingKPM(keyCount, elapsedTimeMs, problemStats = []) {
     // パフォーマンス向上のため、デバッグログは開発環境でのみ出力
     const isDebug = false; // 必要な時だけtrueに変更
-    
+
     // 問題ごとの統計情報がある場合、公式計算方法を適用
     if (problemStats && Array.isArray(problemStats) && problemStats.length > 0) {
       // 各問題の入力数と時間を集計
       let totalKeyCount = 0;
       let totalTimeMs = 0;
-      
+
       problemStats.forEach((problem) => {
         if (problem && typeof problem === 'object') {
           totalKeyCount += problem.problemKeyCount || 0;
@@ -688,10 +688,10 @@ export default class TypingUtils {
 
       // 合計時間をミリ秒から分に変換
       const totalMinutes = totalTimeMs / 60000;
-      
+
       // 0除算防止
       if (totalMinutes <= 0) return 0;
-      
+
       // WeTyping公式の計算方法: 「入力数と入力時間の総和を取り、同じ計算式で計算」
       return Math.floor(totalKeyCount / totalMinutes);
     }
@@ -905,31 +905,31 @@ export default class TypingUtils {
     try {
       // かな文字列をローマ字パターンに分解（高速化）
       const patterns = this.parseTextToRomajiPatterns(kana);
-      
+
       // メモリ効率とパフォーマンスのため事前計算値を確保
       // typingmania-refに倣った実装: 必要な情報を事前に計算して静的保持
       const displayIndices = [];
       const patternLengths = [];
       let currentIndex = 0;
-      
+
       // パターンを反復処理する代わりに、一度の走査で必要なデータを全て収集
       const displayRomaji = patterns.map((pattern, i) => {
         // 現在の表示位置を記録
         displayIndices[i] = currentIndex;
-        
+
         // 最短パターンを選択
         const shortestPattern = pattern.reduce(
-          (shortest, current) => 
+          (shortest, current) =>
             current.length < shortest.length ? current : shortest,
           pattern[0]
         );
-        
+
         // パターンの長さを保存
         patternLengths[i] = shortestPattern.length;
-        
+
         // インデックスを更新
         currentIndex += shortestPattern.length;
-        
+
         return shortestPattern;
       }).join('');
 
@@ -946,23 +946,23 @@ export default class TypingUtils {
         currentInput: '',
         completed: false,
         completedAt: null,
-        
+
         // 高速処理のためのキャッシュ領域
         _cache: new Map(),
-        
+
         // ★新機能: 入力予測のための次の可能な文字を取得する関数
         getNextPossibleChars() {
           if (this.completed) return null;
           // 先読みキャッシュから取得
           return TypingUtils._nextCharPredictionCache.get(this.currentCharIndex);
         },
-        
+
         // ★新機能: 現在期待されているキーを取得する関数 (エラー分析用)
         getCurrentExpectedKey() {
           if (this.completed) return null;
           const currentPatterns = this.patterns[this.currentCharIndex];
           if (!currentPatterns || !currentPatterns.length) return null;
-          
+
           // 入力中の場合は、次に期待される文字を返す
           if (this.currentInput) {
             for (const pattern of currentPatterns) {
@@ -971,34 +971,34 @@ export default class TypingUtils {
               }
             }
           }
-          
+
           // 入力が始まっていない場合は、最初のパターンの最初の文字を返す
           return currentPatterns[0][0];
         },
-        
+
         // typingmania-refスタイルの高速実装（最適化版）
         processInput(char) {
           // パフォーマンス測定（DEV環境のみ）
           const perfStartTime = process.env.NODE_ENV === 'development' ? performance.now() : null;
-          
+
           if (this.completed) {
             return { success: false, status: 'already_completed' };
           }
-          
+
           // 現在のパターンに対する有効な入力かを確認
           const currentPatterns = this.patterns[this.currentCharIndex];
           if (!currentPatterns) {
             return { success: false, status: 'invalid_state' };
           }
-          
+
           // 新しい入力文字を現在の入力に追加
           const newInput = this.currentInput + char;
-          
+
           // ★高速化: 頻出パターンをキャッシュから高速検索
           // typingmania-refスタイルの高速パターンマッチング
           let exactMatch = null;
           let hasMatchingPrefix = false;
-          
+
           for (let i = 0; i < currentPatterns.length; i++) {
             const pattern = currentPatterns[i];
             if (pattern === newInput) {
@@ -1009,21 +1009,21 @@ export default class TypingUtils {
               hasMatchingPrefix = true;
             }
           }
-          
+
           if (exactMatch || hasMatchingPrefix) {
             this.currentInput = newInput;
-            
+
             if (exactMatch) {
               // この文字の入力が完了
               this.typedRomaji += exactMatch;
               this.currentCharIndex++;
               this.currentInput = '';
-              
+
               // すべての文字を入力完了したかチェック
               if (this.currentCharIndex >= this.patterns.length) {
                 this.completed = true;
                 this.completedAt = Date.now();
-                
+
                 // DEV環境のみパフォーマンス計測
                 if (perfStartTime && process.env.NODE_ENV === 'development') {
                   const elapsed = performance.now() - perfStartTime;
@@ -1031,10 +1031,10 @@ export default class TypingUtils {
                     console.debug(`[パフォーマンス] 入力完了処理: ${elapsed.toFixed(2)}ms`);
                   }
                 }
-                
+
                 return { success: true, status: 'all_completed' };
               }
-              
+
               // DEV環境のみパフォーマンス計測
               if (perfStartTime && process.env.NODE_ENV === 'development') {
                 const elapsed = performance.now() - perfStartTime;
@@ -1042,10 +1042,10 @@ export default class TypingUtils {
                   console.debug(`[パフォーマンス] 文字完了処理: ${elapsed.toFixed(2)}ms`);
                 }
               }
-              
+
               return { success: true, status: 'char_completed' };
             }
-            
+
             // DEV環境のみパフォーマンス計測
             if (perfStartTime && process.env.NODE_ENV === 'development') {
               const elapsed = performance.now() - perfStartTime;
@@ -1053,27 +1053,27 @@ export default class TypingUtils {
                 console.debug(`[パフォーマンス] 中間入力処理: ${elapsed.toFixed(2)}ms`);
               }
             }
-            
+
             return { success: true, status: 'in_progress' };
           }
-          
+
           // typingmania-refの分割入力処理を適用
           const splitResult = TypingUtils.optimizeSplitInput(
             char,
             currentPatterns,
             this.currentInput
           );
-          
+
           if (splitResult) {
             // 分割処理が有効
             this.currentInput = splitResult.secondPart;
-            
+
             // 文字が完全一致したかチェック
             if (splitResult.secondPart === splitResult.matchedPattern) {
               this.typedRomaji += splitResult.matchedPattern;
               this.currentCharIndex++;
               this.currentInput = '';
-              
+
               if (this.currentCharIndex >= this.patterns.length) {
                 this.completed = true;
                 this.completedAt = Date.now();
@@ -1081,10 +1081,10 @@ export default class TypingUtils {
               }
               return { success: true, status: 'char_completed_split' };
             }
-            
+
             return { success: true, status: 'in_progress_split' };
           }
-          
+
           // パフォーマンス測定終了（DEV環境のみ）
           if (perfStartTime && process.env.NODE_ENV === 'development') {
             const elapsed = performance.now() - perfStartTime;
@@ -1092,11 +1092,11 @@ export default class TypingUtils {
               console.debug(`[パフォーマンス] 不一致処理: ${elapsed.toFixed(2)}ms`);
             }
           }
-          
+
           // 入力が一致しない
           return { success: false, status: 'no_match' };
         },
-        
+
         // 色分け情報を取得（高速化）
         getColoringInfo() {
           // キャッシュ確認（同一状態での重複計算を避ける - 最大のパフォーマンスボトルネック対策）
@@ -1104,7 +1104,7 @@ export default class TypingUtils {
           if (this._cache.has(cacheKey)) {
             return this._cache.get(cacheKey);
           }
-          
+
           if (this.completed) {
             const completeInfo = {
               typedLength: this.displayRomaji.length,
@@ -1117,14 +1117,14 @@ export default class TypingUtils {
             this._cache.set(cacheKey, completeInfo);
             return completeInfo;
           }
-          
+
           // 事前計算済みのインデックスを使用
-          const typedIndex = this.currentCharIndex > 0 ? 
+          const typedIndex = this.currentCharIndex > 0 ?
             this.displayIndices[this.currentCharIndex] : 0;
-          
+
           const currentPosition = this.currentCharIndex < this.patterns.length ?
             this.displayIndices[this.currentCharIndex] : this.displayRomaji.length;
-          
+
           const result = {
             typedLength: typedIndex,
             currentInputLength: this.currentInput.length,
@@ -1132,27 +1132,27 @@ export default class TypingUtils {
             currentDisplay: '',
             completed: false,
           };
-          
+
           // キャッシュに保存
           this._cache.set(cacheKey, result);
           return result;
         },
-        
+
         // 進捗率計算（高速化）
         getCompletionPercentage() {
           if (this.completed) return 100;
-          return this.patterns.length > 0 ? 
+          return this.patterns.length > 0 ?
             Math.floor((this.currentCharIndex / this.patterns.length) * 100) : 0;
         },
-        
+
         // メモリ使用効率化
         clearCache() {
           this._cache.clear();
         }
       };
-      
+
       return typingSession;
-      
+
     } catch (error) {
       console.error('タイピングセッションの作成中にエラー:', error);
       return null;
@@ -1316,6 +1316,10 @@ export default class TypingUtils {
    * @returns {Object} - 先読みデータ
    */
   static createTypeAheadOptimization(text) {
+    if (!text || typeof text !== 'string') {
+      return { predictMap: {}, totalLength: 0 };
+    }
+
     // トークン処理の最適化を利用
     const tokens = this.optimizeTokenProcessing(text);
 
@@ -1323,9 +1327,12 @@ export default class TypingUtils {
     const predictMap = {};
     let position = 0;
 
-    tokens.forEach((token) => {
+    // 各トークンを処理
+    for (let t = 0; t < tokens.length; t++) {
+      const token = tokens[t];
       const romanji = wanakana.toRomaji(token.text);
 
+      // 各文字を処理して予測データを構築
       for (let i = 0; i < romanji.length; i++) {
         const char = romanji[i].toLowerCase();
 
@@ -1341,11 +1348,11 @@ export default class TypingUtils {
       }
 
       position += romanji.length;
-    });
+    }
 
     return {
       predictMap,
-      totalLength: position,
+      totalLength: position
     };
   }
 
@@ -1393,7 +1400,7 @@ export default class TypingUtils {
   }
 
   // 静的初期化時に最適化セットアップを実行
-  static {
+  static initOptimizations() {
     try {
       this._setupOptimizations();
     } catch (e) {
@@ -1415,7 +1422,7 @@ export default class TypingUtils {
       maxBatchSize: TYPING_OPTIMIZATION.BATCH_SIZE,
       ...options
     };
-    
+
     // バッファとステート
     const state = {
       buffer: [],
@@ -1424,15 +1431,15 @@ export default class TypingUtils {
       lastProcessTime: 0,
       microTaskScheduled: false // マイクロタスクスケジューリング状態
     };
-    
+
     // 入力を追加する関数（高速化版）
     const addInput = (input) => {
       // パフォーマンス計測 (開発環境のみ)
       const perfStartTime = process.env.NODE_ENV === 'development' ? performance.now() : null;
-      
+
       // バッファに追加
       state.buffer.push(input);
-      
+
       // バッファが少ない場合は即時処理を優先（応答性向上）
       if (state.buffer.length <= 2) {
         // 単一または少数のキー入力の場合：レスポンス優先でマイクロタスク使用
@@ -1449,7 +1456,7 @@ export default class TypingUtils {
           state.frameId = requestAnimationFrame(processBuffer);
         }
       }
-      
+
       // パフォーマンス警告（開発環境のみ）
       if (perfStartTime && process.env.NODE_ENV === 'development') {
         const latency = performance.now() - perfStartTime;
@@ -1457,41 +1464,41 @@ export default class TypingUtils {
           console.debug(`[パフォーマンス警告] バッファ追加に ${latency.toFixed(2)}ms かかりました`);
         }
       }
-      
+
       return true;
     };
-    
+
     // バッファ内の入力を処理する関数（高速化版）
     const processBuffer = () => {
       // フレーム処理をクリア
       state.frameId = null;
-      
+
       if (state.isProcessing || state.buffer.length === 0) {
         return;
       }
-      
+
       state.isProcessing = true;
-      
+
       try {
         // 開始時間を記録
         const startTime = performance.now();
         const now = Date.now();
-        
+
         // バッファサイズに応じて処理量を最適化
         // 少量なら全て処理、多量なら適切にバッチ分割
-        const batchSize = state.buffer.length <= 3 ? 
+        const batchSize = state.buffer.length <= 3 ?
           state.buffer.length : // 少量は全て処理
           Math.min(settings.maxBatchSize, state.buffer.length); // 多量はバッチ処理
-        
+
         // 指定された数だけ処理
         for (let i = 0; i < batchSize && state.buffer.length > 0; i++) {
           const input = state.buffer.shift();
           processFn(input, now);
         }
-        
+
         // 処理時間を記録
         state.lastProcessTime = now;
-        
+
         // まだ処理すべきものがあれば続行方法を決定
         if (state.buffer.length > 0) {
           if (state.buffer.length <= 3) {
@@ -1502,7 +1509,7 @@ export default class TypingUtils {
             state.frameId = requestAnimationFrame(processBuffer);
           }
         }
-        
+
         // 処理時間をログ（開発環境のみ）
         const elapsedMs = performance.now() - startTime;
         if (process.env.NODE_ENV === 'development' && elapsedMs > 8) {
@@ -1512,7 +1519,7 @@ export default class TypingUtils {
         state.isProcessing = false;
       }
     };
-    
+
     // クリーンアップ関数
     const cleanup = () => {
       if (state.frameId !== null) {
@@ -1523,7 +1530,7 @@ export default class TypingUtils {
       state.isProcessing = false;
       state.microTaskScheduled = false;
     };
-    
+
     return {
       addInput,
       processBuffer,
@@ -1532,3 +1539,6 @@ export default class TypingUtils {
     };
   }
 }
+
+// クラス定義の外で静的初期化を呼び出す
+TypingUtils.initOptimizations();

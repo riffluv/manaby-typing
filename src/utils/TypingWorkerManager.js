@@ -11,7 +11,7 @@ export class TypingWorkerManager {
     this._lastSession = null;
     this._initializationPromise = null;
     this._inputHistory = []; // 入力履歴を保持
-    
+
     // 高速化オプション（高リフレッシュレート対応）
     this._optimizationOptions = {
       batchInputHistory: true,        // 入力履歴のバッチ処理
@@ -21,11 +21,11 @@ export class TypingWorkerManager {
       minifyPayload: true,            // ペイロードサイズ最小化
       highPriorityTasks: new Set(['processInput']), // 優先度の高いタスク
     };
-    
+
     // 次のフレームで一括処理するためのバッチ
     this._batchedTasks = [];
     this._batchProcessScheduled = false;
-    
+
     // パフォーマンス監視用
     this._metrics = {
       totalMessages: 0,
@@ -70,16 +70,16 @@ export class TypingWorkerManager {
         // メッセージハンドラの設定
         this._worker.onmessage = (e) => {
           const startTime = performance.now();
-          
+
           const { type, data, callbackId, priority } = e.data;
-          
+
           // メトリクスの更新
           this._metrics.messagesReceived++;
 
           // 高優先度メッセージは即時処理
           if (priority === 'high') {
             this._processWorkerMessage(type, data, callbackId);
-            
+
             // レイテンシ計測（高優先度タスクのみ）
             const latency = performance.now() - startTime;
             this._metrics.lastLatency = latency;
@@ -87,7 +87,7 @@ export class TypingWorkerManager {
             if (latency > this._metrics.maxProcessingTime) {
               this._metrics.maxProcessingTime = latency;
             }
-            
+
             return;
           }
 
@@ -96,7 +96,7 @@ export class TypingWorkerManager {
             const callback = this._callbacks.get(callbackId);
             this._callbacks.delete(callbackId);
             callback(data);
-            
+
             // レイテンシ計測
             const latency = performance.now() - startTime;
             this._metrics.lastLatency = latency;
@@ -104,7 +104,7 @@ export class TypingWorkerManager {
             if (latency > this._metrics.maxProcessingTime) {
               this._metrics.maxProcessingTime = latency;
             }
-            
+
             return;
           }
 
@@ -123,7 +123,7 @@ export class TypingWorkerManager {
           type: 'ping',
           data: { sent: Date.now() },
         });
-        
+
         // WorkerにリフレッシュレートOFFSCREEN_CANVAS_SUPPORT情報を送信
         this._detectDisplayCapabilities().then(capabilities => {
           this._worker.postMessage({
@@ -144,7 +144,7 @@ export class TypingWorkerManager {
 
     return this._initializationPromise;
   }
-  
+
   /**
    * ディスプレイとブラウザの機能を検出する
    * @returns {Promise} ディスプレイ機能と環境情報を含むPromise
@@ -153,10 +153,10 @@ export class TypingWorkerManager {
     if (typeof window === 'undefined') {
       return { refreshRate: 60, offscreenCanvas: false };
     }
-    
+
     // リフレッシュレート検出
     let refreshRate = 60; // デフォルト値
-    
+
     try {
       // 最新のScreen.refresh APIが利用可能かチェック
       if (window.screen && window.screen.refresh !== undefined) {
@@ -165,7 +165,7 @@ export class TypingWorkerManager {
         // レガシー方式でリフレッシュレートを推定
         let count = 0;
         const startTime = performance.now();
-        
+
         await new Promise(resolve => {
           const detectFrames = (timestamp) => {
             count++;
@@ -178,17 +178,17 @@ export class TypingWorkerManager {
           };
           requestAnimationFrame(detectFrames);
         });
-        
+
         // 推定されたリフレッシュレートを設定（最低60Hz、最大300Hzまで）
         refreshRate = Math.min(Math.max(count, 60), 300);
       }
     } catch (e) {
       console.warn('リフレッシュレート検出に失敗しました:', e);
     }
-    
+
     // OffscreenCanvas対応チェック
     const hasOffscreenCanvas = typeof OffscreenCanvas !== 'undefined';
-    
+
     return {
       refreshRate,
       offscreenCanvas: hasOffscreenCanvas,
@@ -197,7 +197,7 @@ export class TypingWorkerManager {
       supportedInputTypes: this._getSupportedInputTypes(),
     };
   }
-  
+
   /**
    * サポートされている入力タイプを検出
    */
@@ -205,14 +205,14 @@ export class TypingWorkerManager {
     if (typeof window === 'undefined' || !window.navigator) {
       return {};
     }
-    
+
     return {
       touch: 'ontouchstart' in window,
       pointer: window.navigator.maxTouchPoints > 0 || 'onpointerdown' in window,
       gamepad: navigator.getGamepads !== undefined,
     };
   }
-  
+
   /**
    * Worker メッセージ処理を行う内部メソッド
    */
@@ -233,7 +233,7 @@ export class TypingWorkerManager {
           'ms'
         );
         break;
-        
+
       case 'metrics':
         // Workerから送られてくるメトリクス情報
         console.debug('Worker metrics:', data);
@@ -299,17 +299,17 @@ export class TypingWorkerManager {
   isWorkerAvailable() {
     return !!this._worker;
   }
-  
+
   /**
    * パフォーマンスメトリクスを取得
    * @returns {Object} 現在のパフォーマンスメトリクス
    */
   getPerformanceMetrics() {
     // 平均処理時間を計算
-    const avgProcessingTime = this._metrics.messagesReceived > 0 
-      ? this._metrics.totalProcessingTime / this._metrics.messagesReceived 
+    const avgProcessingTime = this._metrics.messagesReceived > 0
+      ? this._metrics.totalProcessingTime / this._metrics.messagesReceived
       : 0;
-    
+
     return {
       ...this._metrics,
       avgProcessingTime,
@@ -326,7 +326,7 @@ export class TypingWorkerManager {
    */
   async processInput(session, char, isCorrect = null) {
     const startTime = performance.now();
-    
+
     if (!this._worker) {
       try {
         await this._initialize();
@@ -343,7 +343,7 @@ export class TypingWorkerManager {
         timestamp: Date.now(),
       });
     }
-    
+
     // 高リフレッシュレート環境では優先度を高く設定
     const priority = this._optimizationOptions.prioritizeLatency ? 'high' : 'normal';
 
@@ -357,7 +357,7 @@ export class TypingWorkerManager {
         if (process.env.NODE_ENV === 'development' && latency > 8) {
           console.debug(`Worker processInput 応答時間: ${latency.toFixed(2)}ms`);
         }
-        
+
         resolve(result);
       });
 
@@ -374,7 +374,7 @@ export class TypingWorkerManager {
           char,
         },
       });
-      
+
       // メトリクスの更新
       this._metrics.messagesSent++;
       this._metrics.totalMessages++;
@@ -415,7 +415,7 @@ export class TypingWorkerManager {
           session: serializedSession,
         },
       });
-      
+
       // メトリクスの更新
       this._metrics.messagesSent++;
       this._metrics.totalMessages++;
@@ -449,7 +449,7 @@ export class TypingWorkerManager {
         priority: 'low', // 優先度を下げることで高速タイピング時も入力処理を優先
         data: statsData,
       });
-      
+
       // メトリクスの更新
       this._metrics.messagesSent++;
       this._metrics.totalMessages++;
@@ -483,7 +483,7 @@ export class TypingWorkerManager {
         priority: 'low', // 非重要タスク
         data: recordData,
       });
-      
+
       // メトリクスの更新
       this._metrics.messagesSent++;
       this._metrics.totalMessages++;
@@ -507,17 +507,17 @@ export class TypingWorkerManager {
     if (this._inputHistory.length === 0) {
       return Promise.resolve({ success: false, error: '入力履歴がありません' });
     }
-    
+
     // 大量のデータの場合、転送可能オブジェクトを使用（高速化）
     let inputHistoryData;
     let transferable;
-    
+
     // 転送可能オブジェクトの最適化（大量データの高速転送）
     if (this._optimizationOptions.useTransferableObjects && this._inputHistory.length > 100) {
       // 転送可能な形式に変換
       const buffer = new ArrayBuffer(this._inputHistory.length * 16); // 推定サイズ
       const view = new DataView(buffer);
-      
+
       this._inputHistory.forEach((entry, index) => {
         const offset = index * 16;
         view.setUint32(offset, entry.timestamp || 0);
@@ -527,13 +527,13 @@ export class TypingWorkerManager {
           view.setUint8(offset + 5, entry.key.charCodeAt(0));
         }
       });
-      
+
       inputHistoryData = {
         buffer: buffer,
         length: this._inputHistory.length,
         format: 'binary'
       };
-      
+
       transferable = [buffer];
     } else {
       // 通常のJSONシリアライズ
@@ -565,7 +565,7 @@ export class TypingWorkerManager {
           data: inputHistoryData,
         });
       }
-      
+
       // メトリクスの更新
       this._metrics.messagesSent++;
       this._metrics.totalMessages++;
@@ -602,7 +602,7 @@ export class TypingWorkerManager {
     this._batchedTasks = [];
     this._batchProcessScheduled = false;
   }
-  
+
   /**
    * パフォーマンス最適化設定の更新
    * @param {Object} options - 更新するオプション
@@ -612,7 +612,7 @@ export class TypingWorkerManager {
       ...this._optimizationOptions,
       ...options
     };
-    
+
     // 設定をWorkerにも反映
     if (this._worker) {
       this._worker.postMessage({
@@ -620,7 +620,7 @@ export class TypingWorkerManager {
         data: this._optimizationOptions,
       });
     }
-    
+
     return this._optimizationOptions;
   }
 }
@@ -643,14 +643,14 @@ async function initializePredictionCache() {
   if (!typingWorkerManager._worker) {
     await typingWorkerManager._initialize();
   }
-  
+
   if (typingWorkerManager._worker) {
     return new Promise((resolve) => {
       const callbackId = typingWorkerManager._getNextCallbackId();
-      
+
       // コールバックを登録
       typingWorkerManager._callbacks.set(callbackId, resolve);
-      
+
       // Workerにメッセージを送信
       typingWorkerManager._worker.postMessage({
         type: 'initializePredictionCache',
@@ -658,11 +658,11 @@ async function initializePredictionCache() {
         priority: 'high',
         data: { sequences: commonSequences }
       });
-      
+
       console.log('[最適化] 入力予測キャッシュを初期化しました');
     });
   }
-  
+
   return Promise.resolve(false);
 }
 
@@ -672,12 +672,23 @@ const typingWorkerManager = new TypingWorkerManager();
 // 初期化後に予測キャッシュを設定
 if (typeof window !== 'undefined') {
   // ブラウザ環境でのみ実行
-  typingWorkerManager._initialize().then(() => {
-    // ディスプレイのリフレッシュレート検出後、予測キャッシュを初期化
+  window.addEventListener('load', () => {
+    // DOMが完全に読み込まれてから予測キャッシュを初期化
     setTimeout(() => {
-      initializePredictionCache();
-    }, 300); // 少し遅延させて他の初期化処理が完了してから実行
+      initializePredictionCache()
+        .then(result => {
+          if (result && result.success) {
+            console.log('[最適化] 入力予測キャッシュを初期化しました', result);
+          }
+        })
+        .catch(err => {
+          console.warn('[最適化] 入力予測キャッシュの初期化に失敗しました', err);
+        });
+    }, 500);
   });
 }
+
+// Worker初期化状態をエクスポート
+export { typingWorkerManager, initializePredictionCache };
 
 export default typingWorkerManager;
