@@ -10,6 +10,22 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="ja">
+      <head>
+        {/* ランタイムエラーを抑制するためのスクリプト */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            // chrome拡張機能やLive Previewによるエラーメッセージを抑制
+            window.addEventListener('error', function(event) {
+              if (event.message && event.message.includes('runtime.lastError') && 
+                  event.message.includes('message channel closed')) {
+                event.preventDefault();
+                event.stopPropagation();
+                return true;
+              }
+            }, true);
+          `
+        }} />
+      </head>
       <body
         className={fontClasses}  // Geistの代わりにfonts.jsで定義したフォントクラスを使用
         suppressHydrationWarning

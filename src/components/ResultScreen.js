@@ -55,7 +55,7 @@ const ResultScreen = ({
         const timeInSeconds = finalStats.totalTime || 0;
         const mistakes = finalStats.missCount || 0;
         const difficulty = gameState?.difficulty || gameState?.settings?.difficulty || 'normal';
-        const rank = TypingUtils.getKPMRank(kpm);
+        const rank = TypingUtils.getRank(kpm);
         
         console.log('ResultScreen: ローカルランキングにデータを保存します', {
           kpm, accuracy, timeInSeconds, mistakes, difficulty, rank
@@ -254,7 +254,7 @@ const ResultScreen = ({
   console.log('ResultScreen: KPM値', safeStats.kpm);
 
   // ランク計算のデバッグ
-  const rank = TypingUtils.getKPMRank(safeStats.kpm || 0);
+  const rank = TypingUtils.getRank(safeStats.kpm || 0);
   console.log(`ResultScreen: KPM ${safeStats.kpm} に基づくランク: ${rank}`);
 
   // 数値を固定して計算が再実行されないようにする
@@ -267,9 +267,9 @@ const ResultScreen = ({
       kpm: Math.floor(safeStats.kpm || 0),
       correctCount: safeStats.correctCount || 0,
       missCount: safeStats.missCount || 0,
-      rank: TypingUtils.getKPMRank(safeStats.kpm || 0),
+      rank: TypingUtils.getRank(safeStats.kpm || 0),
       rankColor: TypingUtils.getRankColor(
-        TypingUtils.getKPMRank(safeStats.kpm || 0)
+        TypingUtils.getRank(safeStats.kpm || 0)
       ),
     };
   }, [safeStats]);
