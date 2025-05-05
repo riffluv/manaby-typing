@@ -662,7 +662,7 @@ export function useTypingGame({
 
   // 最適化された入力処理 - handleInput関数の改善版
   const handleInput = useCallback(
-    (key) => {
+    (key, customSoundHandling = {}) => {
       if (!typingSession || isCompleted) {
         return { success: false, status: 'inactive_session' };
       }
@@ -673,44 +673,120 @@ export function useTypingGame({
       // 入力プロセスが高リフレッシュレート対応かどうか判定
       const isHighRefreshRate = displayRefreshRateRef.current >= 120;
 
-      // ★★重要な最適化★★
-      // 最優先処理パス: 入力予測マッチング（超高速パス）
-      // 予測される次の文字であれば、バッファリングせずに直接処理
-      const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key.toLowerCase());
-      const nextPossibleChars = typingSession.getNextPossibleChars?.();
-
-      if (nextPossibleChars && nextPossibleChars.has(halfWidthChar)) {
-        // 最も頻出するパスが確認できたので、最短パスで即時処理
-        const result = processInput(key);
-
-        // Worker記録をマイクロタスクでスケジュール（応答性優先）
-        queueMicrotask(() => {
-          const workerData = {
-            key: halfWidthChar,
-            isCorrect: result.success,
-            timestamp: Date.now(),
-            predictedPath: true, // 予測パスを使用
-            isHighRefreshRate
-          };
-
-          // MCPにメトリクスとして記録（パフォーマンス分析用）
-          if (typeof MCPUtils !== 'undefined' && MCPUtils.recordTypingInput) {
-            MCPUtils.recordTypingInput(workerData);
-          }
-        });
-
-        // パフォーマンス測定終了（DEV環境のみ）
-        if (perfStartTime && process.env.NODE_ENV === 'development') {
-          const latency = performance.now() - perfStartTime;
-          if (isHighRefreshRate && latency > (1000 / displayRefreshRateRef.current / 3)) {
-            console.warn(`[パフォーマンス警告] 予測パス入力処理に${latency.toFixed(2)}ms要りました（目標: ${(1000 / displayRefreshRateRef.current / 3).toFixed(2)}ms）`);
-          }
+      // 予測サウンドプリローディング - Weather Typing風の先行処理
+      // 外部から音声再生が抑制されていない場合のみ実行
+      if (typingSession.getNextPossibleChars && playSound && !customSoundHandling.preventDefaultSound) {
+        const nextPossibleChars = Array.from(typingSession.getNextPossibleChars() || []);
+        if (nextPossibleChars.length > 0) {
+          // 次の可能性のあるキーのサウンドを事前準備（超低レイテンシー化）
+          soundSystem.prepareNextSounds(nextPossibleChars);
         }
-
-        return result;
       }
 
-      // 標準処理パス: 最適化されたバッファリングシステム
+      // ★★★重要な最適化: typingmania-ref風の最短パス実装★★★
+      // 直接入力処理を利用した超高速処理パス - Reactのレンダリングサイクルをバイパスするアプローチ
+      const nextPossibleChars = typingSession.getNextPossibleChars?.();
+      const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key.toLowerCase());
+
+      // 次の可能文字が明らかな場合は超高速パスを使用
+      if (nextPossibleChars && nextPossibleChars.has(halfWidthChar)) {
+        // タイピングマニア風の直接入力処理（最短レスポンスのための最適化）
+        const directResult = TypingUtils.acceptDirect(typingSession, halfWidthChar);
+
+        if (directResult.success) {
+          // 効果音の即時フィードバック - 入力成功
+          // 外部から音声再生が抑制されていない場合のみ実行
+          if (playSound && !customSoundHandling.preventDefaultSound) {
+            // AudioContextの状態を確認して音が確実に鳴るようにする
+            if (soundSystem.context && soundSystem.context.state === 'suspended') {
+              soundSystem.context.resume();
+            }
+            // 即時再生で低レイテンシーを実現
+            soundSystem.play('success', { immediate: true });
+          }
+
+          // 色分け情報の即時更新
+          setColoringInfo(typingSession.getColoringInfo());
+
+          // 統計情報の非同期更新（ユーザー体験に直結しない部分）
+          queueMicrotask(() => {
+            // 正解数のカウント更新
+            setStatistics((prev) => ({
+              ...prev,
+              correctKeyCount: prev.correctKeyCount + 1,
+              currentProblemKeyCount: prev.currentProblemKeyCount + 1,
+            }));
+
+            // 入力履歴の記録（Worker用）
+            inputHistoryRef.current.push({
+              key: halfWidthChar,
+              isCorrect: true,
+              timestamp: Date.now(),
+              directPath: true, // 最短パスで処理したフラグ
+            });
+          });
+
+          // 問題完了チェック
+          if (directResult.status === 'all_completed') {
+            queueMicrotask(() => completeProblem());
+          }
+
+          // パフォーマンス測定（開発環境のみ）
+          if (perfStartTime && process.env.NODE_ENV === 'development') {
+            const latency = performance.now() - perfStartTime;
+            // 超高速パスの処理時間をデバッグ記録
+            if (DEBUG_PERFORMANCE) {
+              typingDebugInfo.current.processingTime.push(latency);
+              typingDebugInfo.current.predictedPathHits++; // 予測ヒット数をカウント
+            }
+            if (latency > 2 && DEBUG_PERFORMANCE) { // 2ms以上はパフォーマンス警告
+              console.debug(`[超高速パス] 処理時間: ${latency.toFixed(2)}ms`);
+            }
+          }
+
+          return { success: true, status: directResult.status };
+        } else {
+          // エラー処理（効果音と視覚的フィードバックのみ）
+          // 外部から音声再生が抑制されていない場合のみ実行
+          if (playSound && !customSoundHandling.preventDefaultSound) {
+            soundSystem.play('error');
+          }
+
+          setErrorAnimation(true);
+
+          if (errorAnimationTimerRef.current) {
+            clearTimeout(errorAnimationTimerRef.current);
+          }
+
+          errorAnimationTimerRef.current = setTimeout(() => {
+            setErrorAnimation(false);
+            errorAnimationTimerRef.current = null;
+          }, 200);
+
+          // 統計更新は非同期で行う（レスポンスを優先）
+          queueMicrotask(() => {
+            setErrorCount((prev) => prev + 1);
+            setStatistics((prev) => ({
+              ...prev,
+              mistakeCount: prev.mistakeCount + 1,
+            }));
+
+            // 入力履歴の記録（Worker用）
+            inputHistoryRef.current.push({
+              key: halfWidthChar,
+              isCorrect: false,
+              timestamp: Date.now(),
+              directPath: true,
+              expectedKey: typingSession.getCurrentExpectedKey?.()
+            });
+          });
+
+          return { success: false, status: directResult.status };
+        }
+      }
+
+      // ★★分岐: 標準処理パス（バッファリング）★★
+      // 高速パスが使えない場合の従来処理
       if (inputSystem.current) {
         // バッファにキーを追加
         inputSystem.current.addInput(key);
@@ -750,7 +826,7 @@ export function useTypingGame({
         if (perfStartTime && process.env.NODE_ENV === 'development') {
           const latency = performance.now() - perfStartTime;
           const targetLatency = isHighRefreshRate ? 2 : 8; // 高リフレッシュレートなら2ms、それ以外は8ms
-          if (latency > targetLatency) {
+          if (latency > targetLatency && DEBUG_PERFORMANCE) {
             console.warn(`[パフォーマンス警告] バッファ入力処理に${latency.toFixed(2)}ms要りました（目標: ${targetLatency}ms）`);
           }
         }
@@ -758,7 +834,7 @@ export function useTypingGame({
         return { success: true, status: 'buffered' };
       }
 
-      // フォールバックパス: キーバッファに追加
+      // フォールバックパス: キーバッファに追加（通常はここに到達しない）
       keyBufferRef.current.push(key);
 
       // 非同期処理戦略の決定
@@ -780,7 +856,7 @@ export function useTypingGame({
 
       return { success: true, status: 'buffered' };
     },
-    [typingSession, isCompleted, processInput]
+    [typingSession, isCompleted, playSound, processInput, completeProblem]
   );
 
   // 現在の進捗率を計算 - useMemoで最適化

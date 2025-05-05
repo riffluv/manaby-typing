@@ -287,8 +287,32 @@ const GameScreen = () => {
         }));
       }
 
-      // カスタムフックを使用して入力処理
-      typing.handleInput(e.key);
+      // サウンド処理で競合を防ぐためのフラグオブジェクトを作成
+      const customSoundHandling = {
+        preventDefaultSound: false
+      };
+
+      // typingmania-refスタイルの最適化: 予測パスのチェック
+      const typingSession = typing?.typingSession;
+      if (typingSession && typingSession.getNextPossibleChars) {
+        const possibleChars = typingSession.getNextPossibleChars();
+        if (possibleChars) {
+          const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(e.key.toLowerCase());
+
+          // 次の入力として可能性がある場合は超最適化パスを使用
+          if (possibleChars.has(halfWidthChar)) {
+            // useTypingGameの内部音声再生を無効化（音声の二重再生を防止）
+            customSoundHandling.preventDefaultSound = true;
+
+            // 先行してサウンドのみを再生（知覚遅延の最小化）
+            // この処理は超低レイテンシーで行われ、音声と入力処理の間の遅延をなくす
+            soundSystem.playUltraFast('success');
+          }
+        }
+      }
+
+      // フラグを渡して音声の二重再生を防止しつつ入力処理を行う
+      typing.handleInput(e.key, customSoundHandling);
     },
     [
       gameState.isGameClear,

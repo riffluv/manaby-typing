@@ -1538,6 +1538,65 @@ export default class TypingUtils {
       getBufferLength: () => state.buffer.length
     };
   }
+
+  /**
+   * 直接入力処理メソッド - typingmania-refスタイルの超高速実装
+   * Reactの状態更新を介さず、直接セッションを更新する
+   * @param {object} session - タイピングセッション
+   * @param {string} char - 入力された文字
+   * @returns {object} - 処理結果
+   */
+  static acceptDirect(session, char) {
+    if (!session || !char) return { success: false, status: 'invalid_input' };
+
+    // 実行時間計測（開発環境のみ）
+    const perfStart = process.env.NODE_ENV === 'development' ? performance.now() : null;
+
+    try {
+      // 入力文字を半角に変換
+      const normalizedChar = this.convertFullWidthToHalfWidth(char.toLowerCase());
+
+      // セッションの処理メソッドを直接使用（最短パス）
+      const result = session.processInput(normalizedChar);
+
+      // パフォーマンス計測終了（開発環境のみ）
+      if (perfStart && process.env.NODE_ENV === 'development') {
+        const elapsed = performance.now() - perfStart;
+        if (elapsed > 1) {
+          console.debug(`[直接入力] 処理時間: ${elapsed.toFixed(2)}ms`);
+        }
+      }
+
+      return result;
+    } catch (err) {
+      console.error('直接入力処理エラー:', err);
+      return { success: false, status: 'error', message: err.message };
+    }
+  }
+
+  /**
+   * 高リフレッシュレート環境専用の超低レイテンシー入力処理
+   * 完全に最適化されたタイピング処理パス
+   * @param {object} session - タイピングセッション
+   * @param {string} char - 入力された文字
+   * @returns {object} - 処理結果（簡略化）
+   */
+  static ultraFastInput(session, char) {
+    if (!session || !char) return { success: false };
+
+    try {
+      // 半角変換と入力処理を一つの最短パスで実行
+      const result = session.processInput(this.convertFullWidthToHalfWidth(char.toLowerCase()));
+
+      // 最小限の結果のみを返す（パフォーマンス向上のため）
+      return {
+        success: result.success,
+        completed: result.status === 'all_completed'
+      };
+    } catch (err) {
+      return { success: false };
+    }
+  }
 }
 
 // クラス定義の外で静的初期化を呼び出す
