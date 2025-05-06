@@ -1,0 +1,102 @@
+/* シンプルなタイピング表示用スタイル */
+.typingText {
+  width: 100%;
+  min-height: 2rem;
+  padding: 0.3rem;
+  border-radius: 8px;
+  text-align: center;
+  display: block;
+  position: relative;
+  border: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  font-family: 'Cascadia Code', 'Source Code Pro', 'Fira Code', 'Consolas', monospace;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  letter-spacing: 0.03em;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  color: #e0e0e0;
+  margin-bottom: 0.2rem;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 入力済み部分 */
+.typed {
+  color: #12b886;
+  /* 緑色 */
+  font-weight: 500;
+}
+
+/* 次に入力すべき文字 */
+.nextChar {
+  color: #ff9a28;
+  /* オレンジ色 */
+  text-shadow: 0 0 6px rgba(255, 154, 40, 0.6);
+  font-weight: 700;
+  background-color: rgba(255, 154, 40, 0.1);
+  border-radius: 2px;
+  padding: 0 2px;
+  margin: 0 1px;
+  display: inline-block;
+  position: relative;
+}
+
+/* 未入力部分 */
+.remaining {
+  color: #d8d8d8;
+  /* 薄いグレー */
+  font-weight: 400;
+}
+
+/* タイピングカーソル */
+.typingCursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background-color: rgba(255, 140, 0, 0.8);
+  vertical-align: middle;
+  margin-left: 0.1em;
+  animation: cursorBlink 1s infinite;
+  position: relative;
+  top: 0;
+  border-radius: 1px;
+  box-shadow: 0 0 4px rgba(255, 140, 0, 0.5);
+}
+
+@keyframes cursorBlink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* エラー時のシェイクアニメーション */
+.errorShake {
+  animation: errorShake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+@keyframes errorShake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
