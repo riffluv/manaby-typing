@@ -445,7 +445,8 @@ const RankingScreen = () => {
         // これにより画面再読み込みでも登録できなくなる
         try {
           // ゲームのユニーク識別子を生成（KPM + 正解率 + ミス数 + 時間）
-          const gameId = `${kpmValue}-${accuracyValue.toFixed(1)}-${missCount}-${playTime}`;
+          // 直前で計算した値を利用
+          const gameId = `${kpmValue}-${accuracyValue.toFixed(1)}-${finalMissCount}-${finalPlayTime}`;
           const registeredGames = JSON.parse(sessionStorage.getItem('registeredGames') || '[]');
           registeredGames.push(gameId);
           sessionStorage.setItem('registeredGames', JSON.stringify(registeredGames));

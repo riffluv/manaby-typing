@@ -244,13 +244,19 @@ class SoundUtils {
       return;
     }
 
+    // 大文字小文字を区別せずに名前を小文字に変換して処理（最初に一度だけ処理）
+    const lowerName = name.toLowerCase();
+    
     // 多数の連続したリクエストを防ぐ（打撃音が詰まる問題の解決）
     const now = Date.now();
-    const lastPlayTime = this._lastPlayTimes?.[name] || 0;
+    
+    // 最終再生時間の管理にはマップを使用
+    if (!this._lastPlayTimes) this._lastPlayTimes = {};
+    const lastPlayTime = this._lastPlayTimes[lowerName] || 0;
     
     // 同じ効果音の連続再生を防ぐための最小間隔（ミリ秒）
     // タイピング音は特に短く設定
-    const minInterval = name === 'success' ? 10 : 30;
+    const minInterval = lowerName === 'success' ? 5 : 20;
     
     if (now - lastPlayTime < minInterval) {
       // 間隔が短すぎる場合はスキップ（パフォーマンス向上）
@@ -258,11 +264,7 @@ class SoundUtils {
     }
 
     // 最終再生時間を記録
-    if (!this._lastPlayTimes) this._lastPlayTimes = {};
-    this._lastPlayTimes[name] = now;
-
-    // 大文字小文字を区別せずに名前を小文字に変換して処理
-    const lowerName = name.toLowerCase();
+    this._lastPlayTimes[lowerName] = now;
 
     // バッファにあれば再生
     if (this.sfxBuffers[lowerName]) {
@@ -271,16 +273,13 @@ class SoundUtils {
     }
 
     // バッファにない場合は読み込みを試みる
-    console.log(`効果音「${name}」がロードされていません。読み込みを試みます...`);
-
-    // プリセットも小文字で検索
     const presetKey = Object.keys(this.soundPresets).find(
       (key) => key.toLowerCase() === lowerName
     );
 
     // 登録されていない場合、プリセットから自動ロードを試みる
     if (presetKey) {
-      // AudioContextを先に再開（iOS Safari対策）
+      // AudioContextを再開（iOS Safari対策）
       if (this.context && this.context.state === 'suspended') {
         this.context.resume();
       }
@@ -293,14 +292,7 @@ class SoundUtils {
             this._playBuffer(this.sfxBuffers[lowerName]);
           }
         })
-        .catch((err) =>
-          console.error(
-            `効果音「${name}」の自動ロード中にエラーが発生しました:`,
-            err
-          )
-        );
-    } else {
-      console.error(`効果音「${name}」はプリセットに存在しません`);
+        .catch(() => {/* エラーログは削減 */});
     }
   }
 
