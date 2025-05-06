@@ -2,7 +2,8 @@
 .typingText {
   width: 100%;
   min-height: 2rem;
-  max-height: 4.5rem; /* 最大高さを設定してスクロール可能に */
+  max-height: 4.5rem;
+  /* 最大高さを設定してスクロール可能に */
   padding: 0.3rem;
   border-radius: 8px;
   position: relative;
@@ -16,52 +17,70 @@
   color: #e0e0e0;
   margin-bottom: 0.2rem;
   background-color: rgba(0, 0, 0, 0.1);
-  overflow-y: auto; /* 縦方向のスクロールのみ有効化 */
-  overflow-x: hidden; /* 横方向のスクロールを無効化 */
-  overscroll-behavior: contain; /* スクロールが親要素に伝播しないよう制御 */
-  scroll-behavior: smooth; /* スムーズスクロールを有効化 */
+  overflow-y: auto;
+  /* 縦方向のスクロールのみ有効化 */
+  overflow-x: hidden;
+  /* 横方向のスクロールを無効化 */
+  overscroll-behavior: contain;
+  /* スクロールが親要素に伝播しないよう制御 */
+  scroll-behavior: smooth;
+  /* スムーズスクロールを有効化 */
 }
 
 /* 内部コンテンツラッパー */
 .typingTextContent {
-  text-align: center; /* テキスト位置を中央揃えに変更 */
+  text-align: center;
+  /* テキスト位置を中央揃えに変更 */
   white-space: pre-wrap;
   overflow-wrap: break-word;
-  word-break: break-all; /* 長い単語を適切に折り返す */
-  padding: 0 0.2rem; /* 左右の余白を追加 */
-  width: 100%; /* コンテナの幅いっぱいに広がるよう設定 */
-  max-width: 100%; /* 最大幅を制限して横スクロールを防止 */
-  box-sizing: border-box; /* ボックスサイズの計算方法を指定 */
+  word-break: break-all;
+  /* 長い単語を適切に折り返す */
+  padding: 0 0.2rem;
+  /* 左右の余白を追加 */
+  width: 100%;
+  /* コンテナの幅いっぱいに広がるよう設定 */
+  max-width: 100%;
+  /* 最大幅を制限して横スクロールを防止 */
+  box-sizing: border-box;
+  /* ボックスサイズの計算方法を指定 */
 }
 
 /* 入力済み部分 */
 .typed {
-  color: #12b886; /* 緑色 */
+  color: #12b886;
+  /* 緑色 */
   font-weight: 500;
 }
 
 /* 子音入力中の子音表示 */
 .consonant {
-  color: #12b886; /* 緑色 - 入力済みと同じ色 */
+  color: #12b886;
+  /* 緑色 - 入力済みと同じ色 */
   font-weight: 500;
-  text-decoration: underline; /* 下線で子音であることを強調 */
-  margin-right: 0; /* 次の母音と隙間を開けない */
+  text-decoration: underline;
+  /* 下線で子音であることを強調 */
+  margin-right: 0;
+  /* 次の母音と隙間を開けない */
   display: inline-block;
 }
 
 /* 子音入力中の現在の仮名の残り部分 */
 .currentCharRemaining {
-  color: #969696; /* 薄いグレー（残りより少し暗く） */
+  color: #969696;
+  /* 薄いグレー（残りより少し暗く） */
   font-weight: 400;
   opacity: 0.8;
-  text-decoration: overline; /* 上線で同じ文字のグループであることを示す */
-  margin-left: 0; /* 母音と隙間を開けない */
+  text-decoration: overline;
+  /* 上線で同じ文字のグループであることを示す */
+  margin-left: 0;
+  /* 母音と隙間を開けない */
   display: inline-block;
 }
 
 /* 次に入力すべき文字 */
 .nextChar {
-  color: #ff9a28; /* オレンジ色 */
+  color: #ff9a28;
+  /* オレンジ色 */
   text-shadow: 0 0 6px rgba(255, 154, 40, 0.6);
   font-weight: 700;
   background-color: rgba(255, 154, 40, 0.1);
@@ -70,19 +89,22 @@
   margin: 0 1px;
   display: inline-block;
   position: relative;
-  scroll-margin-top: 1.5rem; /* スクロール位置の余白を指定 */
+  scroll-margin-top: 1.5rem;
+  /* スクロール位置の余白を指定 */
   scroll-margin-bottom: 1.5rem;
 }
 
 /* 未入力部分 */
 .remaining {
-  color: #d8d8d8; /* 薄いグレー */
+  color: #d8d8d8;
+  /* 薄いグレー */
   font-weight: 400;
 }
 
 /* 省略記号 */
 .ellipsis {
-  color: #969696; /* グレー */
+  color: #969696;
+  /* グレー */
   font-weight: 600;
   opacity: 0.7;
   letter-spacing: 0.05em;
@@ -106,10 +128,12 @@
 }
 
 @keyframes cursorBlink {
+
   0%,
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.3;
   }
@@ -123,14 +147,17 @@
 }
 
 @keyframes errorShake {
+
   0%,
   100% {
     transform: translateX(0);
   }
+
   20%,
   60% {
     transform: translateX(-5px);
   }
+
   40%,
   80% {
     transform: translateX(5px);

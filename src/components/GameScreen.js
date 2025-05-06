@@ -553,28 +553,17 @@ const GameScreen = () => {
           animate={animationVariants.header.animate}
           transition={animationVariants.header.transition}
         >
+          {/* お題表示を右上に配置するため、左は空にする */}
+          <div></div>
+
+          {/* お題表示を右上に配置し、背景とボーダーを削除 */}
           <motion.div
-            className={styles.typing_game__level_display}
+            className={styles.typing_game__level_display_right}
             initial={animationVariants.gameLevelScale.initial}
             animate={animationVariants.gameLevelScale.animate}
             transition={animationVariants.gameLevelScale.transition}
           >
             お題: {gameState.solvedCount + 1}/{requiredProblemCount}
-          </motion.div>
-
-          {/* タイピングステータス表示 - 新しく追加 */}
-          <motion.div
-            className={styles.typing_game__status}
-            initial={animationVariants.status.initial}
-            animate={animationVariants.status.animate}
-            transition={animationVariants.status.transition}
-          >
-            <span className={styles.typing_game__status_item}>
-              KPM: <strong>{Math.round(currentKpm)}</strong>
-            </span>
-            <span className={styles.typing_game__status_item}>
-              正確さ: <strong>{Math.round(accuracy)}%</strong>
-            </span>
           </motion.div>
         </motion.header>
 

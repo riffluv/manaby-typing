@@ -66,27 +66,27 @@ export function useSimpleTypingAdapter(typingHook) {
       }
 
       // 現在の入力
-      const currentInput = safeGet(coloringInfo, 'currentInput', '') || 
-                          safeGet(displayInfo, 'currentInput', '') ||
-                          safeGet(typingHook, 'typingSession.currentInput', '');
+      const currentInput = safeGet(coloringInfo, 'currentInput', '') ||
+        safeGet(displayInfo, 'currentInput', '') ||
+        safeGet(typingHook, 'typingSession.currentInput', '');
 
       // 現在入力中の文字の完全なローマ字表現
       const currentCharRomaji = safeGet(coloringInfo, 'currentCharRomaji', '') ||
-                               safeGet(displayInfo, 'currentCharRomaji', '') ||
-                               safeGet(typingHook, 'typingSession.currentCharRomaji', '');
+        safeGet(displayInfo, 'currentCharRomaji', '') ||
+        safeGet(typingHook, 'typingSession.currentCharRomaji', '');
 
       // romajiの取得方法を多様化 - typingHookの複数の場所から試みる
       let romaji = '';
-      
+
       // 1. セッションから直接取得を試みる
       const session = safeGet(typingHook, 'typingSession', null);
       if (session && session.displayRomaji) {
         romaji = session.displayRomaji;
-      } 
+      }
       // 2. displayInfoから取得を試みる
       else if (safeGet(typingHook, 'displayInfo.romaji', '')) {
         romaji = safeGet(typingHook, 'displayInfo.romaji', '');
-      } 
+      }
       // 3. MCPサーバーを使用している場合の処理
       else if (safeGet(typingHook, 'mcpSession.romaji', '')) {
         romaji = safeGet(typingHook, 'mcpSession.romaji', '');
@@ -112,7 +112,7 @@ export function useSimpleTypingAdapter(typingHook) {
       // typedLengthから表示範囲を計算
       // 入力位置の前後に一定数の文字を表示する
       const contextSize = 30; // 入力位置の前後に表示する文字数
-      
+
       if (romaji.length > contextSize * 2) {
         visibleStart = Math.max(0, typedLength - contextSize);
         visibleEnd = Math.min(romaji.length, typedLength + contextSize + (nextChar?.length || 1));

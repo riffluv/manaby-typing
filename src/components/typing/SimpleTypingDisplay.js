@@ -31,14 +31,14 @@ const SimpleTypingDisplay = memo(({
   let displayCurrentInput = '';
   let displayNextChar = nextChar || '';
   let displayRemaining = '';
-  
+
   // 表示範囲を決定（長いローマ字の場合は表示範囲を制限）
   const showFullText = !visiblePortion || visiblePortion.start === 0 && visiblePortion.end === 0;
-  
+
   // 実際に表示するテキスト部分を決定
-  const effectiveRomaji = showFullText ? romaji : 
+  const effectiveRomaji = showFullText ? romaji :
     (romaji?.substring(visiblePortion.start, visiblePortion.end) || '');
-  
+
   // 表示範囲内での相対的な入力位置を計算
   const relativeTypedLength = Math.max(0, typedLength - (showFullText ? 0 : visiblePortion.start));
 
@@ -57,7 +57,7 @@ const SimpleTypingDisplay = memo(({
 
     // 残りの部分の計算
     const remainingStartPos = typedLength + currentCharRomaji.length;
-    
+
     if (showFullText) {
       displayRemaining = romaji?.substring(remainingStartPos) || '';
     } else {
@@ -68,7 +68,7 @@ const SimpleTypingDisplay = memo(({
   } else {
     // 通常モードでの表示処理
     displayNextChar = nextChar;
-    
+
     if (showFullText) {
       const remainingStartPos = typedLength + (nextChar ? 1 : 0);
       displayRemaining = romaji?.substring(remainingStartPos) || '';
@@ -102,9 +102,9 @@ const SimpleTypingDisplay = memo(({
         if (!isInView) {
           // スクロール位置を計算
           // フォーカス文字を中央に配置
-          const targetScrollTop = nextCharElem.offsetTop - 
+          const targetScrollTop = nextCharElem.offsetTop -
             (container.clientHeight / 2) + (nextCharElem.offsetHeight / 2);
-          
+
           // スムーズスクロール
           container.scrollTo({
             top: targetScrollTop,
@@ -154,8 +154,8 @@ const SimpleTypingDisplay = memo(({
         {/* 入力済み部分 */}
         {typed && (
           <span className={styles.typed}>
-            {showFullText 
-              ? typed 
+            {showFullText
+              ? typed
               : effectiveRomaji.substring(0, relativeTypedLength)}
           </span>
         )}
@@ -186,7 +186,7 @@ const SimpleTypingDisplay = memo(({
         {suffixEllipsis && (
           <span className={styles.ellipsis}>{suffixEllipsis}</span>
         )}
-        
+
         {/* タイピングカーソル */}
         <span className={styles.typingCursor}></span>
       </div>

@@ -71,6 +71,21 @@
   transition: all 0.2s ease;
 }
 
+/* 右上に配置したお題表示 - 背景とボーダーを削除 */
+.typing_game__level_display_right {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #ff9a28;
+  text-shadow: 0px 0px 10px rgba(255, 154, 40, 0.3);
+  padding: 0.4rem 1rem;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  /* 右揃えにするために自動マージンを設定 */
+  text-align: right;
+  /* テキストを右揃えに */
+}
+
 /* 新しいステータス表示エリア */
 .typing_game__status {
   display: flex;
