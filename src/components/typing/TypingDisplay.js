@@ -2,11 +2,13 @@ import React, { useMemo, memo } from 'react';
 import styles from '../../styles/GameScreen.module.css';
 
 /**
- * シンプル化したタイピング表示コンポーネント
- * すべてのタイピングテキストを中央揃えで表示
- * グローバルCSSのクラスを使用して統一された表示を実現
+ * 【非推奨】複雑なタイピング表示コンポーネント
  * 
- * リアルタイムでキー入力を反映し、フォーカス文字をハイライト
+ * 注意: このコンポーネントは非推奨となりました。
+ * 代わりに SimpleTypingDisplay.js を使用してください。
+ * このファイルは参照目的のみで残されています。
+ * 
+ * @deprecated SimpleTypingDisplay.jsに置き換えられました
  */
 const TypingDisplay = memo(
   ({
