@@ -32,33 +32,35 @@ const TypingDisplay = memo(
 
       const typedLength = coloringInfo?.typedLength || 0;
       const currentInputLength = coloringInfo?.currentInputLength || 0;
-      const currentPosition = coloringInfo?.currentPosition || 0;
-
-      // テキストを複数のパーツに分割（タイピングマニアのアプローチ）
+      
+      // 修正：文字位置の計算を修正
+      // 正確に位置計算し、文字を分割する
       const typedText = cleanDisplayRomaji.substring(0, typedLength);
-      const currentText = cleanDisplayRomaji.substring(
-        currentPosition,
-        currentPosition + currentInputLength
-      );
-      const nextChar = cleanDisplayRomaji.charAt(
-        currentPosition + currentInputLength
-      );
-      const restText = cleanDisplayRomaji.substring(
-        currentPosition + currentInputLength + 1
-      );
+      const nextChars = cleanDisplayRomaji.substring(typedLength, typedLength + 1);
+      const remainingText = cleanDisplayRomaji.substring(typedLength + 1);
+
+      // 現在の入力状態をcurrentInputから直接取得
+      // 入力中の文字はハイライト表示
 
       return (
         <>
           {/* 入力済み部分 */}
           {typedText && <span className="typing-completed">{typedText}</span>}
 
-          {/* 現在の入力中部分 - 確定済みと同じ緑色で表示 */}
+          {/* 現在入力中の文字 - 強調表示 */}
           {currentInput && (
-            <span className="typing-completed">{currentInput}</span>
+            <span 
+              style={{
+                color: '#32CD32', /* 薄い緑色 */
+                fontWeight: '600',
+              }}
+            >
+              {currentInput}
+            </span>
           )}
 
           {/* 次に入力すべき文字を特別に強調（オレンジ色で表示） */}
-          {nextChar && (
+          {nextChars && (
             <span
               style={{
                 position: 'relative',
@@ -74,12 +76,12 @@ const TypingDisplay = memo(
                 borderRadius: '2px',
               }}
             >
-              {nextChar}
+              {nextChars}
             </span>
           )}
 
           {/* 残りの未入力部分 */}
-          {restText && <span style={{ color: '#757575' }}>{restText}</span>}
+          {remainingText && <span style={{ color: '#757575' }}>{remainingText}</span>}
         </>
       );
     }, [
