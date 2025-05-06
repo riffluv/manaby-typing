@@ -12,7 +12,7 @@ const SimpleTypingTester = () => {
   // テスト用の問題
   const [problem, setProblem] = useState({
     displayText: 'テストの日本語',
-    kana: 'てすとのにほんご',
+    kanaText: 'てすとのにほんご', // kana → kanaTextに変更
     romaji: [
       ['te'], ['su'], ['to'], ['no'], ['ni'], ['ho'], ['n'], ['go']
     ]
@@ -50,7 +50,7 @@ const SimpleTypingTester = () => {
   const changeToProblem2 = () => {
     setProblem({
       displayText: 'こんにちは世界',
-      kana: 'こんにちはせかい',
+      kanaText: 'こんにちはせかい', // kana → kanaTextに変更
       romaji: [
         ['ko'], ['n'], ['ni'], ['chi'], ['ha'], ['se'], ['ka'], ['i']
       ]
@@ -64,7 +64,7 @@ const SimpleTypingTester = () => {
       {/* 問題表示 */}
       <div className={styles.problemText}>
         <div className={styles.japaneseText}>{problem.displayText}</div>
-        <div className={styles.kanaText}>{problem.kana}</div>
+        <div className={styles.kanaText}>{problem.kanaText}</div>
       </div>
 
       {/* シンプル化したタイピング表示 */}

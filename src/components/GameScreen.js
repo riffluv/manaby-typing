@@ -18,8 +18,11 @@ import { useTypingGame } from '../hooks/useTypingGame';
 // コンポーネントをインポート
 import TypingDisplay from './typing/TypingDisplay';
 import ProblemDisplay from './typing/ProblemDisplay';
-import CanvasKeyboard from './typing/CanvasKeyboard'; // 新しいキャンバスキーボードをインポート
-import Button from './common/Button'; // 共通ボタンコンポーネントをインポート
+import CanvasKeyboard from './typing/CanvasKeyboard';
+import Button from './common/Button';
+// 新しいシンプルタイピング表示コンポーネントをインポート
+import SimpleTypingDisplay from './typing/SimpleTypingDisplay';
+import { useSimpleTypingAdapter } from '../hooks/useSimpleTypingAdapter';
 
 // リファクタリング後のコンポーネント実装
 const GameScreen = () => {
@@ -38,6 +41,10 @@ const GameScreen = () => {
 
   // typingの参照を保持するためのref
   const typingRef = useRef(null);
+
+  // シンプル表示を使用するかどうかのフラグ
+  // 本番環境ではデフォルトでシンプル表示を使う
+  const [useSimpleDisplay, setUseSimpleDisplay] = useState(true);
 
   // 問題完了時のコールバック
   const handleProblemComplete = useCallback(
@@ -180,6 +187,20 @@ const GameScreen = () => {
   useEffect(() => {
     typingRef.current = typing;
   }, [typing]);
+
+  // シンプル表示用のプロパティを取得（typingフックの後で使用）
+  const simpleProps = useSimpleTypingAdapter(typing);
+
+  // 表示切替ボタンのハンドラー（開発環境でのみ使用）
+  const toggleDisplayMode = useCallback(() => {
+    setUseSimpleDisplay((prev) => !prev);
+    // ローカルストレージに設定を保存（オプション）
+    try {
+      localStorage.setItem('useSimpleTypingDisplay', (!useSimpleDisplay).toString());
+    } catch (e) {
+      console.error('ローカルストレージへの保存に失敗:', e);
+    }
+  }, [useSimpleDisplay]);
 
   // サウンドの初期化 - 改良版
   useEffect(() => {
@@ -473,6 +494,15 @@ const GameScreen = () => {
             <span className={styles.typing_game__status_item}>
               正確さ: <strong>{Math.round(accuracy)}%</strong>
             </span>
+            {/* 表示切替ボタン - 開発環境のみ表示 */}
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={toggleDisplayMode}
+                className={styles.typing_game__display_toggle}
+              >
+                {useSimpleDisplay ? 'Simple' : 'Complex'}
+              </button>
+            )}
           </motion.div>
         </motion.header>
 
@@ -496,15 +526,28 @@ const GameScreen = () => {
                 className={styles.typing_game__problem_text}
               />
 
-              {/* 入力エリア */}
-              <TypingDisplay
-                displayRomaji={typing.displayRomaji}
-                coloringInfo={typing.coloringInfo}
-                isCompleted={typing.isCompleted}
-                currentInput={typing.typingSession?.currentInput || ''}
-                errorAnimation={typing.errorAnimation}
-                className={styles.typing_game__input_display}
-              />
+              {/* 入力エリア - 切り替え可能にする */}
+              {useSimpleDisplay ? (
+                <SimpleTypingDisplay
+                  romaji={simpleProps.romaji}
+                  typedLength={simpleProps.typedLength}
+                  nextChar={simpleProps.nextChar}
+                  isError={simpleProps.isError}
+                  className={styles.typing_game__input_display}
+                  inputMode={simpleProps.inputMode}
+                  currentInput={simpleProps.currentInput}
+                  currentCharRomaji={simpleProps.currentCharRomaji}
+                />
+              ) : (
+                <TypingDisplay
+                  displayRomaji={typing.displayRomaji}
+                  coloringInfo={typing.coloringInfo}
+                  isCompleted={typing.isCompleted}
+                  currentInput={typing.typingSession?.currentInput || ''}
+                  errorAnimation={typing.errorAnimation}
+                  className={styles.typing_game__input_display}
+                />
+              )}
             </motion.div>
 
             {/* キャンバスキーボードを直接表示 - マージンを調整して空白を減らす */}

@@ -28,6 +28,31 @@
   font-weight: 500;
 }
 
+/* 子音入力中の子音表示 */
+.consonant {
+  color: #12b886;
+  /* 緑色 - 入力済みと同じ色 */
+  font-weight: 500;
+  text-decoration: underline;
+  /* 下線で子音であることを強調 */
+  margin-right: 0;
+  /* 次の母音と隙間を開けない */
+  display: inline-block;
+}
+
+/* 子音入力中の現在の仮名の残り部分 */
+.currentCharRemaining {
+  color: #969696;
+  /* 薄いグレー（残りより少し暗く） */
+  font-weight: 400;
+  opacity: 0.8;
+  text-decoration: overline;
+  /* 上線で同じ文字のグループであることを示す */
+  margin-left: 0;
+  /* 母音と隙間を開けない */
+  display: inline-block;
+}
+
 /* 次に入力すべき文字 */
 .nextChar {
   color: #ff9a28;

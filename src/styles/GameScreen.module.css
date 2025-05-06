@@ -90,6 +90,24 @@
   font-size: 0.95rem;
 }
 
+/* 表示切替ボタン */
+.typing_game__display_toggle {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 140, 0, 0.3);
+  border-radius: 4px;
+  color: #e1e1e1;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: 0.5rem;
+}
+
+.typing_game__display_toggle:hover {
+  background-color: rgba(255, 140, 0, 0.2);
+  border-color: rgba(255, 140, 0, 0.5);
+}
+
 /* 戻るボタン（要素） - 念のため残しておく */
 .typing_game__back_button {
   font-size: 0.8rem;
