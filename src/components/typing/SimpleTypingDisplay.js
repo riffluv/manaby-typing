@@ -24,8 +24,20 @@ const SimpleTypingDisplay = memo(({
   const nextCharRef = useRef(null);
   const contentRef = useRef(null);
 
+  // ローマ字が存在するか確認（デバッグ情報も出力）
+  if (process.env.NODE_ENV === 'development') {
+    console.log('SimpleTypingDisplay - 受け取ったromaji:', JSON.stringify({
+      romaji: romaji || '<なし>',
+      typedLength,
+      nextChar: nextChar || '<なし>'
+    }));
+  }
+  
+  // romajiがない場合のセーフティチェック
+  const safeRomaji = romaji || '';
+  
   // 入力済み部分（typedLength文字まで）
-  const typed = romaji?.substring(0, typedLength) || '';
+  const typed = safeRomaji.substring(0, typedLength) || '';
 
   // 表示用の変数を準備
   let displayCurrentInput = '';
@@ -36,11 +48,19 @@ const SimpleTypingDisplay = memo(({
   const showFullText = !visiblePortion || visiblePortion.start === 0 && visiblePortion.end === 0;
 
   // 実際に表示するテキスト部分を決定
-  const effectiveRomaji = showFullText ? romaji :
-    (romaji?.substring(visiblePortion.start, visiblePortion.end) || '');
+  // セーフティチェック: visiblePortionがnullまたは範囲が不正な場合はフルテキストを表示
+  const hasValidRange = visiblePortion && 
+                       typeof visiblePortion.start === 'number' && 
+                       typeof visiblePortion.end === 'number' &&
+                       visiblePortion.start >= 0 &&
+                       visiblePortion.end > visiblePortion.start;
+                       
+  const effectiveRomaji = !hasValidRange || showFullText 
+    ? safeRomaji
+    : safeRomaji.substring(visiblePortion.start, visiblePortion.end);
 
   // 表示範囲内での相対的な入力位置を計算
-  const relativeTypedLength = Math.max(0, typedLength - (showFullText ? 0 : visiblePortion.start));
+  const relativeTypedLength = Math.max(0, typedLength - (showFullText ? 0 : (visiblePortion?.start || 0)));
 
   // 入力モードによって表示方法を変更
   if (inputMode === 'consonant' && currentInput) {
@@ -59,11 +79,11 @@ const SimpleTypingDisplay = memo(({
     const remainingStartPos = typedLength + currentCharRomaji.length;
 
     if (showFullText) {
-      displayRemaining = romaji?.substring(remainingStartPos) || '';
+      displayRemaining = safeRomaji.substring(remainingStartPos) || '';
     } else {
       // 表示範囲内のみの残り部分を計算
-      const relativeRemainStart = Math.max(0, remainingStartPos - visiblePortion.start);
-      displayRemaining = effectiveRomaji?.substring(relativeRemainStart) || '';
+      const relativeRemainStart = Math.max(0, remainingStartPos - (visiblePortion?.start || 0));
+      displayRemaining = effectiveRomaji.substring(relativeRemainStart) || '';
     }
   } else {
     // 通常モードでの表示処理
@@ -71,11 +91,11 @@ const SimpleTypingDisplay = memo(({
 
     if (showFullText) {
       const remainingStartPos = typedLength + (nextChar ? 1 : 0);
-      displayRemaining = romaji?.substring(remainingStartPos) || '';
+      displayRemaining = safeRomaji.substring(remainingStartPos) || '';
     } else {
       // 表示範囲内のみの残り部分を計算
       const relativeNextCharPos = relativeTypedLength + (nextChar ? 1 : 0);
-      displayRemaining = effectiveRomaji?.substring(relativeNextCharPos) || '';
+      displayRemaining = effectiveRomaji.substring(relativeNextCharPos) || '';
     }
   }
 
@@ -131,7 +151,7 @@ const SimpleTypingDisplay = memo(({
   const containerClass = `${styles.typingText} ${className || ''} ${isError ? styles.errorShake : ''}`;
 
   // romaji全体が空の場合は空白表示
-  if (!romaji) {
+  if (!safeRomaji) {
     return (
       <div className={containerClass} ref={containerRef}>
         <span className={styles.typingCursor}></span>
@@ -140,8 +160,8 @@ const SimpleTypingDisplay = memo(({
   }
 
   // 部分表示の場合に前後に表示する省略記号
-  const prefixEllipsis = !showFullText && visiblePortion.start > 0 ? '...' : '';
-  const suffixEllipsis = !showFullText && visiblePortion.end < romaji.length ? '...' : '';
+  const prefixEllipsis = !showFullText && hasValidRange && visiblePortion.start > 0 ? '...' : '';
+  const suffixEllipsis = !showFullText && hasValidRange && visiblePortion.end < safeRomaji.length ? '...' : '';
 
   return (
     <div className={containerClass} ref={containerRef}>

@@ -1,0 +1,303 @@
+/**
+ * TypingStats.module.css
+ * タイピング統計情報表示コンポーネントのスタイル
+ * リファクタリング済み（2025年5月7日）
+ */
+
+/* メインコンテナ */
+.statsContainer {
+  margin: 1rem 0;
+  padding: 1rem;
+  background-color: rgba(20, 20, 28, 0.7);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: #fff;
+  font-family: 'Noto Sans JP', 'M PLUS 1p', sans-serif;
+}
+
+/* 水平レイアウト */
+.horizontalLayout {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-gap: 1.5rem;
+  align-items: center;
+}
+
+/* 垂直レイアウト */
+.verticalLayout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* コンパクトレイアウト */
+.compactLayout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.compactLayout .detailStats {
+  display: none;
+}
+
+/* ランク表示セクション */
+.rankSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ランクバッジ */
+.rankBadge {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  margin-bottom: 0.25rem;
+}
+
+/* ランクラベル */
+.rankLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ランク別スタイル */
+.rankS {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #000;
+}
+
+.rankA {
+  background: linear-gradient(135deg, #E0E0E0, #B0B0B0);
+  color: #000;
+}
+
+.rankB {
+  background: linear-gradient(135deg, #CD7F32, #8B4513);
+  color: #fff;
+}
+
+.rankC {
+  background-color: #2196F3;
+  color: #fff;
+}
+
+.rankD {
+  background-color: #4CAF50;
+  color: #fff;
+}
+
+.rankF {
+  background-color: #9E9E9E;
+  color: #fff;
+}
+
+/* メイン統計情報 */
+.mainStats {
+  display: flex;
+  justify-content: space-around;
+  gap: 1.5rem;
+}
+
+/* 統計項目 */
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 統計ラベル */
+.statLabel {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.25rem;
+}
+
+/* 統計値 */
+.statValue {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* KPM速度クラス */
+.ultraFast {
+  color: #FF9800;
+  text-shadow: 0 0 5px rgba(255, 152, 0, 0.5);
+}
+
+.veryFast {
+  color: #2196F3;
+  text-shadow: 0 0 5px rgba(33, 150, 243, 0.5);
+}
+
+.fast {
+  color: #4CAF50;
+}
+
+.normal {
+  color: #9CCC65;
+}
+
+.slow {
+  color: #BDBDBD;
+}
+
+/* 詳細統計情報 */
+.detailStats {
+  display: flex;
+  gap: 1rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 詳細項目 */
+.detailItem {
+  text-align: center;
+  min-width: 45px;
+}
+
+/* 詳細ラベル */
+.detailLabel {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.25rem;
+}
+
+/* 詳細値 */
+.detailValue {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* 正解カウント */
+.correctCount {
+  color: #4CAF50;
+}
+
+/* ミスカウント */
+.missCount {
+  color: #F44336;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .horizontalLayout {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "rank main"
+      "detail detail";
+    grid-gap: 1rem;
+  }
+  
+  .horizontalLayout .rankSection {
+    grid-area: rank;
+  }
+  
+  .horizontalLayout .mainStats {
+    grid-area: main;
+  }
+  
+  .horizontalLayout .detailStats {
+    grid-area: detail;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding-left: 0;
+    padding-top: 0.75rem;
+    justify-content: space-around;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .rankBadge {
+    width: 40px;
+    height: 40px;
+    font-size: 1.4rem;
+  }
+  
+  .statValue {
+    font-size: 1.4rem;
+  }
+  
+  .detailValue {
+    font-size: 0.9rem;
+  }
+  
+  .horizontalLayout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "rank"
+      "main"
+      "detail";
+  }
+  
+  .horizontalLayout .rankSection {
+    flex-direction: row;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+  
+  .horizontalLayout .rankLabel {
+    margin-top: 0.5rem;
+  }
+  
+  .mainStats {
+    justify-content: space-between;
+  }
+}
+
+/* アクセシビリティ対応 */
+@media (prefers-reduced-motion: reduce) {
+  .rankS, .rankA, .rankB {
+    background: none;
+  }
+  
+  .rankS {
+    background-color: #FFD700;
+  }
+  
+  .rankA {
+    background-color: #E0E0E0;
+  }
+  
+  .rankB {
+    background-color: #CD7F32;
+  }
+}
+
+/* ハイコントラストモード対応 */
+@media (forced-colors: active) {
+  .statsContainer {
+    border: 1px solid CanvasText;
+  }
+  
+  .rankBadge {
+    border: 1px solid CanvasText;
+  }
+  
+  .rankS, .rankA, .rankB, .rankC, .rankD, .rankF {
+    background: none;
+    border: 1px solid CanvasText;
+  }
+  
+  .detailStats {
+    border-left: 1px solid CanvasText;
+  }
+  
+  .horizontalLayout .detailStats {
+    border-top: 1px solid CanvasText;
+  }
+}

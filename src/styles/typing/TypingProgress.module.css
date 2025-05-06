@@ -1,0 +1,243 @@
+/**
+ * TypingProgress.module.css
+ * タイピング進行度表示コンポーネントのスタイル
+ * リファクタリング済み（2025年5月7日）
+ */
+
+/* メインコンテナ */
+.progressContainer {
+  width: 100%;
+  margin: 1rem 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* 進行度バー（背景） */
+.progressBar {
+  flex: 1;
+  height: 12px;
+  background-color: rgba(40, 40, 50, 0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+/* 進行度フィル（前景） */
+.progressFill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 流れるエフェクト */
+.shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmerAnimation 1.5s infinite;
+}
+
+/* 進行度カラー - ちょうど始まった（0-20%） */
+.justStarted {
+  background-color: #FF9800;
+  background-image: linear-gradient(to right, #FF9800, #FFC107);
+}
+
+/* 進行度カラー - 開始中（20-50%） */
+.starting {
+  background-color: #FFC107;
+  background-image: linear-gradient(to right, #FFC107, #FFEB3B);
+}
+
+/* 進行度カラー - 半分完了（50-80%） */
+.halfComplete {
+  background-color: #8BC34A;
+  background-image: linear-gradient(to right, #8BC34A, #4CAF50);
+}
+
+/* 進行度カラー - ほぼ完了（80-99%） */
+.almostComplete {
+  background-color: #4CAF50;
+  background-image: linear-gradient(to right, #4CAF50, #009688);
+}
+
+/* 進行度カラー - 完了（100%） */
+.completed {
+  background-color: #00BCD4;
+  background-image: linear-gradient(to right, #00BCD4, #2196F3);
+  box-shadow: 0 0 10px rgba(0, 188, 212, 0.5);
+}
+
+/* パーセント表示テキスト */
+.percentageText {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin-left: 1rem;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* 完了バッジ */
+.completedBadge {
+  position: absolute;
+  right: -10px;
+  top: -20px;
+  background-color: #2196F3;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+/* テーマ：青 */
+.blueTheme .progressBar {
+  background-color: rgba(33, 150, 243, 0.2);
+}
+
+.blueTheme .justStarted {
+  background-image: linear-gradient(to right, #90CAF9, #64B5F6);
+}
+
+.blueTheme .starting {
+  background-image: linear-gradient(to right, #64B5F6, #42A5F5);
+}
+
+.blueTheme .halfComplete {
+  background-image: linear-gradient(to right, #42A5F5, #2196F3);
+}
+
+.blueTheme .almostComplete {
+  background-image: linear-gradient(to right, #2196F3, #1976D2);
+}
+
+.blueTheme .completed {
+  background-image: linear-gradient(to right, #1976D2, #0D47A1);
+}
+
+/* テーマ：緑 */
+.greenTheme .progressBar {
+  background-color: rgba(76, 175, 80, 0.2);
+}
+
+.greenTheme .justStarted {
+  background-image: linear-gradient(to right, #A5D6A7, #81C784);
+}
+
+.greenTheme .starting {
+  background-image: linear-gradient(to right, #81C784, #66BB6A);
+}
+
+.greenTheme .halfComplete {
+  background-image: linear-gradient(to right, #66BB6A, #4CAF50);
+}
+
+.greenTheme .almostComplete {
+  background-image: linear-gradient(to right, #4CAF50, #388E3C);
+}
+
+.greenTheme .completed {
+  background-image: linear-gradient(to right, #388E3C, #1B5E20);
+}
+
+/* アニメーション速度 */
+.slow .shimmer {
+  animation-duration: 2s;
+}
+
+.medium .shimmer {
+  animation-duration: 1.5s;
+}
+
+.fast .shimmer {
+  animation-duration: 1s;
+}
+
+/* アニメーション定義 */
+@keyframes shimmerAnimation {
+  0% {
+    transform: translateX(-150%);
+  }
+  100% {
+    transform: translateX(150%);
+  }
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 480px) {
+  .progressBar {
+    height: 10px;
+  }
+  
+  .percentageText {
+    font-size: 0.75rem;
+    min-width: 32px;
+  }
+  
+  .completedBadge {
+    font-size: 0.7rem;
+    padding: 1px 6px;
+  }
+}
+
+/* アクセシビリティ対応 */
+@media (prefers-reduced-motion: reduce) {
+  .progressFill {
+    transition: none;
+  }
+  
+  .shimmer {
+    animation: none;
+    background: none;
+  }
+  
+  .completedBadge {
+    animation: none;
+  }
+}
+
+/* ハイコントラストモード対応 */
+@media (forced-colors: active) {
+  .progressBar {
+    border: 1px solid CanvasText;
+  }
+  
+  .progressFill {
+    background-color: Highlight;
+    background-image: none;
+  }
+  
+  .shimmer {
+    display: none;
+  }
+  
+  .completedBadge {
+    border: 1px solid CanvasText;
+  }
+}

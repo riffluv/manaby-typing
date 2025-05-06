@@ -1,13 +1,18 @@
+/**
+ * useTypingGame.js
+ * タイピングゲームの核となるカスタムフック
+ * リファクタリング済み（2025年5月7日）
+ */
+
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import TypingUtils from '../utils/TypingUtils';
 import soundSystem from '../utils/SoundUtils';
 import typingWorkerManager from '../utils/TypingWorkerManager';
 
 /**
- * タイピングゲームのコアロジックを扱うカスタムフック（最適化版）
- * typingmania-refを参考にした高性能実装
- * シンプルで直接的な入力処理パスを実現
- *
+ * タイピングゲームのコアロジックを扱うカスタムフック
+ * MCPアーキテクチャと連携した高性能実装
+ * 
  * @param {Object} options タイピングゲームの設定オプション
  * @param {Object} options.initialProblem 初期問題
  * @param {boolean} options.playSound 効果音を再生するかどうか
@@ -22,14 +27,15 @@ export function useTypingGame({
   // タイピングセッションを参照として保持（再レンダリング抑制のため）
   const sessionRef = useRef(null);
 
-  // パフォーマンス監視用（開発用、本番環境では無効）
+  // パフォーマンス監視用
   const perfRef = useRef({
     lastInputTime: 0,
     inputCount: 0,
     frameRate: 0,
+    inputTimings: [], // 入力タイミング分析用
   });
 
-  // 必要最低限のステートだけを管理（再レンダリングの最小化）
+  // 表示情報の状態
   const [displayInfo, setDisplayInfo] = useState({
     romaji: '',
     typedLength: 0,
@@ -40,16 +46,17 @@ export function useTypingGame({
     currentCharRomaji: '',
   });
 
-  // 統計情報はほとんどがrefで管理し、表示が必要なものだけをステートに
+  // 統計情報はほとんどがrefで管理（再レンダリング最小化）
   const statisticsRef = useRef({
     correctKeyCount: 0,
     mistakeCount: 0,
     startTime: null,
     currentProblemStartTime: null,
     problemStats: [],
+    lastStatsUpdateTime: null,
   });
 
-  // 表示のために必要な最小限の統計情報
+  // 表示用統計情報
   const [displayStats, setDisplayStats] = useState({
     correctKeyCount: 0,
     mistakeCount: 0,
@@ -57,21 +64,31 @@ export function useTypingGame({
     rank: 'F',
   });
 
-  // 状態フラグ（できるだけrefで管理）
+  // UI状態
   const [errorAnimation, setErrorAnimation] = useState(false);
-  const completedRef = useRef(false);
-
-  // 進捗率はrefで管理し、変更時だけステート更新
-  const progressRef = useRef(0);
   const [progressPercentage, setProgressPercentage] = useState(0);
+  
+  // 状態フラグ（refで管理）
+  const completedRef = useRef(false);
+  const progressRef = useRef(0);
 
-  // アニメーション用タイマー
+  // タイマー参照
   const errorAnimationTimerRef = useRef(null);
-
-  // 統計情報更新タイマー（パフォーマンス向上のため一定間隔で更新）
   const statsUpdateTimerRef = useRef(null);
 
-  // 問題完了時の処理
+  // パフォーマンス最適化のためのデータ参照
+  const lastAnimationFrameRef = useRef(null);
+  const pendingUIUpdatesRef = useRef({
+    hasUpdates: false,
+    displayInfo: null,
+    progress: null,
+    stats: null,
+    error: false
+  });
+
+  /**
+   * 問題完了時の処理
+   */
   const completeProblem = useCallback(() => {
     // すでに完了済みなら何もしない
     if (completedRef.current) return;
@@ -87,27 +104,19 @@ export function useTypingGame({
       : 0;
     const problemKeyCount = stats.correctKeyCount || 0;
 
-    console.log('【completeProblem】問題データ作成:', {
-      problemKeyCount,
-      problemElapsedMs,
-      タイピング開始時間: stats.currentProblemStartTime,
-      現在時間: now
-    });
-
     // 問題の詳細データを作成
     const problemData = {
       problemKeyCount,
       problemElapsedMs,
-      problemKPM: problemElapsedMs > 0 ? Math.floor((problemKeyCount / (problemElapsedMs / 60000))) : 0
+      problemKPM: problemElapsedMs > 0 
+        ? Math.floor((problemKeyCount / (problemElapsedMs / 60000))) 
+        : 0,
+      timestamp: now,
     };
-
-    console.log('【completeProblem】問題KPM:', problemData.problemKPM);
 
     // 統計情報を更新（refで管理）
     const updatedProblemStats = [...(stats.problemStats || []), problemData];
     statisticsRef.current.problemStats = updatedProblemStats;
-
-    console.log('【completeProblem】更新された問題データ配列:', updatedProblemStats);
 
     // 進捗100%に設定
     progressRef.current = 100;
@@ -115,6 +124,9 @@ export function useTypingGame({
 
     // 表示用統計情報を更新
     _updateDisplayStats();
+
+    // 効果音再生を削除
+    // リザルト画面と同じ音のため不自然だという指摘に対応
 
     // コールバック呼び出し
     onProblemComplete({
@@ -124,9 +136,93 @@ export function useTypingGame({
       updatedProblemKPMs: updatedProblemStats.map(p => p.problemKPM || 0),
       problemStats: updatedProblemStats
     });
-  }, [onProblemComplete]);
+  }, [onProblemComplete, playSound]);
 
-  // タイピング入力処理 - パフォーマンス最適化版
+  /**
+   * UI更新をバッチ処理するためのアニメーションフレーム処理
+   */
+  const processUIUpdates = useCallback(() => {
+    const pendingUpdates = pendingUIUpdatesRef.current;
+    
+    // 更新が必要ないなら何もしない
+    if (!pendingUpdates.hasUpdates) return;
+    
+    // 各UI要素を必要に応じて更新
+    if (pendingUpdates.displayInfo) {
+      setDisplayInfo(pendingUpdates.displayInfo);
+    }
+    
+    if (pendingUpdates.progress !== null) {
+      setProgressPercentage(pendingUpdates.progress);
+    }
+    
+    if (pendingUpdates.stats) {
+      setDisplayStats(pendingUpdates.stats);
+    }
+    
+    if (pendingUpdates.error) {
+      setErrorAnimation(true);
+      
+      // エラーアニメーションを一定時間後に消す
+      if (errorAnimationTimerRef.current) {
+        clearTimeout(errorAnimationTimerRef.current);
+      }
+      
+      errorAnimationTimerRef.current = setTimeout(() => {
+        setErrorAnimation(false);
+        errorAnimationTimerRef.current = null;
+      }, 200);
+    }
+    
+    // 保留中の更新をクリア
+    pendingUIUpdatesRef.current = {
+      hasUpdates: false,
+      displayInfo: null,
+      progress: null,
+      stats: null,
+      error: false
+    };
+    
+    // アニメーションフレーム参照をクリア
+    lastAnimationFrameRef.current = null;
+  }, []);
+
+  /**
+   * UI更新をスケジュール
+   */
+  const scheduleUIUpdate = useCallback((updates = {}) => {
+    // 更新情報をマージ
+    const pendingUpdates = pendingUIUpdatesRef.current;
+    
+    if (updates.displayInfo) {
+      pendingUpdates.displayInfo = updates.displayInfo;
+      pendingUpdates.hasUpdates = true;
+    }
+    
+    if (updates.progress !== undefined) {
+      pendingUpdates.progress = updates.progress;
+      pendingUpdates.hasUpdates = true;
+    }
+    
+    if (updates.stats) {
+      pendingUpdates.stats = updates.stats;
+      pendingUpdates.hasUpdates = true;
+    }
+    
+    if (updates.error) {
+      pendingUpdates.error = true;
+      pendingUpdates.hasUpdates = true;
+    }
+    
+    // アニメーションフレームがまだスケジュールされていなければスケジュール
+    if (!lastAnimationFrameRef.current && pendingUpdates.hasUpdates) {
+      lastAnimationFrameRef.current = requestAnimationFrame(processUIUpdates);
+    }
+  }, [processUIUpdates]);
+
+  /**
+   * タイピング入力処理 - パフォーマンス最適化版
+   */
   const handleInput = useCallback((key) => {
     // セッションがない、または完了済みなら何もしない
     const session = sessionRef.current;
@@ -140,6 +236,11 @@ export function useTypingGame({
     const frameTime = perf.lastInputTime > 0 ? now - perf.lastInputTime : 0;
     perf.lastInputTime = now;
     perf.inputCount++;
+    
+    // 入力タイミングを記録（最大100件まで）
+    if (perf.inputTimings.length < 100) {
+      perf.inputTimings.push({ time: now, key });
+    }
 
     // 10回の入力ごとにフレームレートを更新
     if (perf.inputCount % 10 === 0) {
@@ -156,65 +257,53 @@ export function useTypingGame({
     // 入力処理（高速化のため直接セッションを操作）
     const result = session.processInput(halfWidthChar);
 
-    // 入力結果によって処理を分岐（最適化版）
+    // 入力結果によって処理を分岐
     if (result.success) {
       // 正解時の処理
       // 初回正解入力時のみ開始時間を記録
       if (isFirstInput) {
         stats.currentProblemStartTime = now;
+        stats.startTime = stats.startTime || now;
       }
 
-      // 効果音再生（スロットリングはSoundUtilsで対応済み）
+      // 効果音再生
       if (playSound) {
         soundSystem.playSound('success');
       }
 
-      // 正解カウントを更新（refで管理）
+      // 正解カウントを更新
       stats.correctKeyCount += 1;
 
       // 進捗率を更新（5%以上の変化がある場合のみ表示を更新）
       const newProgress = session.getCompletionPercentage();
       if (Math.abs(newProgress - progressRef.current) >= 5) {
         progressRef.current = newProgress;
-        setProgressPercentage(newProgress);
+        scheduleUIUpdate({ progress: newProgress });
       }
 
-      // 表示情報の最適化（必要最低限の情報のみ更新）
+      // 表示情報の更新をスケジュール
       const colorInfo = session.getColoringInfo();
-
-      // 前回と異なる場合のみ更新（不要な再レンダリングを防止）
-      setDisplayInfo(prev => {
-        // 複数の値が変わる可能性があるので、個別比較して必要なもののみ更新
-        const needsUpdate =
-          prev.typedLength !== colorInfo.typedLength ||
-          prev.currentInputLength !== colorInfo.currentInputLength ||
-          prev.currentCharIndex !== colorInfo.currentCharIndex ||
-          prev.currentInput !== colorInfo.currentInput ||
-          prev.expectedNextChar !== colorInfo.expectedNextChar ||
-          prev.currentCharRomaji !== colorInfo.currentCharRomaji;
-
-        // 更新が必要な場合のみ新しいオブジェクトを返す
-        return needsUpdate ? {
-          ...prev,
-          typedLength: colorInfo.typedLength,
-          currentInputLength: colorInfo.currentInputLength,
+      scheduleUIUpdate({
+        displayInfo: {
+          romaji: colorInfo.romaji || '',
+          typedLength: colorInfo.typedLength || 0,
+          currentInputLength: colorInfo.currentInputLength || 0,
           currentCharIndex: colorInfo.currentCharIndex || 0,
           currentInput: colorInfo.currentInput || '',
           expectedNextChar: colorInfo.expectedNextChar || '',
           currentCharRomaji: colorInfo.currentCharRomaji || '',
-        } : prev; // 変更がなければ同じオブジェクトを返す（再レンダリングを防止）
+        }
       });
 
-      // 統計表示の更新を間引く（スロットリング）
-      // 前回の更新から500ms以上経過している場合のみ更新
+      // 統計表示の更新（スロットリング）
       const statsUpdateDebounceTime = 500; // 500ms
       if (!statsUpdateTimerRef.current &&
         (!stats.lastStatsUpdateTime || now - stats.lastStatsUpdateTime > statsUpdateDebounceTime)) {
         statsUpdateTimerRef.current = setTimeout(() => {
           _updateDisplayStats();
           statsUpdateTimerRef.current = null;
-          stats.lastStatsUpdateTime = Date.now();
-        }, 100); // タイマーを短くして応答性向上
+          stats.lastStatsUpdateTime = now;
+        }, 100);
       }
 
       // 完了チェック
@@ -225,62 +314,37 @@ export function useTypingGame({
       return { success: true, status: result.status };
     } else {
       // 不正解時の処理
-
       // 効果音再生
       if (playSound) {
         soundSystem.playSound('error');
       }
 
-      // エラーカウントを更新（refで管理）
+      // エラーカウントを更新
       stats.mistakeCount += 1;
 
-      // デバッグ情報を追加
-      console.log('【ミス検出】ミスをカウントしました:', {
-        ミス数: stats.mistakeCount,
-        正解数: stats.correctKeyCount,
-        入力文字: halfWidthChar,
-        期待文字: session.getCurrentExpectedKey?.() || 'unknown'
-      });
+      // エラーアニメーション表示
+      scheduleUIUpdate({ error: true });
 
-      // エラーアニメーション表示（前のタイマーがある場合はクリアして新しく設定）
-      setErrorAnimation(true);
-
-      // 効率化：既存のタイマーをクリア
-      if (errorAnimationTimerRef.current) {
-        clearTimeout(errorAnimationTimerRef.current);
-      }
-
-      // アニメーション終了タイマーを設定
-      errorAnimationTimerRef.current = setTimeout(() => {
-        setErrorAnimation(false);
-        errorAnimationTimerRef.current = null;
-      }, 200);
-
-      // 統計表示の更新も必要に応じて行う（エラー時は即時更新）
+      // 統計表示の更新（即時）
       _updateDisplayStats();
 
       return { success: false, status: result.status };
     }
-  }, [playSound, completeProblem]);
+  }, [playSound, completeProblem, scheduleUIUpdate]);
 
-  // 表示用統計情報を更新する内部関数
+  /**
+   * 表示用統計情報を更新する内部関数
+   */
   const _updateDisplayStats = useCallback(() => {
     const stats = statisticsRef.current;
     const correctCount = stats.correctKeyCount;
     const missCount = stats.mistakeCount;
 
-    console.log('【_updateDisplayStats】統計情報更新:', {
-      correctCount,
-      missCount,
-      問題データ: stats.problemStats
-    });
-
     // 問題データがある場合は平均KPMを計算
     let kpm = 0;
     if (stats.problemStats && stats.problemStats.length > 0) {
-      // Weather Typing方式：各問題のKPMの平均値を使う
+      // 各問題のKPMの平均値を使用
       kpm = TypingUtils.calculateAverageKPM(stats.problemStats);
-      console.log('【_updateDisplayStats】問題データからのKPM計算:', kpm);
     }
 
     // KPMが0または計算できない場合は、単純計算を使用
@@ -292,37 +356,35 @@ export function useTypingGame({
       // ゼロ除算を防ぐ
       if (elapsedTimeMs > 0) {
         kpm = Math.floor(correctCount / (elapsedTimeMs / 60000));
-        console.log('【_updateDisplayStats】単純計算によるKPM:', {
-          correctCount,
-          elapsedTimeMs,
-          kpm
-        });
       }
     }
 
-    // KPMが依然として0の場合は、最低値として1を設定
+    // 最低値の保証
     if (kpm <= 0 && correctCount > 0) {
-      kpm = 1; // 入力があった場合は最低1を設定
-      console.log('【_updateDisplayStats】KPMが0なので最低値1を設定');
+      kpm = 1;
     }
 
     const rank = TypingUtils.getRank(kpm);
 
-    // 表示用統計情報を更新
-    setDisplayStats({
-      correctKeyCount: correctCount,
-      mistakeCount: missCount,
-      kpm,
-      rank,
+    // 表示用統計情報の更新をスケジュール
+    scheduleUIUpdate({
+      stats: {
+        correctKeyCount: correctCount,
+        mistakeCount: missCount,
+        kpm,
+        rank,
+      }
     });
-  }, []);
+  }, [scheduleUIUpdate]);
 
-  // セッション初期化処理
+  /**
+   * セッション初期化処理
+   */
   const initializeSession = useCallback((problem) => {
     if (!problem) return;
 
     try {
-      // セッションリセット前に前のセッションのタイマーをクリア
+      // タイマーをクリア
       if (statsUpdateTimerRef.current) {
         clearTimeout(statsUpdateTimerRef.current);
         statsUpdateTimerRef.current = null;
@@ -333,6 +395,11 @@ export function useTypingGame({
         errorAnimationTimerRef.current = null;
       }
 
+      if (lastAnimationFrameRef.current) {
+        cancelAnimationFrame(lastAnimationFrameRef.current);
+        lastAnimationFrameRef.current = null;
+      }
+
       // 新しいタイピングセッションを作成
       const session = TypingUtils.createTypingSession(problem);
       if (!session) return;
@@ -340,9 +407,9 @@ export function useTypingGame({
       // セッションをrefに保存
       sessionRef.current = session;
 
-      // 表示に必要な情報だけを更新
+      // 表示情報を初期化
       setDisplayInfo({
-        romaji: session.displayRomaji,
+        romaji: session.displayRomaji || '',
         typedLength: 0,
         currentInputLength: 0,
         currentCharIndex: 0,
@@ -351,21 +418,20 @@ export function useTypingGame({
         currentCharRomaji: session.patterns[0] ? session.patterns[0][0] : '',
       });
 
-      // 完了フラグをリセット
+      // 状態をリセット
       completedRef.current = false;
       setErrorAnimation(false);
-
-      // 進捗を初期化
       progressRef.current = 0;
       setProgressPercentage(0);
 
-      // 統計情報もリセット（refで管理）
+      // 統計情報もリセット
       statisticsRef.current = {
         correctKeyCount: 0,
         mistakeCount: 0,
         startTime: null,
         currentProblemStartTime: null,
-        problemStats: []
+        problemStats: [],
+        lastStatsUpdateTime: null
       };
 
       // 表示用統計情報も初期化
@@ -381,6 +447,16 @@ export function useTypingGame({
         lastInputTime: 0,
         inputCount: 0,
         frameRate: 0,
+        inputTimings: [],
+      };
+
+      // 保留中の更新もクリア
+      pendingUIUpdatesRef.current = {
+        hasUpdates: false,
+        displayInfo: null,
+        progress: null,
+        stats: null,
+        error: false
       };
 
       // ワーカーも初期化
@@ -390,26 +466,36 @@ export function useTypingGame({
     }
   }, []);
 
-  // 初期問題の設定
+  /**
+   * 初期問題の設定
+   */
   useEffect(() => {
     if (initialProblem) {
       initializeSession(initialProblem);
     }
   }, [initialProblem, initializeSession]);
 
-  // クリーンアップ処理
+  /**
+   * クリーンアップ処理
+   */
   useEffect(() => {
     return () => {
+      // 各種タイマーをクリア
       if (errorAnimationTimerRef.current) {
         clearTimeout(errorAnimationTimerRef.current);
       }
       if (statsUpdateTimerRef.current) {
         clearTimeout(statsUpdateTimerRef.current);
       }
+      if (lastAnimationFrameRef.current) {
+        cancelAnimationFrame(lastAnimationFrameRef.current);
+      }
     };
   }, []);
 
-  // 統計情報オブジェクト（完全なメモ化）
+  /**
+   * 統計情報オブジェクト（メモ化）
+   */
   const stats = useMemo(() => {
     const correctCount = displayStats.correctKeyCount;
     const missCount = displayStats.mistakeCount;
@@ -425,11 +511,13 @@ export function useTypingGame({
       rank: displayStats.rank,
       rankColor: TypingUtils.getRankColor(displayStats.rank),
       problemStats: statisticsRef.current.problemStats,
-      frameRate: perfRef.current.frameRate,  // 開発用
+      frameRate: perfRef.current.frameRate,
     };
   }, [displayStats]);
 
-  // ランキング登録関数
+  /**
+   * ランキング登録関数
+   */
   const submitScore = useCallback((username = 'Anonymous', endpoint) => {
     if (!stats || !stats.kpm) {
       return Promise.reject(new Error('有効なスコアデータがありません'));
@@ -440,13 +528,44 @@ export function useTypingGame({
       score: stats.correctCount || 0,
       kpm: stats.kpm || 0,
       accuracy: stats.accuracy || 0,
-      problemCount: statisticsRef.current.problemStats ? statisticsRef.current.problemStats.length : 0,
-      endpoint
+      problemCount: statisticsRef.current.problemStats?.length || 0,
+      endpoint,
+      timestamp: Date.now()
     };
 
     return typingWorkerManager.submitRanking(recordData);
   }, [stats]);
 
+  /**
+   * パフォーマンスデータを取得
+   */
+  const getPerformanceData = useCallback(() => {
+    const perf = perfRef.current;
+    return {
+      frameRate: perf.frameRate,
+      inputCount: perf.inputCount,
+      inputTimings: [...perf.inputTimings],
+      averageTimeBetweenInputs: perf.inputTimings.length > 1 
+        ? _calculateAverageTimeBetweenInputs(perf.inputTimings)
+        : 0
+    };
+  }, []);
+
+  /**
+   * 入力タイミング間の平均時間を計算（内部ヘルパー関数）
+   */
+  const _calculateAverageTimeBetweenInputs = (timings) => {
+    if (timings.length < 2) return 0;
+    
+    let totalTime = 0;
+    for (let i = 1; i < timings.length; i++) {
+      totalTime += timings[i].time - timings[i-1].time;
+    }
+    
+    return totalTime / (timings.length - 1);
+  };
+
+  // 公開するインターフェース
   return {
     displayInfo,
     displayStats,
@@ -455,6 +574,7 @@ export function useTypingGame({
     handleInput,
     initializeSession,
     submitScore,
+    getPerformanceData,
     stats: stats,
   };
 }

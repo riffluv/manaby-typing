@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 // プロジェクト識別用のメタデータ
 const PROJECT_METADATA = {
   name: 'Manaby Typing Game',
-  version: '0.1.0',
+  version: '1.0.0', // バージョン更新
   repositoryUrl: process.env.NEXT_PUBLIC_GITHUB_REPO || 'https://github.com/riffluv/manaby-typing',
 };
 
@@ -29,30 +29,39 @@ class MCPUtils {
       try {
         console.log('[MCPUtils] MCP初期化を開始します');
 
-        // MCP接続の確認
+        // MCP接続の確認と早期リターン最適化
         if (typeof window === 'undefined' || !window._mcp) {
-          console.warn('[MCPUtils] MCP接続が利用できません');
-          return resolve();
+          console.warn('[MCPUtils] MCP接続が利用できません。フォールバックモードで動作します。');
+          return resolve({ status: 'fallback', reason: 'mcp_not_available' });
         }
 
         // MCPシステムの機能拡張
         this._extendMCP();
 
-        // 各モジュールのMCP初期化を実行
-        Promise.all([
+        // 各モジュールのMCP初期化を実行（Promise.allSettledを使用して一部の失敗でも継続）
+        Promise.allSettled([
           this._initializeTypingMCP(),
+          this._initializeAudioMCP(), // 新しいモジュール（あとで実装）
           // 他のMCPモジュールの初期化
         ])
-          .then(() => {
+          .then((results) => {
+            const failures = results.filter(r => r.status === 'rejected');
+            if (failures.length > 0) {
+              console.warn(`[MCPUtils] ${failures.length}個のモジュールで初期化エラーが発生しました:`, 
+                failures.map(f => f.reason?.message || '不明なエラー'));
+            }
+            
             console.log('[MCPUtils] MCPの初期化が完了しました');
-            resolve();
+            resolve({ status: 'success', moduleResults: results });
           })
           .catch((error) => {
             console.error('[MCPUtils] MCP初期化エラー:', error);
-            reject(error);
+            // エラーでも機能不全ではなくフォールバックモードとして継続
+            resolve({ status: 'partial_failure', error });
           });
       } catch (error) {
         console.error('[MCPUtils] MCP初期化の例外:', error);
+        // 完全な失敗の場合のみreject
         reject(error);
       }
     });
@@ -177,23 +186,46 @@ class MCPUtils {
    * @private
    */
   _initializeTypingMCP() {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       try {
-        // タイピングモデルのインスタンス取得（自動初期化）
+        // 動的インポートでコード分割を改善
         import('./mcp/TypingModelMCP').then(({ getTypingModelInstance }) => {
-          getTypingModelInstance();
+          const model = getTypingModelInstance();
+          if (!model) {
+            throw new Error('タイピングモデルの初期化に失敗しました');
+          }
           console.log('[MCPUtils] タイピングゲームのMCPを初期化しました');
-          resolve();
+          resolve({ model });
         }).catch((error) => {
           console.error('[MCPUtils] タイピングゲームのMCP初期化エラー:', error);
-          // エラーが発生しても全体の初期化は継続
-          resolve();
+          reject(error);
         });
       } catch (error) {
         console.error('[MCPUtils] タイピングゲームのMCP初期化の例外:', error);
-        resolve();
+        reject(error);
       }
     });
+  }
+
+  /**
+   * オーディオ処理用のMCPを初期化する（新規追加）
+   * @returns {Promise<void>}
+   * @private
+   */
+  _initializeAudioMCP() {
+    return new Promise((resolve) => {
+      // 将来的な拡張ポイント
+      // サウンドシステムとの連携をMCP経由で行えるようにする
+      resolve({ status: 'pending_implementation' });
+    });
+  }
+
+  /**
+   * MCPが利用可能かどうかを確認する
+   * @returns {boolean} MCPが利用可能な場合はtrue
+   */
+  get isAvailable() {
+    return this.isMCPAvailable();
   }
 
   /**
@@ -646,11 +678,15 @@ const mcpUtilsInstance = new MCPUtils();
  */
 export const useMCPContext = () => {
   const [isActive, setIsActive] = useState(false);
+  const [status, setStatus] = useState('initializing');
 
   useEffect(() => {
     // コンポーネントマウント時にMCPマネージャーを初期化
-    contextManagerInstance.initialize().then(() => {
+    mcpUtilsInstance.initialize().then((result) => {
       setIsActive(contextManagerInstance.mcpEnabled);
+      setStatus(result.status);
+    }).catch(() => {
+      setStatus('error');
     });
 
     // クリーンアップ関数
@@ -676,6 +712,7 @@ export const useMCPContext = () => {
 
   return {
     isActive,
+    status,
     recordTypingInput: contextManagerInstance.recordTypingInput.bind(contextManagerInstance),
     recordGameEvent: contextManagerInstance.recordGameEvent.bind(contextManagerInstance),
     recordPerformanceMetric: contextManagerInstance.recordPerformanceMetric.bind(contextManagerInstance),
