@@ -33,16 +33,16 @@ const TypingEvents = {
 const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
   // MCPコンテキスト
   const mcpContext = useMCPContext();
-  
+
   // サウンドシステム
   const soundSystem = useSoundSystem();
-  
+
   // 画面遷移用
   const router = useRouter();
-  
+
   // ローカルタイピングモデル参照（パフォーマンス最適化用）
   const typingModelRef = useRef(null);
-  
+
   // 表示情報の状態
   const [displayInfo, setDisplayInfo] = useState({
     problem: problem?.text || '',
@@ -74,7 +74,7 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
    */
   useEffect(() => {
     if (!problem || !mcpContext.isActive) return;
-    
+
     // 問題初期化コマンドの送信準備
     const initializeProblem = () => {
       if (typeof window === 'undefined' || !window._mcp) return;
@@ -83,12 +83,12 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
       const initializationListener = (data) => {
         // 初期化完了時のコールバック
         console.log('問題初期化完了:', data);
-        
+
         // タイピングモデルの参照を保持（直接アクセス用）
         if (data.model) {
           typingModelRef.current = data.model;
         }
-        
+
         // 表示情報の初期化
         setDisplayInfo({
           problem: problem.text,
@@ -99,14 +99,14 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
           isCompleted: false,
           isError: false
         });
-        
+
         // リスナー削除（メモリリーク防止）
         window._mcp?.off(TypingEvents.PROBLEM_INITIALIZED, initializationListener);
       };
 
       // 初期化イベントリスナーを登録
       window._mcp?.on(TypingEvents.PROBLEM_INITIALIZED, initializationListener);
-      
+
       // 表示更新イベントリスナーを登録
       window._mcp?.on(TypingEvents.DISPLAY_UPDATED, handleDisplayUpdate);
 
@@ -148,7 +148,7 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
 
     // キーボードイベントリスナー登録
     window.addEventListener('keydown', handleKeyDown);
-    
+
     // フォーカス関連イベントリスナー登録
     window.addEventListener('focus', handleWindowFocus);
     window.addEventListener('blur', handleWindowBlur);
@@ -201,7 +201,7 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
   const processInput = (key) => {
     // パフォーマンス測定開始
     const startTime = performance.now();
-    
+
     try {
       // ローカル処理（高速パス）
       if (typingModelRef.current) {
@@ -281,7 +281,7 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
 
           // 完了イベントリスナー登録
           window._mcp.on(TypingEvents.PROBLEM_COMPLETED, completedListener);
-          
+
           // 完了コマンド送信
           window._mcp.send(TypingCommands.COMPLETE_PROBLEM, {
             problemId: problem?.id,
@@ -328,8 +328,8 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
     <div className={styles.gameScreen} tabIndex={0}>
       <div className={styles.gameHeader}>
         <h2>タイピングゲーム</h2>
-        <button 
-          onClick={() => navigateTo('menu')} 
+        <button
+          onClick={() => navigateTo('menu')}
           className={styles.backButton}
         >
           メニューに戻る
@@ -338,24 +338,24 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
 
       <div className={styles.gameContent}>
         {/* 問題表示コンポーネント */}
-        <TypingDisplay 
-          displayInfo={displayInfo} 
+        <TypingDisplay
+          displayInfo={displayInfo}
           errorAnimation={displayInfo.isError}
         />
 
         {/* 進捗バー */}
-        <TypingProgress 
-          percentage={displayInfo.progressPercentage || 0} 
+        <TypingProgress
+          percentage={displayInfo.progressPercentage || 0}
         />
 
         {/* 統計情報表示 */}
-        <TypingStats 
+        <TypingStats
           stats={displayInfo.stats || {
             correctCount: 0,
             missCount: 0,
             kpm: 0,
             accuracy: 100
-          }} 
+          }}
         />
       </div>
 

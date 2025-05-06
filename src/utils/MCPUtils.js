@@ -47,10 +47,10 @@ class MCPUtils {
           .then((results) => {
             const failures = results.filter(r => r.status === 'rejected');
             if (failures.length > 0) {
-              console.warn(`[MCPUtils] ${failures.length}個のモジュールで初期化エラーが発生しました:`, 
+              console.warn(`[MCPUtils] ${failures.length}個のモジュールで初期化エラーが発生しました:`,
                 failures.map(f => f.reason?.message || '不明なエラー'));
             }
-            
+
             console.log('[MCPUtils] MCPの初期化が完了しました');
             resolve({ status: 'success', moduleResults: results });
           })

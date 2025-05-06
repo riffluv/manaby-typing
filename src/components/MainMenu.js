@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styles from '../styles/MainMenu.module.css';
 import Image from 'next/image';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
 import { useSoundContext } from '../contexts/SoundContext';
-import soundSystem from '../utils/SoundUtils';
 import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import Modal from './common/Modal'; // 共通モーダルコンポーネント
@@ -13,20 +12,21 @@ import Button, { ToggleButton } from './common/Button'; // 共通ボタンコン
 import SoundSettings from './common/SoundSettings'; // 共通サウンド設定コンポーネント
 import CreditsContent from './common/CreditsContent'; // 共通クレジットコンポーネント
 import { creditsData } from '../utils/CreditsData'; // クレジットデータ
+import mcpUtils, { useMCPContext } from '../utils/MCPUtils'; // MCP連携の追加
 
 // 設定モーダルの表示状態を外部から制御するためのカスタムフック
 export const useSettingsModal = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // 設定モーダルを表示する関数
-  const openSettingsModal = () => {
+  const openSettingsModal = useCallback(() => {
     setShowSettingsModal(true);
-  };
+  }, []);
 
   // 設定モーダルを閉じる関数
-  const closeSettingsModal = () => {
+  const closeSettingsModal = useCallback(() => {
     setShowSettingsModal(false);
-  };
+  }, []);
 
   return {
     showSettingsModal,
@@ -42,6 +42,9 @@ const MainMenu = () => {
   const { goToScreen, isTransitioning } = usePageTransition();
   const mainContainerRef = useRef(null);
 
+  // MCP連携の追加
+  const { isActive: mcpActive, recordUXElement, recordGameEvent } = useMCPContext();
+
   // モーダル表示状態を管理するstate
   const [showCredits, setShowCredits] = useState(false);
 
@@ -53,11 +56,35 @@ const MainMenu = () => {
     closeSettingsModal,
   } = useSettingsModal();
 
-  // コンポーネントがマウントされたときにサウンドシステムを初期化
+  // コンポーネントがマウントされたときにサウンドシステムとMCPを初期化
   useEffect(() => {
+    // MCPにUIコンポーネントのマウントを記録
+    if (mcpActive) {
+      recordUXElement({
+        type: 'component-mount',
+        componentName: 'MainMenu',
+        timestamp: Date.now()
+      });
+    }
+
     // ゲーム開始時に全効果音を事前ロード
-    soundSystem.initializeAllSounds().catch((err) => {
+    soundSystem.initializeAllSounds().then(() => {
+      // MCPに記録 - サウンド初期化成功
+      if (mcpActive) {
+        recordGameEvent({
+          type: 'sound-system-initialized',
+          status: 'success'
+        });
+      }
+    }).catch((err) => {
       console.error('効果音の初期ロードに失敗:', err);
+      // MCPに記録 - サウンド初期化エラー
+      if (mcpActive) {
+        recordGameEvent({
+          type: 'sound-system-error',
+          errorMessage: err.message
+        });
+      }
     });
 
     // ロビーBGMを再生（全体のサウンドとBGM両方の設定がオンの場合のみ）
@@ -69,52 +96,113 @@ const MainMenu = () => {
       soundSystem.stopBgm();
       console.log('[MainMenu] BGM再生停止: soundEnabled=' + soundEnabled + ', bgmEnabled=' + bgmEnabled);
     }
-  }, [soundSystem, soundEnabled, bgmEnabled]);  // bgmEnabledも依存配列に追加
+
+    // コンポーネントのアンマウント時にMCPに記録
+    return () => {
+      if (mcpActive) {
+        recordUXElement({
+          type: 'component-unmount',
+          componentName: 'MainMenu',
+          timestamp: Date.now(),
+          duration: Date.now() - performance.now() // コンポーネントの表示時間を記録
+        });
+      }
+    };
+  }, [soundSystem, soundEnabled, bgmEnabled, mcpActive, recordUXElement, recordGameEvent]);
 
   // ボタン音を再生する関数
-  const playButtonSound = () => {
+  const playButtonSound = useCallback(() => {
     if (soundEnabled && sfxEnabled) {
       soundSystem.playSound('button');
     }
-  };
+  }, [soundEnabled, sfxEnabled, soundSystem]);
 
   // 難易度を変更する関数
-  const handleDifficultyChange = (difficulty) => {
+  const handleDifficultyChange = useCallback((difficulty) => {
     playButtonSound();
+
+    // MCPに難易度変更イベントを記録
+    if (mcpActive) {
+      recordGameEvent({
+        type: 'difficulty-changed',
+        previousDifficulty: settings.difficulty,
+        newDifficulty: difficulty
+      });
+    }
+
     setSettings({
       ...settings,
       difficulty,
     });
-  };
+  }, [playButtonSound, mcpActive, recordGameEvent, settings, setSettings]);
 
   // ゲーム画面に遷移する関数 - トランジション対応
-  const handleStartGame = () => {
+  const handleStartGame = useCallback(() => {
     // トランジション中は操作を無効化
     if (isTransitioning) return;
 
+    // MCPにゲーム開始イベントを記録
+    if (mcpActive) {
+      recordGameEvent({
+        type: 'game-started',
+        difficulty: settings.difficulty,
+        timestamp: Date.now()
+      });
+    }
+
     // 新しい画面遷移関数を使用
     goToScreen(SCREENS.GAME);
-  };
+  }, [isTransitioning, mcpActive, recordGameEvent, settings.difficulty, goToScreen]);
 
   // 設定モーダルを開く関数
-  const handleOpenSettings = () => {
+  const handleOpenSettings = useCallback(() => {
     playButtonSound();
+
+    // MCPにモーダル表示イベントを記録
+    if (mcpActive) {
+      recordUXElement({
+        type: 'modal-open',
+        modalName: 'settings',
+        timestamp: Date.now()
+      });
+    }
+
     // モーダルを表示する
     openSettingsModal();
-  };
+  }, [playButtonSound, mcpActive, recordUXElement, openSettingsModal]);
 
   // クレジットモーダルを開く関数
-  const handleOpenCredits = () => {
+  const handleOpenCredits = useCallback(() => {
     playButtonSound();
+
+    // MCPにモーダル表示イベントを記録
+    if (mcpActive) {
+      recordUXElement({
+        type: 'modal-open',
+        modalName: 'credits',
+        timestamp: Date.now()
+      });
+    }
+
     setShowCredits(true);
-  };
+  }, [playButtonSound, mcpActive, recordUXElement]);
 
   // モーダルを閉じる関数
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     playButtonSound();
+
+    // MCPにモーダル閉じるイベントを記録
+    if (mcpActive) {
+      recordUXElement({
+        type: 'modal-close',
+        modalName: showCredits ? 'credits' : 'settings',
+        timestamp: Date.now()
+      });
+    }
+
     setShowCredits(false);
     closeSettingsModal();
-  };
+  }, [playButtonSound, mcpActive, recordUXElement, showCredits, closeSettingsModal]);
 
   // 難易度を表示するテキスト（日本語表記）
   const difficultyLabels = {
@@ -127,23 +215,53 @@ const MainMenu = () => {
   const [showDifficultyMenu, setShowDifficultyMenu] = useState(false);
 
   // 難易度選択ボタンをクリックしたときの処理
-  const handleDifficultyButtonClick = () => {
+  const handleDifficultyButtonClick = useCallback(() => {
     playButtonSound();
     setShowDifficultyMenu(!showDifficultyMenu);
-  };
+
+    // MCPにメニュー表示変更イベントを記録
+    if (mcpActive) {
+      recordUXElement({
+        type: 'menu-toggle',
+        menuName: 'difficulty-selector',
+        state: !showDifficultyMenu ? 'open' : 'closed',
+        timestamp: Date.now()
+      });
+    }
+  }, [playButtonSound, showDifficultyMenu, mcpActive, recordUXElement]);
 
   // 難易度を選択したときの処理
-  const selectDifficulty = (difficulty) => {
+  const selectDifficulty = useCallback((difficulty) => {
     playButtonSound();
     handleDifficultyChange(difficulty);
     setShowDifficultyMenu(false);
-  };
+
+    // MCPに選択イベントを記録
+    if (mcpActive) {
+      recordUXElement({
+        type: 'menu-select',
+        menuName: 'difficulty-selector',
+        selectedValue: difficulty,
+        timestamp: Date.now()
+      });
+    }
+  }, [playButtonSound, handleDifficultyChange, mcpActive, recordUXElement]);
 
   // 画面のどこかをクリックしたときにメニューを閉じる
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (showDifficultyMenu && !event.target.closest(`.${styles.difficultySelector}`)) {
         setShowDifficultyMenu(false);
+
+        // MCPにメニュークローズイベントを記録
+        if (mcpActive) {
+          recordUXElement({
+            type: 'menu-close',
+            menuName: 'difficulty-selector',
+            reason: 'outside-click',
+            timestamp: Date.now()
+          });
+        }
       }
     };
 
@@ -151,7 +269,7 @@ const MainMenu = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showDifficultyMenu]);
+  }, [showDifficultyMenu, mcpActive, recordUXElement]);
 
   // メニュー項目のアニメーション設定
   const containerVariants = {
@@ -171,7 +289,7 @@ const MainMenu = () => {
   };
 
   // 設定コンテンツをレンダリングする関数
-  const renderSettingsContent = () => {
+  const renderSettingsContent = useCallback(() => {
     return (
       <div className={styles.settingsContainer}>
         {/* ゲーム設定セクション */}
@@ -270,10 +388,10 @@ const MainMenu = () => {
         </div>
       </div>
     );
-  };
+  }, [settings.difficulty, handleDifficultyChange]);
 
   // クレジットコンテンツをレンダリングする関数
-  const renderCreditsContent = () => {
+  const renderCreditsContent = useCallback(() => {
     return (
       <CreditsContent
         credits={creditsData}
@@ -285,7 +403,7 @@ const MainMenu = () => {
         creditsItemClass={styles.creditsItem}
       />
     );
-  };
+  }, []);
 
   // キーボードイベントリスナーを追加（ショートカット機能拡充）
   useEffect(() => {
@@ -302,24 +420,68 @@ const MainMenu = () => {
       if (e.key === ' ' || e.code === 'Space') {
         e.preventDefault(); // デフォルト動作を抑制
         playButtonSound();
+
+        // MCPにキーボードショートカット使用イベントを記録
+        if (mcpActive) {
+          recordUXElement({
+            type: 'keyboard-shortcut',
+            key: 'Space',
+            action: 'start-game',
+            timestamp: Date.now()
+          });
+        }
+
         goToScreen(SCREENS.GAME);
       }
       // Sキーで設定画面を開く
       else if ((e.key === 's' || e.key === 'S') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         playButtonSound();
+
+        // MCPにキーボードショートカット使用イベントを記録
+        if (mcpActive) {
+          recordUXElement({
+            type: 'keyboard-shortcut',
+            key: 'S',
+            action: 'open-settings',
+            timestamp: Date.now()
+          });
+        }
+
         openSettingsModal();
       }
       // Cキーでクレジット画面を開く
       else if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         playButtonSound();
+
+        // MCPにキーボードショートカット使用イベントを記録
+        if (mcpActive) {
+          recordUXElement({
+            type: 'keyboard-shortcut',
+            key: 'C',
+            action: 'open-credits',
+            timestamp: Date.now()
+          });
+        }
+
         setShowCredits(true);
       }
       // Rキーでランキング画面へ移動（実装されている場合）
       else if ((e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         playButtonSound();
+
+        // MCPにキーボードショートカット使用イベントを記録
+        if (mcpActive) {
+          recordUXElement({
+            type: 'keyboard-shortcut',
+            key: 'R',
+            action: 'open-ranking',
+            timestamp: Date.now()
+          });
+        }
+
         goToScreen(SCREENS.RANKING);
       }
     };
@@ -331,7 +493,7 @@ const MainMenu = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isTransitioning, showSettingsModal, showCredits, goToScreen]);
+  }, [isTransitioning, showSettingsModal, showCredits, playButtonSound, mcpActive, recordUXElement, goToScreen, openSettingsModal]);
 
   return (
     <div className={styles.mainContainer} ref={mainContainerRef}>
@@ -352,6 +514,16 @@ const MainMenu = () => {
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ type: 'spring', delay: 0.5, duration: 1 }}
+        onAnimationComplete={() => {
+          // MCPにアニメーション完了イベントを記録
+          if (mcpActive) {
+            recordUXElement({
+              type: 'animation-complete',
+              elementName: 'mascot',
+              timestamp: Date.now()
+            });
+          }
+        }}
       >
         <img
           src="/images/manabymario.png"
@@ -377,7 +549,11 @@ const MainMenu = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <button className={styles.startButton} onClick={handleStartGame}>
+          <button
+            className={styles.startButton}
+            onClick={handleStartGame}
+            aria-label="ゲームを開始する"
+          >
             <Image
               src="/images/manabylogodot.png"
               alt="Start Game"
@@ -402,6 +578,7 @@ const MainMenu = () => {
               key={key}
               className={`${styles.difficultyToggleButton} ${settings.difficulty === key ? styles.active : ''}`}
               onClick={() => handleDifficultyChange(key)}
+              aria-pressed={settings.difficulty === key}
             >
               {difficultyLabels[key]}
             </button>
@@ -455,6 +632,13 @@ const MainMenu = () => {
       <Modal isOpen={showCredits} onClose={handleCloseModal} title="クレジット">
         {renderCreditsContent()}
       </Modal>
+
+      {/* MCP状態表示（開発環境のみ） */}
+      {process.env.NODE_ENV === 'development' && mcpActive && (
+        <div className={styles.mcpStatusIndicator}>
+          <div className={styles.mcpStatusDot} title="MCP接続中"></div>
+        </div>
+      )}
     </div>
   );
 };

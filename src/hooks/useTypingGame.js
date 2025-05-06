@@ -67,7 +67,7 @@ export function useTypingGame({
   // UI状態
   const [errorAnimation, setErrorAnimation] = useState(false);
   const [progressPercentage, setProgressPercentage] = useState(0);
-  
+
   // 状態フラグ（refで管理）
   const completedRef = useRef(false);
   const progressRef = useRef(0);
@@ -108,8 +108,8 @@ export function useTypingGame({
     const problemData = {
       problemKeyCount,
       problemElapsedMs,
-      problemKPM: problemElapsedMs > 0 
-        ? Math.floor((problemKeyCount / (problemElapsedMs / 60000))) 
+      problemKPM: problemElapsedMs > 0
+        ? Math.floor((problemKeyCount / (problemElapsedMs / 60000)))
         : 0,
       timestamp: now,
     };
@@ -143,37 +143,37 @@ export function useTypingGame({
    */
   const processUIUpdates = useCallback(() => {
     const pendingUpdates = pendingUIUpdatesRef.current;
-    
+
     // 更新が必要ないなら何もしない
     if (!pendingUpdates.hasUpdates) return;
-    
+
     // 各UI要素を必要に応じて更新
     if (pendingUpdates.displayInfo) {
       setDisplayInfo(pendingUpdates.displayInfo);
     }
-    
+
     if (pendingUpdates.progress !== null) {
       setProgressPercentage(pendingUpdates.progress);
     }
-    
+
     if (pendingUpdates.stats) {
       setDisplayStats(pendingUpdates.stats);
     }
-    
+
     if (pendingUpdates.error) {
       setErrorAnimation(true);
-      
+
       // エラーアニメーションを一定時間後に消す
       if (errorAnimationTimerRef.current) {
         clearTimeout(errorAnimationTimerRef.current);
       }
-      
+
       errorAnimationTimerRef.current = setTimeout(() => {
         setErrorAnimation(false);
         errorAnimationTimerRef.current = null;
       }, 200);
     }
-    
+
     // 保留中の更新をクリア
     pendingUIUpdatesRef.current = {
       hasUpdates: false,
@@ -182,7 +182,7 @@ export function useTypingGame({
       stats: null,
       error: false
     };
-    
+
     // アニメーションフレーム参照をクリア
     lastAnimationFrameRef.current = null;
   }, []);
@@ -193,27 +193,27 @@ export function useTypingGame({
   const scheduleUIUpdate = useCallback((updates = {}) => {
     // 更新情報をマージ
     const pendingUpdates = pendingUIUpdatesRef.current;
-    
+
     if (updates.displayInfo) {
       pendingUpdates.displayInfo = updates.displayInfo;
       pendingUpdates.hasUpdates = true;
     }
-    
+
     if (updates.progress !== undefined) {
       pendingUpdates.progress = updates.progress;
       pendingUpdates.hasUpdates = true;
     }
-    
+
     if (updates.stats) {
       pendingUpdates.stats = updates.stats;
       pendingUpdates.hasUpdates = true;
     }
-    
+
     if (updates.error) {
       pendingUpdates.error = true;
       pendingUpdates.hasUpdates = true;
     }
-    
+
     // アニメーションフレームがまだスケジュールされていなければスケジュール
     if (!lastAnimationFrameRef.current && pendingUpdates.hasUpdates) {
       lastAnimationFrameRef.current = requestAnimationFrame(processUIUpdates);
@@ -236,7 +236,7 @@ export function useTypingGame({
     const frameTime = perf.lastInputTime > 0 ? now - perf.lastInputTime : 0;
     perf.lastInputTime = now;
     perf.inputCount++;
-    
+
     // 入力タイミングを記録（最大100件まで）
     if (perf.inputTimings.length < 100) {
       perf.inputTimings.push({ time: now, key });
@@ -545,7 +545,7 @@ export function useTypingGame({
       frameRate: perf.frameRate,
       inputCount: perf.inputCount,
       inputTimings: [...perf.inputTimings],
-      averageTimeBetweenInputs: perf.inputTimings.length > 1 
+      averageTimeBetweenInputs: perf.inputTimings.length > 1
         ? _calculateAverageTimeBetweenInputs(perf.inputTimings)
         : 0
     };
@@ -556,12 +556,12 @@ export function useTypingGame({
    */
   const _calculateAverageTimeBetweenInputs = (timings) => {
     if (timings.length < 2) return 0;
-    
+
     let totalTime = 0;
     for (let i = 1; i < timings.length; i++) {
-      totalTime += timings[i].time - timings[i-1].time;
+      totalTime += timings[i].time - timings[i - 1].time;
     }
-    
+
     return totalTime / (timings.length - 1);
   };
 

@@ -32,10 +32,10 @@ const SimpleTypingDisplay = memo(({
       nextChar: nextChar || '<なし>'
     }));
   }
-  
+
   // romajiがない場合のセーフティチェック
   const safeRomaji = romaji || '';
-  
+
   // 入力済み部分（typedLength文字まで）
   const typed = safeRomaji.substring(0, typedLength) || '';
 
@@ -49,13 +49,13 @@ const SimpleTypingDisplay = memo(({
 
   // 実際に表示するテキスト部分を決定
   // セーフティチェック: visiblePortionがnullまたは範囲が不正な場合はフルテキストを表示
-  const hasValidRange = visiblePortion && 
-                       typeof visiblePortion.start === 'number' && 
-                       typeof visiblePortion.end === 'number' &&
-                       visiblePortion.start >= 0 &&
-                       visiblePortion.end > visiblePortion.start;
-                       
-  const effectiveRomaji = !hasValidRange || showFullText 
+  const hasValidRange = visiblePortion &&
+    typeof visiblePortion.start === 'number' &&
+    typeof visiblePortion.end === 'number' &&
+    visiblePortion.start >= 0 &&
+    visiblePortion.end > visiblePortion.start;
+
+  const effectiveRomaji = !hasValidRange || showFullText
     ? safeRomaji
     : safeRomaji.substring(visiblePortion.start, visiblePortion.end);
 

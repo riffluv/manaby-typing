@@ -32,17 +32,17 @@ const MCPInitializer = ({ children }) => {
         // 接続成功
         setConnectionStatus('connected');
         console.log('[MCPInitializer] MCP接続に成功しました', initResult);
-        
+
         // 接続状態の監視を開始
         startConnectionMonitoring();
-        
+
         // 再試行情報をリセット
         setRetryInfo(prev => ({ ...prev, count: 0, nextRetryAt: null }));
       } else {
         // 接続失敗
         setConnectionStatus('disconnected');
         console.warn('[MCPInitializer] MCPサーバーが利用できません');
-        
+
         // 再接続を試みる
         scheduleReconnect();
       }
@@ -52,10 +52,10 @@ const MCPInitializer = ({ children }) => {
     } catch (error) {
       console.error('[MCPInitializer] MCP初期化エラー:', error);
       setConnectionStatus('error');
-      
+
       // 再接続を試みる
       scheduleReconnect();
-      
+
       // エラーがあっても初期化は完了とみなす（フォールバックモードで動作）
       setInitialized(true);
     }
@@ -67,13 +67,13 @@ const MCPInitializer = ({ children }) => {
   const startConnectionMonitoring = useCallback(() => {
     // 前回のタイマーIDを保持するための参照
     let intervalId = null;
-    
+
     // 定期的に接続状態を確認
     const startMonitoring = () => {
       intervalId = setInterval(async () => {
         // MCPの接続状態をチェック
         const isConnected = typeof window !== 'undefined' && window._mcp;
-        
+
         if (!isConnected && connectionStatus === 'connected') {
           // 接続が切断された場合
           console.warn('[MCPInitializer] MCP接続が切断されました');
@@ -86,7 +86,7 @@ const MCPInitializer = ({ children }) => {
             // isMCPAvailableではなく、MCPの基本的な存在チェック＋pingを実装
             const mcpExists = typeof window !== 'undefined' && !!window._mcp;
             let alive = mcpExists;
-            
+
             if (mcpExists) {
               // pingの実装（単純化した接続チェック）
               try {
@@ -94,7 +94,7 @@ const MCPInitializer = ({ children }) => {
                 if (typeof window._mcp.send === 'function') {
                   window._mcp.send('ping', { timestamp: Date.now() });
                 }
-                
+
                 // 応答したということはとりあえず生きている
                 alive = true;
               } catch (pingError) {
@@ -102,7 +102,7 @@ const MCPInitializer = ({ children }) => {
                 alive = false;
               }
             }
-            
+
             if (!alive && connectionStatus === 'connected') {
               console.warn('[MCPInitializer] MCP接続が応答しません');
               setConnectionStatus('unresponsive');
@@ -114,10 +114,10 @@ const MCPInitializer = ({ children }) => {
         }
       }, 5000); // 5秒ごとにチェック
     };
-    
+
     // 監視開始
     startMonitoring();
-    
+
     // クリーンアップ関数を返す
     return () => {
       if (intervalId !== null) {
@@ -141,14 +141,14 @@ const MCPInitializer = ({ children }) => {
       const nextRetryCount = prev.count + 1;
       const delay = Math.min(1000 * Math.pow(2, prev.count), 30000); // 最大30秒
       const nextRetryAt = Date.now() + delay;
-      
+
       console.log(`[MCPInitializer] ${delay}ms後に再接続を試みます(${nextRetryCount}/${prev.maxRetries})`);
-      
+
       // 再接続タイマーをセット
       setTimeout(() => {
         initializeMCP();
       }, delay);
-      
+
       return {
         ...prev,
         count: nextRetryCount,
@@ -162,7 +162,7 @@ const MCPInitializer = ({ children }) => {
    */
   useEffect(() => {
     initializeMCP();
-    
+
     // クリーンアップ関数
     return () => {
       // 必要なクリーンアップ処理があればここに記述
@@ -193,7 +193,7 @@ const MCPInitializer = ({ children }) => {
     // 接続状態によってスタイルを変更
     let statusColor = '#4CAF50'; // デフォルト：緑（接続済み）
     let statusText = 'MCP接続中';
-    
+
     switch (connectionStatus) {
       case 'connected':
         statusColor = '#4CAF50'; // 緑
@@ -264,11 +264,11 @@ const MCPInitializer = ({ children }) => {
     // デバッグ情報の表示
     const renderDebugInfo = () => {
       if (!isDebugMode) return null;
-      
+
       return (
-        <div style={{ 
-          marginTop: '10px', 
-          fontSize: '10px', 
+        <div style={{
+          marginTop: '10px',
+          fontSize: '10px',
           textAlign: 'left',
           borderTop: '1px solid rgba(255,255,255,0.2)',
           paddingTop: '5px'
@@ -276,10 +276,10 @@ const MCPInitializer = ({ children }) => {
           <div>状態: {connectionStatus}</div>
           <div>初期化: {initialized ? '完了' : '未完了'}</div>
           <div>再試行: {retryInfo.count}/{retryInfo.maxRetries}</div>
-          <div style={{ 
-            marginTop: '5px', 
-            padding: '2px 5px', 
-            backgroundColor: 'rgba(33,150,243,0.3)', 
+          <div style={{
+            marginTop: '5px',
+            padding: '2px 5px',
+            backgroundColor: 'rgba(33,150,243,0.3)',
             borderRadius: '2px',
             textAlign: 'center',
             cursor: 'pointer'
@@ -308,9 +308,9 @@ const MCPInitializer = ({ children }) => {
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#fff' }}>
         <div>
           <div>MCPシステムロード中...</div>
-          <div style={{ 
-            width: '150px', 
-            height: '4px', 
+          <div style={{
+            width: '150px',
+            height: '4px',
             backgroundColor: 'rgba(255,255,255,0.2)',
             borderRadius: '2px',
             marginTop: '10px',
@@ -322,7 +322,7 @@ const MCPInitializer = ({ children }) => {
               backgroundColor: '#4CAF50',
               borderRadius: '2px',
               animation: 'mcpLoading 1.5s infinite ease-in-out'
-            }}/>
+            }} />
           </div>
           <style jsx>{`
             @keyframes mcpLoading {

@@ -124,10 +124,10 @@ export function useSimpleTypingAdapter(typingHook) {
         } else {
           // バックアップとして"問題の原文"からローマ字を再構築することを試みる
           // 問題テキストをバックアップとして使用
-          const problemText = safeGet(typingHook, 'problem.text', '') || 
-                             safeGet(typingHook, 'currentProblem.text', '') || 
-                             safeGet(displayInfo, 'problem', '');
-          
+          const problemText = safeGet(typingHook, 'problem.text', '') ||
+            safeGet(typingHook, 'currentProblem.text', '') ||
+            safeGet(displayInfo, 'problem', '');
+
           // 問題テキストがあれば、ローマ字辞書からの変換も試みる
           if (problemText) {
             console.log('[useSimpleTypingAdapter] ローマ字の再構築を試みます:', problemText);
@@ -204,11 +204,11 @@ export function useSimpleTypingAdapter(typingHook) {
           start: visibleStart,
           end: visibleEnd
         },
-        
+
         // デバッグ用に問題テキストも含める
-        problem: safeGet(typingHook, 'problem.text', '') || 
-                safeGet(typingHook, 'currentProblem.text', '') || 
-                safeGet(displayInfo, 'problem', ''),
+        problem: safeGet(typingHook, 'problem.text', '') ||
+          safeGet(typingHook, 'currentProblem.text', '') ||
+          safeGet(displayInfo, 'problem', ''),
 
         // オリジナルのフックのプロパティをパススルー（必要に応じて使用）
         originalHook: typingHook,

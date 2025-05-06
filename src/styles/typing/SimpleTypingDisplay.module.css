@@ -2,7 +2,8 @@
 .typingText {
   width: 100%;
   min-height: 2rem;
-  max-height: none; /* 最大高さの制限を解除 */
+  max-height: none;
+  /* 最大高さの制限を解除 */
   padding: 0.3rem;
   border-radius: 8px;
   position: relative;
@@ -16,8 +17,10 @@
   color: #e0e0e0;
   margin-bottom: 0.2rem;
   background-color: rgba(0, 0, 0, 0.1);
-  overflow-y: visible; /* スクロールではなく表示領域を拡張 */
-  overflow-x: hidden; /* 横方向のスクロールを無効化 */
+  overflow-y: visible;
+  /* スクロールではなく表示領域を拡張 */
+  overflow-x: hidden;
+  /* 横方向のスクロールを無効化 */
   overscroll-behavior: contain;
   scroll-behavior: smooth;
 }
@@ -105,7 +108,8 @@
   letter-spacing: 0.05em;
   margin: 0 0.2rem;
   font-style: italic;
-  display: none; /* 省略記号（...）を非表示 */
+  display: none;
+  /* 省略記号（...）を非表示 */
 }
 
 /* タイピングカーソル */
@@ -180,5 +184,6 @@
 
 /* フォーカス要素が表示されていないときに表示するヒント要素 */
 .focusHint {
-  display: none; /* ヒント要素も非表示に */
+  display: none;
+  /* ヒント要素も非表示に */
 }

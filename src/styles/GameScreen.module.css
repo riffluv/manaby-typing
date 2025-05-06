@@ -229,14 +229,22 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  position: absolute; /* 相対位置から絶対位置に変更 */
-  bottom: 75px; /* 下部からの距離を少し上に調整 */
-  left: 0; /* 左端を基準に */
-  right: 0; /* 右端まで広がるように */
-  margin: 0 auto; /* 中央揃え */
-  padding-bottom: 0.5rem; /* 下部に少しパディングを追加 */
-  z-index: 5; /* 他の要素より前面に */
-  height: 160px; /* キーボード用の高さを調整 */
+  position: absolute;
+  /* 相対位置から絶対位置に変更 */
+  bottom: 75px;
+  /* 下部からの距離を少し上に調整 */
+  left: 0;
+  /* 左端を基準に */
+  right: 0;
+  /* 右端まで広がるように */
+  margin: 0 auto;
+  /* 中央揃え */
+  padding-bottom: 0.5rem;
+  /* 下部に少しパディングを追加 */
+  z-index: 5;
+  /* 他の要素より前面に */
+  height: 160px;
+  /* キーボード用の高さを調整 */
 }
 
 /* 問題テキスト（要素） */

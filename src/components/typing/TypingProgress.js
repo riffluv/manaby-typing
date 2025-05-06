@@ -14,8 +14,8 @@ import styles from '../../styles/typing/TypingProgress.module.css';
  * @param {boolean} props.showPercentage - パーセント値を表示するかどうか
  * @param {string} props.theme - テーマカラー（'default', 'blue', 'green'）
  */
-const TypingProgress = memo(({ 
-  percentage = 0, 
+const TypingProgress = memo(({
+  percentage = 0,
   showPercentage = true,
   theme = 'default'
 }) => {
@@ -39,8 +39,8 @@ const TypingProgress = memo(({
   // 進行度に応じたアニメーション速度
   const animationSpeed = useMemo(() => {
     // 進行度が高いほど速くアニメーションさせる
-    return safePercentage > 80 ? 'fast' : 
-           safePercentage > 50 ? 'medium' : 'slow';
+    return safePercentage > 80 ? 'fast' :
+      safePercentage > 50 ? 'medium' : 'slow';
   }, [safePercentage]);
 
   // 進行度表示カラーの選択

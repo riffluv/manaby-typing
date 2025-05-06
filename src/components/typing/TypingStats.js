@@ -20,7 +20,7 @@ import styles from '../../styles/typing/TypingStats.module.css';
  * @param {string} props.stats.rankColor - ランクの色
  * @param {string} props.layoutType - レイアウトタイプ ('horizontal', 'vertical', 'compact')
  */
-const TypingStats = memo(({ 
+const TypingStats = memo(({
   stats = {
     correctCount: 0,
     missCount: 0,
@@ -28,12 +28,12 @@ const TypingStats = memo(({
     accuracy: 100,
     rank: 'F',
     rankColor: '#999999'
-  }, 
+  },
   layoutType = 'horizontal'
 }) => {
   // レイアウトクラスの決定
   const layoutClass = useMemo(() => {
-    switch(layoutType) {
+    switch (layoutType) {
       case 'vertical':
         return styles.verticalLayout;
       case 'compact':
@@ -47,27 +47,27 @@ const TypingStats = memo(({
   const totalCount = useMemo(() => {
     return stats.correctCount + stats.missCount;
   }, [stats.correctCount, stats.missCount]);
-  
+
   // 精度の計算と書式化
   const formattedAccuracy = useMemo(() => {
-    const accuracy = totalCount > 0 
-      ? (stats.correctCount / totalCount) * 100 
+    const accuracy = totalCount > 0
+      ? (stats.correctCount / totalCount) * 100
       : 100;
     return accuracy.toFixed(1);
   }, [stats.correctCount, totalCount]);
 
   // ランクに応じたスタイル
   const rankClass = useMemo(() => {
-    switch(stats.rank) {
+    switch (stats.rank) {
       case 'S': return styles.rankS;
       case 'A': return styles.rankA;
       case 'B': return styles.rankB;
       case 'C': return styles.rankC;
       case 'D': return styles.rankD;
-      default:  return styles.rankF;
+      default: return styles.rankF;
     }
   }, [stats.rank]);
-  
+
   // KPMに応じたクラス
   const kpmClass = useMemo(() => {
     if (stats.kpm >= 400) return styles.ultraFast;
@@ -86,7 +86,7 @@ const TypingStats = memo(({
         </div>
         <div className={styles.rankLabel}>ランク</div>
       </div>
-      
+
       {/* 主要統計情報 */}
       <div className={styles.mainStats}>
         {/* KPM */}
@@ -96,7 +96,7 @@ const TypingStats = memo(({
             {stats.kpm}
           </div>
         </div>
-        
+
         {/* 正確性 */}
         <div className={styles.statItem}>
           <div className={styles.statLabel}>正確性</div>
@@ -105,7 +105,7 @@ const TypingStats = memo(({
           </div>
         </div>
       </div>
-      
+
       {/* 詳細統計情報 */}
       <div className={styles.detailStats}>
         {/* 正解数 */}
@@ -115,7 +115,7 @@ const TypingStats = memo(({
             {stats.correctCount}
           </div>
         </div>
-        
+
         {/* ミス数 */}
         <div className={styles.detailItem}>
           <div className={styles.detailLabel}>ミス</div>
@@ -123,7 +123,7 @@ const TypingStats = memo(({
             {stats.missCount}
           </div>
         </div>
-        
+
         {/* 総入力数 */}
         <div className={styles.detailItem}>
           <div className={styles.detailLabel}>合計</div>

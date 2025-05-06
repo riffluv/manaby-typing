@@ -201,15 +201,15 @@
       "detail detail";
     grid-gap: 1rem;
   }
-  
+
   .horizontalLayout .rankSection {
     grid-area: rank;
   }
-  
+
   .horizontalLayout .mainStats {
     grid-area: main;
   }
-  
+
   .horizontalLayout .detailStats {
     grid-area: detail;
     border-left: none;
@@ -227,15 +227,15 @@
     height: 40px;
     font-size: 1.4rem;
   }
-  
+
   .statValue {
     font-size: 1.4rem;
   }
-  
+
   .detailValue {
     font-size: 0.9rem;
   }
-  
+
   .horizontalLayout {
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -243,17 +243,17 @@
       "main"
       "detail";
   }
-  
+
   .horizontalLayout .rankSection {
     flex-direction: row;
     gap: 0.5rem;
     justify-content: center;
   }
-  
+
   .horizontalLayout .rankLabel {
     margin-top: 0.5rem;
   }
-  
+
   .mainStats {
     justify-content: space-between;
   }
@@ -261,18 +261,21 @@
 
 /* アクセシビリティ対応 */
 @media (prefers-reduced-motion: reduce) {
-  .rankS, .rankA, .rankB {
+
+  .rankS,
+  .rankA,
+  .rankB {
     background: none;
   }
-  
+
   .rankS {
     background-color: #FFD700;
   }
-  
+
   .rankA {
     background-color: #E0E0E0;
   }
-  
+
   .rankB {
     background-color: #CD7F32;
   }
@@ -283,20 +286,25 @@
   .statsContainer {
     border: 1px solid CanvasText;
   }
-  
+
   .rankBadge {
     border: 1px solid CanvasText;
   }
-  
-  .rankS, .rankA, .rankB, .rankC, .rankD, .rankF {
+
+  .rankS,
+  .rankA,
+  .rankB,
+  .rankC,
+  .rankD,
+  .rankF {
     background: none;
     border: 1px solid CanvasText;
   }
-  
+
   .detailStats {
     border-left: 1px solid CanvasText;
   }
-  
+
   .horizontalLayout .detailStats {
     border-top: 1px solid CanvasText;
   }
