@@ -20,7 +20,7 @@ const SimpleTypingDisplay = memo(({
 }) => {
   // 入力済み部分（typedLength文字まで）
   const typed = romaji?.substring(0, typedLength) || '';
-  
+
   // 表示用の変数を準備
   let displayCurrentInput = '';
   let displayNextChar = nextChar || '';
@@ -30,10 +30,10 @@ const SimpleTypingDisplay = memo(({
   if (inputMode === 'consonant' && currentInput) {
     // 子音入力中の特殊処理
     // 例: t -> ta の変換中なら、「t」を表示し「a」をハイライト
-    
+
     // 1. 現在の入力を表示（子音部分）
     displayCurrentInput = currentInput;
-    
+
     // 2. 次に入力すべき文字（母音部分）を特定
     if (currentCharRomaji && currentCharRomaji.length > currentInput.length) {
       // 現在入力している平仮名のローマ字表現から次の文字（母音）を特定
@@ -42,7 +42,7 @@ const SimpleTypingDisplay = memo(({
       // フォールバック: 子音に続く最も一般的な母音 'a'
       displayNextChar = 'a';
     }
-    
+
     // 3. 残りの部分の計算
     // 現在の平仮名のローマ字表現の後から始まる
     const remainingStartPos = typedLength + currentCharRomaji.length;
@@ -57,6 +57,15 @@ const SimpleTypingDisplay = memo(({
   // 外部クラスと内部クラスを結合
   const containerClass = `${styles.typingText} ${className || ''} ${isError ? styles.errorShake : ''}`;
 
+  // romaji全体が空の場合は空白表示
+  if (!romaji) {
+    return (
+      <div className={containerClass}>
+        <span className={styles.typingCursor}></span>
+      </div>
+    );
+  }
+
   return (
     <div className={containerClass}>
       {/* 入力済み部分 */}
@@ -66,7 +75,7 @@ const SimpleTypingDisplay = memo(({
       {inputMode === 'consonant' && displayCurrentInput && (
         <span className={styles.consonant}>{displayCurrentInput}</span>
       )}
-      
+
       {/* 次に入力すべき文字（ハイライト表示） */}
       {displayNextChar && (
         <span className={styles.nextChar}>{displayNextChar}</span>

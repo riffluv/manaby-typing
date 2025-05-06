@@ -24,6 +24,7 @@ const buttonAnimations = {
  * @param {function} [props.onClick] - クリックイベントハンドラ
  * @param {boolean} [props.disabled=false] - 無効状態かどうか
  * @param {string} [props.className] - 追加のカスタムクラス名
+ * @param {boolean} [props.loading=false] - ローディング状態かどうか
  * @param {React.ReactNode} props.children - ボタン内のテキスト
  * @returns {React.ReactElement}
  */
@@ -36,6 +37,7 @@ const Button = ({
   onClick,
   disabled = false,
   className = '',
+  loading, // loading属性を追加
   children,
   ...rest
 }) => {
@@ -63,24 +65,42 @@ const Button = ({
       classes.push('button--active');
     }
 
+    // ローディング状態
+    if (loading) {
+      classes.push('button--loading');
+    }
+
     // スタイルオブジェクトからCSS Modulesのクラス名に変換
     return classes
       .map((cls) => styles[cls])
       .filter(Boolean)
       .concat(className) // カスタムクラス名を追加
       .join(' ');
-  }, [variant, size, round, active, className]);
+  }, [variant, size, round, active, className, loading]);
+
+  // loadingがtrueの場合はdisabledも一緒にする
+  const isDisabled = disabled || loading;
+
+  // loadingとして渡ってきた属性はDOMには渡さないよう、restから除外するためのpropsを作成
+  const buttonProps = { ...rest };
+  // loadingはDOMプロパティとして渡さない（falseの場合にエラーが出る原因）
+  delete buttonProps.loading;
 
   return (
     <motion.button
       className={buttonClassName}
       onClick={onClick}
-      disabled={disabled}
-      whileTap={!disabled ? buttonAnimations.whileTap : undefined}
-      whileHover={!disabled ? buttonAnimations.whileHover : undefined}
+      disabled={isDisabled}
+      whileTap={!isDisabled ? buttonAnimations.whileTap : undefined}
+      whileHover={!isDisabled ? buttonAnimations.whileHover : undefined}
       transition={buttonAnimations.transition}
-      {...rest}
+      {...buttonProps}
     >
+      {loading && (
+        <span className={styles.button__spinner}>
+          <span className={styles.spinner}></span>
+        </span>
+      )}
       {icon && <span className={styles.button__icon}>{icon}</span>}
       {children}
     </motion.button>

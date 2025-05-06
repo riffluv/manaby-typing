@@ -203,6 +203,39 @@
   align-items: center;
 }
 
+/* ------ ローディング状態 ------ */
+
+/* ローディング状態のボタン */
+.button--loading {
+  position: relative;
+  cursor: wait;
+}
+
+/* スピナー要素のコンテナ */
+.button__spinner {
+  margin-right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* スピナーアニメーション */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ------ レスポンシブ対応 ------ */
 @media (max-width: 850px) {
 

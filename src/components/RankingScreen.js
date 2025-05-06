@@ -135,21 +135,21 @@ const RankingScreen = () => {
       const registeredGames = JSON.parse(sessionStorage.getItem('registeredGames') || '[]');
 
       // 現在のゲームデータに基づいて一意のIDを生成
-      const kpmValue = gameState.stats?.kpm || 
-                      (gameState.problemKPMs && gameState.problemKPMs.length > 0 
-                        ? Math.floor(
-                            gameState.problemKPMs
-                              .filter(kpm => kpm > 0)
-                              .reduce((sum, kpm) => sum + kpm, 0) / 
-                              gameState.problemKPMs.filter(kpm => kpm > 0).length
-                          ) 
-                        : 0);
+      const kpmValue = gameState.stats?.kpm ||
+        (gameState.problemKPMs && gameState.problemKPMs.length > 0
+          ? Math.floor(
+            gameState.problemKPMs
+              .filter(kpm => kpm > 0)
+              .reduce((sum, kpm) => sum + kpm, 0) /
+            gameState.problemKPMs.filter(kpm => kpm > 0).length
+          )
+          : 0);
 
-      const accuracyValue = gameState.stats?.accuracy || 
-                          gameState.accuracy || 
-                          (gameState.correctKeyCount && (gameState.mistakes || gameState.mistakes === 0)
-                            ? (gameState.correctKeyCount / (gameState.correctKeyCount + gameState.mistakes)) * 100
-                            : 0);
+      const accuracyValue = gameState.stats?.accuracy ||
+        gameState.accuracy ||
+        (gameState.correctKeyCount && (gameState.mistakes || gameState.mistakes === 0)
+          ? (gameState.correctKeyCount / (gameState.correctKeyCount + gameState.mistakes)) * 100
+          : 0);
 
       const missCount = gameState.stats?.missCount || gameState.mistakes || 0;
       const playTime = gameState.stats?.elapsedTimeMs || gameState.playTime || 0;
@@ -344,7 +344,7 @@ const RankingScreen = () => {
 
       // Weather Typing風の計算方法でのKPM
       let kpmValue = 0;
-      
+
       // リファクタリング後の構造に対応
       if (gameState.stats && gameState.stats.kpm) {
         // 新しい構造: stats.kpm
@@ -368,11 +368,11 @@ const RankingScreen = () => {
       }
 
       // KPMからランクを計算
-      const rankValue = TypingUtils.getKPMRank(kpmValue);
+      const rankValue = TypingUtils.getRank(kpmValue);
 
       // 正解率を計算
       let accuracyValue = 0;
-      
+
       // リファクタリング後の構造に対応
       if (gameState.stats && typeof gameState.stats.accuracy === 'number') {
         // 新しい構造: stats.accuracy
@@ -382,13 +382,13 @@ const RankingScreen = () => {
         accuracyValue = gameState.accuracy;
       } else if (
         (gameState.correctKeyCount >= 0 || (gameState.stats && gameState.stats.correctCount >= 0)) &&
-        (gameState.mistakes >= 0 || gameState.mistakes === 0 || 
-         (gameState.stats && (gameState.stats.missCount >= 0 || gameState.stats.missCount === 0)))
+        (gameState.mistakes >= 0 || gameState.mistakes === 0 ||
+          (gameState.stats && (gameState.stats.missCount >= 0 || gameState.stats.missCount === 0)))
       ) {
         // データ構造に応じて適切なプロパティを使用
         const correctCount = gameState.correctKeyCount || (gameState.stats && gameState.stats.correctCount) || 0;
         const missCount = gameState.mistakes || (gameState.stats && gameState.stats.missCount) || 0;
-        
+
         // correctKeyCountとmistakesから計算
         const totalKeystrokes = correctCount + missCount;
         if (totalKeystrokes > 0) {
@@ -404,7 +404,7 @@ const RankingScreen = () => {
       const correctCount = gameState.correctKeyCount || (gameState.stats && gameState.stats.correctCount) || 0;
       const missCount = gameState.mistakes || (gameState.stats && gameState.stats.missCount) || 0;
       const playTime = gameState.playTime || (gameState.stats && gameState.stats.elapsedTimeMs) || 0;
-      
+
       const recordId = await saveOnlineRanking(
         playerName,
         kpmValue,
@@ -646,18 +646,18 @@ const RankingScreen = () => {
                     <td
                       style={{
                         color: TypingUtils.getRankColor(
-                          record.rank || TypingUtils.getKPMRank(record.kpm)
+                          record.rank || TypingUtils.getRank(record.kpm)
                         ),
                       }}
                     >
-                      {record.rank || TypingUtils.getKPMRank(record.kpm)}
+                      {record.rank || TypingUtils.getRank(record.kpm)}
                     </td>
                     <td>
                       {(record.accuracy !== undefined
                         ? record.accuracy
                         : record.stats?.accuracy !== undefined
-                        ? record.stats.accuracy
-                        : 0
+                          ? record.stats.accuracy
+                          : 0
                       ).toFixed(1)}
                       %
                     </td>
@@ -665,8 +665,8 @@ const RankingScreen = () => {
                     <td>
                       {formatDate(
                         record.date ||
-                          record.timestamp ||
-                          new Date().toISOString()
+                        record.timestamp ||
+                        new Date().toISOString()
                       )}
                     </td>
                   </motion.tr>
@@ -711,11 +711,11 @@ const RankingScreen = () => {
                     <td
                       style={{
                         color: TypingUtils.getRankColor(
-                          record.rank || TypingUtils.getKPMRank(record.kpm)
+                          record.rank || TypingUtils.getRank(record.kpm)
                         ),
                       }}
                     >
-                      {record.rank || TypingUtils.getKPMRank(record.kpm)}
+                      {record.rank || TypingUtils.getRank(record.kpm)}
                     </td>
                     <td>{record.accuracy.toFixed(1)}%</td>
                     <td>{record.mistakes}</td>
@@ -827,11 +827,10 @@ const RankingScreen = () => {
 
               {registrationStatus.message && (
                 <div
-                  className={`${styles.statusMessage} ${
-                    registrationStatus.success
+                  className={`${styles.statusMessage} ${registrationStatus.success
                       ? styles.successMessage
                       : styles.errorMessage
-                  }`}
+                    }`}
                 >
                   {registrationStatus.message}
                 </div>
@@ -859,8 +858,8 @@ const RankingScreen = () => {
                       {settings.difficulty === 'easy'
                         ? 'やさしい'
                         : settings.difficulty === 'normal'
-                        ? '普通'
-                        : 'むずかしい'}
+                          ? '普通'
+                          : 'むずかしい'}
                     </span>
                   </div>
                   <div className={styles.previewItem}>
@@ -869,14 +868,14 @@ const RankingScreen = () => {
                       {gameState.stats && typeof gameState.stats.kpm === 'number'
                         ? Math.floor(gameState.stats.kpm)
                         : gameState.problemKPMs && gameState.problemKPMs.length > 0
-                        ? Math.floor(
+                          ? Math.floor(
                             gameState.problemKPMs
                               .filter((kpm) => kpm > 0)
                               .reduce((sum, kpm) => sum + kpm, 0) /
-                              gameState.problemKPMs.filter((kpm) => kpm > 0)
-                                .length
+                            gameState.problemKPMs.filter((kpm) => kpm > 0)
+                              .length
                           )
-                        : 0}
+                          : 0}
                     </span>
                   </div>
                   <div className={styles.previewItem}>
@@ -884,37 +883,37 @@ const RankingScreen = () => {
                     <span
                       style={{
                         color: TypingUtils.getRankColor(
-                          TypingUtils.getKPMRank(
+                          TypingUtils.getRank(
                             gameState.stats && typeof gameState.stats.kpm === 'number'
-                            ? Math.floor(gameState.stats.kpm)
-                            : gameState.problemKPMs &&
-                              gameState.problemKPMs.length > 0
-                              ? Math.floor(
+                              ? Math.floor(gameState.stats.kpm)
+                              : gameState.problemKPMs &&
+                                gameState.problemKPMs.length > 0
+                                ? Math.floor(
                                   gameState.problemKPMs
                                     .filter((kpm) => kpm > 0)
                                     .reduce((sum, kpm) => sum + kpm, 0) /
-                                    gameState.problemKPMs.filter(
-                                      (kpm) => kpm > 0
-                                    ).length
+                                  gameState.problemKPMs.filter(
+                                    (kpm) => kpm > 0
+                                  ).length
                                 )
-                              : 0
+                                : 0
                           )
                         ),
                       }}
                     >
-                      {TypingUtils.getKPMRank(
+                      {TypingUtils.getRank(
                         gameState.stats && typeof gameState.stats.kpm === 'number'
-                        ? Math.floor(gameState.stats.kpm)
-                        : gameState.problemKPMs &&
-                          gameState.problemKPMs.length > 0
-                          ? Math.floor(
+                          ? Math.floor(gameState.stats.kpm)
+                          : gameState.problemKPMs &&
+                            gameState.problemKPMs.length > 0
+                            ? Math.floor(
                               gameState.problemKPMs
                                 .filter((kpm) => kpm > 0)
                                 .reduce((sum, kpm) => sum + kpm, 0) /
-                                gameState.problemKPMs.filter((kpm) => kpm > 0)
-                                  .length
+                              gameState.problemKPMs.filter((kpm) => kpm > 0)
+                                .length
                             )
-                          : 0
+                            : 0
                       )}
                     </span>
                   </div>
@@ -924,50 +923,38 @@ const RankingScreen = () => {
                       {gameState.stats && typeof gameState.stats.accuracy === 'number'
                         ? gameState.stats.accuracy.toFixed(1)
                         : gameState.accuracy
-                        ? gameState.accuracy.toFixed(1)
-                        : gameState.correctKeyCount &&
-                          (gameState.mistakes || gameState.mistakes === 0)
-                          ? (
+                          ? gameState.accuracy.toFixed(1)
+                          : gameState.correctKeyCount &&
+                            (gameState.mistakes || gameState.mistakes === 0)
+                            ? (
                               (gameState.correctKeyCount /
-                                (gameState.correctKeyCount +
-                                  gameState.mistakes)) *
+                                (gameState.correctKeyCount + gameState.mistakes)) *
                               100
                             ).toFixed(1)
-                          : 0}
-                      %
+                            : 0}
                     </span>
                   </div>
                 </div>
               )}
+            </div>
 
-              <div className={styles.modalActions}>
-                <Button
-                  variant="primary"
-                  size="medium"
-                  onClick={handleRegisterScore}
-                  disabled={
-                    isLoading ||
-                    !playerName.trim() ||
-                    registrationStatus.success
-                  }
-                >
-                  {isLoading ? '登録中...' : '登録する'}
-                </Button>
-                <Button
-                  variant="default"
-                  size="medium"
-                  onClick={handleCloseModal}
-                  disabled={isLoading}
-                >
-                  キャンセル
-                </Button>
-              </div>
+            <div className={styles.modalFooter}>
+              <Button
+                variant="primary"
+                size="medium"
+                onClick={handleRegisterScore}
+                loading={isLoading}
+                disabled={isLoading}
+                className={styles.registerButton}
+              >
+                登録
+              </Button>
             </div>
           </motion.div>
         </div>
       )}
 
-      {/* デバッグモード */}
+      {/* デバッグモーダル */}
       {showDebug && (
         <div className={styles.modalOverlay}>
           <motion.div
@@ -981,7 +968,7 @@ const RankingScreen = () => {
             }}
           >
             <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>デバッグモード</h2>
+              <h2 className={styles.modalTitle}>デバッグ情報</h2>
               <Button
                 variant="default"
                 size="small"
@@ -992,13 +979,17 @@ const RankingScreen = () => {
               </Button>
             </div>
             <div className={styles.modalBody}>
-              <pre>{JSON.stringify(debugData, null, 2)}</pre>
+              <pre className={styles.debugInfo}>
+                {JSON.stringify(debugData, null, 2)}
+              </pre>
             </div>
-            <div className={styles.modalActions}>
+
+            <div className={styles.modalFooter}>
               <Button
-                variant="default"
+                variant="primary"
                 size="medium"
                 onClick={closeDebug}
+                className={styles.closeButton}
               >
                 閉じる
               </Button>

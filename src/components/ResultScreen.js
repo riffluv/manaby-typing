@@ -31,7 +31,7 @@ const ResultScreen = ({
   useEffect(() => {
     console.log('ResultScreen: 受け取ったstats', stats);
     console.log('ResultScreen: gameStateからのstats', gameState?.stats);
-    
+
     // 外部propsとgameStateの両方からデータを確認
     const finalStats = stats || gameState?.stats;
     console.log('ResultScreen: 使用する統計情報', finalStats);
@@ -43,11 +43,11 @@ const ResultScreen = ({
         finalStats
       );
     }
-    
+
     // ローカルランキングにデータを保存
     const saveToLocalRanking = () => {
       if (!finalStats) return;
-      
+
       try {
         // 必要なデータを取得
         const kpm = finalStats.kpm || 0;
@@ -56,11 +56,11 @@ const ResultScreen = ({
         const mistakes = finalStats.missCount || 0;
         const difficulty = gameState?.difficulty || gameState?.settings?.difficulty || 'normal';
         const rank = TypingUtils.getRank(kpm);
-        
+
         console.log('ResultScreen: ローカルランキングにデータを保存します', {
           kpm, accuracy, timeInSeconds, mistakes, difficulty, rank
         });
-        
+
         // RecordUtilsの関数を呼び出してデータを保存
         const saved = saveGameRecord(
           kpm,
@@ -70,16 +70,16 @@ const ResultScreen = ({
           difficulty,
           rank
         );
-        
+
         console.log('ResultScreen: ローカルランキングの保存結果:', saved);
       } catch (error) {
         console.error('ResultScreen: ローカルランキング保存中にエラーが発生しました:', error);
       }
     };
-    
+
     // ランキングに保存
     saveToLocalRanking();
-    
+
   }, [stats, gameState]);
 
   // メニューに戻るハンドラー - 再利用可能なコールバックとして定義
@@ -192,61 +192,66 @@ const ResultScreen = ({
       console.log('ResultScreen: propsからの有効なstatsを使用します', stats);
       return stats;
     }
-    
+
     // 次にgameContextからのstatsを確認
     if (gameState && gameState.stats && gameState.stats.kpm !== undefined && gameState.stats.kpm > 0) {
       console.log('ResultScreen: gameContextからの有効なstatsを使用します', gameState.stats);
       return gameState.stats;
     }
-    
+
     // どちらも有効でない場合は最終手段としてデータを再構築
     console.warn('ResultScreen: 有効なKPMデータがありません。データの再構築を試みます');
-    
+
     // 利用可能なデータを集める
     const baseStats = stats || gameState?.stats || {};
     const problemStats = baseStats.problemStats || [];
-    
-    // 問題ごとのデータが存在すれば、それを使ってKPMを再計算
-    if (problemStats.length > 0) {
-      console.log('ResultScreen: 問題データを使ってKPM再計算', problemStats);
-      
-      // 総キー数と総時間を計算
-      let totalKeyCount = 0;
-      let totalTimeMs = 0;
-      
-      problemStats.forEach(problem => {
-        if (problem && problem.problemKeyCount && problem.problemElapsedMs) {
-          totalKeyCount += problem.problemKeyCount;
-          totalTimeMs += problem.problemElapsedMs;
-        }
-      });
-      
-      // KPM再計算
-      if (totalKeyCount > 0 && totalTimeMs > 0) {
-        const minutes = totalTimeMs / 60000;
-        const calculatedKpm = Math.floor(totalKeyCount / minutes);
-        console.log(`ResultScreen: KPM再計算: ${totalKeyCount}キー / ${minutes.toFixed(2)}分 = ${calculatedKpm}`);
-        
-        // 再構築したデータを返す
-        return {
-          ...baseStats,
-          kpm: calculatedKpm,
-          correctCount: baseStats.correctCount || totalKeyCount,
-          missCount: baseStats.missCount || 0,
-          accuracy: baseStats.accuracy || 100,
-          totalTime: baseStats.totalTime || (totalTimeMs / 1000)
-        };
+
+    // correctCount（正解キー数）がある場合は直接使用
+    const correctCount = baseStats.correctCount || 0;
+    const missCount = baseStats.missCount || 0;
+
+    console.log('ResultScreen: 再構築用データ', {
+      correctCount,
+      missCount,
+      problemStats,
+      baseStats
+    });
+
+    // 既存のKPM値を確認（0でなければ使用）
+    let kpm = baseStats.kpm || 0;
+
+    // KPMが0の場合、問題ごとのデータから計算を試みる
+    if (kpm <= 0 && problemStats.length > 0) {
+      console.log('ResultScreen: 問題データからKPMを再計算します');
+      kpm = TypingUtils.calculateAverageKPM(problemStats);
+      console.log('ResultScreen: 再計算したKPM:', kpm);
+    }
+
+    // それでもKPMが0の場合、経過時間から計算
+    if (kpm <= 0 && correctCount > 0) {
+      const elapsedTimeMs = baseStats.elapsedTimeMs || baseStats.totalTime * 1000 || 0;
+      if (elapsedTimeMs > 0) {
+        kpm = Math.floor(correctCount / (elapsedTimeMs / 60000));
+        console.log('ResultScreen: 時間からKPMを再計算:', kpm);
       }
     }
-    
-    // 最終的なフォールバック
+
+    // 最後の手段として、正解キー数が0より大きければ最低でも1を設定
+    if (kpm <= 0 && correctCount > 0) {
+      kpm = 1;
+      console.log('ResultScreen: 最低値としてKPM=1を設定');
+    }
+
+    // 再構築したデータを返す
     return {
+      ...baseStats,
+      kpm: kpm,
+      correctCount: correctCount,
+      missCount: missCount,
+      accuracy: baseStats.accuracy || (correctCount > 0 ?
+        (correctCount / (correctCount + missCount) * 100) : 100),
       totalTime: baseStats.totalTime || 0,
-      accuracy: baseStats.accuracy || 100,
-      kpm: baseStats.kpm || 0,
-      correctCount: baseStats.correctCount || 0,
-      missCount: baseStats.missCount || 0,
-      problemStats: problemStats
+      elapsedTimeMs: baseStats.elapsedTimeMs || baseStats.totalTime * 1000 || 0
     };
   }, [stats, gameState]);
 

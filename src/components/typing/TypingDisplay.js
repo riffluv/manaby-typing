@@ -36,15 +36,15 @@ const TypingDisplay = memo(
 
       // 拡張された色分け情報を活用
       const typedLength = coloringInfo?.typedLength || 0;
-      const currentCharIndex = coloringInfo?.currentCharIndex !== undefined 
+      const currentCharIndex = coloringInfo?.currentCharIndex !== undefined
         ? coloringInfo?.currentCharIndex : 0;
       const expectedNextChar = coloringInfo?.expectedNextChar || '';
       const currentInput = coloringInfo?.currentInput || '';
       const currentCharRomaji = coloringInfo?.currentCharRomaji || '';
-      
+
       // 正確に位置計算し、文字を分割する
       const typedText = cleanDisplayRomaji.substring(0, typedLength);
-      
+
       // 現在の文字の完全なローマ字表現を取得
       // 例: 「す」= "su" なら、"su"全体がcurrentCharPlaceholder
       const currentCharPlaceholder = currentCharRomaji;
@@ -70,7 +70,7 @@ const TypingDisplay = memo(
                 ))}
               </>
             )}
-            
+
             {/* 次に入力すべき文字（次のキー）- オレンジ色でハイライト */}
             {expectedNextChar && (
               <span className={styles.next_char_highlight}>

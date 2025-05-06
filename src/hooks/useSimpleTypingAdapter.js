@@ -38,30 +38,77 @@ export function useSimpleTypingAdapter(typingHook) {
         return current;
       };
 
-      // 既存のcoloringInfoから必要な情報を抽出
+      // まず、coloringInfoから必要な情報を抽出
+      const displayInfo = safeGet(typingHook, 'displayInfo', {});
       const coloringInfo = safeGet(typingHook, 'coloringInfo', {});
-      const typedLength = safeGet(coloringInfo, 'typedLength', 0);
-      let nextChar = safeGet(coloringInfo, 'expectedNextChar', '');
-      const currentInput = safeGet(coloringInfo, 'currentInput', '');
-      const currentCharRomaji = safeGet(coloringInfo, 'currentCharRomaji', '');
+
+      // typedLengthを正確に取得（複数の場所から試みる）
+      // 優先順位: coloringInfo > displayInfo > 直接参照
+      let typedLength = 0;
+      if (coloringInfo && coloringInfo.typedLength !== undefined) {
+        typedLength = coloringInfo.typedLength;
+      } else if (displayInfo && displayInfo.typedLength !== undefined) {
+        typedLength = displayInfo.typedLength;
+      }
+
+      // 各種情報も同じ方法で取得
+      let nextChar = '';
+      if (coloringInfo && coloringInfo.expectedNextChar) {
+        nextChar = coloringInfo.expectedNextChar;
+      } else if (displayInfo && displayInfo.expectedNextChar) {
+        nextChar = displayInfo.expectedNextChar;
+      }
+
+      // 現在の入力
+      const currentInput = safeGet(coloringInfo, 'currentInput', '') || 
+                          safeGet(displayInfo, 'currentInput', '');
+
+      // 現在入力中の文字の完全なローマ字表現
+      const currentCharRomaji = safeGet(coloringInfo, 'currentCharRomaji', '') ||
+                               safeGet(displayInfo, 'currentCharRomaji', '');
+
+      // romajiの取得方法を多様化 - typingHookの複数の場所から試みる
+      let romaji = '';
       
+      // 1. セッションから直接取得を試みる
+      const session = safeGet(typingHook, 'typingSession', null);
+      if (session && session.displayRomaji) {
+        romaji = session.displayRomaji;
+      } 
+      // 2. displayInfoから取得を試みる
+      else if (safeGet(typingHook, 'displayInfo.romaji', '')) {
+        romaji = safeGet(typingHook, 'displayInfo.romaji', '');
+      } 
+      // 3. 従来の場所から取得を試みる
+      else {
+        romaji = safeGet(typingHook, 'displayRomaji', '');
+      }
+
       // displayRomajiの末尾の'|'を削除（存在する場合）
-      let romaji = safeGet(typingHook, 'displayRomaji', '');
       if (romaji && romaji.endsWith('|')) {
         romaji = romaji.slice(0, -1);
       }
 
+      // ログ出力してデバッグ
+      console.log('【useSimpleTypingAdapter】データ取得結果:', {
+        romaji: romaji || '<空文字>',
+        typedLength,
+        nextChar: nextChar || '<なし>',
+        currentInput: currentInput || '<なし>',
+        currentCharRomaji: currentCharRomaji || '<なし>'
+      });
+
       // 入力モードを取得（子音入力中かどうか）
       const typingSession = safeGet(typingHook, 'typingSession', {});
       const consonantInput = safeGet(typingSession, 'consonantInput', false);
-      
+
       // 子音入力中の処理
       let inputMode = 'normal';
-      
+
       // 子音入力中かどうかを判定する複数の条件
       if (
         // 1. タイピングセッションが明示的に子音入力中であると示している場合
-        consonantInput || 
+        consonantInput ||
         // 2. 現在の入力が子音のみであり、かつその後に続く文字がある場合
         (currentInput && isConsonant(currentInput) && currentCharRomaji.length > currentInput.length) ||
         // 3. 現在の文字の完全なローマ字表現が存在し、それが入力よりも長い場合（子音入力の途中である）
@@ -69,7 +116,7 @@ export function useSimpleTypingAdapter(typingHook) {
       ) {
         inputMode = 'consonant';
       }
-      
+
       // 表示用の情報を作成
       return {
         romaji,
@@ -80,10 +127,11 @@ export function useSimpleTypingAdapter(typingHook) {
         inputMode,
         currentInput,
         currentCharRomaji, // 現在入力中の文字の完全なローマ字表現を追加
-        
+
         // オリジナルのフックのプロパティをパススルー（必要に応じて使用）
         originalHook: typingHook,
-        coloringInfo // 元のcoloringInfoも含める（デバッグに便利）
+        coloringInfo, // 元のcoloringInfoも含める（デバッグに便利）
+        displayInfo // displayInfoも含める
       };
     } catch (error) {
       console.error('useSimpleTypingAdapter エラー:', error);
@@ -101,7 +149,10 @@ export function useSimpleTypingAdapter(typingHook) {
     }
   }, [
     typingHook?.displayRomaji,
+    typingHook?.displayInfo?.romaji,
+    typingHook?.typingSession?.displayRomaji,
     typingHook?.coloringInfo,
+    typingHook?.displayInfo,
     typingHook?.errorAnimation,
     typingHook?.isCompleted,
     typingHook?.typingSession?.currentInput,
@@ -128,7 +179,7 @@ function isConsonant(char) {
  */
 function getPossibleVowels(consonant) {
   if (!consonant || consonant.length === 0) return ['a', 'i', 'u', 'e', 'o'];
-  
+
   // 一般的な子音に対応する可能な母音
   const vowelMap = {
     'k': ['a', 'i', 'u', 'e', 'o', 'y'],
@@ -152,7 +203,7 @@ function getPossibleVowels(consonant) {
     'q': ['a', 'i', 'u', 'e', 'o'],
     'x': ['a', 'i', 'u', 'e', 'o']
   };
-  
+
   const c = consonant.toLowerCase().charAt(0);
   return vowelMap[c] || ['a', 'i', 'u', 'e', 'o'];
 }

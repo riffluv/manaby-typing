@@ -37,7 +37,7 @@ const GameScreen = () => {
 
   // 最後に押されたキー（キーボード表示用）
   const [lastPressedKey, setLastPressedKey] = useState('');
-  
+
   // サウンド読み込み状態のフラグ
   const [soundsLoaded, setSoundsLoaded] = useState(false);
 
@@ -81,14 +81,19 @@ const GameScreen = () => {
         const correctKeyCount = typingStats.correctCount || 0;
         const elapsedTimeMs = endTime - startTime;
 
-        // Weather Typing公式計算方法で再計算
-        const calculatedKPM = TypingUtils.calculateWeatherTypingKPM(
+        // Weather Typing公式計算方法で再計算: 問題ごとのKPMの平均値を使用
+        const averageKPM = TypingUtils.calculateAverageKPM(problemStats);
+
+        console.log('【KPM計算】問題ごとのKPM平均値:', averageKPM);
+
+        // 従来のKPM計算方法（参考用）
+        const legacyKPM = TypingUtils.calculateWeatherTypingKPM(
           correctKeyCount,
           elapsedTimeMs,
           problemStats
         );
 
-        console.log('【KPM計算】再計算されたKPM:', calculatedKPM);
+        console.log('【KPM計算】従来方式のKPM:', legacyKPM);
 
         // 統計情報の計算
         const stats = {
@@ -96,9 +101,11 @@ const GameScreen = () => {
           correctCount: correctKeyCount,
           missCount: typingStats.missCount || 0,
           accuracy: typingStats.accuracy || 100,
-          kpm: calculatedKPM, // Weather Typing公式計算で算出したKPM
+          kpm: averageKPM, // Weather Typing公式計算: 問題ごとのKPMの平均値
+          legacyKpm: legacyKPM, // 従来計算方法も残しておく（参考値）
           problemKPMs: updatedProblemKPMs || [],
           problemStats: problemStats, // 問題ごとの詳細データ
+          elapsedTimeMs: elapsedTimeMs // 追加: リザルト画面でも使用できるように
         };
 
         console.log('【ゲームクリア】 統計情報計算結果:', stats);
@@ -182,11 +189,11 @@ const GameScreen = () => {
   useEffect(() => {
     typingRef.current = typing;
   }, [typing]);
-  
+
   // シンプル表示用のプロパティを取得（typingの初期化後に実行）
   const simpleProps = useSimpleTypingAdapter(typing);
 
-  // サウンドの初期化 - 改良版
+  // サウンドの初期化 - パフォーマンス最適化版
   useEffect(() => {
     let isMounted = true; // クリーンアップ用のフラグ
 
@@ -197,27 +204,23 @@ const GameScreen = () => {
         // AudioContextを確実に再開
         soundSystem.resume();
 
-        // buttonサウンドが特に重要なのでプリロードを確認
-        if (!soundSystem.sfxBuffers['button']) {
-          console.log(
-            '[GameScreen] ボタン音が読み込まれていません。個別にロードします...'
-          );
-          await soundSystem.loadSound(
-            'button',
-            soundSystem.soundPresets.button
-          );
-        }
+        // 効果音のプリロードを並列で行う（パフォーマンス向上）
+        const preloadSounds = ['success', 'error', 'button'];
+        await Promise.all(preloadSounds.map(name => 
+          soundSystem.loadSound(name, soundSystem.soundPresets[name])
+        ));
 
-        // すべての効果音を読み込み
-        await soundSystem.initializeAllSounds();
+        // 残りの効果音は後回し
+        setTimeout(() => {
+          soundSystem.loadSound('complete', soundSystem.soundPresets.complete)
+            .catch(e => console.error('効果音のロードに失敗:', e));
+        }, 1000);
 
         // コンポーネントがアンマウントされていなければ状態を更新
         if (isMounted) {
-          // 音声システムのステータスをコンソールに出力
           console.log('[GameScreen] サウンド初期化完了:', {
             contextState: soundSystem.context.state,
             loadedSounds: Object.keys(soundSystem.sfxBuffers),
-            volume: soundSystem.getSfxVolume(),
           });
 
           setSoundsLoaded(true);

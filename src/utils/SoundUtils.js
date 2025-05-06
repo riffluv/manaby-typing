@@ -239,10 +239,27 @@ class SoundUtils {
    * @param {string} name - 再生する効果音の名前
    */
   playSound(name) {
-    // 効果音が無効化されている場合は何もしない
+    // 効果音が無効化されている場合や、サーバーサイドの場合は何もしない
     if (typeof window === 'undefined' || !this.sfxEnabled) {
       return;
     }
+
+    // 多数の連続したリクエストを防ぐ（打撃音が詰まる問題の解決）
+    const now = Date.now();
+    const lastPlayTime = this._lastPlayTimes?.[name] || 0;
+    
+    // 同じ効果音の連続再生を防ぐための最小間隔（ミリ秒）
+    // タイピング音は特に短く設定
+    const minInterval = name === 'success' ? 10 : 30;
+    
+    if (now - lastPlayTime < minInterval) {
+      // 間隔が短すぎる場合はスキップ（パフォーマンス向上）
+      return;
+    }
+
+    // 最終再生時間を記録
+    if (!this._lastPlayTimes) this._lastPlayTimes = {};
+    this._lastPlayTimes[name] = now;
 
     // 大文字小文字を区別せずに名前を小文字に変換して処理
     const lowerName = name.toLowerCase();
@@ -319,15 +336,21 @@ class SoundUtils {
         });
       }
 
-      // 新しいバッファソースノードを作成
+      // パフォーマンス最適化: 再生ソースの管理を改善
       const sourceNode = this.context.createBufferSource();
       sourceNode.buffer = buffer;
 
       // ゲインノードに接続（音量調整のため）
       sourceNode.connect(this.gainNode);
 
-      // 再生開始
+      // 効果音の再生とクリーンアップの最適化
       sourceNode.start(0);
+      
+      // 各ソースノードのクリーンアップ処理
+      sourceNode.onended = () => {
+        sourceNode.disconnect();
+      };
+      
       return true;
     } catch (error) {
       console.error(`効果音の再生に失敗しました:`, error);
