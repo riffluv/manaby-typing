@@ -2,8 +2,7 @@
 .typingText {
   width: 100%;
   min-height: 2rem;
-  max-height: 4.5rem;
-  /* 最大高さを設定してスクロール可能に */
+  max-height: none; /* 最大高さの制限を解除 */
   padding: 0.3rem;
   border-radius: 8px;
   position: relative;
@@ -17,14 +16,10 @@
   color: #e0e0e0;
   margin-bottom: 0.2rem;
   background-color: rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-  /* 縦方向のスクロールのみ有効化 */
-  overflow-x: hidden;
-  /* 横方向のスクロールを無効化 */
+  overflow-y: visible; /* スクロールではなく表示領域を拡張 */
+  overflow-x: hidden; /* 横方向のスクロールを無効化 */
   overscroll-behavior: contain;
-  /* スクロールが親要素に伝播しないよう制御 */
   scroll-behavior: smooth;
-  /* スムーズスクロールを有効化 */
 }
 
 /* 内部コンテンツラッパー */
@@ -110,6 +105,7 @@
   letter-spacing: 0.05em;
   margin: 0 0.2rem;
   font-style: italic;
+  display: none; /* 省略記号（...）を非表示 */
 }
 
 /* タイピングカーソル */
@@ -164,38 +160,25 @@
   }
 }
 
-/* スクロールバーのカスタマイズ */
+/* スクロールバーは非表示に */
 .typingText::-webkit-scrollbar {
-  width: 5px;
+  width: 0;
+  height: 0;
 }
 
 .typingText::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  display: none;
 }
 
 .typingText::-webkit-scrollbar-thumb {
-  background: rgba(255, 154, 40, 0.4);
-  border-radius: 4px;
+  display: none;
 }
 
 .typingText::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 154, 40, 0.6);
+  display: none;
 }
 
 /* フォーカス要素が表示されていないときに表示するヒント要素 */
 .focusHint {
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: rgba(255, 154, 40, 0.2);
-  border-radius: 50%;
-  width: 1.2rem;
-  height: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.7;
-  pointer-events: none;
+  display: none; /* ヒント要素も非表示に */
 }
