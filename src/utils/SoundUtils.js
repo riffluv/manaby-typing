@@ -247,24 +247,48 @@ class SoundUtils {
     // 大文字小文字を区別せずに名前を小文字に変換して処理（最初に一度だけ処理）
     const lowerName = name.toLowerCase();
 
-    // 多数の連続したリクエストを防ぐ（打撃音が詰まる問題の解決）
-    const now = Date.now();
+    // タイピング関連音の処理を最適化
+    const isTypingSound = lowerName === 'success' || lowerName === 'error' || lowerName === 'miss';
 
-    // 最終再生時間の管理にはマップを使用
-    if (!this._lastPlayTimes) this._lastPlayTimes = {};
-    const lastPlayTime = this._lastPlayTimes[lowerName] || 0;
+    if (isTypingSound) {
+      // タイピング音は特別処理（より高速かつ低レイテンシー）
+      // 多数の連続したリクエストを防ぎつつ、レスポンシブさは維持
+      const now = Date.now();
+      if (!this._lastPlayTimes) this._lastPlayTimes = {};
+      const lastPlayTime = this._lastPlayTimes[lowerName] || 0;
 
-    // 同じ効果音の連続再生を防ぐための最小間隔（ミリ秒）
-    // タイピング音は特に短く設定
-    const minInterval = lowerName === 'success' ? 5 : 20;
+      // タイピング音の最小再生間隔を調整（さらに短く）
+      const minInterval = 3; // 3ミリ秒まで短縮
 
-    if (now - lastPlayTime < minInterval) {
-      // 間隔が短すぎる場合はスキップ（パフォーマンス向上）
-      return;
+      if (now - lastPlayTime < minInterval) {
+        // 間隔が短すぎる場合はスキップ（パフォーマンス向上）
+        return;
+      }
+
+      // 最終再生時間を記録
+      this._lastPlayTimes[lowerName] = now;
+
+      // バッファにあればすぐに再生（最適化パス）
+      if (this.sfxBuffers[lowerName]) {
+        this._fastPlayBuffer(this.sfxBuffers[lowerName]);
+        return;
+      }
+    } else {
+      // 通常の効果音
+      const now = Date.now();
+      if (!this._lastPlayTimes) this._lastPlayTimes = {};
+      const lastPlayTime = this._lastPlayTimes[lowerName] || 0;
+
+      // 通常の効果音は従来の間隔を維持
+      const minInterval = 20;
+
+      if (now - lastPlayTime < minInterval) {
+        return;
+      }
+
+      // 最終再生時間を記録
+      this._lastPlayTimes[lowerName] = now;
     }
-
-    // 最終再生時間を記録
-    this._lastPlayTimes[lowerName] = now;
 
     // バッファにあれば再生
     if (this.sfxBuffers[lowerName]) {
@@ -293,6 +317,41 @@ class SoundUtils {
           }
         })
         .catch(() => {/* エラーログは削減 */ });
+    }
+  }
+
+  /**
+   * バッファから効果音を高速再生する（タイピング音用の最適化版）
+   * @param {AudioBuffer} buffer - 再生するオーディオバッファ
+   * @private
+   */
+  _fastPlayBuffer(buffer) {
+    // サーバーサイド時やバッファがない場合は何もしない
+    if (typeof window === 'undefined' || !this.context || !buffer) {
+      return;
+    }
+
+    try {
+      // 最小限の処理でソースノードを作成
+      const sourceNode = this.context.createBufferSource();
+      sourceNode.buffer = buffer;
+
+      // ゲインノードに直接接続（処理ステップを削減）
+      sourceNode.connect(this.gainNode);
+
+      // 即時再生開始
+      sourceNode.start(0);
+
+      // オンエンドハンドラを設定せず、自動クリーンアップに任せる
+      // （接続解除の明示的コールバックを省略してCPU負荷を削減）
+
+      return true;
+    } catch (error) {
+      // 障害時のみエラーログ出力
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`効果音の高速再生に失敗:`, error);
+      }
+      return false;
     }
   }
 

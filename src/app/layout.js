@@ -25,6 +25,32 @@ export default function RootLayout({ children }) {
             }, true);
           `
         }} />
+
+        {/* MCP初期化スクリプト */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            // MCPオブジェクトの初期化
+            window._mcp = window._mcp || {
+              send: function(channel, data) {
+                console.log('[MCP] メッセージ送信:', channel, data);
+                return true;
+              },
+              sendMessage: function(channel, data) {
+                console.log('[MCP] メッセージ送信:', channel, data);
+                return true;
+              },
+              setContext: function(context) {
+                console.log('[MCP] コンテキスト設定:', context);
+                this.context = context;
+                return true;
+              },
+              context: { id: 'local-session-' + Date.now() },
+              handlers: new Map(),
+              eventListeners: new Map()
+            };
+            console.log('[MCP] 初期化完了');
+          `
+        }} />
       </head>
       <body
         className={fontClasses}  // Geistの代わりにfonts.jsで定義したフォントクラスを使用
@@ -37,12 +63,10 @@ export default function RootLayout({ children }) {
           backgroundColor: '#111'
         }}
       >
-        {/* MCPサーバー接続初期化 */}
-        <MCPInitializer />
-        
-        {/* ここではクライアントコンポーネントを直接インポートできないため、
-            下層のページコンポーネントに背景を表示させる */}
-        {children}
+        {/* MCPサーバー接続初期化 - childrenを渡す */}
+        <MCPInitializer>
+          {children}
+        </MCPInitializer>
       </body>
     </html>
   );

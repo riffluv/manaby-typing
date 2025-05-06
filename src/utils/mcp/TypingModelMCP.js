@@ -394,18 +394,19 @@ export class TypingModelMCP {
       return { success: false, status: 'already_completed' };
     }
 
-    // 現在時刻を記録
-    const now = Date.now();
+    // パフォーマンス計測開始
+    const startTime = performance.now && performance.now();
 
     // 入力文字を半角に変換
     const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key.toLowerCase());
 
-    // 既存のセッション処理を使用
+    // 既存のセッション処理を使用（最も処理時間のかかる部分）
     const result = session.processInput(halfWidthChar);
 
     // 処理結果に基づいて状態を更新
     if (result.success) {
       // 正解時の処理
+      const now = Date.now();
 
       // 初回入力時のみ開始時間を記録
       if (!this._state.stats.startTime) {
@@ -425,11 +426,11 @@ export class TypingModelMCP {
         this._state.display.isCompleted = true;
       }
 
-      // 表示情報を更新
-      this._updateDisplayInfo();
+      // 表示情報を更新（最も頻度の高い処理なので最適化）
+      this._fastUpdateDisplayInfo();
 
-      // 統計情報を更新（必要に応じてスロットリング）
-      this._updateStats();
+      // 統計情報を更新（さらにスロットリングを強化）
+      this._updateStatsThrottled();
     } else {
       // 不正解時の処理
 
@@ -448,10 +449,103 @@ export class TypingModelMCP {
         this._state.display.isError = false;
         this._errorAnimationTimerId = null;
 
-        // 表示情報の更新イベントを発行
+        // 表示情報の更新イベントを発行（頻度を抑える）
         this._emitEvent(TypingEvents.DISPLAY_UPDATED, {
           displayInfo: this.getDisplayInfo()
         });
+      }, 200);
+    }
+
+    // パフォーマンス計測終了
+    if (performance.now) {
+      const processingTime = performance.now() - startTime;
+
+      // 処理時間が長い場合のみログ出力（デバッグ用）
+      if (processingTime > 16.67) { // 60fps = 16.67ms/frame
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[TypingModelMCP] 処理時間が長すぎます: ${processingTime.toFixed(2)}ms`);
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * MCPを介さず直接タイピング入力を処理する高速メソッド
+   * タイピングのレスポンス処理を最優先するための直接パス
+   * @param {string} key 入力キー
+   * @returns {Object} 処理結果
+   */
+  processLocalInput(key) {
+    const session = this._state.internal.session;
+
+    if (!session) {
+      return { success: false, status: 'no_session' };
+    }
+
+    // 入力が完了している場合は処理しない
+    if (this._state.internal.completed) {
+      return { success: false, status: 'already_completed' };
+    }
+
+    // 入力文字を半角に変換
+    const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key.toLowerCase());
+
+    // 既存のセッション処理を使用
+    const result = session.processInput(halfWidthChar);
+
+    // 処理結果に基づいて状態を更新
+    if (result.success) {
+      // 正解時の処理
+      const now = Date.now();
+
+      // 初回入力時のみ開始時間を記録
+      if (!this._state.stats.startTime) {
+        this._state.stats.startTime = now;
+      }
+
+      if (!this._state.stats.currentProblemStartTime) {
+        this._state.stats.currentProblemStartTime = now;
+      }
+
+      // 統計情報を更新
+      this._state.stats.correctKeyCount += 1;
+
+      // 完了状態の更新
+      if (result.status === 'all_completed') {
+        this._state.internal.completed = true;
+        this._state.display.isCompleted = true;
+      }
+
+      // 表示情報を高速更新（最小限の更新のみ行う）
+      this._fastUpdateDisplayInfoLocal();
+
+      // 統計情報の更新は低頻度で行う（レスポンスには影響しない）
+      this._updateStatsThrottled();
+    } else {
+      // 不正解時の処理
+      // 統計情報を更新
+      this._state.stats.mistakeCount += 1;
+
+      // エラーアニメーション状態を設定
+      this._state.display.isError = true;
+
+      // エラー状態のクリア処理は遅延させてメインスレッドをブロックしない
+      if (this._errorAnimationTimerId) {
+        clearTimeout(this._errorAnimationTimerId);
+      }
+
+      this._errorAnimationTimerId = setTimeout(() => {
+        this._state.display.isError = false;
+        this._errorAnimationTimerId = null;
+
+        // 表示情報の更新イベントは非同期で発行
+        setTimeout(() => {
+          this._emitEvent(TypingEvents.DISPLAY_UPDATED, {
+            displayInfo: this.getDisplayInfo()
+          });
+        }, 0);
       }, 200);
     }
 
@@ -459,88 +553,69 @@ export class TypingModelMCP {
   }
 
   /**
-   * 内部メソッド: 問題完了処理
-   * @returns {Object} 問題ごとの統計情報
+   * ローカル処理用の高速表示情報更新メソッド（MCP通信なし）
    * @private
    */
-  _completeProblem() {
-    // 問題がすでに完了している場合は何もしない
-    if (this._state.internal.completed) {
-      return { alreadyCompleted: true };
-    }
-
-    // 完了状態に設定
-    this._state.internal.completed = true;
-    this._state.display.isCompleted = true;
-
-    // 現在時刻を取得
-    const now = Date.now();
-
-    // 問題ごとの統計情報を計算
-    const stats = this._state.stats;
-    const problemElapsedMs = stats.currentProblemStartTime
-      ? now - stats.currentProblemStartTime
-      : 0;
-    const problemKeyCount = stats.correctKeyCount || 0;
-
-    // 問題のKPMを計算
-    const problemKPM = problemElapsedMs > 0
-      ? Math.floor((problemKeyCount / (problemElapsedMs / 60000)))
-      : 0;
-
-    // 問題の詳細データを作成
-    const problemData = {
-      problemKeyCount,
-      problemElapsedMs,
-      problemKPM
-    };
-
-    // 統計情報を更新
-    stats.problemStats = [...(stats.problemStats || []), problemData];
-
-    // 進捗100%に設定
-    this._state.display.progressPercentage = 100;
-
-    // 統計情報を更新
-    this._updateStats(true);
-
-    // 表示情報を更新
-    this._updateDisplayInfo();
-
-    return {
-      problemKeyCount,
-      problemElapsedMs,
-      problemKPM,
-      problemStats: stats.problemStats
-    };
-  }
-
-  /**
-   * 内部メソッド: 表示情報の更新
-   * @private
-   */
-  _updateDisplayInfo() {
+  _fastUpdateDisplayInfoLocal() {
     const session = this._state.internal.session;
+    if (!session) return;
 
-    if (!session) {
-      return;
-    }
-
-    // sessionからcoloringInfoを取得
+    // 最小限の情報のみを直接更新（パフォーマンス重視）
     const coloringInfo = session.getColoringInfo();
 
-    // 表示情報を更新
-    this._state.display.romaji = session.displayRomaji || '';
     this._state.display.typedLength = coloringInfo.typedLength || 0;
     this._state.display.nextChar = coloringInfo.expectedNextChar || '';
     this._state.display.currentInput = coloringInfo.currentInput || '';
-    this._state.display.currentCharRomaji = coloringInfo.currentCharRomaji || '';
 
-    // 子音入力状態の判定
-    this._state.display.inputMode = this._determineInputMode(
-      coloringInfo.currentInput,
-      coloringInfo.currentCharRomaji
-    );
+    // 子音入力状態の簡易判定
+    if (coloringInfo.currentInput) {
+      const currentInput = coloringInfo.currentInput;
+      const currentCharRomaji = coloringInfo.currentCharRomaji || '';
+
+      this._state.display.inputMode = currentCharRomaji &&
+        currentInput &&
+        currentCharRomaji.length > currentInput.length
+        ? 'consonant' : 'normal';
+      this._state.display.currentCharRomaji = currentCharRomaji;
+    }
+
+    // イベント発行はメインスレッドをブロックしない形で非同期実行
+    setTimeout(() => {
+      this._emitEvent(TypingEvents.DISPLAY_UPDATED, {
+        displayInfo: this.getDisplayInfo()
+      });
+    }, 0);
+  }
+
+  /**
+   * 内部メソッド: 表示情報の高速更新（最適化版）
+   * 通常の更新よりも軽量に実装し、高頻度の呼び出しに対応
+   * @private
+   */
+  _fastUpdateDisplayInfo() {
+    const session = this._state.internal.session;
+    if (!session) return;
+
+    // 最小限の情報のみ更新（パフォーマンス重視）
+    const coloringInfo = session.getColoringInfo();
+
+    this._state.display.typedLength = coloringInfo.typedLength || 0;
+    this._state.display.nextChar = coloringInfo.expectedNextChar || '';
+    this._state.display.currentInput = coloringInfo.currentInput || '';
+
+    // 子音入力状態の判定（簡略化）
+    if (coloringInfo.currentInput) {
+      const currentInput = coloringInfo.currentInput;
+      const currentCharRomaji = coloringInfo.currentCharRomaji || '';
+
+      // 子音入力中の簡易判定
+      const isConsonant = currentCharRomaji &&
+        currentInput &&
+        currentCharRomaji.length > currentInput.length;
+
+      this._state.display.inputMode = isConsonant ? 'consonant' : 'normal';
+      this._state.display.currentCharRomaji = currentCharRomaji;
+    }
 
     // 表示情報の更新イベントを発行
     this._emitEvent(TypingEvents.DISPLAY_UPDATED, {
@@ -549,210 +624,22 @@ export class TypingModelMCP {
   }
 
   /**
-   * 内部メソッド: 入力モードの判定
-   * @param {string} currentInput 現在の入力
-   * @param {string} currentCharRomaji 現在入力中の文字の完全なローマ字表現
-   * @returns {string} 入力モード ('normal'/'consonant')
+   * 内部メソッド: スロットリングされた統計情報の更新
    * @private
    */
-  _determineInputMode(currentInput, currentCharRomaji) {
-    // 入力がなければnormal
-    if (!currentInput) return 'normal';
-
-    // 子音のみかどうか判定
-    const isConsonant = (char) => {
-      if (!char || char.length === 0) return false;
-      const consonants = ['b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'm', 'n', 'p', 'q', 'r', 's', 't', 'v', 'w', 'x', 'y', 'z'];
-      return consonants.includes(char.toLowerCase().charAt(0));
-    };
-
-    // 子音入力中の条件
-    if (
-      // 1. セッションが明示的に子音入力中であると示している場合
-      (this._state.internal.session && this._state.internal.session.consonantInput) ||
-      // 2. 現在の入力が子音のみであり、かつその後に続く文字がある場合
-      (currentInput && isConsonant(currentInput) && currentCharRomaji && currentCharRomaji.length > currentInput.length) ||
-      // 3. 現在の文字の完全なローマ字表現が存在し、それが入力よりも長い場合（子音入力の途中である）
-      (currentCharRomaji && currentInput && currentCharRomaji.length > currentInput.length)
-    ) {
-      return 'consonant';
-    }
-
-    return 'normal';
-  }
-
-  /**
-   * 内部メソッド: 統計情報の更新
-   * @param {boolean} force 強制更新フラグ
-   * @private
-   */
-  _updateStats(force = false) {
-    // 既存のタイマーをクリア
-    if (force && this._statsUpdateTimerId) {
-      clearTimeout(this._statsUpdateTimerId);
-      this._statsUpdateTimerId = null;
-    }
-
-    // スロットリング（前回の更新から500ms以上経過している場合または強制更新の場合のみ更新）
+  _updateStatsThrottled() {
+    // パフォーマンス重視のため、より厳しいスロットリングを適用
     const now = Date.now();
     const lastUpdateTime = this._lastStatsUpdateTime || 0;
-    const statsUpdateDebounceTime = 500; // 500ms
+    const statsUpdateThrottleTime = 1000; // 1秒に1回まで制限
 
-    if (force || !this._statsUpdateTimerId && (!lastUpdateTime || now - lastUpdateTime > statsUpdateDebounceTime)) {
+    if (!this._statsUpdateTimerId && now - lastUpdateTime > statsUpdateThrottleTime) {
       this._statsUpdateTimerId = setTimeout(() => {
         this._calculateStats();
         this._lastStatsUpdateTime = Date.now();
         this._statsUpdateTimerId = null;
-      }, 100);
+      }, 200); // 非同期で実行して入力遅延を防止
     }
-  }
-
-  /**
-   * 内部メソッド: 統計情報の計算
-   * @private
-   */
-  _calculateStats() {
-    const stats = this._state.stats;
-    const correctCount = stats.correctKeyCount;
-    const missCount = stats.mistakeCount;
-    const totalCount = correctCount + missCount;
-
-    // 正確性の計算
-    const accuracy = totalCount > 0 ? (correctCount / totalCount) * 100 : 0;
-    stats.accuracy = parseFloat(accuracy.toFixed(2));
-
-    // KPMの計算
-    let kpm = 0;
-
-    // 問題データがある場合は平均KPMを計算 (最も信頼性の高い方法)
-    if (stats.problemStats && stats.problemStats.length > 0) {
-      // Weather Typing方式：各問題のKPMの平均値を使う
-      kpm = TypingUtils.calculateAverageKPM(stats.problemStats);
-    } else {
-      // 問題データがない場合は通常の計算方法を使用
-      const startTime = stats.startTime || Date.now();
-      const elapsedTimeMs = Date.now() - startTime;
-
-      // ゼロ除算を防ぐ
-      if (elapsedTimeMs > 0) {
-        kpm = Math.floor(correctCount / (elapsedTimeMs / 60000));
-      }
-    }
-
-    // KPMが依然として0の場合は、最低値として1を設定
-    if (kpm <= 0 && correctCount > 0) {
-      kpm = 1;
-    }
-
-    stats.kpm = kpm;
-
-    // 経過時間の更新
-    const startTime = stats.startTime || Date.now();
-    stats.elapsedTimeSeconds = Math.floor((Date.now() - startTime) / 1000);
-
-    // ランクの更新
-    stats.rank = TypingUtils.getRank(kpm);
-
-    // 統計情報の更新イベントを発行
-    this._emitEvent(TypingEvents.STATS_UPDATED, {
-      stats: this._state.stats
-    });
-  }
-
-  /**
-   * イベントの発行
-   * @param {string} eventName イベント名
-   * @param {Object} data イベントデータ
-   * @private
-   */
-  _emitEvent(eventName, data) {
-    // MCPを通じてイベントを発行
-    if (typeof window !== 'undefined' && window._mcp) {
-      window._mcp.send?.(eventName, data);
-    }
-
-    // 内部リスナーに通知
-    const listeners = this._listeners.get(eventName) || [];
-    listeners.forEach(listener => {
-      try {
-        listener(data);
-      } catch (error) {
-        console.error(`[TypingModelMCP] リスナー実行エラー (${eventName}):`, error);
-      }
-    });
-  }
-
-  /**
-   * 公開メソッド: イベントリスナーを登録
-   * @param {string} eventName イベント名
-   * @param {Function} listener リスナー関数
-   * @returns {Function} 登録解除関数
-   */
-  addEventListener(eventName, listener) {
-    if (typeof listener !== 'function') {
-      throw new Error('リスナーは関数である必要があります');
-    }
-
-    // リスナーリストを取得または作成
-    const listeners = this._listeners.get(eventName) || [];
-
-    // リスナーを追加
-    listeners.push(listener);
-    this._listeners.set(eventName, listeners);
-
-    // 登録解除関数を返す
-    return () => {
-      const currentListeners = this._listeners.get(eventName) || [];
-      const index = currentListeners.indexOf(listener);
-
-      if (index !== -1) {
-        currentListeners.splice(index, 1);
-        this._listeners.set(eventName, currentListeners);
-      }
-    };
-  }
-
-  /**
-   * 公開メソッド: イベントリスナーを削除
-   * @param {string} eventName イベント名
-   * @param {Function} listener リスナー関数
-   */
-  removeEventListener(eventName, listener) {
-    const listeners = this._listeners.get(eventName) || [];
-    const index = listeners.indexOf(listener);
-
-    if (index !== -1) {
-      listeners.splice(index, 1);
-      this._listeners.set(eventName, listeners);
-    }
-  }
-
-  /**
-   * 公開メソッド: 現在の状態を取得
-   * @returns {Object} 状態オブジェクト
-   */
-  getState() {
-    return {
-      display: { ...this._state.display },
-      stats: { ...this._state.stats },
-      problem: { ...this._state.problem }
-    };
-  }
-
-  /**
-   * 公開メソッド: 表示情報を取得
-   * @returns {Object} 表示情報
-   */
-  getDisplayInfo() {
-    return { ...this._state.display };
-  }
-
-  /**
-   * 公開メソッド: 統計情報を取得
-   * @returns {Object} 統計情報
-   */
-  getStats() {
-    return { ...this._state.stats };
   }
 }
 

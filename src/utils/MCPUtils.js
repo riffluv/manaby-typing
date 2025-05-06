@@ -28,62 +28,62 @@ class MCPUtils {
     return new Promise((resolve, reject) => {
       try {
         console.log('[MCPUtils] MCP初期化を開始します');
-        
+
         // MCP接続の確認
         if (typeof window === 'undefined' || !window._mcp) {
           console.warn('[MCPUtils] MCP接続が利用できません');
           return resolve();
         }
-        
+
         // MCPシステムの機能拡張
         this._extendMCP();
-        
+
         // 各モジュールのMCP初期化を実行
         Promise.all([
           this._initializeTypingMCP(),
           // 他のMCPモジュールの初期化
         ])
-        .then(() => {
-          console.log('[MCPUtils] MCPの初期化が完了しました');
-          resolve();
-        })
-        .catch((error) => {
-          console.error('[MCPUtils] MCP初期化エラー:', error);
-          reject(error);
-        });
+          .then(() => {
+            console.log('[MCPUtils] MCPの初期化が完了しました');
+            resolve();
+          })
+          .catch((error) => {
+            console.error('[MCPUtils] MCP初期化エラー:', error);
+            reject(error);
+          });
       } catch (error) {
         console.error('[MCPUtils] MCP初期化の例外:', error);
         reject(error);
       }
     });
   }
-  
+
   /**
    * MCPシステムを拡張する
    * @private
    */
   _extendMCP() {
     if (typeof window === 'undefined' || !window._mcp) return;
-    
+
     const mcp = window._mcp;
-    
+
     // MCPハンドラー登録機能（存在しない場合のみ追加）
     if (!mcp.registerHandler) {
       mcp.handlers = new Map();
-      
-      mcp.registerHandler = function(eventName, handler) {
+
+      mcp.registerHandler = function (eventName, handler) {
         if (typeof handler !== 'function') {
           console.error('[MCP] ハンドラは関数である必要があります:', eventName);
           return;
         }
-        
+
         this.handlers.set(eventName, handler);
         console.log(`[MCP] ハンドラを登録しました: ${eventName}`);
       };
-      
+
       // コールバック付きsend機能の拡張
       const originalSend = mcp.send || mcp.sendMessage;
-      mcp.send = function(channel, data, callback) {
+      mcp.send = function (channel, data, callback) {
         // ハンドラの実行
         const handler = this.handlers.get(channel);
         if (handler) {
@@ -101,33 +101,33 @@ class MCPUtils {
           }
           return null;
         }
-        
+
         // ハンドラがない場合は元の送信処理を実行
         if (originalSend) {
           originalSend.call(this, channel, data);
         } else {
           console.warn(`[MCP] チャンネル ${channel} のハンドラがありません`);
         }
-        
+
         if (callback && typeof callback === 'function') {
           callback(null);
         }
         return null;
       };
-      
+
       // イベントリスナー機能の追加
       mcp.eventListeners = new Map();
-      
-      mcp.on = function(eventName, listener) {
+
+      mcp.on = function (eventName, listener) {
         if (typeof listener !== 'function') {
           console.error('[MCP] リスナーは関数である必要があります:', eventName);
           return;
         }
-        
+
         const listeners = this.eventListeners.get(eventName) || [];
         listeners.push(listener);
         this.eventListeners.set(eventName, listeners);
-        
+
         // 登録解除関数を返す
         return () => {
           const currentListeners = this.eventListeners.get(eventName) || [];
@@ -138,8 +138,8 @@ class MCPUtils {
           }
         };
       };
-      
-      mcp.off = function(eventName, listener) {
+
+      mcp.off = function (eventName, listener) {
         const listeners = this.eventListeners.get(eventName) || [];
         const index = listeners.indexOf(listener);
         if (index !== -1) {
@@ -147,15 +147,15 @@ class MCPUtils {
           this.eventListeners.set(eventName, listeners);
         }
       };
-      
+
       // 元のsendMessageをラップして、イベントリスナーに通知するようにする
       const originalSendMessage = mcp.sendMessage;
-      mcp.sendMessage = function(channel, data) {
+      mcp.sendMessage = function (channel, data) {
         // 元の送信処理を実行
         if (originalSendMessage) {
           originalSendMessage.call(this, channel, data);
         }
-        
+
         // リスナーに通知
         const listeners = this.eventListeners.get(channel) || [];
         listeners.forEach(listener => {
@@ -167,10 +167,10 @@ class MCPUtils {
         });
       };
     }
-    
+
     console.log('[MCPUtils] MCPシステムを拡張しました');
   }
-  
+
   /**
    * タイピングゲーム用のMCPを初期化する
    * @returns {Promise<void>}
@@ -195,128 +195,211 @@ class MCPUtils {
       }
     });
   }
-  
+
   /**
    * MCPが利用可能かどうかを確認する
    * @returns {boolean} MCPが利用可能な場合はtrue
    */
-  isMCPAvailable() {
-    return typeof window !== 'undefined' && !!window._mcp;
+  isMCPAvailable(detailed = false) {
+    try {
+      const basicCheck = typeof window !== 'undefined' && !!window._mcp;
+
+      if (!detailed) {
+        return basicCheck;
+      }
+
+      // 詳細なステータスチェック
+      if (!basicCheck) {
+        return {
+          available: false,
+          status: 'not_available',
+          reason: 'MCP object not found in window',
+          time: Date.now()
+        };
+      }
+
+      // MCP APIの状態チェック
+      const apiCheck = typeof window._mcp.send === 'function' &&
+        typeof window._mcp.on === 'function';
+
+      // コンテキスト状態の確認
+      const contextCheck = contextManagerInstance &&
+        contextManagerInstance.context &&
+        contextManagerInstance.context.id;
+
+      // 接続状態の判定
+      let connectionStatus = 'unknown';
+      if (apiCheck && contextCheck) {
+        connectionStatus = 'connected';
+      } else if (apiCheck && !contextCheck) {
+        connectionStatus = 'api_available_no_context';
+      } else if (!apiCheck) {
+        connectionStatus = 'api_incomplete';
+      }
+
+      return {
+        available: apiCheck,
+        status: connectionStatus,
+        apiMethods: {
+          send: typeof window._mcp.send === 'function',
+          on: typeof window._mcp.on === 'function',
+          off: typeof window._mcp.off === 'function',
+          setContext: typeof window._mcp.setContext === 'function'
+        },
+        hasContext: !!contextCheck,
+        time: Date.now()
+      };
+    } catch (err) {
+      if (detailed) {
+        return {
+          available: false,
+          status: 'error',
+          error: err.message,
+          time: Date.now()
+        };
+      }
+      return false;
+    }
+  }
+
+  /**
+   * 接続状態を詳細に確認する
+   * @returns {Promise<Object>} 接続状態の詳細情報
+   */
+  async checkConnection() {
+    const status = this.isMCPAvailable(true);
+
+    // 基本チェックに失敗した場合はそのまま返す
+    if (!status.available) {
+      return status;
+    }
+
+    // 接続のアクティブ状態を確認する簡易的なping/pong
+    try {
+      let pingSuccess = false;
+
+      // Promiseベースのping確認
+      const pingResult = await new Promise((resolve) => {
+        // タイムアウト設定
+        const timeoutId = setTimeout(() => {
+          resolve({ success: false, reason: 'timeout' });
+        }, 1000);
+
+        // pingリクエスト
+        if (window._mcp.send) {
+          const pingHandler = (response) => {
+            clearTimeout(timeoutId);
+            window._mcp.off?.('pong', pingHandler);
+            resolve({ success: true, response });
+          };
+
+          // pongリスナー登録
+          window._mcp.on?.('pong', pingHandler);
+
+          // ping送信
+          window._mcp.send('ping', { timestamp: Date.now() });
+        } else {
+          clearTimeout(timeoutId);
+          resolve({ success: false, reason: 'no_send_method' });
+        }
+      });
+
+      // ping結果を状態に追加
+      status.pingCheck = pingResult;
+      status.alive = pingResult.success;
+
+      return status;
+    } catch (err) {
+      status.pingCheck = { success: false, error: err.message };
+      status.alive = false;
+      return status;
+    }
   }
 }
-
-// シングルトンインスタンスを作成
-const mcpUtilsInstance = new MCPUtils();
 
 /**
  * MCPContextManager
  * MCPのコンテキスト管理とメトリクス収集を行うクラス
+ * リファクタリング分析目的のみに使用し、タイピング処理のレスポンスには影響を与えない設計
  */
 class MCPContextManager {
   constructor() {
-    this.isInitialized = false;
+    // MCPの有効/無効フラグ
+    this.mcpEnabled = typeof window !== 'undefined' && !!window._mcp;
+
+    // MCPのコンテキスト情報
+    this.context = {
+      id: null,           // セッションID
+      type: null,         // コンテキストタイプ
+      modelName: null,    // モデル名
+      modelVersion: null, // モデルバージョン
+      metadata: {}        // メタデータ
+    };
+
+    // メトリクスバッファ（一括送信のため）
     this.metricsBuffer = [];
-    this.contextSessions = new Map();
-    this.debugMode = process.env.NODE_ENV === 'development';
-    this.mcpEnabled = typeof window !== 'undefined' &&
-      !!(window._mcp || window.__MCP_CONNECTION__);
+
+    // 分析用データ
+    this.analyticsData = {
+      startTime: Date.now(),
+      totalEvents: 0,
+      lastBatchTime: null,
+      batchCount: 0,
+      eventTypes: {}
+    };
+
+    // バックグラウンド処理フラグ
+    this.isBackgroundProcessing = false;
+
+    // WEB WORKERのサポート確認
+    this.workerSupported = typeof Worker !== 'undefined';
+    this.worker = null;
+
+    console.log(`[MCP] 初期化完了 (有効: ${this.mcpEnabled}, Worker: ${this.workerSupported ? 'サポート' : '未サポート'})`);
   }
 
   /**
-   * MCPマネージャーを初期化する
+   * 初期化処理
    */
-  async initialize() {
-    if (this.isInitialized || typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      // MCPサーバー接続を検出
-      if (window._mcp || window.__MCP_CONNECTION__) {
-        console.log('[MCP] MCPサーバー接続を検出しました');
-        this.mcpEnabled = true;
-
-        // グローバルエラーハンドラ登録
-        window.addEventListener('error', this.handleGlobalError.bind(this));
-
-        // パフォーマンスモニタリング開始
-        if (typeof window.performance !== 'undefined') {
-          this.startPerformanceMonitoring();
-        }
-
-        this.isInitialized = true;
-        console.log('[MCP] コンテキストマネージャー初期化完了');
-      } else {
-        console.log('[MCP] MCPサーバー接続が検出されませんでした');
-        this.mcpEnabled = false;
-      }
-    } catch (err) {
-      console.error('[MCP] 初期化エラー:', err);
-      this.mcpEnabled = false;
-    }
+  initialize() {
+    // 初期化処理（必要に応じて実装）
+    return Promise.resolve();
   }
 
   /**
-   * モジュールを読み込んだことをMCPに通知する
-   * @param {string} moduleId - モジュールID
-   * @param {string} modulePath - モジュールのパス
+   * MCPコンテキストを設定
+   * @param {Object} contextData - コンテキスト情報
    */
-  registerModuleLoad(moduleId, modulePath) {
-    if (!this.mcpEnabled) return;
+  setContext(contextData) {
+    if (!this.mcpEnabled || !contextData) return;
 
     try {
-      const moduleData = {
-        id: moduleId,
-        path: modulePath,
-        loadTime: Date.now(),
-        contextType: 'module-load'
+      // コンテキスト情報を設定
+      this.context = {
+        ...this.context,
+        ...contextData,
+        updatedAt: new Date().toISOString()
       };
 
-      this.sendToMCP('module:load', moduleData);
-
-      if (this.debugMode) {
-        console.log(`[MCP] モジュール読み込み: ${moduleId} (${modulePath})`);
+      // MCP側にコンテキストを通知（分析専用）
+      if (window._mcp) {
+        window._mcp.setContext?.(this.context);
+        console.log('[MCP] コンテキストを設定しました:', this.context);
       }
     } catch (err) {
-      console.error(`[MCP] モジュール登録エラー: ${moduleId}`, err);
+      console.error('[MCP] コンテキスト設定エラー:', err);
     }
   }
 
   /**
-   * コンポーネントをレンダリングしたことをMCPに通知する
-   * @param {string} componentName - コンポーネント名
+   * MCPが有効かどうかを返す
    */
-  registerComponentRender(componentName) {
-    if (!this.mcpEnabled) return;
-
-    try {
-      const timestamp = Date.now();
-      const renderData = {
-        component: componentName,
-        timestamp: timestamp,
-        contextType: 'component-render'
-      };
-
-      // レンダリング時間を計測するためのセッション開始
-      if (!this.contextSessions.has(componentName)) {
-        this.contextSessions.set(componentName, {
-          startTime: timestamp,
-          renderCount: 1
-        });
-      } else {
-        const session = this.contextSessions.get(componentName);
-        session.renderCount++;
-        this.contextSessions.set(componentName, session);
-      }
-
-      this.sendToMCP('component:render', renderData);
-    } catch (err) {
-      console.error(`[MCP] コンポーネント登録エラー: ${componentName}`, err);
-    }
+  get isActive() {
+    return this.mcpEnabled && !!this.context.id;
   }
 
   /**
-   * タイピング入力をMCPに記録する
+   * タイピング入力をMCPに記録する（分析専用）
    * @param {Object} typingData - タイピング関連データ
    */
   recordTypingInput(typingData) {
@@ -329,23 +412,24 @@ class MCPContextManager {
         ...typingData,
         contextType: 'typing-event',
         source: typingData.fromWorker ? 'worker' : 'main-thread',
-        perfData: {
-          latency: typingData.latency || null,
-          frameTime: typingData.frameTime || null,
-          processingTime: typingData.processingTime || null,
-          isHighFrequency: typingData.isHighFrequency || false
-        }
+        isAnalyticsOnly: typingData.isAnalyticsOnly || false
       };
 
-      // バッファリングして一度に送信する（パフォーマンス向上のため）
+      // バッファリングして一度に送信
       this.metricsBuffer.push(typingMetric);
 
-      // 高リフレッシュレート環境の場合、小さめのバッチサイズでフラッシュ
-      const batchThreshold = typingData.isHighFrequency ? 10 : 20;
+      // 分析データを更新
+      this.analyticsData.totalEvents++;
+      const eventType = typingData.isBackspace ? 'backspace' : 'char';
+      this.analyticsData.eventTypes[eventType] = (this.analyticsData.eventTypes[eventType] || 0) + 1;
+
+      // 分析目的の場合は大きめのバッチサイズでフラッシュ
+      const batchThreshold = typingData.isHighFrequency ? 50 : 100;
 
       // バッファが一定量たまったらまとめて送信
-      if (this.metricsBuffer.length >= batchThreshold) {
-        this.flushMetricsBuffer();
+      // ただし、バックグラウンド処理中は重複処理を避ける
+      if (this.metricsBuffer.length >= batchThreshold && !this.isBackgroundProcessing) {
+        this._scheduleBackgroundFlush();
       }
     } catch (err) {
       console.error('[MCP] タイピング記録エラー:', err);
@@ -353,244 +437,208 @@ class MCPContextManager {
   }
 
   /**
-   * ゲームの状態変化をMCPに記録する
-   * @param {string} eventType - イベントタイプ
-   * @param {Object} gameState - ゲーム状態
+   * ゲームイベントを記録する（欠落していたメソッド）
+   * @param {Object} eventData - ゲームイベントデータ
    */
-  recordGameEvent(eventType, gameState) {
+  recordGameEvent(eventData) {
     if (!this.mcpEnabled) return;
 
     try {
-      const gameEvent = {
-        eventType,
+      const gameEventMetric = {
         timestamp: Date.now(),
-        gameState: {
-          // 必要な情報のみを抽出（軽量化）
-          screen: gameState.currentScreen,
-          solvedCount: gameState.solvedCount || 0,
-          isGameClear: !!gameState.isGameClear,
-          difficulty: gameState.difficulty || 'normal',
-          stats: gameState.stats ? {
-            kpm: gameState.stats.kpm || 0,
-            accuracy: gameState.stats.accuracy || 0
-          } : null
-        },
-        contextType: 'game-event'
+        ...eventData,
+        contextType: 'game-event',
+        isAnalyticsOnly: true
       };
 
-      this.sendToMCP('game:event', gameEvent);
+      this.metricsBuffer.push(gameEventMetric);
+      this.analyticsData.totalEvents++;
 
-      if (this.debugMode) {
-        console.log(`[MCP] ゲームイベント: ${eventType}`);
+      // 必要に応じて処理をスケジュール
+      if (this.metricsBuffer.length >= 50 && !this.isBackgroundProcessing) {
+        this._scheduleBackgroundFlush();
       }
     } catch (err) {
-      console.error(`[MCP] ゲームイベント記録エラー: ${eventType}`, err);
+      console.error('[MCP] ゲームイベント記録エラー:', err);
     }
   }
 
   /**
-   * パフォーマンスメトリクスをMCPに送信する
-   * @param {string} metricName - メトリクス名
-   * @param {number|Object} value - メトリクス値
+   * パフォーマンスメトリクスを記録する（欠落していたメソッド）
+   * @param {Object} perfData - パフォーマンスデータ
    */
-  recordPerformanceMetric(metricName, value) {
+  recordPerformanceMetric(perfData) {
     if (!this.mcpEnabled) return;
 
     try {
-      const metric = {
-        name: metricName,
-        value,
+      const perfMetric = {
         timestamp: Date.now(),
-        contextType: 'performance-metric'
+        ...perfData,
+        contextType: 'performance-metric',
+        isAnalyticsOnly: true
       };
 
-      // パフォーマンスメトリクスはバッファリングせず直接送信
-      this.sendToMCP('performance:metric', metric);
+      this.metricsBuffer.push(perfMetric);
+      this.analyticsData.totalEvents++;
+
+      // パフォーマンスメトリクスは即時フラッシュしない
+      if (this.metricsBuffer.length >= 100 && !this.isBackgroundProcessing) {
+        this._scheduleBackgroundFlush();
+      }
     } catch (err) {
-      console.error(`[MCP] パフォーマンスメトリクス記録エラー: ${metricName}`, err);
+      console.error('[MCP] パフォーマンス記録エラー:', err);
     }
   }
 
   /**
-   * ユーザー体験要素をMCPに記録する
-   * @param {string} elementType - 体験要素タイプ
-   * @param {Object} data - 関連データ
+   * UX要素を記録する（欠落していたメソッド）
+   * @param {Object} uxData - UXデータ
    */
-  recordUXElement(elementType, data) {
+  recordUXElement(uxData) {
     if (!this.mcpEnabled) return;
 
     try {
-      const uxData = {
-        elementType,
+      const uxMetric = {
         timestamp: Date.now(),
-        data,
-        contextType: 'ux-element'
+        ...uxData,
+        contextType: 'ux-element',
+        isAnalyticsOnly: true
       };
 
-      this.sendToMCP('ux:element', uxData);
+      this.metricsBuffer.push(uxMetric);
+      this.analyticsData.totalEvents++;
+
+      // UXメトリクスは他のメトリクスと共にバッチ処理
+      if (this.metricsBuffer.length >= 50 && !this.isBackgroundProcessing) {
+        this._scheduleBackgroundFlush();
+      }
     } catch (err) {
-      console.error(`[MCP] UX要素記録エラー: ${elementType}`, err);
+      console.error('[MCP] UX要素記録エラー:', err);
     }
   }
 
   /**
-   * グローバルエラーハンドラ
-   * @param {ErrorEvent} event - エラーイベント
+   * コンポーネントレンダリングを記録する
+   * @param {string} componentName - コンポーネント名
    */
-  handleGlobalError(event) {
+  registerComponentRender(componentName) {
     if (!this.mcpEnabled) return;
 
     try {
-      const errorData = {
-        message: event.message,
-        source: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        timestamp: Date.now(),
-        contextType: 'error'
-      };
-
-      this.sendToMCP('error:global', errorData);
-
-      console.error('[MCP] グローバルエラー検出:', errorData);
+      this.recordUXElement({
+        type: 'component-render',
+        componentName,
+        timestamp: Date.now()
+      });
     } catch (err) {
-      console.error('[MCP] エラー処理中のエラー:', err);
+      // エラーを無視（非クリティカル）
     }
   }
 
   /**
-   * メトリクスバッファの内容を送信する
+   * メトリクスバッファを強制的にフラッシュ
    */
   flushMetricsBuffer() {
-    if (!this.mcpEnabled || this.metricsBuffer.length === 0) return;
-
-    try {
-      const batchData = {
-        metricsCount: this.metricsBuffer.length,
-        metrics: [...this.metricsBuffer],
-        timestamp: Date.now(),
-        contextType: 'metrics-batch'
-      };
-
-      this.sendToMCP('metrics:batch', batchData);
-
-      // バッファをクリア
-      this.metricsBuffer = [];
-
-      if (this.debugMode) {
-        console.log(`[MCP] メトリクスバッチ送信: ${batchData.metricsCount}件`);
-      }
-    } catch (err) {
-      console.error('[MCP] メトリクスバッファ送信エラー:', err);
-
-      // エラー発生時もバッファをクリアする（メモリリーク防止）
-      this.metricsBuffer = [];
+    if (this.metricsBuffer.length > 0 && !this.isBackgroundProcessing) {
+      this._scheduleBackgroundFlush();
     }
+    return Promise.resolve();
   }
 
   /**
-   * パフォーマンスモニタリングを開始する
+   * バックグラウンドでメトリクスバッファをフラッシュするようスケジュール
+   * @private
    */
-  startPerformanceMonitoring() {
-    if (!this.mcpEnabled || typeof window === 'undefined' || !window.performance) return;
+  _scheduleBackgroundFlush() {
+    // すでにバックグラウンド処理中ならスケジュールしない
+    if (this.isBackgroundProcessing) return;
 
+    this.isBackgroundProcessing = true;
+
+    // メインスレッドをブロックしないよう、非同期でフラッシュ
+    setTimeout(() => {
+      this._flushMetricsBufferAsync();
+    }, 0);
+  }
+
+  /**
+   * メトリクスバッファを非同期でフラッシュ（バックグラウンド処理）
+   * @private
+   */
+  async _flushMetricsBufferAsync() {
     try {
-      // FPSモニタリング
-      let frameCount = 0;
-      let lastFrameTime = performance.now();
-      const measureFPS = () => {
-        const now = performance.now();
-        frameCount++;
+      const metrics = [...this.metricsBuffer];
+      this.metricsBuffer = [];
 
-        // 1秒ごとにFPS計測
-        if (now - lastFrameTime >= 1000) {
-          const fps = Math.round((frameCount * 1000) / (now - lastFrameTime));
-          this.recordPerformanceMetric('fps', fps);
+      this.analyticsData.lastBatchTime = Date.now();
+      this.analyticsData.batchCount++;
 
-          frameCount = 0;
-          lastFrameTime = now;
+      // ワーカーが使える場合はワーカーに処理を委譲
+      if (this.workerSupported && !this.worker) {
+        // 遅延ロード - 初回処理時のみワーカーを初期化
+        try {
+          // TODO: Web Workerを作成する場合はここに実装
+          // 現状は直接処理
+          await this._sendMetricsDirectly(metrics);
+        } catch (err) {
+          console.error('[MCP] Worker初期化エラー:', err);
+          // フォールバック: 直接送信
+          await this._sendMetricsDirectly(metrics);
         }
-
-        requestAnimationFrame(measureFPS);
-      };
-
-      // FPS計測開始
-      if (typeof requestAnimationFrame === 'function') {
-        requestAnimationFrame(measureFPS);
-      }
-
-      // メモリ使用量（対応ブラウザのみ）
-      if (performance.memory) {
-        setInterval(() => {
-          this.recordPerformanceMetric('memory', {
-            usedJSHeapSize: performance.memory.usedJSHeapSize,
-            totalJSHeapSize: performance.memory.totalJSHeapSize,
-            jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
-          });
-        }, 10000);
-      }
-
-      // ロング・タスクの検出
-      if (typeof PerformanceObserver === 'function' &&
-        PerformanceObserver.supportedEntryTypes &&
-        PerformanceObserver.supportedEntryTypes.includes('longtask')) {
-        const longTaskObserver = new PerformanceObserver((list) => {
-          list.getEntries().forEach((entry) => {
-            this.recordPerformanceMetric('longTask', {
-              duration: entry.duration,
-              startTime: entry.startTime,
-              name: entry.name
-            });
-          });
-        });
-
-        longTaskObserver.observe({ entryTypes: ['longtask'] });
+      } else {
+        // ワーカーが利用できない場合は直接処理
+        await this._sendMetricsDirectly(metrics);
       }
     } catch (err) {
-      console.error('[MCP] パフォーマンスモニタリング初期化エラー:', err);
+      console.error('[MCP] メトリクス送信エラー:', err);
+    } finally {
+      // 処理完了フラグを設定
+      this.isBackgroundProcessing = false;
+
+      // バッファにまだ十分なデータがあれば再度フラッシュをスケジュール
+      if (this.metricsBuffer.length >= 50) {
+        this._scheduleBackgroundFlush();
+      }
     }
   }
 
   /**
-   * MCPサーバーにデータを送信する
-   * @param {string} channel - 送信チャンネル
-   * @param {Object} data - 送信データ
+   * メトリクスを直接MCPに送信（ワーカーなし版）
+   * @param {Array} metrics - 送信するメトリクスの配列
+   * @private
    */
-  sendToMCP(channel, data) {
-    if (!this.mcpEnabled || typeof window === 'undefined') return;
+  async _sendMetricsDirectly(metrics) {
+    if (!this.mcpEnabled || !window._mcp || !metrics || metrics.length === 0) {
+      return;
+    }
+
+    // 開発環境では詳細ログを出力
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[MCP] ${metrics.length}件のデータを送信（分析用）`);
+    }
 
     try {
-      // MCPコネクションを取得
-      const mcpConnection = window._mcp || window.__MCP_CONNECTION__;
-
-      if (!mcpConnection) {
-        console.warn('[MCP] MCPコネクションが見つかりません');
-        return;
-      }
-
-      // プロジェクトメタデータを追加
-      const enrichedData = {
-        ...data,
-        projectMetadata: PROJECT_METADATA,
-        timestamp: data.timestamp || Date.now()
-      };
-
-      // MCPサーバーにデータを送信
-      if (typeof mcpConnection.sendMessage === 'function') {
-        mcpConnection.sendMessage(channel, enrichedData);
-      } else if (typeof mcpConnection.send === 'function') {
-        mcpConnection.send(channel, enrichedData);
+      // 非同期でMCPに送信
+      if (window._mcp.sendMetrics) {
+        // バッチモードで送信
+        await window._mcp.sendMetrics(metrics);
       } else {
-        console.warn('[MCP] MCPコネクションに適切な送信メソッドがありません');
+        // 互換モード: 個別送信
+        for (const metric of metrics) {
+          window._mcp.send?.('metrics', metric);
+        }
       }
     } catch (err) {
-      console.error(`[MCP] MCP送信エラー (${channel}):`, err);
+      console.error('[MCP] メトリクス送信エラー:', err);
+      // エラー時はメトリクスを破棄（レスポンスへの影響を避ける）
     }
   }
 }
 
 // シングルトンインスタンスを作成
 const contextManagerInstance = new MCPContextManager();
+// MCPUtilsのシングルトンインスタンスを作成
+const mcpUtilsInstance = new MCPUtils();
 
 /**
  * React用のMCPインテグレーションフック
