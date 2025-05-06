@@ -5,6 +5,8 @@ import styles from '../../styles/GameScreen.module.css';
  * シンプル化したタイピング表示コンポーネント
  * すべてのタイピングテキストを中央揃えで表示
  * グローバルCSSのクラスを使用して統一された表示を実現
+ * 
+ * リアルタイムでキー入力を反映し、フォーカス文字をハイライト
  */
 const TypingDisplay = memo(
   ({
@@ -30,64 +32,65 @@ const TypingDisplay = memo(
         return <span className="typing-completed">{cleanDisplayRomaji}</span>;
       }
 
+      // 拡張された色分け情報を活用
       const typedLength = coloringInfo?.typedLength || 0;
-      const currentInputLength = coloringInfo?.currentInputLength || 0;
+      const currentCharIndex = coloringInfo?.currentCharIndex !== undefined 
+        ? coloringInfo?.currentCharIndex : 0;
+      const expectedNextChar = coloringInfo?.expectedNextChar || '';
+      const currentInput = coloringInfo?.currentInput || '';
+      const currentCharRomaji = coloringInfo?.currentCharRomaji || '';
       
-      // 修正：文字位置の計算を修正
       // 正確に位置計算し、文字を分割する
       const typedText = cleanDisplayRomaji.substring(0, typedLength);
-      const nextChars = cleanDisplayRomaji.substring(typedLength, typedLength + 1);
-      const remainingText = cleanDisplayRomaji.substring(typedLength + 1);
+      
+      // 現在の文字の完全なローマ字表現を取得
+      // 例: 「す」= "su" なら、"su"全体がcurrentCharPlaceholder
+      const currentCharPlaceholder = currentCharRomaji;
 
-      // 現在の入力状態をcurrentInputから直接取得
-      // 入力中の文字はハイライト表示
+      // 未入力部分は、現在の文字の後から始まる
+      const remainingStartPos = typedLength + currentCharPlaceholder.length;
+      const remainingText = cleanDisplayRomaji.substring(remainingStartPos);
 
       return (
         <>
           {/* 入力済み部分 */}
-          {typedText && <span className="typing-completed">{typedText}</span>}
+          {typedText && <span className={styles.typing_completed}>{typedText}</span>}
 
-          {/* 現在入力中の文字 - 強調表示 */}
-          {currentInput && (
-            <span 
-              style={{
-                color: '#32CD32', /* 薄い緑色 */
-                fontWeight: '600',
-              }}
-            >
-              {currentInput}
-            </span>
-          )}
+          {/* 現在の文字の入力状況を表示 */}
+          <span className={styles.current_char_container}>
+            {/* 既に入力した部分 - 1文字ずつ分割して表示（リアルタイム対応） */}
+            {currentInput && (
+              <>
+                {Array.from(currentInput).map((char, index) => (
+                  <span key={index} className={styles.current_char_typed}>
+                    {char}
+                  </span>
+                ))}
+              </>
+            )}
+            
+            {/* 次に入力すべき文字（次のキー）- オレンジ色でハイライト */}
+            {expectedNextChar && (
+              <span className={styles.next_char_highlight}>
+                {expectedNextChar}
+              </span>
+            )}
 
-          {/* 次に入力すべき文字を特別に強調（オレンジ色で表示） */}
-          {nextChars && (
-            <span
-              style={{
-                position: 'relative',
-                color: '#ff9a28' /* オレンジに変更 */,
-                textShadow: '0 0 6px rgba(255, 154, 40, 0.6)',
-                fontWeight: '700',
-                fontSize: '1.25rem',
-                display: 'inline-block',
-                padding: '0 1px',
-                margin: '0 1px',
-                transform: 'translateY(-1px)',
-                backgroundColor: 'rgba(255, 154, 40, 0.1)',
-                borderRadius: '2px',
-              }}
-            >
-              {nextChars}
-            </span>
-          )}
+            {/* 現在の単語の残りの部分（まだタイプしていない）- 修正：可視性向上 */}
+            {currentCharPlaceholder.substring(currentInput.length + 1) && (
+              <span className={styles.current_char_remaining}>
+                {currentCharPlaceholder.substring(currentInput.length + 1)}
+              </span>
+            )}
+          </span>
 
-          {/* 残りの未入力部分 */}
-          {remainingText && <span style={{ color: '#757575' }}>{remainingText}</span>}
+          {/* 残りの未入力部分 - 修正：明確な色指定 */}
+          {remainingText && <span className={styles.remaining_text}>{remainingText}</span>}
         </>
       );
     }, [
       cleanDisplayRomaji,
       coloringInfo,
-      currentInput,
       isCompleted,
     ]);
 

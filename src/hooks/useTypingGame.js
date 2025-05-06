@@ -34,6 +34,10 @@ export function useTypingGame({
     romaji: '',
     typedLength: 0,
     currentInputLength: 0,
+    currentCharIndex: 0,
+    currentInput: '',
+    expectedNextChar: '',
+    currentCharRomaji: '',
   });
   
   // 統計情報はほとんどがrefで管理し、表示が必要なものだけをステートに
@@ -167,6 +171,10 @@ export function useTypingGame({
         ...prev,
         typedLength: colorInfo.typedLength,
         currentInputLength: colorInfo.currentInputLength,
+        currentCharIndex: colorInfo.currentCharIndex || 0,
+        currentInput: colorInfo.currentInput || '',
+        expectedNextChar: colorInfo.expectedNextChar || '',
+        currentCharRomaji: colorInfo.currentCharRomaji || '',
       }));
 
       // 一定間隔で統計表示を更新（毎回の入力では更新しない）
@@ -273,6 +281,10 @@ export function useTypingGame({
         romaji: session.displayRomaji,
         typedLength: 0,
         currentInputLength: 0,
+        currentCharIndex: 0,
+        currentInput: '',
+        expectedNextChar: session.getCurrentExpectedKey() || '',
+        currentCharRomaji: session.patterns[0] ? session.patterns[0][0] : '',
       });
       
       // 完了フラグをリセット
@@ -381,6 +393,10 @@ export function useTypingGame({
     coloringInfo: {
       typedLength: displayInfo.typedLength,
       currentInputLength: displayInfo.currentInputLength,
+      currentCharIndex: displayInfo.currentCharIndex,
+      currentInput: displayInfo.currentInput,
+      expectedNextChar: displayInfo.expectedNextChar,
+      currentCharRomaji: displayInfo.currentCharRomaji
     },
     isCompleted: completedRef.current,
     stats,
@@ -408,6 +424,10 @@ export function useTypingGame({
     displayInfo.romaji,
     displayInfo.typedLength,
     displayInfo.currentInputLength,
+    displayInfo.currentCharIndex,
+    displayInfo.currentInput,
+    displayInfo.expectedNextChar,
+    displayInfo.currentCharRomaji,
     errorAnimation,
     stats,
     progressPercentage,

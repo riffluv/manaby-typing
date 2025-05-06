@@ -1,7 +1,7 @@
 import * as wanakana from 'wanakana';
 
 // ローマ字変換用のマッピング
-// 最も一般的に使用されるパターンを優先的に登録
+// 最も一般的に使用されるパターンを一番先頭に配置（表示優先）
 const romajiMap = {
   あ: ['a'],
   い: ['i', 'yi'],
@@ -14,13 +14,13 @@ const romajiMap = {
   け: ['ke'],
   こ: ['ko', 'co'],
   さ: ['sa'],
-  し: ['shi', 'si'],
+  し: ['shi', 'si', 'ci'],  // 「shi」を先頭に変更
   す: ['su'],
   せ: ['se', 'ce'],
   そ: ['so'],
   た: ['ta'],
-  ち: ['chi', 'ti'],
-  つ: ['tsu', 'tu'],
+  ち: ['chi', 'ti'],  // 「chi」を先頭に変更
+  つ: ['tsu', 'tu'],  // 「tsu」を先頭に変更
   て: ['te'],
   と: ['to'],
   な: ['na'],
@@ -48,14 +48,14 @@ const romajiMap = {
   ろ: ['ro'],
   わ: ['wa'],
   を: ['wo'],
-  ん: ['nn', 'xn', 'n'],
+  ん: ['nn', 'n', 'xn'],  // 「nn」を先頭に変更
   が: ['ga'],
   ぎ: ['gi'],
   ぐ: ['gu'],
   げ: ['ge'],
   ご: ['go'],
   ざ: ['za'],
-  じ: ['ji', 'zi'],
+  じ: ['ji', 'zi'],  // 「ji」を先頭に変更
   ず: ['zu'],
   ぜ: ['ze'],
   ぞ: ['zo'],
@@ -78,12 +78,12 @@ const romajiMap = {
   きゃ: ['kya'],
   きゅ: ['kyu'],
   きょ: ['kyo'],
-  しゃ: ['sha', 'sya'],
-  しゅ: ['shu', 'syu'],
-  しょ: ['sho', 'syo'],
-  ちゃ: ['cha', 'tya'],
-  ちゅ: ['chu', 'tyu'],
-  ちょ: ['cho', 'tyo'],
+  しゃ: ['sha', 'sya'],  // 「sha」を先頭に変更
+  しゅ: ['shu', 'syu'],  // 「shu」を先頭に変更
+  しょ: ['sho', 'syo'],  // 「sho」を先頭に変更
+  ちゃ: ['cha', 'tya'],  // 「cha」を先頭に変更
+  ちゅ: ['chu', 'tyu'],  // 「chu」を先頭に変更
+  ちょ: ['cho', 'tyo'],  // 「cho」を先頭に変更
   にゃ: ['nya'],
   にゅ: ['nyu'],
   にょ: ['nyo'],
@@ -99,9 +99,9 @@ const romajiMap = {
   ぎゃ: ['gya'],
   ぎゅ: ['gyu'],
   ぎょ: ['gyo'],
-  じゃ: ['ja', 'zya'],
-  じゅ: ['ju', 'zyu'],
-  じょ: ['jo', 'zyo'],
+  じゃ: ['ja', 'zya'],  // 「ja」を先頭に変更
+  じゅ: ['ju', 'zyu'],  // 「ju」を先頭に変更
+  じょ: ['jo', 'zyo'],  // 「jo」を先頭に変更
   びゃ: ['bya'],
   びゅ: ['byu'],
   びょ: ['byo'],
@@ -353,7 +353,7 @@ export default class TypingUtils {
         
         // 状態
         currentCharIndex: 0,
-        typedRomaji: '',  // タイプ済み文字列を追加（表示用）
+        typedRomaji: '',  // タイプ済み文字列
         currentInput: '',
         completed: false,
 
@@ -520,7 +520,10 @@ export default class TypingUtils {
             return {
               typedLength: this.displayRomaji.length,
               currentInputLength: 0,
-              completed: true
+              completed: true,
+              currentCharIndex: this.currentCharIndex,
+              currentInput: '',
+              expectedNextChar: null
             };
           }
           
@@ -530,10 +533,27 @@ export default class TypingUtils {
           const typedLength = idx > 0 ? 
             this.displayIndices[idx-1] + this.patternLengths[idx-1] : 0;
           
+          // 次に入力すべき文字を取得
+          let expectedNextChar = '';
+          const currentPatterns = this.patterns[idx];
+          if (currentPatterns && this.currentInput.length < currentPatterns[0].length) {
+            for (const pattern of currentPatterns) {
+              if (pattern.startsWith(this.currentInput) && 
+                  this.currentInput.length < pattern.length) {
+                expectedNextChar = pattern[this.currentInput.length];
+                break;
+              }
+            }
+          }
+          
           return {
             typedLength: typedLength,
             currentInputLength: this.currentInput.length,
-            completed: this.completed
+            completed: this.completed,
+            currentCharIndex: idx,
+            currentInput: this.currentInput,
+            expectedNextChar: expectedNextChar,
+            currentCharRomaji: currentPatterns ? currentPatterns[0] : ''
           };
         },
 

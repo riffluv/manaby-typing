@@ -232,7 +232,7 @@
 /* 次の入力文字の強調表示（要素） */
 .typing_game__next_char {
   position: relative;
-  color: #ffa94d;
+  color: #ff9a28;
   text-shadow: 0 0 6px rgba(255, 154, 40, 0.6);
   font-weight: 700;
   font-size: 1.25rem;
@@ -244,27 +244,80 @@
   border-radius: 2px;
 }
 
-/* エラー時のシェイクアニメーション */
-@keyframes errorShake {
-  0%, 100% {
-    transform: translateX(0);
+/* 入力済み全体テキスト */
+.typing_completed {
+  color: #12b886;
+  font-weight: 500;
+}
+
+/* 入力中の文字のコンテナ */
+.current_char_container {
+  display: inline-block;
+  position: relative;
+}
+
+/* すでにタイプした部分 - 1文字ずつ表示（リアルタイム対応） */
+.current_char_typed {
+  color: #32CD32; /* 薄い緑色 */
+  font-weight: 600;
+  display: inline-block;
+  animation: keyFlash 0.2s ease-out;
+}
+
+/* キー入力時のフラッシュエフェクト */
+@keyframes keyFlash {
+  0% { 
+    transform: scale(1.2);
+    text-shadow: 0 0 8px rgba(50, 205, 50, 0.8);
   }
-  20%, 60% {
-    transform: translateX(-5px);
-  }
-  40%, 80% {
-    transform: translateX(5px);
+  100% { 
+    transform: scale(1);
+    text-shadow: none;
   }
 }
 
-.typing_game__error_shake {
-  animation: errorShake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
+/* 次に入力すべき文字 - オレンジ色でハイライト */
+.next_char_highlight {
+  color: #ff9a28; /* オレンジ色 */
+  text-shadow: 0 0 6px rgba(255, 154, 40, 0.6);
+  font-weight: 700;
+  background-color: rgba(255, 154, 40, 0.1);
+  border-radius: 2px;
+  padding: 0 2px;
+  margin: 0 1px;
+  display: inline-block;
+  position: relative;
+  animation: focusPulse 2s infinite;
+}
+
+/* フォーカス中の文字のパルスアニメーション */
+@keyframes focusPulse {
+  0%, 100% {
+    transform: scale(1);
+    text-shadow: 0 0 6px rgba(255, 154, 40, 0.6);
+  }
+  50% {
+    transform: scale(1.05);
+    text-shadow: 0 0 12px rgba(255, 154, 40, 0.8);
+  }
+}
+
+/* 現在の単語の残りの部分 - 修正：すべての未入力文字を同じ色に */
+.current_char_remaining {
+  color: #d8d8d8; /* 薄いグレー */
+  opacity: 1;
+  font-weight: 400;
+}
+
+/* 残りの未入力テキスト - 修正：すべての未入力文字を同じ色に */
+.remaining_text {
+  color: #d8d8d8; /* 薄いグレー（同じ色に設定） */
+  opacity: 1;
+  font-weight: 400;
 }
 
 /* タイピングカーソル */
-.typing_game__cursor {
+.typingCursor {
   display: inline-block;
   width: 2px;
   height: 1.2em;
@@ -284,6 +337,25 @@
   }
   50% {
     opacity: 0.3;
+  }
+}
+
+/* エラー時のシェイクアニメーション */
+.errorShake {
+  animation: errorShake 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-5px);
+  }
+  40%, 80% {
+    transform: translateX(5px);
   }
 }
 
