@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 
 /**
- * 既存のタイピングフックの出力をシンプル表示用に変換するアダプター
+ * 既存のタイピングフックの出力をシンプル表示用に変換するアダプター（改良版）
  * 複雑な状態を単純な表示用プロパティに変換する
+ * 長いローマ字や改行が発生するケースにも適切に対応
  * 
  * @param {Object} typingHook 既存のuseTypingGame等のフックの戻り値
  * @returns {Object} SimpleTypingDisplayに必要なプロパティ
@@ -19,6 +20,7 @@ export function useSimpleTypingAdapter(typingHook) {
       inputMode: 'normal', // 入力モード (normal/consonant)
       currentInput: '',
       currentCharRomaji: '', // 現在入力中の文字の完全なローマ字表現
+      visiblePortion: { start: 0, end: 0 }, // 表示可能な部分の範囲
     };
   }
 
@@ -49,6 +51,8 @@ export function useSimpleTypingAdapter(typingHook) {
         typedLength = coloringInfo.typedLength;
       } else if (displayInfo && displayInfo.typedLength !== undefined) {
         typedLength = displayInfo.typedLength;
+      } else if (safeGet(typingHook, 'typingSession.typedLength', null) !== null) {
+        typedLength = safeGet(typingHook, 'typingSession.typedLength', 0);
       }
 
       // 各種情報も同じ方法で取得
@@ -57,15 +61,19 @@ export function useSimpleTypingAdapter(typingHook) {
         nextChar = coloringInfo.expectedNextChar;
       } else if (displayInfo && displayInfo.expectedNextChar) {
         nextChar = displayInfo.expectedNextChar;
+      } else if (safeGet(typingHook, 'typingSession.expectedNextChar', null) !== null) {
+        nextChar = safeGet(typingHook, 'typingSession.expectedNextChar', '');
       }
 
       // 現在の入力
       const currentInput = safeGet(coloringInfo, 'currentInput', '') || 
-                          safeGet(displayInfo, 'currentInput', '');
+                          safeGet(displayInfo, 'currentInput', '') ||
+                          safeGet(typingHook, 'typingSession.currentInput', '');
 
       // 現在入力中の文字の完全なローマ字表現
       const currentCharRomaji = safeGet(coloringInfo, 'currentCharRomaji', '') ||
-                               safeGet(displayInfo, 'currentCharRomaji', '');
+                               safeGet(displayInfo, 'currentCharRomaji', '') ||
+                               safeGet(typingHook, 'typingSession.currentCharRomaji', '');
 
       // romajiの取得方法を多様化 - typingHookの複数の場所から試みる
       let romaji = '';
@@ -79,7 +87,11 @@ export function useSimpleTypingAdapter(typingHook) {
       else if (safeGet(typingHook, 'displayInfo.romaji', '')) {
         romaji = safeGet(typingHook, 'displayInfo.romaji', '');
       } 
-      // 3. 従来の場所から取得を試みる
+      // 3. MCPサーバーを使用している場合の処理
+      else if (safeGet(typingHook, 'mcpSession.romaji', '')) {
+        romaji = safeGet(typingHook, 'mcpSession.romaji', '');
+      }
+      // 4. 従来の場所から取得を試みる
       else {
         romaji = safeGet(typingHook, 'displayRomaji', '');
       }
@@ -89,14 +101,39 @@ export function useSimpleTypingAdapter(typingHook) {
         romaji = romaji.slice(0, -1);
       }
 
-      // ログ出力してデバッグ
-      console.log('【useSimpleTypingAdapter】データ取得結果:', {
-        romaji: romaji || '<空文字>',
-        typedLength,
-        nextChar: nextChar || '<なし>',
-        currentInput: currentInput || '<なし>',
-        currentCharRomaji: currentCharRomaji || '<なし>'
-      });
+      // 改行やスペースを適切に処理
+      romaji = romaji.replace(/\r\n/g, ' ').replace(/\n/g, ' ');
+
+      // 非表示部分の削除（ローマ字の長さによっては表示領域が限られる）
+      // 表示可能な部分の範囲を計算
+      let visibleStart = 0;
+      let visibleEnd = romaji.length;
+
+      // typedLengthから表示範囲を計算
+      // 入力位置の前後に一定数の文字を表示する
+      const contextSize = 30; // 入力位置の前後に表示する文字数
+      
+      if (romaji.length > contextSize * 2) {
+        visibleStart = Math.max(0, typedLength - contextSize);
+        visibleEnd = Math.min(romaji.length, typedLength + contextSize + (nextChar?.length || 1));
+      }
+
+      // 範囲内に次の文字が確実に含まれるよう調整
+      if (nextChar && typedLength + nextChar.length > visibleEnd) {
+        visibleEnd = typedLength + nextChar.length;
+      }
+
+      // デバッグ情報
+      if (process.env.NODE_ENV === 'development') {
+        console.log('【useSimpleTypingAdapter】データ取得結果:', {
+          romaji: romaji || '<空文字>',
+          typedLength,
+          nextChar: nextChar || '<なし>',
+          currentInput: currentInput || '<なし>',
+          currentCharRomaji: currentCharRomaji || '<なし>',
+          visibleRange: `${visibleStart}-${visibleEnd} (${romaji.length}文字中)`,
+        });
+      }
 
       // 入力モードを取得（子音入力中かどうか）
       const typingSession = safeGet(typingHook, 'typingSession', {});
@@ -126,7 +163,11 @@ export function useSimpleTypingAdapter(typingHook) {
         isCompleted: safeGet(typingHook, 'isCompleted', false),
         inputMode,
         currentInput,
-        currentCharRomaji, // 現在入力中の文字の完全なローマ字表現を追加
+        currentCharRomaji, // 現在入力中の文字の完全なローマ字表現
+        visiblePortion: { // 表示可能な部分の範囲
+          start: visibleStart,
+          end: visibleEnd
+        },
 
         // オリジナルのフックのプロパティをパススルー（必要に応じて使用）
         originalHook: typingHook,
@@ -145,17 +186,20 @@ export function useSimpleTypingAdapter(typingHook) {
         inputMode: 'normal',
         currentInput: '',
         currentCharRomaji: '',
+        visiblePortion: { start: 0, end: 0 }
       };
     }
   }, [
     typingHook?.displayRomaji,
     typingHook?.displayInfo?.romaji,
+    typingHook?.mcpSession?.romaji,
     typingHook?.typingSession?.displayRomaji,
     typingHook?.coloringInfo,
     typingHook?.displayInfo,
     typingHook?.errorAnimation,
     typingHook?.isCompleted,
     typingHook?.typingSession?.currentInput,
+    typingHook?.typingSession?.typedLength,
     typingHook?.typingSession?.consonantInput
   ]);
 }
