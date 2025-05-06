@@ -209,10 +209,12 @@ const ResultScreen = ({
     // correctCount（正解キー数）がある場合は直接使用
     const correctCount = baseStats.correctCount || 0;
     const missCount = baseStats.missCount || 0;
+    const totalKeystrokes = correctCount + missCount;
 
     console.log('ResultScreen: 再構築用データ', {
       correctCount,
       missCount,
+      totalKeystrokes,
       problemStats,
       baseStats
     });
@@ -242,14 +244,25 @@ const ResultScreen = ({
       console.log('ResultScreen: 最低値としてKPM=1を設定');
     }
 
+    // 正確性を計算（正解数÷(正解数+ミス数)×100）
+    const accuracy = totalKeystrokes > 0
+      ? (correctCount / totalKeystrokes) * 100
+      : 100;
+
+    console.log('ResultScreen: 正確性を再計算:', {
+      correctCount,
+      missCount,
+      totalKeystrokes,
+      accuracy
+    });
+
     // 再構築したデータを返す
     return {
       ...baseStats,
       kpm: kpm,
       correctCount: correctCount,
       missCount: missCount,
-      accuracy: baseStats.accuracy || (correctCount > 0 ?
-        (correctCount / (correctCount + missCount) * 100) : 100),
+      accuracy: accuracy,
       totalTime: baseStats.totalTime || 0,
       elapsedTimeMs: baseStats.elapsedTimeMs || baseStats.totalTime * 1000 || 0
     };

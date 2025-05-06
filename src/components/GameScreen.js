@@ -67,45 +67,89 @@ const GameScreen = () => {
         const endTime = Date.now();
         const startTime =
           gameState.startTime || typingRef.current?.stats?.startTime || endTime;
+        const elapsedTimeMs = endTime - startTime;
 
         // タイピングフックから詳細なデータを取得
         const typingStats = typingRef.current?.stats || {};
-        const { problemStats = [] } = typingStats;
 
-        console.log(
-          '【KPM計算】タイピングフックから取得した問題データ:',
-          problemStats
-        );
+        // 全問題の累積正解キー数を計算
+        // 現在の問題の正解キー数
+        const currentProblemCorrectKeys = typingStats.correctCount || 0;
+        // これまでの問題の累積正解キー数
+        const previousCorrectKeyCount = gameState.totalCorrectKeyCount || 0;
+        // 累積の正解キー数
+        const totalCorrectKeyCount = previousCorrectKeyCount + currentProblemCorrectKeys;
 
-        // 正確なKPM計算のためのデータ確認と収集
-        const correctKeyCount = typingStats.correctCount || 0;
-        const elapsedTimeMs = endTime - startTime;
+        // 全問題の累積ミス数を計算
+        const currentProblemMissCount = typingStats.missCount || 0;
+        const previousMissCount = gameState.totalMissCount || 0;
+        const totalMissCount = previousMissCount + currentProblemMissCount;
 
-        // Weather Typing公式計算方法で再計算: 問題ごとのKPMの平均値を使用
-        const averageKPM = TypingUtils.calculateAverageKPM(problemStats);
+        console.log('【累積統計情報】', {
+          これまでの正解数: previousCorrectKeyCount,
+          現在の問題の正解数: currentProblemCorrectKeys,
+          合計正解数: totalCorrectKeyCount,
+          これまでのミス数: previousMissCount,
+          現在の問題のミス数: currentProblemMissCount,
+          合計ミス数: totalMissCount
+        });
 
-        console.log('【KPM計算】問題ごとのKPM平均値:', averageKPM);
+        // より詳細なデバッグ情報
+        console.log('【統計情報検証】typingStats詳細:', {
+          typingStats,
+          correctKeyCount: currentProblemCorrectKeys,
+          missCount: currentProblemMissCount,
+          参照元: 'GameScreen.js - handleProblemComplete'
+        });
 
-        // 従来のKPM計算方法（参考用）
-        const legacyKPM = TypingUtils.calculateWeatherTypingKPM(
-          correctKeyCount,
-          elapsedTimeMs,
-          problemStats
-        );
+        // 問題ごとのKPMを累積
+        const allProblemKPMs = [...gameState.problemKPMs || [], problemKPM].filter(kpm => kpm > 0);
 
-        console.log('【KPM計算】従来方式のKPM:', legacyKPM);
+        console.log('【KPM計算】累積された問題ごとのKPM:', allProblemKPMs);
+
+        // KPM計算 - 問題ごとのKPMの平均値を優先
+        let averageKPM = 0;
+        if (allProblemKPMs && allProblemKPMs.length > 0) {
+          // 問題ごとのKPMの平均を計算
+          averageKPM = allProblemKPMs.reduce((sum, kpm) => sum + kpm, 0) / allProblemKPMs.length;
+          console.log('【KPM計算】全問題のKPM平均値計算:', {
+            kpmValues: allProblemKPMs,
+            平均値: averageKPM
+          });
+        } else {
+          // 問題データがない場合は単純計算
+          averageKPM = Math.floor(correctKeyCount / (elapsedTimeMs / 60000));
+          console.log('【KPM計算】フォールバック - 単純計算によるKPM:', averageKPM);
+        }
+
+        // KPMが不正な値の場合は補正
+        if (averageKPM <= 0 && totalCorrectKeyCount > 0) {
+          averageKPM = 1;
+          console.log('【KPM計算】KPM値が不正なので最低値1を設定します');
+        }
+
+        // 正確性の計算を修正（正確性 = 正解数 / (正解数 + ミス数) * 100）
+        const totalKeystrokes = totalCorrectKeyCount + totalMissCount;
+        const accuracy = totalKeystrokes > 0 ? (totalCorrectKeyCount / totalKeystrokes) * 100 : 100;
+
+        console.log('【正確性計算】', {
+          正解数: totalCorrectKeyCount,
+          ミス数: totalMissCount,
+          総入力数: totalKeystrokes,
+          正確性: accuracy
+        });
+
+        console.log('【KPM計算】最終KPM値:', averageKPM);
 
         // 統計情報の計算
         const stats = {
           totalTime: typingStats.elapsedTimeSeconds || elapsedTimeMs / 1000,
-          correctCount: correctKeyCount,
-          missCount: typingStats.missCount || 0,
-          accuracy: typingStats.accuracy || 100,
-          kpm: averageKPM, // Weather Typing公式計算: 問題ごとのKPMの平均値
-          legacyKpm: legacyKPM, // 従来計算方法も残しておく（参考値）
-          problemKPMs: updatedProblemKPMs || [],
-          problemStats: problemStats, // 問題ごとの詳細データ
-          elapsedTimeMs: elapsedTimeMs // 追加: リザルト画面でも使用できるように
+          correctCount: totalCorrectKeyCount, // 全問題の累積正解キー数を使用
+          missCount: totalMissCount, // 全問題の累積ミス数を使用
+          accuracy: accuracy, // 計算済みの正確性を使用
+          kpm: Math.floor(averageKPM), // 平均KPM値を床関数で整数化
+          problemKPMs: allProblemKPMs, // 全問題のKPM値を保持
+          elapsedTimeMs: elapsedTimeMs // リザルト画面でも使用できるように
         };
 
         console.log('【ゲームクリア】 統計情報計算結果:', stats);
@@ -123,6 +167,8 @@ const GameScreen = () => {
           uiCompletePercent: 100,
           isGameClear: true, // 即座に画面遷移を行う
           stats: stats, // 必ず統計情報を含める
+          totalCorrectKeyCount: totalCorrectKeyCount, // 累積正解キー数を更新
+          totalMissCount: totalMissCount, // 累積ミス数を更新
         }));
 
         // 念のため、少し遅延させてから画面遷移を確認（状態のプロパゲーションを待つ）
@@ -154,6 +200,27 @@ const GameScreen = () => {
           (problems.indexOf(gameState.currentProblem) + 1) % problems.length;
         const nextProblem = problems[nextProblemIndex];
 
+        // 現在の問題の正解キー数とミス数を取得
+        const currentCorrectKeys = typingRef.current?.stats?.correctCount || 0;
+        const currentMissCount = typingRef.current?.stats?.missCount || 0;
+
+        // これまでの累積カウンターを取得
+        const previousCorrectKeyCount = gameState.totalCorrectKeyCount || 0;
+        const previousMissCount = gameState.totalMissCount || 0;
+
+        // 累積カウンターを更新
+        const totalCorrectKeyCount = previousCorrectKeyCount + currentCorrectKeys;
+        const totalMissCount = previousMissCount + currentMissCount;
+
+        console.log('【次の問題への移行】問題間の累積統計:', {
+          この問題の正解数: currentCorrectKeys,
+          この問題のミス数: currentMissCount,
+          これまでの正解数: previousCorrectKeyCount,
+          これまでのミス数: previousMissCount,
+          累積正解数: totalCorrectKeyCount,
+          累積ミス数: totalMissCount
+        });
+
         console.log('【次の問題】', {
           現在の問題: gameState.currentProblem?.displayText,
           次の問題: nextProblem?.displayText,
@@ -168,6 +235,8 @@ const GameScreen = () => {
           problemKPMs: updatedProblemKPMs, // 各問題のKPM値の配列を更新
           currentProblemStartTime: null, // 次の問題の開始時間はまだ設定しない
           currentProblemKeyCount: 0, // 次の問題用のカウンターをリセット
+          totalCorrectKeyCount: totalCorrectKeyCount, // 累積正解キー数を更新
+          totalMissCount: totalMissCount, // 累積ミス数を更新
         });
 
         // 正解音は処理済み
@@ -206,7 +275,7 @@ const GameScreen = () => {
 
         // 効果音のプリロードを並列で行う（パフォーマンス向上）
         const preloadSounds = ['success', 'error', 'button'];
-        await Promise.all(preloadSounds.map(name => 
+        await Promise.all(preloadSounds.map(name =>
           soundSystem.loadSound(name, soundSystem.soundPresets[name])
         ));
 
@@ -339,22 +408,47 @@ const GameScreen = () => {
         const startTime = gameState.startTime || Date.now();
         const elapsedTimeMs = endTime - startTime;
 
+        // useTypingGameフックからのデータを取得（最も正確な情報源）
+        const typingStats = typingRef.current?.stats || {};
+
+        console.log('【GameScreen】typingRef.current?.stats:', typingStats);
+
         // 問題ごとのKPMから総合KPMを計算（Weather Typing公式方法）
         const problemStats = (gameState.problemStats || []).map((problem) => ({
           problemKeyCount: problem.problemKeyCount || 0,
           problemElapsedMs: problem.problemElapsedMs || 0,
         }));
 
-        // useTypingGameフックからのデータを取得
-        const typingStats = typingRef.current?.stats || {};
+        // ミス数の検証と確認（複数の場所から取得を試みる）
+        const missCount = typingStats.missCount ||
+          gameState.stats?.missCount ||
+          typingRef.current?.statisticsRef?.current?.mistakeCount ||
+          0;
+
+        console.log('【統計情報検証】リザルト画面への移行前最終確認:', {
+          typingStats,
+          参照ミス数: missCount,
+          統計情報元: 'GameScreen.js - 再計算ロジック'
+        });
+
+        // 正解数と正確性の確認
+        const correctCount = typingStats.correctCount ||
+          gameState.stats?.correctCount ||
+          typingRef.current?.statisticsRef?.current?.correctKeyCount ||
+          0;
+
+        // 正確性の再計算
+        const totalKeystrokes = correctCount + missCount;
+        const accuracy = totalKeystrokes > 0 ?
+          Math.round((correctCount / totalKeystrokes) * 100) :
+          100;
 
         // 統計情報を構築
         statsToPass = {
           totalTime: typingStats.elapsedTimeSeconds || elapsedTimeMs / 1000,
-          correctCount:
-            typingStats.correctCount || gameState.correctKeyCount || 0,
-          missCount: typingStats.missCount || 0,
-          accuracy: typingStats.accuracy || 100,
+          correctCount: correctCount,
+          missCount: missCount,
+          accuracy: accuracy,
           kpm: typingStats.kpm || 0,
           problemKPMs: gameState.problemKPMs || [],
           problemStats: problemStats,

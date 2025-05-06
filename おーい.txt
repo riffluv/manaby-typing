@@ -207,3 +207,14 @@ Web Audio API
 BGM: xylophone-mini-dessert by Alex (CC BY 4.0)
 ライセンス
 © 2024 Manaby Typing Game. All Rights Reserved.
+
+タイピングゲームのリザルト画面に、wheather typingのようなKPM（キーストローク/分）を表示してください。
+
+■仕様：
+- 1問ごとに「最初のキー入力」〜「そのお題をすべて入力完了」までの時間を計測してください。
+- その間に入力されたキーの数をカウントし、(キー数 ÷ 時間[秒]) × 60でKPMを計算
+- 各お題ごとのKPMを保存し、ゲーム終了時にその平均KPMをリザルト画面に表示してください
+- 無入力での待機時間（お題が出てるけどまだ打ってない時間）は計算に含めないでください
+- KPMは整数または小数点1桁程度で表示でOKです
+
+参考：https://denasu.com/software/wtfaq.html

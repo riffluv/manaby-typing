@@ -135,15 +135,24 @@ const RankingScreen = () => {
       const registeredGames = JSON.parse(sessionStorage.getItem('registeredGames') || '[]');
 
       // 現在のゲームデータに基づいて一意のIDを生成
-      const kpmValue = gameState.stats?.kpm ||
-        (gameState.problemKPMs && gameState.problemKPMs.length > 0
-          ? Math.floor(
-            gameState.problemKPMs
-              .filter(kpm => kpm > 0)
-              .reduce((sum, kpm) => sum + kpm, 0) /
-            gameState.problemKPMs.filter(kpm => kpm > 0).length
-          )
-          : 0);
+      // 一貫性のある計算方法でKPMを取得
+      let kpmValue = 0;
+
+      // 統一された計算方法を使う：まずはstats.kpmを優先
+      if (gameState.stats && gameState.stats.kpm !== undefined) {
+        kpmValue = Math.floor(gameState.stats.kpm);
+      }
+      // 次に問題ごとのデータから計算する方法
+      else if (gameState.stats && gameState.stats.problemStats && gameState.stats.problemStats.length > 0) {
+        kpmValue = Math.floor(TypingUtils.calculateAverageKPM(gameState.stats.problemStats));
+      }
+      // 過去の形式（problemKPMs）をサポート
+      else if (gameState.problemKPMs && gameState.problemKPMs.length > 0) {
+        const validKPMs = gameState.problemKPMs.filter(kpm => kpm > 0);
+        if (validKPMs.length > 0) {
+          kpmValue = Math.floor(validKPMs.reduce((sum, kpm) => sum + kpm, 0) / validKPMs.length);
+        }
+      }
 
       const accuracyValue = gameState.stats?.accuracy ||
         gameState.accuracy ||
@@ -342,75 +351,83 @@ const RankingScreen = () => {
       // ローカルストレージに名前を保存
       localStorage.setItem('playerName', playerName);
 
-      // Weather Typing風の計算方法でのKPM
+      // KPMを一貫性のある方法で計算（他のコンポーネントと同じ計算ロジック）
       let kpmValue = 0;
 
-      // リファクタリング後の構造に対応
-      if (gameState.stats && gameState.stats.kpm) {
-        // 新しい構造: stats.kpm
+      // 統一された計算方法を使う：
+      // 1. stats.kpmが存在する場合はそれを使用（最も信頼性が高い）
+      if (gameState.stats && gameState.stats.kpm !== undefined) {
         kpmValue = Math.floor(gameState.stats.kpm);
-      } else if (gameState.problemKPMs && gameState.problemKPMs.length > 0) {
-        // 以前の構造: problemKPMs
-        const validKPMs = gameState.problemKPMs.filter((kpm) => kpm > 0);
+      }
+      // 2. 問題ごとのデータから計算（これも信頼性が高い）
+      else if (gameState.stats && gameState.stats.problemStats && gameState.stats.problemStats.length > 0) {
+        kpmValue = Math.floor(TypingUtils.calculateAverageKPM(gameState.stats.problemStats));
+      }
+      // 3. 過去の形式（problemKPMs）をサポート
+      else if (gameState.problemKPMs && gameState.problemKPMs.length > 0) {
+        const validKPMs = gameState.problemKPMs.filter(kpm => kpm > 0);
         if (validKPMs.length > 0) {
-          const totalKPM = validKPMs.reduce((sum, kpm) => sum + kpm, 0);
-          kpmValue = Math.floor(totalKPM / validKPMs.length);
+          kpmValue = Math.floor(validKPMs.reduce((sum, kpm) => sum + kpm, 0) / validKPMs.length);
         }
-      } else if (
-        gameState.startTime &&
-        gameState.endTime &&
-        gameState.correctKeyCount
-      ) {
-        // 以前の構造: 直接KPM計算
+      }
+      // 4. 直接計算（最も原始的な方法）
+      else if (gameState.startTime && gameState.endTime && gameState.correctKeyCount) {
         const elapsedMs = gameState.endTime - gameState.startTime;
         const minutes = elapsedMs / 60000;
         kpmValue = Math.floor(gameState.correctKeyCount / minutes);
       }
 
+      // KPMが0以下の場合で、入力カウントがある場合は最低値1を設定
+      const correctCount = gameState.correctKeyCount || (gameState.stats && gameState.stats.correctCount) || 0;
+      if (kpmValue <= 0 && correctCount > 0) {
+        kpmValue = 1;
+      }
+
       // KPMからランクを計算
       const rankValue = TypingUtils.getRank(kpmValue);
 
-      // 正解率を計算
+      // 正解率を計算（統一した方法で）
       let accuracyValue = 0;
 
-      // リファクタリング後の構造に対応
+      // 1. stats.accuracyが存在する場合
       if (gameState.stats && typeof gameState.stats.accuracy === 'number') {
-        // 新しい構造: stats.accuracy
         accuracyValue = gameState.stats.accuracy;
-      } else if (typeof gameState.accuracy === 'number' && !isNaN(gameState.accuracy)) {
-        // 以前の構造: gameState.accuracy
+      }
+      // 2. 直接accuracyプロパティがある場合
+      else if (typeof gameState.accuracy === 'number' && !isNaN(gameState.accuracy)) {
         accuracyValue = gameState.accuracy;
-      } else if (
-        (gameState.correctKeyCount >= 0 || (gameState.stats && gameState.stats.correctCount >= 0)) &&
+      }
+      // 3. 正解数とミス数から計算
+      else if ((gameState.correctKeyCount >= 0 || (gameState.stats && gameState.stats.correctCount >= 0)) &&
         (gameState.mistakes >= 0 || gameState.mistakes === 0 ||
-          (gameState.stats && (gameState.stats.missCount >= 0 || gameState.stats.missCount === 0)))
-      ) {
-        // データ構造に応じて適切なプロパティを使用
+          (gameState.stats && (gameState.stats.missCount >= 0 || gameState.stats.missCount === 0)))) {
         const correctCount = gameState.correctKeyCount || (gameState.stats && gameState.stats.correctCount) || 0;
         const missCount = gameState.mistakes || (gameState.stats && gameState.stats.missCount) || 0;
-
-        // correctKeyCountとmistakesから計算
         const totalKeystrokes = correctCount + missCount;
+
         if (totalKeystrokes > 0) {
           accuracyValue = (correctCount / totalKeystrokes) * 100;
         }
       }
 
-      console.log('送信する正確率データ:', accuracyValue, '%');
-      console.log('gameState:', gameState);
+      console.log('送信する統計データ:', {
+        kpm: kpmValue,
+        accuracy: accuracyValue,
+        rank: rankValue
+      });
 
       // オンラインランキングに保存
-      // 新しい構造にも対応
-      const correctCount = gameState.correctKeyCount || (gameState.stats && gameState.stats.correctCount) || 0;
-      const missCount = gameState.mistakes || (gameState.stats && gameState.stats.missCount) || 0;
-      const playTime = gameState.playTime || (gameState.stats && gameState.stats.elapsedTimeMs) || 0;
+      // 変数が既に宣言されているので、新しい変数名を使用
+      const finalCorrectCount = gameState.correctKeyCount || (gameState.stats && gameState.stats.correctCount) || 0;
+      const finalMissCount = gameState.mistakes || (gameState.stats && gameState.stats.missCount) || 0;
+      const finalPlayTime = gameState.playTime || (gameState.stats && gameState.stats.elapsedTimeMs) || 0;
 
       const recordId = await saveOnlineRanking(
         playerName,
         kpmValue,
         accuracyValue,
-        playTime,
-        missCount,
+        finalPlayTime,
+        finalMissCount,
         settings.difficulty || 'normal',
         rankValue // ランク情報を追加
       );
@@ -828,8 +845,8 @@ const RankingScreen = () => {
               {registrationStatus.message && (
                 <div
                   className={`${styles.statusMessage} ${registrationStatus.success
-                      ? styles.successMessage
-                      : styles.errorMessage
+                    ? styles.successMessage
+                    : styles.errorMessage
                     }`}
                 >
                   {registrationStatus.message}

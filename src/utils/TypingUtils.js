@@ -601,32 +601,6 @@ export default class TypingUtils {
   }
 
   /**
-   * Weather Typing風のKPM計算（高速化）
-   * @param {number} keyCount 正解キー数
-   * @param {number} elapsedTimeMs 経過時間(ms)
-   * @param {Array} problemStats 各問題の統計情報
-   * @returns {number} 計算されたKPM値
-   */
-  static calculateWeatherTypingKPM(keyCount, elapsedTimeMs, problemStats = []) {
-    // 入力がない場合はKPM=0
-    if (!keyCount || keyCount <= 0) return 0;
-
-    // 経過時間が異常に短い場合の補正（最低10秒の保証）
-    // これにより、異常に高いKPMの発生を防止
-    const safeElapsedMs = Math.max(elapsedTimeMs, 10000);
-
-    console.log('【KPM計算】詳細情報:', {
-      キー数: keyCount,
-      元の経過時間ms: elapsedTimeMs,
-      補正後経過時間ms: safeElapsedMs,
-      分換算: safeElapsedMs / 60000
-    });
-
-    // 問題ごとのデータがある場合も、基本的な計算式は同じ
-    return Math.floor(keyCount / (safeElapsedMs / 60000));
-  }
-
-  /**
    * 問題ごとのKPMを計算し、その平均値を返す
    * Weather Typing方式では各問題のKPMを算出し、その平均を取る
    * @param {Array} problemStats 問題ごとの統計情報

@@ -181,18 +181,18 @@ export function useTypingGame({
 
       // 表示情報の最適化（必要最低限の情報のみ更新）
       const colorInfo = session.getColoringInfo();
-      
+
       // 前回と異なる場合のみ更新（不要な再レンダリングを防止）
       setDisplayInfo(prev => {
         // 複数の値が変わる可能性があるので、個別比較して必要なもののみ更新
-        const needsUpdate = 
+        const needsUpdate =
           prev.typedLength !== colorInfo.typedLength ||
           prev.currentInputLength !== colorInfo.currentInputLength ||
           prev.currentCharIndex !== colorInfo.currentCharIndex ||
           prev.currentInput !== colorInfo.currentInput ||
           prev.expectedNextChar !== colorInfo.expectedNextChar ||
           prev.currentCharRomaji !== colorInfo.currentCharRomaji;
-          
+
         // 更新が必要な場合のみ新しいオブジェクトを返す
         return needsUpdate ? {
           ...prev,
@@ -208,8 +208,8 @@ export function useTypingGame({
       // 統計表示の更新を間引く（スロットリング）
       // 前回の更新から500ms以上経過している場合のみ更新
       const statsUpdateDebounceTime = 500; // 500ms
-      if (!statsUpdateTimerRef.current && 
-          (!stats.lastStatsUpdateTime || now - stats.lastStatsUpdateTime > statsUpdateDebounceTime)) {
+      if (!statsUpdateTimerRef.current &&
+        (!stats.lastStatsUpdateTime || now - stats.lastStatsUpdateTime > statsUpdateDebounceTime)) {
         statsUpdateTimerRef.current = setTimeout(() => {
           _updateDisplayStats();
           statsUpdateTimerRef.current = null;
@@ -234,9 +234,17 @@ export function useTypingGame({
       // エラーカウントを更新（refで管理）
       stats.mistakeCount += 1;
 
+      // デバッグ情報を追加
+      console.log('【ミス検出】ミスをカウントしました:', {
+        ミス数: stats.mistakeCount,
+        正解数: stats.correctKeyCount,
+        入力文字: halfWidthChar,
+        期待文字: session.getCurrentExpectedKey?.() || 'unknown'
+      });
+
       // エラーアニメーション表示（前のタイマーがある場合はクリアして新しく設定）
       setErrorAnimation(true);
-      
+
       // 効率化：既存のタイマーをクリア
       if (errorAnimationTimerRef.current) {
         clearTimeout(errorAnimationTimerRef.current);
@@ -248,16 +256,8 @@ export function useTypingGame({
         errorAnimationTimerRef.current = null;
       }, 200);
 
-      // 統計表示の更新も必要に応じて行う（エラー時は頻度を下げる）
-      // 前回の更新から1秒以上経過している場合のみ更新
-      if (!statsUpdateTimerRef.current && 
-          (!stats.lastStatsUpdateTime || now - stats.lastStatsUpdateTime > 1000)) {
-        statsUpdateTimerRef.current = setTimeout(() => {
-          _updateDisplayStats();
-          statsUpdateTimerRef.current = null;
-          stats.lastStatsUpdateTime = Date.now();
-        }, 200);
-      }
+      // 統計表示の更新も必要に応じて行う（エラー時は即時更新）
+      _updateDisplayStats();
 
       return { success: false, status: result.status };
     }
