@@ -1,0 +1,101 @@
+/* StatsDisplay.module.css */
+/* タイピングゲーム統計情報の表示スタイル */
+
+.statsDisplay {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  color: #fff;
+  font-family: var(--font-mono), monospace;
+  margin-bottom: 0.5rem;
+}
+
+.statValues {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.statLabel {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.statValue {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.problemProgress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.progressLabel {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.progressBarContainer {
+  width: 100px;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  border-radius: 2px;
+}
+
+/* ハイライト効果 */
+.highlightKpm {
+  color: #4caf50;
+  animation: pulse 1s ease-in-out;
+}
+
+.highlightAccuracy {
+  color: #2196f3;
+  animation: pulse 1s ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* メディアクエリ - モバイル対応 */
+@media (max-width: 768px) {
+  .statsDisplay {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .statValues {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .problemProgress {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .progressBarContainer {
+    width: 100%;
+  }
+}
