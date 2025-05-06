@@ -198,6 +198,14 @@ const MainMenu = () => {
                     className={`${styles.difficultyButton} ${settings.difficulty === key ? styles.active : ''}`}
                     onClick={() => handleDifficultyChange(key)}
                     aria-pressed={settings.difficulty === key}
+                    tabIndex={0} // 明示的にタブ操作可能に設定
+                    onKeyDown={(e) => {
+                      // Enterキーまたはスペースキーでボタンをアクティブにする
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleDifficultyChange(key);
+                      }
+                    }}
                   >
                     <div className={`${styles.difficultyIndicator} ${styles[`difficultyIndicator_${key}`]}`}></div>
                     <span className={styles.difficultyLabel}>{difficultyLabels[key]}</span>

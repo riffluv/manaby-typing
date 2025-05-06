@@ -444,51 +444,75 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 14px 10px;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px 10px;
   color: #fff;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-/* 難易度インジケーター - 絵文字の代わりに洗練されたデザイン */
+/* フォーカス状態を強化 */
+.difficultyButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 140, 0, 0.7);
+  transform: translateY(-2px);
+}
+
+/* 難易度インジケーター - より目立つデザイン */
 .difficultyIndicator {
-  width: 24px;
-  height: 4px;
-  border-radius: 2px;
-  margin-bottom: 12px;
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  margin-bottom: 14px;
   position: relative;
+  transition: all 0.3s ease;
 }
 
 .difficultyIndicator_easy {
   background-color: #4CAF50;
-  box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
 }
 
 .difficultyIndicator_normal {
   background-color: #FFC107;
-  box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
 }
 
 .difficultyIndicator_hard {
   background-color: #E53935;
-  box-shadow: 0 0 8px rgba(229, 57, 53, 0.4);
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.6);
 }
 
+/* ホバー・アクティブ効果を強化 */
 .difficultyButton:hover {
-  background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: rgba(35, 35, 35, 0.95);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.35);
 }
 
 .difficultyButton.active {
-  background: rgba(255, 140, 0, 0.1);
-  border: 1px solid rgba(255, 140, 0, 0.3);
-  box-shadow: 0 0 20px rgba(255, 140, 0, 0.15), inset 0 0 15px rgba(255, 140, 0, 0.05);
+  background: rgba(40, 25, 5, 0.9);
+  border: 1px solid rgba(255, 140, 0, 0.7);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.25), inset 0 0 15px rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* アクティブ状態をさらに強調 */
+.difficultyButton.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.8), transparent);
 }
 
 .difficultyButton.active::after {
@@ -497,128 +521,2536 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 2px;
+  height: 3px;
   background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
 }
 
+.difficultyButton.active .difficultyIndicator {
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
 .difficultyLabel {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+  transition: all 0.2s ease;
+}
+
+.difficultyButton.active .difficultyLabel {
+  color: rgba(255, 205, 120, 1);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
 }
 
 .activeMark {
   position: absolute;
   top: 10px;
   right: 10px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.9);
+}
+
+/* アクティブマークのパルスアニメーション */
+.difficultyButton.active .activeMark {
+  animation: pulseActiveMark 2s infinite;
+}
+
+@keyframes pulseActiveMark {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 設定モーダル内のスタイル - プロフェッショナルゲームUI風に更新 */
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+}
+
+/* セクション全体のスタイル */
+.settingsSection {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(255, 140, 0, 0.1);
+  padding: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* セクションヘッダー - 洗練されたデザイン */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sectionHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.4), transparent);
+}
+
+.sectionDecoration {
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, #ff8c00, rgba(255, 140, 0, 0.3));
+  border-radius: 2px;
+  position: relative;
+}
+
+.sectionDecoration::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -1px;
   width: 6px;
   height: 6px;
   background-color: #ff8c00;
   border-radius: 50%;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.7);
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
 }
 
-/* 区切り線 - モダンなデザイン */
-.settingsDivider {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin: 5px 0;
+.sectionTitle {
+  font-family: var(--font-heading, sans-serif);
+  color: #fff;
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 1px;
+  font-weight: 300;
+  text-transform: uppercase;
 }
 
-.dividerLine {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-}
-
-.dividerAccent {
-  width: 10px;
-  height: 10px;
-  transform: rotate(45deg);
+/* 設定パネル - モダンなデザイン */
+.settingsPanel {
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 140, 0, 0.2);
-  position: relative;
-}
-
-.dividerAccent::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  right: 2px;
-  bottom: 2px;
-  border: 1px solid rgba(255, 140, 0, 0.1);
-}
-
-/* キーボードショートカットセクション - スタイリッシュな表現 */
-.keyboardShortcuts {
-  margin-top: 8px;
-  background: rgba(0, 0, 0, 0.35);
   border-radius: 6px;
-  padding: 16px;
+  padding: 18px;
+  position: relative;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.shortcutsHeader {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 500;
-  position: relative;
-}
-
-.shortcutsDecoration {
-  width: 3px;
-  height: 18px;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), transparent);
-  border-radius: 1.5px;
-}
-
-.shortcutsList {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px 24px;
-}
-
-.shortcutItem {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.shortcutItem kbd {
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.9);
-  font-family: var(--font-mono, monospace);
-  font-size: 12px;
-  padding: 4px 10px;
-  min-width: 18px;
-  text-align: center;
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
-  position: relative;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.shortcutItem kbd::after {
+.settingsPanel::before {
   content: '';
   position: absolute;
+  top: 0;
   left: 0;
-  bottom: 0;
   width: 100%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  height: 100%;
+  background: linear-gradient(45deg, transparent 98%, rgba(255, 140, 0, 0.1) 100%);
+  z-index: -1;
 }
 
-.shortcutItem span {
-  color: rgba(255, 255, 255, 0.7);
+/* 設定行 */
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* 設定ラベルグループ */
+.settingLabelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingLabel {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settingDescription {
+  color: rgba(255, 255, 255, 0.6);
   font-size: 13px;
+  font-style: normal;
+}
+
+/* 難易度選択ボタングループ - スタイリッシュに */
+.difficultySelector {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.difficultyButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* フォーカス状態を強化 */
+.difficultyButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 140, 0, 0.7);
+  transform: translateY(-2px);
+}
+
+/* 難易度インジケーター - より目立つデザイン */
+.difficultyIndicator {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.difficultyIndicator_easy {
+  background-color: #4CAF50;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+.difficultyIndicator_normal {
+  background-color: #FFC107;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
+}
+
+.difficultyIndicator_hard {
+  background-color: #E53935;
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.6);
+}
+
+/* ホバー・アクティブ効果を強化 */
+.difficultyButton:hover {
+  background: rgba(35, 35, 35, 0.95);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.35);
+}
+
+.difficultyButton.active {
+  background: rgba(40, 25, 5, 0.9);
+  border: 1px solid rgba(255, 140, 0, 0.7);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.25), inset 0 0 15px rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* アクティブ状態をさらに強調 */
+.difficultyButton.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.8), transparent);
+}
+
+.difficultyButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
+}
+
+.difficultyButton.active .difficultyIndicator {
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.difficultyLabel {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  transition: all 0.2s ease;
+}
+
+.difficultyButton.active .difficultyLabel {
+  color: rgba(255, 205, 120, 1);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.activeMark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.9);
+}
+
+/* アクティブマークのパルスアニメーション */
+.difficultyButton.active .activeMark {
+  animation: pulseActiveMark 2s infinite;
+}
+
+@keyframes pulseActiveMark {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 設定モーダル内のスタイル - プロフェッショナルゲームUI風に更新 */
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+}
+
+/* セクション全体のスタイル */
+.settingsSection {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(255, 140, 0, 0.1);
+  padding: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* セクションヘッダー - 洗練されたデザイン */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sectionHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.4), transparent);
+}
+
+.sectionDecoration {
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, #ff8c00, rgba(255, 140, 0, 0.3));
+  border-radius: 2px;
+  position: relative;
+}
+
+.sectionDecoration::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -1px;
+  width: 6px;
+  height: 6px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.sectionTitle {
+  font-family: var(--font-heading, sans-serif);
+  color: #fff;
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 1px;
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+/* 設定パネル - モダンなデザイン */
+.settingsPanel {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 18px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settingsPanel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent 98%, rgba(255, 140, 0, 0.1) 100%);
+  z-index: -1;
+}
+
+/* 設定行 */
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* 設定ラベルグループ */
+.settingLabelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingLabel {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settingDescription {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: normal;
+}
+
+/* 難易度選択ボタングループ - スタイリッシュに */
+.difficultySelector {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.difficultyButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* フォーカス状態を強化 */
+.difficultyButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 140, 0, 0.7);
+  transform: translateY(-2px);
+}
+
+/* 難易度インジケーター - より目立つデザイン */
+.difficultyIndicator {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.difficultyIndicator_easy {
+  background-color: #4CAF50;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+.difficultyIndicator_normal {
+  background-color: #FFC107;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
+}
+
+.difficultyIndicator_hard {
+  background-color: #E53935;
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.6);
+}
+
+/* ホバー・アクティブ効果を強化 */
+.difficultyButton:hover {
+  background: rgba(35, 35, 35, 0.95);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.35);
+}
+
+.difficultyButton.active {
+  background: rgba(40, 25, 5, 0.9);
+  border: 1px solid rgba(255, 140, 0, 0.7);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.25), inset 0 0 15px rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* アクティブ状態をさらに強調 */
+.difficultyButton.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.8), transparent);
+}
+
+.difficultyButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
+}
+
+.difficultyButton.active .difficultyIndicator {
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.difficultyLabel {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  transition: all 0.2s ease;
+}
+
+.difficultyButton.active .difficultyLabel {
+  color: rgba(255, 205, 120, 1);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.activeMark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.9);
+}
+
+/* アクティブマークのパルスアニメーション */
+.difficultyButton.active .activeMark {
+  animation: pulseActiveMark 2s infinite;
+}
+
+@keyframes pulseActiveMark {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* UIコントロール（ボタン、設定など） */
+.cornerButtons {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  opacity: 0.8;
+}
+
+.iconButton:hover {
+  background-color: transparent;
+  box-shadow: none;
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+.iconButton:active {
+  transform: scale(0.95);
+}
+
+.creditButton {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.creditButton:hover {
+  opacity: 1;
+  color: #ff8c00;
+  transform: scale(1.1);
+}
+
+/* 設定モーダル内のスタイル - プロフェッショナルゲームUI風に更新 */
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+}
+
+/* セクション全体のスタイル */
+.settingsSection {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(255, 140, 0, 0.1);
+  padding: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* セクションヘッダー - 洗練されたデザイン */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sectionHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.4), transparent);
+}
+
+.sectionDecoration {
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, #ff8c00, rgba(255, 140, 0, 0.3));
+  border-radius: 2px;
+  position: relative;
+}
+
+.sectionDecoration::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -1px;
+  width: 6px;
+  height: 6px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.sectionTitle {
+  font-family: var(--font-heading, sans-serif);
+  color: #fff;
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 1px;
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+/* 設定パネル - モダンなデザイン */
+.settingsPanel {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 18px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settingsPanel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent 98%, rgba(255, 140, 0, 0.1) 100%);
+  z-index: -1;
+}
+
+/* 設定行 */
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* 設定ラベルグループ */
+.settingLabelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingLabel {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settingDescription {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: normal;
+}
+
+/* 難易度選択ボタングループ - スタイリッシュに */
+.difficultySelector {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.difficultyButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* フォーカス状態を強化 */
+.difficultyButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 140, 0, 0.7);
+  transform: translateY(-2px);
+}
+
+/* 難易度インジケーター - より目立つデザイン */
+.difficultyIndicator {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.difficultyIndicator_easy {
+  background-color: #4CAF50;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+.difficultyIndicator_normal {
+  background-color: #FFC107;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
+}
+
+.difficultyIndicator_hard {
+  background-color: #E53935;
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.6);
+}
+
+/* ホバー・アクティブ効果を強化 */
+.difficultyButton:hover {
+  background: rgba(35, 35, 35, 0.95);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.35);
+}
+
+.difficultyButton.active {
+  background: rgba(40, 25, 5, 0.9);
+  border: 1px solid rgba(255, 140, 0, 0.7);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.25), inset 0 0 15px rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* アクティブ状態をさらに強調 */
+.difficultyButton.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.8), transparent);
+}
+
+.difficultyButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
+}
+
+.difficultyButton.active .difficultyIndicator {
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.difficultyLabel {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  transition: all 0.2s ease;
+}
+
+.difficultyButton.active .difficultyLabel {
+  color: rgba(255, 205, 120, 1);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.activeMark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.9);
+}
+
+/* アクティブマークのパルスアニメーション */
+.difficultyButton.active .activeMark {
+  animation: pulseActiveMark 2s infinite;
+}
+
+@keyframes pulseActiveMark {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* UIコントロール（ボタン、設定など） */
+.cornerButtons {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  opacity: 0.8;
+}
+
+.iconButton:hover {
+  background-color: transparent;
+  box-shadow: none;
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+.iconButton:active {
+  transform: scale(0.95);
+}
+
+.creditButton {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.creditButton:hover {
+  opacity: 1;
+  color: #ff8c00;
+  transform: scale(1.1);
+}
+
+/* 設定モーダル内のスタイル - プロフェッショナルゲームUI風に更新 */
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+}
+
+/* セクション全体のスタイル */
+.settingsSection {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(255, 140, 0, 0.1);
+  padding: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* セクションヘッダー - 洗練されたデザイン */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sectionHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.4), transparent);
+}
+
+.sectionDecoration {
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, #ff8c00, rgba(255, 140, 0, 0.3));
+  border-radius: 2px;
+  position: relative;
+}
+
+.sectionDecoration::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -1px;
+  width: 6px;
+  height: 6px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.sectionTitle {
+  font-family: var(--font-heading, sans-serif);
+  color: #fff;
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 1px;
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+/* 設定パネル - モダンなデザイン */
+.settingsPanel {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 18px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settingsPanel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent 98%, rgba(255, 140, 0, 0.1) 100%);
+  z-index: -1;
+}
+
+/* 設定行 */
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* 設定ラベルグループ */
+.settingLabelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingLabel {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settingDescription {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: normal;
+}
+
+/* 難易度選択ボタングループ - スタイリッシュに */
+.difficultySelector {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.difficultyButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* フォーカス状態を強化 */
+.difficultyButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 140, 0, 0.7);
+  transform: translateY(-2px);
+}
+
+/* 難易度インジケーター - より目立つデザイン */
+.difficultyIndicator {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.difficultyIndicator_easy {
+  background-color: #4CAF50;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+.difficultyIndicator_normal {
+  background-color: #FFC107;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
+}
+
+.difficultyIndicator_hard {
+  background-color: #E53935;
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.6);
+}
+
+/* ホバー・アクティブ効果を強化 */
+.difficultyButton:hover {
+  background: rgba(35, 35, 35, 0.95);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.35);
+}
+
+.difficultyButton.active {
+  background: rgba(40, 25, 5, 0.9);
+  border: 1px solid rgba(255, 140, 0, 0.7);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.25), inset 0 0 15px rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* アクティブ状態をさらに強調 */
+.difficultyButton.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.8), transparent);
+}
+
+.difficultyButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
+}
+
+.difficultyButton.active .difficultyIndicator {
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.difficultyLabel {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  transition: all 0.2s ease;
+}
+
+.difficultyButton.active .difficultyLabel {
+  color: rgba(255, 205, 120, 1);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.activeMark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.9);
+}
+
+/* アクティブマークのパルスアニメーション */
+.difficultyButton.active .activeMark {
+  animation: pulseActiveMark 2s infinite;
+}
+
+@keyframes pulseActiveMark {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* UIコントロール（ボタン、設定など） */
+.cornerButtons {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  opacity: 0.8;
+}
+
+.iconButton:hover {
+  background-color: transparent;
+  box-shadow: none;
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+.iconButton:active {
+  transform: scale(0.95);
+}
+
+.creditButton {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.creditButton:hover {
+  opacity: 1;
+  color: #ff8c00;
+  transform: scale(1.1);
+}
+
+/* 設定モーダル内のスタイル - プロフェッショナルゲームUI風に更新 */
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+}
+
+/* セクション全体のスタイル */
+.settingsSection {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(255, 140, 0, 0.1);
+  padding: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* セクションヘッダー - 洗練されたデザイン */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sectionHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.4), transparent);
+}
+
+.sectionDecoration {
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, #ff8c00, rgba(255, 140, 0, 0.3));
+  border-radius: 2px;
+  position: relative;
+}
+
+.sectionDecoration::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -1px;
+  width: 6px;
+  height: 6px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.sectionTitle {
+  font-family: var(--font-heading, sans-serif);
+  color: #fff;
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 1px;
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+/* 設定パネル - モダンなデザイン */
+.settingsPanel {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 18px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settingsPanel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent 98%, rgba(255, 140, 0, 0.1) 100%);
+  z-index: -1;
+}
+
+/* 設定行 */
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* 設定ラベルグループ */
+.settingLabelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingLabel {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settingDescription {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: normal;
+}
+
+/* 難易度選択ボタングループ - スタイリッシュに */
+.difficultySelector {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.difficultyButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* フォーカス状態を強化 */
+.difficultyButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 140, 0, 0.7);
+  transform: translateY(-2px);
+}
+
+/* 難易度インジケーター - より目立つデザイン */
+.difficultyIndicator {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.difficultyIndicator_easy {
+  background-color: #4CAF50;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+.difficultyIndicator_normal {
+  background-color: #FFC107;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
+}
+
+.difficultyIndicator_hard {
+  background-color: #E53935;
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.6);
+}
+
+/* ホバー・アクティブ効果を強化 */
+.difficultyButton:hover {
+  background: rgba(35, 35, 35, 0.95);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.35);
+}
+
+.difficultyButton.active {
+  background: rgba(40, 25, 5, 0.9);
+  border: 1px solid rgba(255, 140, 0, 0.7);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.25), inset 0 0 15px rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* アクティブ状態をさらに強調 */
+.difficultyButton.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.8), transparent);
+}
+
+.difficultyButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
+}
+
+.difficultyButton.active .difficultyIndicator {
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.difficultyLabel {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  transition: all 0.2s ease;
+}
+
+.difficultyButton.active .difficultyLabel {
+  color: rgba(255, 205, 120, 1);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.activeMark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.9);
+}
+
+/* アクティブマークのパルスアニメーション */
+.difficultyButton.active .activeMark {
+  animation: pulseActiveMark 2s infinite;
+}
+
+@keyframes pulseActiveMark {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* UIコントロール（ボタン、設定など） */
+.cornerButtons {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  opacity: 0.8;
+}
+
+.iconButton:hover {
+  background-color: transparent;
+  box-shadow: none;
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+.iconButton:active {
+  transform: scale(0.95);
+}
+
+.creditButton {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.creditButton:hover {
+  opacity: 1;
+  color: #ff8c00;
+  transform: scale(1.1);
+}
+
+/* 設定モーダル内のスタイル - プロフェッショナルゲームUI風に更新 */
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+}
+
+/* セクション全体のスタイル */
+.settingsSection {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(255, 140, 0, 0.1);
+  padding: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* セクションヘッダー - 洗練されたデザイン */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sectionHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.4), transparent);
+}
+
+.sectionDecoration {
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, #ff8c00, rgba(255, 140, 0, 0.3));
+  border-radius: 2px;
+  position: relative;
+}
+
+.sectionDecoration::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -1px;
+  width: 6px;
+  height: 6px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.sectionTitle {
+  font-family: var(--font-heading, sans-serif);
+  color: #fff;
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 1px;
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+/* 設定パネル - モダンなデザイン */
+.settingsPanel {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 18px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settingsPanel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent 98%, rgba(255, 140, 0, 0.1) 100%);
+  z-index: -1;
+}
+
+/* 設定行 */
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* 設定ラベルグループ */
+.settingLabelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingLabel {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settingDescription {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: normal;
+}
+
+/* 難易度選択ボタングループ - スタイリッシュに */
+.difficultySelector {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.difficultyButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* フォーカス状態を強化 */
+.difficultyButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 140, 0, 0.7);
+  transform: translateY(-2px);
+}
+
+/* 難易度インジケーター - より目立つデザイン */
+.difficultyIndicator {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.difficultyIndicator_easy {
+  background-color: #4CAF50;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+.difficultyIndicator_normal {
+  background-color: #FFC107;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
+}
+
+.difficultyIndicator_hard {
+  background-color: #E53935;
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.6);
+}
+
+/* ホバー・アクティブ効果を強化 */
+.difficultyButton:hover {
+  background: rgba(35, 35, 35, 0.95);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.35);
+}
+
+.difficultyButton.active {
+  background: rgba(40, 25, 5, 0.9);
+  border: 1px solid rgba(255, 140, 0, 0.7);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.25), inset 0 0 15px rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* アクティブ状態をさらに強調 */
+.difficultyButton.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.8), transparent);
+}
+
+.difficultyButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
+}
+
+.difficultyButton.active .difficultyIndicator {
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.difficultyLabel {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  transition: all 0.2s ease;
+}
+
+.difficultyButton.active .difficultyLabel {
+  color: rgba(255, 205, 120, 1);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.activeMark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.9);
+}
+
+/* アクティブマークのパルスアニメーション */
+.difficultyButton.active .activeMark {
+  animation: pulseActiveMark 2s infinite;
+}
+
+@keyframes pulseActiveMark {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* UIコントロール（ボタン、設定など） */
+.cornerButtons {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  opacity: 0.8;
+}
+
+.iconButton:hover {
+  background-color: transparent;
+  box-shadow: none;
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+.iconButton:active {
+  transform: scale(0.95);
+}
+
+.creditButton {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.creditButton:hover {
+  opacity: 1;
+  color: #ff8c00;
+  transform: scale(1.1);
+}
+
+/* 設定モーダル内のスタイル - プロフェッショナルゲームUI風に更新 */
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+}
+
+/* セクション全体のスタイル */
+.settingsSection {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(255, 140, 0, 0.1);
+  padding: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* セクションヘッダー - 洗練されたデザイン */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sectionHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.4), transparent);
+}
+
+.sectionDecoration {
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, #ff8c00, rgba(255, 140, 0, 0.3));
+  border-radius: 2px;
+  position: relative;
+}
+
+.sectionDecoration::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -1px;
+  width: 6px;
+  height: 6px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.sectionTitle {
+  font-family: var(--font-heading, sans-serif);
+  color: #fff;
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 1px;
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+/* 設定パネル - モダンなデザイン */
+.settingsPanel {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 18px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settingsPanel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent 98%, rgba(255, 140, 0, 0.1) 100%);
+  z-index: -1;
+}
+
+/* 設定行 */
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* 設定ラベルグループ */
+.settingLabelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingLabel {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settingDescription {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: normal;
+}
+
+/* 難易度選択ボタングループ - スタイリッシュに */
+.difficultySelector {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.difficultyButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* フォーカス状態を強化 */
+.difficultyButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 140, 0, 0.7);
+  transform: translateY(-2px);
+}
+
+/* 難易度インジケーター - より目立つデザイン */
+.difficultyIndicator {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.difficultyIndicator_easy {
+  background-color: #4CAF50;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+.difficultyIndicator_normal {
+  background-color: #FFC107;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
+}
+
+.difficultyIndicator_hard {
+  background-color: #E53935;
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.6);
+}
+
+/* ホバー・アクティブ効果を強化 */
+.difficultyButton:hover {
+  background: rgba(35, 35, 35, 0.95);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.35);
+}
+
+.difficultyButton.active {
+  background: rgba(40, 25, 5, 0.9);
+  border: 1px solid rgba(255, 140, 0, 0.7);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.25), inset 0 0 15px rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* アクティブ状態をさらに強調 */
+.difficultyButton.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.8), transparent);
+}
+
+.difficultyButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
+}
+
+.difficultyButton.active .difficultyIndicator {
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.difficultyLabel {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  transition: all 0.2s ease;
+}
+
+.difficultyButton.active .difficultyLabel {
+  color: rgba(255, 205, 120, 1);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.activeMark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.9);
+}
+
+/* アクティブマークのパルスアニメーション */
+.difficultyButton.active .activeMark {
+  animation: pulseActiveMark 2s infinite;
+}
+
+@keyframes pulseActiveMark {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* UIコントロール（ボタン、設定など） */
+.cornerButtons {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+
+.iconButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  opacity: 0.8;
+}
+
+.iconButton:hover {
+  background-color: transparent;
+  box-shadow: none;
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+.iconButton:active {
+  transform: scale(0.95);
+}
+
+.creditButton {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.creditButton:hover {
+  opacity: 1;
+  color: #ff8c00;
+  transform: scale(1.1);
+}
+
+/* 設定モーダル内のスタイル - プロフェッショナルゲームUI風に更新 */
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 20px;
+}
+
+/* セクション全体のスタイル */
+.settingsSection {
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(255, 140, 0, 0.1);
+  padding: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* セクションヘッダー - 洗練されたデザイン */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.sectionHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.4), transparent);
+}
+
+.sectionDecoration {
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, #ff8c00, rgba(255, 140, 0, 0.3));
+  border-radius: 2px;
+  position: relative;
+}
+
+.sectionDecoration::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -1px;
+  width: 6px;
+  height: 6px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.sectionTitle {
+  font-family: var(--font-heading, sans-serif);
+  color: #fff;
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 1px;
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+/* 設定パネル - モダンなデザイン */
+.settingsPanel {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 18px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settingsPanel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent 98%, rgba(255, 140, 0, 0.1) 100%);
+  z-index: -1;
+}
+
+/* 設定行 */
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* 設定ラベルグループ */
+.settingLabelGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingLabel {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.settingDescription {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: normal;
+}
+
+/* 難易度選択ボタングループ - スタイリッシュに */
+.difficultySelector {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.difficultyButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px 10px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* フォーカス状態を強化 */
+.difficultyButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 140, 0, 0.7);
+  transform: translateY(-2px);
+}
+
+/* 難易度インジケーター - より目立つデザイン */
+.difficultyIndicator {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  margin-bottom: 14px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.difficultyIndicator_easy {
+  background-color: #4CAF50;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+.difficultyIndicator_normal {
+  background-color: #FFC107;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
+}
+
+.difficultyIndicator_hard {
+  background-color: #E53935;
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.6);
+}
+
+/* ホバー・アクティブ効果を強化 */
+.difficultyButton:hover {
+  background: rgba(35, 35, 35, 0.95);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.35);
+}
+
+.difficultyButton.active {
+  background: rgba(40, 25, 5, 0.9);
+  border: 1px solid rgba(255, 140, 0, 0.7);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.25), inset 0 0 15px rgba(255, 140, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* アクティブ状態をさらに強調 */
+.difficultyButton.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.8), transparent);
+}
+
+.difficultyButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
+}
+
+.difficultyButton.active .difficultyIndicator {
+  transform: scale(1.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.difficultyLabel {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  transition: all 0.2s ease;
+}
+
+.difficultyButton.active .difficultyLabel {
+  color: rgba(255, 205, 120, 1);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+.activeMark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.9);
+}
+
+/* アクティブマークのパルスアニメーション */
+.difficultyButton.active .activeMark {
+  animation: pulseActiveMark 2s infinite;
+}
+
+@keyframes pulseActiveMark {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.5);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* 設定関連 */
