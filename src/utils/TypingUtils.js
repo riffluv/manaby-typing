@@ -14,13 +14,13 @@ const romajiMap = {
   け: ['ke'],
   こ: ['ko', 'co'],
   さ: ['sa'],
-  し: ['si', 'shi', 'ci'],  // 「si」を先頭に変更
+  し: ['si', 'shi', 'ci'], // 複数パターン対応
   す: ['su'],
   せ: ['se', 'ce'],
   そ: ['so'],
   た: ['ta'],
-  ち: ['ti', 'chi'],  // 「ti」を先頭に変更
-  つ: ['tu', 'tsu'],  // 「tu」を先頭に変更
+  ち: ['ti', 'chi'],
+  つ: ['tu', 'tsu'],
   て: ['te'],
   と: ['to'],
   な: ['na'],
@@ -56,7 +56,7 @@ const romajiMap = {
   げ: ['ge'],
   ご: ['go'],
   ざ: ['za'],
-  じ: ['zi', 'ji'],  // 「zi」を先頭に変更
+  じ: ['zi', 'ji'],
   ず: ['zu'],
   ぜ: ['ze'],
   ぞ: ['zo'],
@@ -79,12 +79,12 @@ const romajiMap = {
   きゃ: ['kya'],
   きゅ: ['kyu'],
   きょ: ['kyo'],
-  しゃ: ['sya', 'sha'],  // 「sya」を先頭に変更
-  しゅ: ['syu', 'shu'],  // 「syu」を先頭に変更
-  しょ: ['syo', 'sho'],  // 「syo」を先頭に変更
-  ちゃ: ['tya', 'cha'],  // 「tya」を先頭に変更
-  ちゅ: ['tyu', 'chu'],  // 「tyu」を先頭に変更
-  ちょ: ['tyo', 'cho'],  // 「tyo」を先頭に変更
+  しゃ: ['sya', 'sha', 'sixya', 'shixya'], // 複数パターン対応
+  しゅ: ['syu', 'shu', 'sixyu', 'shixyu'], // 複数パターン対応
+  しょ: ['syo', 'sho', 'sixyo', 'shixyo'], // 複数パターン対応
+  ちゃ: ['tya', 'cha', 'tixya', 'chixya'], // 複数パターン対応
+  ちゅ: ['tyu', 'chu', 'tixyu', 'chixyu'], // 複数パターン対応
+  ちょ: ['tyo', 'cho', 'tixyo', 'chixyo'], // 複数パターン対応
   にゃ: ['nya'],
   にゅ: ['nyu'],
   にょ: ['nyo'],
@@ -100,9 +100,9 @@ const romajiMap = {
   ぎゃ: ['gya'],
   ぎゅ: ['gyu'],
   ぎょ: ['gyo'],
-  じゃ: ['zya', 'ja'],  // 「zya」を先頭に変更
-  じゅ: ['zyu', 'ju'],  // 「zyu」を先頭に変更
-  じょ: ['zyo', 'jo'],  // 「zyo」を先頭に変更
+  じゃ: ['zya', 'ja', 'zixya', 'jixya'], // 複数パターン対応
+  じゅ: ['zyu', 'ju', 'zixyu', 'jixyu'], // 複数パターン対応
+  じょ: ['zyo', 'jo', 'zixyo', 'jixyo'], // 複数パターン対応
   びゃ: ['bya'],
   びゅ: ['byu'],
   びょ: ['byo'],
@@ -116,13 +116,13 @@ const romajiMap = {
   っけ: ['kke'],
   っこ: ['kko'],
   っさ: ['ssa'],
-  っし: ['sshi'],
+  っし: ['sshi', 'ssi'],
   っす: ['ssu'],
   っせ: ['sse'],
   っそ: ['sso'],
   った: ['tta'],
-  っち: ['cchi'],
-  っつ: ['ttsu'],
+  っち: ['cchi', 'tti'],
+  っつ: ['ttsu', 'ttu'],
   って: ['tte'],
   っと: ['tto'],
   っぱ: ['ppa'],
@@ -139,7 +139,7 @@ const romajiMap = {
   ゃ: ['xya', 'lya'],
   ゅ: ['xyu', 'lyu'],
   ょ: ['xyo', 'lyo'],
-  っ: ['xtu', 'ltu'],
+  っ: ['xtu', 'ltu', 'xtsu', 'ltsu'],
   // 記号類
   '、': [','],
   '。': ['.'],
@@ -158,7 +158,7 @@ const consonants = {
 
 // 母音と「y」で始まるパターン (「ん」の特殊処理用)
 const vowelsAndY = {
-  a: true, i: true, u: true, e: true, o: true, y: true
+  a: true, i: true, u: true, e: true, o: true, y: true, n: true
 };
 
 /**
@@ -258,15 +258,21 @@ export default class TypingUtils {
         continue;
       }
 
-      // 「ん」の特殊処理（最適化版）
+      // 「ん」の特殊処理（改善版）
       if (char === 'ん') {
-        // 簡略化された「ん」の処理ロジック
-        // 文末または次の文字が母音/yの場合の特殊処理
-        if (i === hiragana.length - 1) {
-          patterns.push(['nn', 'n']);
+        const isLastChar = i === hiragana.length - 1;
+        const nextFirstChar = nextChar ? nextChar[0] : '';
+
+        // 文末または母音/y/nの前での特殊処理
+        if (isLastChar) {
+          // 単語の最後では n だけでも受け付ける
+          patterns.push(['nn', 'n', 'xn']);
+        } else if (vowelsAndY[nextFirstChar]) {
+          // 母音やyの前では nn または xn のみ
+          patterns.push(['nn', 'xn']);
         } else {
-          const nextFirstChar = nextChar ? nextChar[0] : '';
-          patterns.push(vowelsAndY[nextFirstChar] ? ['nn'] : ['nn', 'n']);
+          // それ以外の場所では nn, n, xn すべて受け付ける
+          patterns.push(['nn', 'n', 'xn']);
         }
         i++;
         continue;

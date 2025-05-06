@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
-import soundSystem from '../utils/SoundUtils';
+import { useSoundContext } from '../contexts/SoundContext';
+import soundSystem from '../utils/SoundUtils'; // soundSystemをインポート
 import MainMenu from './MainMenu';
 import GameScreen from './GameScreen';
 import ResultScreen from './ResultScreen';
@@ -110,8 +111,13 @@ const TransitionManager = () => {
   const [previousScreen, setPreviousScreen] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const { goToScreen } = usePageTransition();
-  // このフラグは音声が二重再生されないようにするためのもの（常にfalseに修正）
+  // このフラグは音声が二重再生されないようにするためのもの
   const [resultSoundPlayed, setResultSoundPlayed] = useState(false);
+
+  // 各種コンテキストが利用可能
+  const soundCtx = useSoundContext();
+  const { soundEnabled, bgmEnabled, sfxEnabled } = soundCtx || {}; // デフォルトfalseを設定
+  const soundSystem = soundCtx?.soundSystem || null;
 
   // 設定モーダル制御をグローバル変数に保存
   const settingsModalControl = useSettingsModal();
@@ -310,8 +316,14 @@ export const usePageTransition = () => {
       if (options.playSound !== false) {
         // リザルト画面への遷移時はここでは効果音を再生せず、ResultScreenで再生する
         if (screen !== SCREENS.RESULT) {
-          // 指定されたサウンドをすぐに再生する（デフォルトはbutton）
-          soundSystem.play(options.soundType || 'button');
+          // ESCキーによるメインメニュー画面遷移の場合、GameScreenですでに効果音が鳴っている可能性があるため、
+          // from=GAMEかつto=MAIN_MENUの場合は再生しない
+          const isEscToMainMenu = options.from === SCREENS.GAME && screen === SCREENS.MAIN_MENU;
+
+          if (!isEscToMainMenu) {
+            // 指定されたサウンドをすぐに再生する（デフォルトはbutton）
+            soundSystem.play(options.soundType || 'button');
+          }
         }
       }
 
