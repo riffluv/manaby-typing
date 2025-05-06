@@ -246,18 +246,18 @@ class SoundUtils {
 
     // 大文字小文字を区別せずに名前を小文字に変換して処理（最初に一度だけ処理）
     const lowerName = name.toLowerCase();
-    
+
     // 多数の連続したリクエストを防ぐ（打撃音が詰まる問題の解決）
     const now = Date.now();
-    
+
     // 最終再生時間の管理にはマップを使用
     if (!this._lastPlayTimes) this._lastPlayTimes = {};
     const lastPlayTime = this._lastPlayTimes[lowerName] || 0;
-    
+
     // 同じ効果音の連続再生を防ぐための最小間隔（ミリ秒）
     // タイピング音は特に短く設定
     const minInterval = lowerName === 'success' ? 5 : 20;
-    
+
     if (now - lastPlayTime < minInterval) {
       // 間隔が短すぎる場合はスキップ（パフォーマンス向上）
       return;
@@ -292,7 +292,7 @@ class SoundUtils {
             this._playBuffer(this.sfxBuffers[lowerName]);
           }
         })
-        .catch(() => {/* エラーログは削減 */});
+        .catch(() => {/* エラーログは削減 */ });
     }
   }
 
@@ -337,12 +337,12 @@ class SoundUtils {
 
       // 効果音の再生とクリーンアップの最適化
       sourceNode.start(0);
-      
+
       // 各ソースノードのクリーンアップ処理
       sourceNode.onended = () => {
         sourceNode.disconnect();
       };
-      
+
       return true;
     } catch (error) {
       console.error(`効果音の再生に失敗しました:`, error);

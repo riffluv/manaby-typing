@@ -329,6 +329,16 @@ const RankingScreen = () => {
 
   // オンラインランキングに登録
   const handleRegisterScore = async () => {
+    // 既に登録済みの場合は何もしない
+    if (isScoreRegistered) {
+      return;
+    }
+
+    // ローディング中も登録できないように
+    if (isLoading) {
+      return;
+    }
+
     // gameStateがnullかstatsプロパティを確認
     if (!gameState) {
       setRegistrationStatus({
@@ -433,13 +443,13 @@ const RankingScreen = () => {
       );
 
       if (recordId) {
+        // 登録ボタンを完全に無効化するためにフラグを設定
+        setIsScoreRegistered(true);
+
         setRegistrationStatus({
           success: true,
           message: 'ランキングに登録しました！',
         });
-
-        // スコア登録済みフラグを設定
-        setIsScoreRegistered(true);
 
         // セッションストレージに登録済みフラグを保存
         // これにより画面再読み込みでも登録できなくなる
@@ -962,10 +972,10 @@ const RankingScreen = () => {
                 size="medium"
                 onClick={handleRegisterScore}
                 loading={isLoading}
-                disabled={isLoading}
-                className={styles.registerButton}
+                disabled={isLoading || isScoreRegistered || registrationStatus.success}
+                className={`${styles.registerButton} ${(isScoreRegistered || registrationStatus.success) ? styles.disabledButton : ''}`}
               >
-                登録
+                {registrationStatus.success ? '登録完了' : isScoreRegistered ? 'すでに登録済み' : '登録'}
               </Button>
             </div>
           </motion.div>

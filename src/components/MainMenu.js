@@ -177,7 +177,7 @@ const MainMenu = () => {
         {/* ゲーム設定セクション */}
         <div className={styles.settingsSection}>
           <div className={styles.sectionHeader}>
-            <div className={styles.sectionIcon}>🎮</div>
+            <div className={styles.sectionDecoration}></div>
             <h3 className={styles.sectionTitle}>ゲーム設定</h3>
           </div>
 
@@ -199,12 +199,10 @@ const MainMenu = () => {
                     onClick={() => handleDifficultyChange(key)}
                     aria-pressed={settings.difficulty === key}
                   >
-                    <span className={styles.difficultyIcon}>
-                      {key === 'easy' ? '😊' : key === 'normal' ? '😐' : '😰'}
-                    </span>
+                    <div className={`${styles.difficultyIndicator} ${styles[`difficultyIndicator_${key}`]}`}></div>
                     <span className={styles.difficultyLabel}>{difficultyLabels[key]}</span>
                     {settings.difficulty === key && (
-                      <span className={styles.activeMark}>✓</span>
+                      <span className={styles.activeMark}></span>
                     )}
                   </button>
                 ))}
@@ -213,17 +211,17 @@ const MainMenu = () => {
           </div>
         </div>
 
-        {/* 区切り線（装飾付き） */}
+        {/* 区切り線（スタイリッシュなデザイン） */}
         <div className={styles.settingsDivider}>
           <div className={styles.dividerLine}></div>
-          <div className={styles.dividerIcon}>🔊</div>
+          <div className={styles.dividerAccent}></div>
           <div className={styles.dividerLine}></div>
         </div>
 
         {/* サウンド設定セクション */}
         <div className={styles.settingsSection}>
           <div className={styles.sectionHeader}>
-            <div className={styles.sectionIcon}>🎵</div>
+            <div className={styles.sectionDecoration}></div>
             <h3 className={styles.sectionTitle}>音声設定</h3>
           </div>
 
@@ -240,7 +238,7 @@ const MainMenu = () => {
         {/* ショートカット一覧 */}
         <div className={styles.keyboardShortcuts}>
           <div className={styles.shortcutsHeader}>
-            <div className={styles.shortcutsIcon}>⌨️</div>
+            <div className={styles.shortcutsDecoration}></div>
             <span>キーボードショートカット</span>
           </div>
           <div className={styles.shortcutsList}>

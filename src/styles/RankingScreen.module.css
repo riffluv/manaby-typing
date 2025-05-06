@@ -184,6 +184,20 @@
   cursor: not-allowed;
 }
 
+.disabledButton {
+  opacity: 0.5;
+  background-color: rgba(100, 100, 100, 0.7);
+  border-color: #888;
+  color: #ccc;
+  cursor: not-allowed;
+  pointer-events: none;
+  /* クリックを無効化 */
+  box-shadow: none;
+  /* 光彩効果を削除 */
+  transform: none;
+  /* アニメーション効果を削除 */
+}
+
 .backButton,
 .mainMenuButton {
   background-color: rgba(0, 0, 0, 0.7);
@@ -274,6 +288,8 @@
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
+  box-sizing: border-box;
+  /* コンテンツのサイズ計算にパディングとボーダーを含める */
 }
 
 .modalContent pre {
@@ -323,6 +339,15 @@
   color: #ffffff;
   font-family: var(--font-normal);
   font-size: 12px;
+  overflow: hidden;
+  /* テキストのはみ出しを防止 */
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: center;
+  padding: 15px 20px;
+  border-top: 2px solid rgba(255, 140, 0, 0.3);
 }
 
 /* 入力フォーム */
@@ -362,6 +387,8 @@
   border-radius: 5px;
   padding: 15px;
   margin: 15px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .previewItem {
@@ -369,10 +396,17 @@
   justify-content: space-between;
   margin: 8px 0;
   font-size: 11px;
+  width: 100%;
 }
 
 .previewItem span:first-child {
   color: #ff8c00;
+  flex: 0 0 30%;
+}
+
+.previewItem span:last-child {
+  flex: 0 0 68%;
+  text-align: right;
 }
 
 /* ステータスメッセージ */
@@ -475,6 +509,7 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }

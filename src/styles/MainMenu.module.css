@@ -314,31 +314,31 @@
   transform: scale(1.1);
 }
 
-/* 設定モーダル内のスタイル - プロフェッショナルゲームUI風 */
+/* 設定モーダル内のスタイル - プロフェッショナルゲームUI風に更新 */
 .settingsContainer {
   display: flex;
   flex-direction: column;
   width: 100%;
-  gap: 16px;
+  gap: 20px;
 }
 
 /* セクション全体のスタイル */
 .settingsSection {
   background: rgba(0, 0, 0, 0.6);
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 140, 0, 0.1);
-  padding: 16px;
-  border: 1px solid rgba(255, 140, 0, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 5px rgba(255, 140, 0, 0.1);
+  padding: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.15);
   position: relative;
   overflow: hidden;
 }
 
-/* セクションヘッダー */
+/* セクションヘッダー - 洗練されたデザイン */
 .sectionHeader {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   position: relative;
 }
 
@@ -348,38 +348,47 @@
   bottom: -8px;
   left: 0;
   width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.4), transparent);
 }
 
-.sectionIcon {
-  font-size: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 140, 0, 0.4);
-  box-shadow: 0 0 10px rgba(255, 140, 0, 0.2);
+.sectionDecoration {
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(to bottom, #ff8c00, rgba(255, 140, 0, 0.3));
+  border-radius: 2px;
+  position: relative;
+}
+
+.sectionDecoration::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -1px;
+  width: 6px;
+  height: 6px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
 }
 
 .sectionTitle {
-  font-family: var(--font-heading, 'Press Start 2P, cursive');
-  color: #ff8c00;
+  font-family: var(--font-heading, sans-serif);
+  color: #fff;
   font-size: 18px;
   margin: 0;
-  text-shadow: 0 0 8px rgba(255, 140, 0, 0.5);
   letter-spacing: 1px;
+  font-weight: 300;
+  text-transform: uppercase;
 }
 
-/* 設定パネル */
+/* 設定パネル - モダンなデザイン */
 .settingsPanel {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  padding: 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 18px;
   position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .settingsPanel::before {
@@ -389,9 +398,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h20v20H0z' fill='none'/%3E%3Cpath d='M10 10m-1 0a1 1 0 1 0 2 0 1 1 0 1 0-2 0' fill='rgba(255, 140, 0, 0.1)'/%3E%3C/svg%3E");
-  background-size: 20px 20px;
-  opacity: 0.5;
+  background: linear-gradient(45deg, transparent 98%, rgba(255, 140, 0, 0.1) 100%);
   z-index: -1;
 }
 
@@ -399,31 +406,33 @@
 .settingRow {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 /* 設定ラベルグループ */
 .settingLabelGroup {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .settingLabel {
   color: #fff;
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 500;
   margin: 0;
+  display: flex;
+  align-items: center;
 }
 
 .settingDescription {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
-  font-style: italic;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  font-style: normal;
 }
 
-/* 難易度選択ボタングループ */
+/* 難易度選択ボタングループ - スタイリッシュに */
 .difficultySelector {
   display: flex;
   gap: 10px;
@@ -436,134 +445,180 @@
   flex-direction: column;
   align-items: center;
   background: rgba(0, 0, 0, 0.4);
-  border: 2px solid rgba(255, 140, 0, 0.3);
-  border-radius: 10px;
-  padding: 10px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 14px 10px;
   color: #fff;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
   position: relative;
   overflow: hidden;
 }
 
+/* 難易度インジケーター - 絵文字の代わりに洗練されたデザイン */
+.difficultyIndicator {
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.difficultyIndicator_easy {
+  background-color: #4CAF50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+.difficultyIndicator_normal {
+  background-color: #FFC107;
+  box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+}
+
+.difficultyIndicator_hard {
+  background-color: #E53935;
+  box-shadow: 0 0 8px rgba(229, 57, 53, 0.4);
+}
+
 .difficultyButton:hover {
-  background: rgba(255, 140, 0, 0.2);
+  background: rgba(255, 255, 255, 0.08);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .difficultyButton.active {
-  background: rgba(255, 140, 0, 0.25);
-  border-color: #ff8c00;
-  box-shadow: 0 0 15px rgba(255, 140, 0, 0.5), inset 0 0 10px rgba(255, 140, 0, 0.2);
+  background: rgba(255, 140, 0, 0.1);
+  border: 1px solid rgba(255, 140, 0, 0.3);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.15), inset 0 0 15px rgba(255, 140, 0, 0.05);
 }
 
-.difficultyIcon {
-  font-size: 24px;
-  margin-bottom: 6px;
+.difficultyButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
 }
 
 .difficultyLabel {
-  font-size: 12px;
-  font-weight: bold;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 .activeMark {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  font-size: 14px;
-  color: #ff8c00;
-  text-shadow: 0 0 5px rgba(255, 140, 0, 0.7);
+  top: 10px;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  background-color: #ff8c00;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 140, 0, 0.7);
 }
 
-/* 区切り線 */
+/* 区切り線 - モダンなデザイン */
 .settingsDivider {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 8px 0;
+  gap: 15px;
+  margin: 5px 0;
 }
 
 .dividerLine {
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
 }
 
-.dividerIcon {
-  font-size: 16px;
-  color: rgba(255, 140, 0, 0.7);
-  background: rgba(0, 0, 0, 0.5);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.dividerAccent {
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  background: rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 140, 0, 0.2);
+  position: relative;
 }
 
-/* 強化されたサウンド設定 */
-.enhancedSoundSettings {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
+.dividerAccent::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border: 1px solid rgba(255, 140, 0, 0.1);
 }
 
-/* キーボードショートカットセクション */
+/* キーボードショートカットセクション - スタイリッシュな表現 */
 .keyboardShortcuts {
   margin-top: 8px;
-  background: rgba(0, 0, 0, 0.4);
-  border-radius: 10px;
-  padding: 12px;
-  border: 1px solid rgba(255, 140, 0, 0.2);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .shortcutsHeader {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 16px;
   color: #fff;
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 15px;
+  font-weight: 500;
+  position: relative;
 }
 
-.shortcutsIcon {
-  font-size: 16px;
-  color: #ff8c00;
+.shortcutsDecoration {
+  width: 3px;
+  height: 18px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), transparent);
+  border-radius: 1.5px;
 }
 
 .shortcutsList {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px 20px;
+  gap: 14px 24px;
 }
 
 .shortcutItem {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .shortcutItem kbd {
   background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 140, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 4px;
-  color: #ff8c00;
-  font-family: var(--font-dot, monospace);
+  color: rgba(255, 255, 255, 0.9);
+  font-family: var(--font-mono, monospace);
   font-size: 12px;
-  padding: 2px 8px;
-  min-width: 16px;
+  padding: 4px 10px;
+  min-width: 18px;
   text-align: center;
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+  position: relative;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.shortcutItem kbd::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
 }
 
 .shortcutItem span {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
 }
 
 /* 設定関連 */
