@@ -149,36 +149,549 @@
 .difficultyToggleGroup {
   display: flex;
   flex-direction: row;
-  gap: 8px;
+  gap: 10px;
   justify-content: center;
   margin-top: 15px;
   z-index: 5;
 }
 
 .difficultyToggleButton {
-  padding: 8px 14px;
+  position: relative;
+  padding: 10px 18px;
   cursor: pointer;
-  border-radius: 20px;
-  transition: all 0.2s ease;
-  background-color: rgba(0, 0, 0, 0.7);
-  border: 2px solid rgba(255, 140, 0, 0.5);
-  color: #fff;
-  font-size: 0.9rem;
-  text-align: center;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 140, 0, 0.4);
+  color: rgba(255, 255, 255, 0.8);
   min-width: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
+/* ボタンにハイテクな背景パターンを追加 */
+.difficultyToggleButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(135deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
+    linear-gradient(225deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
+    linear-gradient(315deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%),
+    linear-gradient(45deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%);
+  background-size: 20px 20px;
+  opacity: 0.5;
+  z-index: 0;
+}
+
+/* テキスト部分 */
+.difficultyToggleButton .btnText {
+  position: relative;
+  z-index: 2;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+/* ボタンホバー効果 */
 .difficultyToggleButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-3px);
+  background-color: rgba(10, 10, 15, 0.8);
+  border-color: rgba(255, 140, 0, 0.8);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 140, 0, 0.3);
 }
 
+/* アクティブボタン（選択中）スタイル */
 .difficultyToggleButton.active {
-  background-color: rgba(255, 140, 0, 0.4);
-  color: #ffcc00;
-  border-color: #ff8c00;
-  box-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
+  background-color: rgba(40, 25, 5, 0.9);
+  border: 1px solid #ff8c00;
+  box-shadow: 
+    inset 0 0 15px rgba(255, 140, 0, 0.3),
+    0 0 15px rgba(255, 140, 0, 0.5);
+  color: #ff8c00;
+  transform: translateY(-2px);
+}
+
+/* アクティブボタンの上下の光るライン */
+.difficultyToggleButton.active::before {
+  opacity: 0.7;
+}
+
+.difficultyToggleButton.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 140, 0, 0.5) 0%,
+    transparent 10%,
+    transparent 90%,
+    rgba(255, 140, 0, 0.5) 100%
+  );
+  pointer-events: none;
+}
+
+/* アクティブボタンのテキスト効果 */
+.difficultyToggleButton.active .btnText {
+  color: #ff8c00;
+  text-shadow: 0 0 5px rgba(255, 140, 0, 0.8);
+}
+
+/* メインコンテナとタイトルの位置調整 */
+.mainContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 800px;
+  height: 600px;
+  margin: 0 auto;
+  background-color: #0a0d14;
+  border: 4px solid #ff8c00;
+  box-shadow: 
+    0 0 15px rgba(255, 140, 0, 0.7),
+    inset 0 0 30px rgba(255, 140, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.titleContainer {
+  margin-top: 50px; /* タイトルの上部余白を調整 */
+  margin-bottom: 10px;
+  text-align: center;
+  width: 100%;
+  max-width: 760px; /* 画面の幅に収まるように制限 */
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+/* サブタイトルのスタイリング強化 */
+.subTitleContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 15px; /* サブタイトル下部の余白を調整 */
+  position: relative;
+  width: 100%;
+}
+
+.subTitle {
+  font-family: 'Courier New', monospace;
+  font-size: 12px; /* フォントサイズを小さくして横幅を抑える */
+  color: #ff8c00;
+  letter-spacing: 1px;
+  margin-bottom: 5px; /* マージンを調整 */
+  max-width: 100%; /* コンテナ幅に収まるように */
+  overflow: hidden; /* はみ出し防止 */
+  text-overflow: ellipsis; /* 必要に応じて省略記号 */
+  white-space: nowrap; /* 改行防止 */
+}
+
+.titleDecoration {
+  width: 100px; /* 装飾の幅を広げる */
+  height: 3px; /* 高さを少し増やす */
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 140, 0, 0.7), 
+    transparent
+  );
+}
+
+/* メニューコンテナ */
+.menuContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* 上部からコンテンツを配置 */
+  gap: 15px; /* 要素間の間隔を調整 */
+  height: 85%;
+  width: 90%;
+  max-width: 780px; /* 横幅の最大値を設定して画面内に収める */
+  padding: 15px;
+  z-index: 1;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* ロゴ・スタートボタン関連 */
+.logoContainer {
+  margin: 5px 0 25px 0; /* 下部のマージンを増やして余白を調整 */
+  transform: scale(0.85); /* ロゴボタンをさらに小さくする */
+}
+
+.startButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 0;
+}
+
+.startButton:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
+}
+
+.startButton:active {
+  transform: scale(0.95);
+}
+
+.logoImage {
+  image-rendering: pixelated;
+  max-width: 180px; /* ロゴのサイズを制限 */
+  height: auto;
+}
+
+/* 難易度選択関連 */
+.difficultyToggleGroup {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+  z-index: 5;
+}
+
+.difficultyToggleButton {
+  position: relative;
+  padding: 10px 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 140, 0, 0.4);
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ボタンにハイテクな背景パターンを追加 */
+.difficultyToggleButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(135deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
+    linear-gradient(225deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
+    linear-gradient(315deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%),
+    linear-gradient(45deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%);
+  background-size: 20px 20px;
+  opacity: 0.5;
+  z-index: 0;
+}
+
+/* テキスト部分 */
+.difficultyToggleButton .btnText {
+  position: relative;
+  z-index: 2;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+/* ボタンホバー効果 */
+.difficultyToggleButton:hover {
+  transform: translateY(-3px);
+  background-color: rgba(10, 10, 15, 0.8);
+  border-color: rgba(255, 140, 0, 0.8);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 140, 0, 0.3);
+}
+
+/* アクティブボタン（選択中）スタイル */
+.difficultyToggleButton.active {
+  background-color: rgba(40, 25, 5, 0.9);
+  border: 1px solid #ff8c00;
+  box-shadow: 
+    inset 0 0 15px rgba(255, 140, 0, 0.3),
+    0 0 15px rgba(255, 140, 0, 0.5);
+  color: #ff8c00;
+  transform: translateY(-2px);
+}
+
+/* アクティブボタンの上下の光るライン */
+.difficultyToggleButton.active::before {
+  opacity: 0.7;
+}
+
+.difficultyToggleButton.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 140, 0, 0.5) 0%,
+    transparent 10%,
+    transparent 90%,
+    rgba(255, 140, 0, 0.5) 100%
+  );
+  pointer-events: none;
+}
+
+/* アクティブボタンのテキスト効果 */
+.difficultyToggleButton.active .btnText {
+  color: #ff8c00;
+  text-shadow: 0 0 5px rgba(255, 140, 0, 0.8);
+}
+
+/* メインコンテナとタイトルの位置調整 */
+.mainContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 800px;
+  height: 600px;
+  margin: 0 auto;
+  background-color: #0a0d14;
+  border: 4px solid #ff8c00;
+  box-shadow: 
+    0 0 15px rgba(255, 140, 0, 0.7),
+    inset 0 0 30px rgba(255, 140, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.titleContainer {
+  margin-top: 50px; /* タイトルの上部余白を調整 */
+  margin-bottom: 10px;
+  text-align: center;
+  width: 100%;
+  max-width: 760px; /* 画面の幅に収まるように制限 */
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+/* サブタイトルのスタイリング強化 */
+.subTitleContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 15px; /* サブタイトル下部の余白を調整 */
+  position: relative;
+  width: 100%;
+}
+
+.subTitle {
+  font-family: 'Courier New', monospace;
+  font-size: 12px; /* フォントサイズを小さくして横幅を抑える */
+  color: #ff8c00;
+  letter-spacing: 1px;
+  margin-bottom: 5px; /* マージンを調整 */
+  max-width: 100%; /* コンテナ幅に収まるように */
+  overflow: hidden; /* はみ出し防止 */
+  text-overflow: ellipsis; /* 必要に応じて省略記号 */
+  white-space: nowrap; /* 改行防止 */
+}
+
+.titleDecoration {
+  width: 100px; /* 装飾の幅を広げる */
+  height: 3px; /* 高さを少し増やす */
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 140, 0, 0.7), 
+    transparent
+  );
+}
+
+/* メニューコンテナ */
+.menuContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* 上部からコンテンツを配置 */
+  gap: 15px; /* 要素間の間隔を調整 */
+  height: 85%;
+  width: 90%;
+  max-width: 780px; /* 横幅の最大値を設定して画面内に収める */
+  padding: 15px;
+  z-index: 1;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* ロゴ・スタートボタン関連 */
+.logoContainer {
+  margin: 5px 0 25px 0; /* 下部のマージンを増やして余白を調整 */
+  transform: scale(0.85); /* ロゴボタンをさらに小さくする */
+}
+
+.startButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 0;
+}
+
+.startButton:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
+}
+
+.startButton:active {
+  transform: scale(0.95);
+}
+
+.logoImage {
+  image-rendering: pixelated;
+  max-width: 180px; /* ロゴのサイズを制限 */
+  height: auto;
+}
+
+/* 難易度選択関連 */
+.difficultyToggleGroup {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 15px;
+  z-index: 5;
+}
+
+.difficultyToggleButton {
+  position: relative;
+  padding: 10px 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 140, 0, 0.4);
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ボタンにハイテクな背景パターンを追加 */
+.difficultyToggleButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(135deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
+    linear-gradient(225deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
+    linear-gradient(315deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%),
+    linear-gradient(45deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%);
+  background-size: 20px 20px;
+  opacity: 0.5;
+  z-index: 0;
+}
+
+/* テキスト部分 */
+.difficultyToggleButton .btnText {
+  position: relative;
+  z-index: 2;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+}
+
+/* ボタンホバー効果 */
+.difficultyToggleButton:hover {
+  transform: translateY(-3px);
+  background-color: rgba(10, 10, 15, 0.8);
+  border-color: rgba(255, 140, 0, 0.8);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 140, 0, 0.3);
+}
+
+/* アクティブボタン（選択中）スタイル */
+.difficultyToggleButton.active {
+  background-color: rgba(40, 25, 5, 0.9);
+  border: 1px solid #ff8c00;
+  box-shadow: 
+    inset 0 0 15px rgba(255, 140, 0, 0.3),
+    0 0 15px rgba(255, 140, 0, 0.5);
+  color: #ff8c00;
+  transform: translateY(-2px);
+}
+
+/* アクティブボタンの上下の光るライン */
+.difficultyToggleButton.active::before {
+  opacity: 0.7;
+}
+
+.difficultyToggleButton.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 140, 0, 0.5) 0%,
+    transparent 10%,
+    transparent 90%,
+    rgba(255, 140, 0, 0.5) 100%
+  );
+  pointer-events: none;
+}
+
+/* アクティブボタンのテキスト効果 */
+.difficultyToggleButton.active .btnText {
+  color: #ff8c00;
+  text-shadow: 0 0 5px rgba(255, 140, 0, 0.8);
+}
+
+/* アニメーションエフェクト */
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 140, 0, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 5px rgba(255, 140, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 140, 0, 0);
+  }
+}
+
+/* 選択状態インジケーター */
+.difficultyToggleButton.active .difficultyIndicator {
+  width: 80%;
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  0% {
+    opacity: 0.7;
+    box-shadow: 0 0 5px currentColor;
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 15px currentColor;
+  }
 }
 
 /* 説明文とショートカットヘルプ */
@@ -550,6 +1063,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   background: rgba(20, 20, 20, 0.85);
   border: 1px solid rgba(255, 140, 0, 0.2);
   border-radius: 8px;
@@ -562,7 +1076,7 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
-/* フォーカス状態を強化 */
+/* フォーカス状態 */
 .difficultyButton:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -570,32 +1084,7 @@
   transform: translateY(-2px);
 }
 
-/* 難易度インジケーター - より目立つデザイン */
-.difficultyIndicator {
-  width: 36px;
-  height: 5px;
-  border-radius: 3px;
-  margin-bottom: 14px;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.difficultyIndicator_easy {
-  background-color: #4CAF50;
-  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
-}
-
-.difficultyIndicator_normal {
-  background-color: #FFC107;
-  box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
-}
-
-.difficultyIndicator_hard {
-  background-color: #E53935;
-  box-shadow: 0 0 12px rgba(229, 57, 53, 0.6);
-}
-
-/* ホバー・アクティブ効果を強化 */
+/* ホバー効果 */
 .difficultyButton:hover {
   background: rgba(35, 35, 35, 0.95);
   transform: translateY(-3px);
@@ -603,6 +1092,7 @@
   border-color: rgba(255, 140, 0, 0.35);
 }
 
+/* アクティブ状態 */
 .difficultyButton.active {
   background: rgba(40, 25, 5, 0.9);
   border: 1px solid rgba(255, 140, 0, 0.7);
@@ -610,7 +1100,7 @@
   transform: translateY(-1px);
 }
 
-/* アクティブ状態をさらに強調 */
+/* アクティブ状態の装飾 */
 .difficultyButton.active::before {
   content: '';
   position: absolute;
@@ -631,11 +1121,7 @@
   background: linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.7), transparent);
 }
 
-.difficultyButton.active .difficultyIndicator {
-  transform: scale(1.15);
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-}
-
+/* ラベルテキスト */
 .difficultyLabel {
   font-size: 15px;
   font-weight: 500;
@@ -643,11 +1129,13 @@
   transition: all 0.2s ease;
 }
 
+/* アクティブ状態のラベルテキスト */
 .difficultyButton.active .difficultyLabel {
   color: rgba(255, 205, 120, 1);
   text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
 }
 
+/* アクティブマーク */
 .activeMark {
   position: absolute;
   top: 10px;
@@ -927,40 +1415,7 @@
 }
 
 .difficultyToggleButton .difficultyIndicator {
-  position: absolute;
-  bottom: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-  height: 3px;
-  width: 50%;
-  border-radius: 2px;
-  transition: all 0.3s ease;
-}
-
-.difficultyToggleButton .difficultyIndicator_easy {
-  background-color: #4CAF50;
-  box-shadow: 0 0 8px rgba(76, 175, 80, 0.8);
-}
-
-.difficultyToggleButton .difficultyIndicator_normal {
-  background-color: #FFC107;
-  box-shadow: 0 0 8px rgba(255, 193, 7, 0.8);
-}
-
-.difficultyToggleButton .difficultyIndicator_hard {
-  background-color: #E53935;
-  box-shadow: 0 0 8px rgba(229, 57, 53, 0.8);
-}
-
-.difficultyToggleButton:hover {
-  background-color: rgba(255, 140, 0, 0.2);
-  transform: translateY(-2px);
-}
-
-.difficultyToggleButton.active {
-  background-color: rgba(255, 140, 0, 0.3);
-  border: 1px solid rgba(255, 140, 0, 0.8);
-  box-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
+  display: none; /* インジケーターを非表示に */
 }
 
 /* ショートカットヘルプのスタイリング強化 */

@@ -385,7 +385,6 @@ const MainMenu = () => {
                       }
                     }}
                   >
-                    <div className={`${styles.difficultyIndicator} ${styles[`difficultyIndicator_${key}`]}`}></div>
                     <span className={styles.difficultyLabel}>{difficultyLabels[key]}</span>
                     {settings.difficulty === key && (
                       <span className={styles.activeMark}></span>
@@ -666,8 +665,7 @@ const MainMenu = () => {
               aria-pressed={settings.difficulty === key}
             >
               <span className={styles.btnText}>{difficultyLabels[key]}</span>
-              {/* 難易度インジケーター */}
-              <span className={`${styles.difficultyIndicator} ${styles[`difficultyIndicator_${key}`]}`}></span>
+              {/* インジケーターを削除 */}
             </button>
           ))}
         </motion.div>
