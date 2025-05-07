@@ -1,5 +1,5 @@
 /* 最外側のラッパー要素 - SPA画面の外にESCボタンを配置するため */
-.typing_game_wrapper {
+.typing_game__wrapper {
   position: relative;
   width: 800px;
   margin: 0 auto;
@@ -68,20 +68,6 @@
   border-radius: 20px;
   border: 1px solid rgba(255, 140, 0, 0.3);
   transition: all 0.2s ease;
-}
-
-/* お題表示 - メインメニューのスタイルに合わせる */
-.typing_game__level_display_right {
-  font-family: 'Courier New', monospace; /* メインメニューと同じフォント */
-  font-size: 0.9rem;
-  font-weight: 600;
-  letter-spacing: 1px;
-  color: #ff8c00; /* メインメニューと同じオレンジ色 */
-  text-shadow: 0px 0px 10px rgba(255, 140, 0, 0.3);
-  padding: 0.4rem 1rem;
-  transition: all 0.2s ease;
-  margin-left: auto;
-  text-align: right;
 }
 
 /* 新しいステータス表示エリア */
@@ -178,7 +164,7 @@
 }
 
 /* コンテンツエリア */
-.typing_game__content_area {
+.typing_game__content {
   width: 100%;
   max-width: 700px;
   display: flex;
@@ -192,7 +178,7 @@
 }
 
 /* 問題エリア - メインメニューのデザイン要素を取り入れる */
-.typing_game__problem_area {
+.typing_game__problem {
   width: 100%;
   background-color: rgba(0, 0, 0, 0.25);
   border-radius: 8px; /* メインメニューと合わせる */
@@ -212,7 +198,7 @@
 }
 
 /* 問題エリアにドット模様を追加 */
-.typing_game__problem_area::before {
+.typing_game__problem::before {
   content: '';
   position: absolute;
   top: 0;
@@ -227,15 +213,15 @@
 }
 
 /* フォーカス時の問題エリアの効果 */
-.typing_game__problem_area:focus-within {
+.typing_game__problem:focus-within {
   transform: translateY(-2px);
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3),
     inset 0 0 0 1px rgba(255, 140, 0, 0.3);
   border-color: rgba(255, 140, 0, 0.6);
 }
 
-/* Canvasキーボード用のコンテナ */
-.canvas_keyboard_container {
+/* キーボード表示エリア */
+.typing_game__keyboard {
   width: 100%;
   display: flex;
   justify-content: center;
@@ -269,7 +255,7 @@
 }
 
 /* 入力テキスト表示 - メインメニューのデザインに合わせる */
-.typing_game__input_display {
+.typing_game__input {
   width: 100%;
   min-height: 2rem;
   padding: 0.4rem;
@@ -309,101 +295,9 @@
 }
 
 /* 入力済み全体テキスト */
-.typing_completed {
+.typing_game__completed {
   color: #12b886;
   font-weight: 500;
-}
-
-/* 入力中の文字のコンテナ */
-.current_char_container {
-  display: inline-block;
-  position: relative;
-}
-
-/* すでにタイプした部分 - 1文字ずつ表示 */
-.current_char_typed {
-  color: #32CD32;
-  font-weight: 600;
-  display: inline-block;
-  animation: keyFlash 0.2s ease-out;
-}
-
-/* キー入力時のフラッシュエフェクト */
-@keyframes keyFlash {
-  0% {
-    transform: scale(1.2);
-    text-shadow: 0 0 8px rgba(50, 205, 50, 0.8);
-  }
-
-  100% {
-    transform: scale(1);
-    text-shadow: none;
-  }
-}
-
-/* 次に入力すべき文字 - オレンジ色に統一 */
-.next_char_highlight {
-  color: #ff8c00; /* メインメニューと同じオレンジ色 */
-  text-shadow: 0 0 6px rgba(255, 140, 0, 0.6);
-  font-weight: 700;
-  border-radius: 2px;
-  padding: 0 2px;
-  margin: 0 1px;
-  display: inline-block;
-  position: relative;
-  animation: focusPulse 2s infinite;
-}
-
-/* フォーカス中の文字のパルスアニメーション */
-@keyframes focusPulse {
-  0%, 100% {
-    transform: scale(1);
-    text-shadow: 0 0 6px rgba(255, 140, 0, 0.6);
-  }
-
-  50% {
-    transform: scale(1.05);
-    text-shadow: 0 0 12px rgba(255, 140, 0, 0.8);
-  }
-}
-
-/* 現在の単語の残りの部分 */
-.current_char_remaining {
-  color: #d8d8d8;
-  opacity: 1;
-  font-weight: 400;
-}
-
-/* 残りの未入力テキスト */
-.remaining_text {
-  color: #d8d8d8;
-  opacity: 1;
-  font-weight: 400;
-}
-
-/* タイピングカーソル - オレンジ色に変更 */
-.typingCursor {
-  display: inline-block;
-  width: 2px;
-  height: 1.2em;
-  background-color: rgba(255, 140, 0, 0.8); /* メインメニューと同じオレンジ色 */
-  vertical-align: middle;
-  margin-left: 0.1em;
-  animation: cursorBlink 1s infinite;
-  position: relative;
-  top: 0;
-  border-radius: 1px;
-  box-shadow: 0 0 4px rgba(255, 140, 0, 0.5);
-}
-
-@keyframes cursorBlink {
-  0%, 100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.3;
-  }
 }
 
 /* エラー時のシェイクアニメーション */
@@ -428,7 +322,7 @@
 }
 
 /* ESCショートカットのスタイル - メインメニューのボタンスタイルに合わせる */
-.typing_game__shortcuts_inside {
+.typing_game__shortcuts {
   position: absolute;
   left: 15px;
   bottom: 15px;
@@ -436,6 +330,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  cursor: pointer;
 }
 
 .typing_game__shortcut_item {
@@ -454,7 +349,11 @@
   color: #ff8c00; /* メインメニューと同じオレンジ色 */
 }
 
-.typing_game__shortcut_item:hover {
+.typing_game__shortcut_text {
+  margin-left: 4px;
+}
+
+.typing_game__shortcuts:hover .typing_game__shortcut_item {
   background-color: rgba(0, 0, 0, 0.6);
   border-color: rgba(255, 140, 0, 0.6);
   transform: translateY(-2px);
@@ -462,7 +361,7 @@
 }
 
 /* コーナー装飾を追加 - メインメニューと同様 */
-.cornerDecoration {
+.typing_game__corner {
   position: absolute;
   width: 30px;
   height: 30px;
@@ -470,7 +369,7 @@
   z-index: 2;
 }
 
-.cornerTech {
+.typing_game__corner_tech {
   position: absolute;
   width: 20px;
   height: 20px;
@@ -479,7 +378,7 @@
 }
 
 /* スキャンライン効果を追加 */
-.scanlines {
+.typing_game__scanlines {
   position: absolute;
   top: 0;
   left: 0;
@@ -498,7 +397,7 @@
 }
 
 /* ドット模様背景を追加 */
-.dotPattern {
+.typing_game__dot_pattern {
   position: absolute;
   top: 0;
   left: 0;
@@ -512,6 +411,28 @@
   pointer-events: none;
   z-index: 1;
   opacity: 0.5;
+}
+
+/* パフォーマンス情報表示（開発モード専用） */
+.typing_game__performance {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 140, 0, 0.4);
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.7rem;
+  font-family: 'Courier New', monospace;
+  color: rgba(255, 255, 255, 0.9);
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.typing_game__performance div {
+  margin: 2px 0;
+  color: #ff8c00;
 }
 
 /* 継承用のクラス */
@@ -532,12 +453,12 @@
 }
 
 .simpleTypingText {
-  composes: typing_game__input_display;
+  composes: typing_game__input;
 }
 
 /* レスポンシブ対応 */
 @media screen and (max-width: 840px) {
-  .typing_game_wrapper {
+  .typing_game__wrapper {
     width: 100%;
   }
 
@@ -548,11 +469,11 @@
     border-radius: 0;
   }
 
-  .typing_game__content_area {
+  .typing_game__content {
     max-width: 100%;
   }
 
-  .typing_game__problem_area {
+  .typing_game__problem {
     padding: 1.25rem 1.25rem 1rem;
   }
 }
@@ -574,10 +495,6 @@
     padding: 0.3rem 0.8rem;
   }
 
-  .typing_game__level_display_right {
-    font-size: 0.8rem;
-  }
-
   .typing_game__status {
     flex-direction: column;
     align-items: flex-start;
@@ -588,21 +505,11 @@
     font-size: 0.75rem;
   }
 
-  .typing_game__display_toggle {
-    font-size: 0.7rem;
-    padding: 0.2rem 0.4rem;
-  }
-
-  .typing_game__back_button {
-    font-size: 0.7rem;
-    padding: 0.3rem 0.6rem;
-  }
-
   .typing_game__main {
     padding: 0.5rem 0.5rem 0.3rem;
   }
 
-  .typing_game__problem_area {
+  .typing_game__problem {
     padding: 1rem;
   }
 
@@ -610,7 +517,7 @@
     font-size: 1.2rem;
   }
 
-  .typing_game__input_display {
+  .typing_game__input {
     font-size: 1.2rem;
   }
 
@@ -618,8 +525,12 @@
     font-size: 1.2rem;
   }
 
-  .typingCursor {
-    height: 1em;
+  .typing_game__performance {
+    top: auto;
+    bottom: 60px;
+    right: 10px;
+    font-size: 0.65rem;
+    padding: 0.3rem 0.6rem;
   }
 }
 
@@ -638,10 +549,6 @@
     padding: 0.35rem 0.9rem;
   }
 
-  .typing_game__level_display_right {
-    font-size: 0.85rem;
-  }
-
   .typing_game__status {
     padding: 0.4rem 0.8rem;
   }
@@ -650,21 +557,11 @@
     font-size: 0.8rem;
   }
 
-  .typing_game__display_toggle {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.6rem;
-  }
-
-  .typing_game__back_button {
-    font-size: 0.75rem;
-    padding: 0.4rem 0.8rem;
-  }
-
   .typing_game__main {
     padding: 1rem 0.8rem 0.5rem;
   }
 
-  .typing_game__problem_area {
+  .typing_game__problem {
     padding: 1.1rem;
   }
 
@@ -672,15 +569,11 @@
     font-size: 1.3rem;
   }
 
-  .typing_game__input_display {
+  .typing_game__input {
     font-size: 1.3rem;
   }
 
   .typing_game__next_char {
     font-size: 1.3rem;
-  }
-
-  .typingCursor {
-    height: 1.2em;
   }
 }

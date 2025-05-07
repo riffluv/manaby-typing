@@ -25,13 +25,6 @@ export const saveGameRecord = (
     // 既存の記録を取得
     let existingRecords = getGameRecords();
 
-    // 今日の日付のデータが既に存在するか確認（同一難易度、同一プレイヤーで）
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
-    const existingTodayRecordIndex = existingRecords.findIndex((record) => {
-      const recordDate = new Date(record.date).toISOString().split('T')[0];
-      return recordDate === today && record.difficulty === difficulty;
-    });
-
     // 新しい記録を作成
     const newRecord = {
       kpm: parseFloat(kpm) || 0,
@@ -43,31 +36,15 @@ export const saveGameRecord = (
       date: new Date().toISOString(),
     };
 
-    // 既存の記録がある場合、KPMが高い方を保持
-    if (existingTodayRecordIndex >= 0) {
-      const existingRecord = existingRecords[existingTodayRecordIndex];
-      // KPMが同じなら正確性で比較、それも同じならミス数の少ない方を優先
-      if (
-        newRecord.kpm > existingRecord.kpm ||
-        (newRecord.kpm === existingRecord.kpm &&
-          newRecord.accuracy > existingRecord.accuracy) ||
-        (newRecord.kpm === existingRecord.kpm &&
-          newRecord.accuracy === existingRecord.accuracy &&
-          newRecord.mistakes < existingRecord.mistakes)
-      ) {
-        // 新記録の場合は上書き
-        existingRecords[existingTodayRecordIndex] = newRecord;
-      }
-    } else {
-      // 既存の記録がなければ追加
-      existingRecords.push(newRecord);
-    }
+    // 新しい記録を先頭に追加
+    existingRecords.unshift(newRecord);
 
-    // 最大20件まで保存（古い順に削除）
-    const limitedRecords = existingRecords.slice(-20);
+    // 直近10件まで保存（古い記録は削除）
+    const limitedRecords = existingRecords.slice(0, 10);
 
     // ローカルストレージに保存
     localStorage.setItem('typingGameRecords', JSON.stringify(limitedRecords));
+    console.log(`ゲーム記録を保存しました。残り記録数: ${limitedRecords.length}/10`);
 
     // ハイスコア更新確認
     updateHighScores(newRecord);

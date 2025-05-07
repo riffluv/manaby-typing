@@ -10,7 +10,7 @@ import React, {
 import styles from '../styles/GameScreen.module.css';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
 import soundSystem from '../utils/SoundUtils';
-import TypingUtils from '../utils/TypingUtils'; // KPM計算用にTypingUtilsをインポート
+import TypingUtils from '../utils/TypingUtils';
 import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import { useTypingGame } from '../hooks/useTypingGame';
@@ -37,11 +37,13 @@ const logUtil = {
 import ProblemDisplay from './typing/ProblemDisplay';
 import CanvasKeyboard from './typing/CanvasKeyboard';
 import Button from './common/Button';
-// シンプルタイピング表示コンポーネントをインポート
 import SimpleTypingDisplay from './typing/SimpleTypingDisplay';
 import { useSimpleTypingAdapter } from '../hooks/useSimpleTypingAdapter';
 
-// リファクタリング後のコンポーネント実装
+/**
+ * タイピングゲーム画面コンポーネント
+ * パフォーマンス最適化済み（2025年5月8日リファクタリング）
+ */
 const GameScreen = () => {
   // コンテキストから状態と関数を取得
   const { gameState, setGameState, problems } = useGameContext();
@@ -52,12 +54,65 @@ const GameScreen = () => {
 
   // typingの参照を保持するためのref
   const typingRef = useRef(null);
+  
+  // パフォーマンス監視用
+  const performanceRef = useRef({
+    startTime: Date.now(),
+    frameCount: 0,
+    lastFpsUpdate: Date.now(),
+    fps: 60,
+    inputCount: 0,
+    lastFrameTime: performance.now(),
+    elapsedTime: 0
+  });
 
   // 最後に押されたキー（キーボード表示用）
   const [lastPressedKey, setLastPressedKey] = useState('');
 
   // サウンド読み込み状態のフラグ
   const [soundsLoaded, setSoundsLoaded] = useState(false);
+
+  /**
+   * パフォーマンス監視を開始する関数
+   */
+  const startPerformanceMonitoring = useCallback(() => {
+    let frameId = null;
+    
+    const measurePerformance = () => {
+      const perf = performanceRef.current;
+      const now = performance.now();
+      const elapsed = now - perf.lastFrameTime;
+      
+      // 現在の経過時間を更新
+      perf.elapsedTime += elapsed / 1000;
+      perf.lastFrameTime = now;
+      perf.frameCount++;
+      
+      // 1秒ごとにFPSを更新
+      if (now - perf.lastFpsUpdate > 1000) {
+        // FPSを計算
+        const fps = Math.round(
+          (perf.frameCount * 1000) / (now - perf.lastFpsUpdate)
+        );
+        perf.fps = fps;
+        perf.lastFpsUpdate = now;
+        perf.frameCount = 0;
+      }
+      
+      // 次のフレームを計測
+      frameId = requestAnimationFrame(measurePerformance);
+    };
+    
+    // 計測開始
+    frameId = requestAnimationFrame(measurePerformance);
+    
+    // クリーンアップ関数を返す
+    return () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, []);
 
   // 問題完了時のコールバック
   const handleProblemComplete = useCallback(
@@ -66,7 +121,7 @@ const GameScreen = () => {
         '【handleProblemComplete】問題完了コールバック発火:',
         problemStats
       );
-      // ここではtypingRefを使用せず、直接goToNextProblemを呼び出す
+
       const solvedCount = gameState.solvedCount + 1;
       const isGameClear = solvedCount >= requiredProblemCount;
 
@@ -91,11 +146,8 @@ const GameScreen = () => {
         const typingStats = typingRef.current?.stats || {};
 
         // 全問題の累積正解キー数を計算
-        // 現在の問題の正解キー数
         const currentProblemCorrectKeys = typingStats.correctCount || 0;
-        // これまでの問題の累積正解キー数
         const previousCorrectKeyCount = gameState.totalCorrectKeyCount || 0;
-        // 累積の正解キー数
         const totalCorrectKeyCount = previousCorrectKeyCount + currentProblemCorrectKeys;
 
         // 全問題の累積ミス数を計算
@@ -112,52 +164,27 @@ const GameScreen = () => {
           合計ミス数: totalMissCount
         });
 
-        // より詳細なデバッグ情報
-        logUtil.debug('【統計情報検証】typingStats詳細:', {
-          typingStats,
-          correctKeyCount: currentProblemCorrectKeys,
-          missCount: currentProblemMissCount,
-          参照元: 'GameScreen.js - handleProblemComplete'
-        });
-
         // 問題ごとのKPMを累積
         const allProblemKPMs = [...gameState.problemKPMs || [], problemKPM].filter(kpm => kpm > 0);
-
-        logUtil.debug('【KPM計算】累積された問題ごとのKPM:', allProblemKPMs);
 
         // KPM計算 - 問題ごとのKPMの平均値を優先
         let averageKPM = 0;
         if (allProblemKPMs && allProblemKPMs.length > 0) {
           // 問題ごとのKPMの平均を計算
           averageKPM = allProblemKPMs.reduce((sum, kpm) => sum + kpm, 0) / allProblemKPMs.length;
-          logUtil.debug('【KPM計算】全問題のKPM平均値計算:', {
-            kpmValues: allProblemKPMs,
-            平均値: averageKPM
-          });
         } else {
           // 問題データがない場合は単純計算
-          averageKPM = Math.floor(correctKeyCount / (elapsedTimeMs / 60000));
-          logUtil.debug('【KPM計算】フォールバック - 単純計算によるKPM:', averageKPM);
+          averageKPM = Math.floor(totalCorrectKeyCount / (elapsedTimeMs / 60000));
         }
 
         // KPMが不正な値の場合は補正
         if (averageKPM <= 0 && totalCorrectKeyCount > 0) {
           averageKPM = 1;
-          logUtil.debug('【KPM計算】KPM値が不正なので最低値1を設定します');
         }
 
         // 正確性の計算を修正（正確性 = 正解数 / (正解数 + ミス数) * 100）
         const totalKeystrokes = totalCorrectKeyCount + totalMissCount;
         const accuracy = totalKeystrokes > 0 ? (totalCorrectKeyCount / totalKeystrokes) * 100 : 100;
-
-        logUtil.debug('【正確性計算】', {
-          正解数: totalCorrectKeyCount,
-          ミス数: totalMissCount,
-          総入力数: totalKeystrokes,
-          正確性: accuracy
-        });
-
-        logUtil.debug('【KPM計算】最終KPM値:', averageKPM);
 
         // 統計情報の計算
         const stats = {
@@ -170,44 +197,25 @@ const GameScreen = () => {
           elapsedTimeMs: elapsedTimeMs // リザルト画面でも使用できるように
         };
 
-        logUtil.debug('【ゲームクリア】 統計情報計算結果:', stats);
-
-        // 1回のみの状態更新で、すべてのデータを一度に設定
-        setGameState((prevState) => ({
-          ...prevState,
-          solvedCount,
-          typedCount:
-            typingRef.current?.typingSession?.typedRomaji?.length || 0,
-          playTime: Math.floor(stats.totalTime),
-          startTime: startTime,
-          endTime: endTime,
-          problemKPMs: updatedProblemKPMs,
-          uiCompletePercent: 100,
-          isGameClear: true, // 即座に画面遷移を行う
-          stats: stats, // 必ず統計情報を含める
-          totalCorrectKeyCount: totalCorrectKeyCount, // 累積正解キー数を更新
-          totalMissCount: totalMissCount, // 累積ミス数を更新
-        }));
-
-        // 念のため、少し遅延させてから画面遷移を確認（状態のプロパゲーションを待つ）
-        const timeoutId = setTimeout(() => {
-          logUtil.debug('【遅延確認】現在のゲーム状態:', {
-            isGameClear: gameState.isGameClear,
-            stats: gameState.stats,
-          });
-
-          // すでに遷移していなければ強制的に遷移
-          if (gameState.isGameClear !== true) {
-            logUtil.debug(
-              '【修正】遷移が行われていないため、強制的に状態を更新します'
-            );
-            setGameState((prevState) => ({
-              ...prevState,
-              isGameClear: true,
-              stats: stats, // 再度統計情報を含める
-            }));
-          }
-        }, 200);
+        // queueMicrotaskを使用してスムーズにステートを更新
+        queueMicrotask(() => {
+          // 1回のみの状態更新で、すべてのデータを一度に設定
+          setGameState((prevState) => ({
+            ...prevState,
+            solvedCount,
+            typedCount:
+              typingRef.current?.typingSession?.typedRomaji?.length || 0,
+            playTime: Math.floor(stats.totalTime),
+            startTime: startTime,
+            endTime: endTime,
+            problemKPMs: updatedProblemKPMs,
+            uiCompletePercent: 100,
+            isGameClear: true, // 即座に画面遷移を行う
+            stats: stats, // 必ず統計情報を含める
+            totalCorrectKeyCount: totalCorrectKeyCount, // 累積正解キー数を更新
+            totalMissCount: totalMissCount, // 累積ミス数を更新
+          }));
+        });
 
         return;
       }
@@ -230,31 +238,19 @@ const GameScreen = () => {
         const totalCorrectKeyCount = previousCorrectKeyCount + currentCorrectKeys;
         const totalMissCount = previousMissCount + currentMissCount;
 
-        logUtil.debug('【次の問題への移行】問題間の累積統計:', {
-          この問題の正解数: currentCorrectKeys,
-          この問題のミス数: currentMissCount,
-          これまでの正解数: previousCorrectKeyCount,
-          これまでのミス数: previousMissCount,
-          累積正解数: totalCorrectKeyCount,
-          累積ミス数: totalMissCount
-        });
-
-        logUtil.debug('【次の問題】', {
-          現在の問題: gameState.currentProblem?.displayText,
-          次の問題: nextProblem?.displayText,
-          インデックス: nextProblemIndex,
-        });
-
-        setGameState({
-          ...gameState,
-          currentProblem: nextProblem,
-          currentProblemIndex: nextProblemIndex,
-          solvedCount,
-          problemKPMs: updatedProblemKPMs, // 各問題のKPM値の配列を更新
-          currentProblemStartTime: null, // 次の問題の開始時間はまだ設定しない
-          currentProblemKeyCount: 0, // 次の問題用のカウンターをリセット
-          totalCorrectKeyCount: totalCorrectKeyCount, // 累積正解キー数を更新
-          totalMissCount: totalMissCount, // 累積ミス数を更新
+        // queueMicrotaskを使用してスムーズにステートを更新
+        queueMicrotask(() => {
+          setGameState({
+            ...gameState,
+            currentProblem: nextProblem,
+            currentProblemIndex: nextProblemIndex,
+            solvedCount,
+            problemKPMs: updatedProblemKPMs, // 各問題のKPM値の配列を更新
+            currentProblemStartTime: null, // 次の問題の開始時間はまだ設定しない
+            currentProblemKeyCount: 0, // 次の問題用のカウンターをリセット
+            totalCorrectKeyCount: totalCorrectKeyCount, // 累積正解キー数を更新
+            totalMissCount: totalMissCount, // 累積ミス数を更新
+          });
         });
 
         // 正解音は処理済み
@@ -277,6 +273,12 @@ const GameScreen = () => {
     typingRef.current = typing;
   }, [typing]);
 
+  // パフォーマンスモニタリングを開始
+  useEffect(() => {
+    const stopMonitoring = startPerformanceMonitoring();
+    return stopMonitoring;
+  }, [startPerformanceMonitoring]);
+
   // シンプル表示用のプロパティを取得（typingの初期化後に実行）
   const simpleProps = useSimpleTypingAdapter(typing);
 
@@ -286,8 +288,6 @@ const GameScreen = () => {
 
     const initSound = async () => {
       try {
-        console.log('[GameScreen] サウンドシステムの初期化を開始します...');
-
         // AudioContextを確実に再開
         soundSystem.resume();
 
@@ -298,18 +298,15 @@ const GameScreen = () => {
         ));
 
         // 残りの効果音は後回し
-        setTimeout(() => {
-          soundSystem.loadSound('complete', soundSystem.soundPresets.complete)
-            .catch(e => console.error('効果音のロードに失敗:', e));
-        }, 1000);
+        if (isMounted) {
+          queueMicrotask(() => {
+            soundSystem.loadSound('complete', soundSystem.soundPresets.complete)
+              .catch(e => console.error('効果音のロードに失敗:', e));
+          });
+        }
 
         // コンポーネントがアンマウントされていなければ状態を更新
         if (isMounted) {
-          console.log('[GameScreen] サウンド初期化完了:', {
-            contextState: soundSystem.context.state,
-            loadedSounds: Object.keys(soundSystem.sfxBuffers),
-          });
-
           setSoundsLoaded(true);
         }
       } catch (err) {
@@ -325,8 +322,7 @@ const GameScreen = () => {
 
     // クリーンアップ関数
     return () => {
-      isMounted = false; // コンポーネントがアンマウントされたことを記録
-      console.log('[GameScreen] コンポーネントがアンマウントされます。');
+      isMounted = false;
     };
   }, []);
 
@@ -340,10 +336,9 @@ const GameScreen = () => {
 
       // ESCキーが押されたらメインメニューに戻る
       if (e.key === 'Escape') {
-        // 効果音の再生は goToScreen 関数に委譲するため、ここでは再生しない
         setTimeout(() => {
           goToScreen(SCREENS.MAIN_MENU, {
-            playSound: true, // 画面遷移時に効果音を再生
+            playSound: true,
             soundType: 'button',
           });
         }, 100);
@@ -371,19 +366,28 @@ const GameScreen = () => {
       // AudioContextの状態がsuspendedの場合は再開
       soundSystem.resume();
 
-      // Weather Typingのように、最初のキー入力時にタイマー計測を開始
-      if (!gameState.hasStartedTyping) {
-        const now = Date.now();
-        setGameState((prevState) => ({
-          ...prevState,
-          startTime: now, // 最初のキー入力時点からタイマー計測を開始
-          hasStartedTyping: true,
-          currentProblemStartTime: now, // 最初の問題の開始時間も設定
-        }));
-      }
+      // パフォーマンス測定のためのタイムスタンプ
+      const startTime = performance.now();
 
-      // タイピング処理を行う - 効果音はuseTypingGame内で処理される
-      typing.handleInput(e.key);
+      // 入力処理をqueueMicrotaskで最適化
+      queueMicrotask(() => {
+        // Weather Typingのように、最初のキー入力時にタイマー計測を開始
+        if (!gameState.hasStartedTyping) {
+          const now = Date.now();
+          setGameState((prevState) => ({
+            ...prevState,
+            startTime: now, // 最初のキー入力時点からタイマー計測を開始
+            hasStartedTyping: true,
+            currentProblemStartTime: now, // 最初の問題の開始時間も設定
+          }));
+        }
+
+        // タイピング処理を行う - 効果音はuseTypingGame内で処理される
+        typing.handleInput(e.key);
+        
+        // パフォーマンス測定終了
+        performanceRef.current.inputCount++;
+      });
     },
     [
       gameState.isGameClear,
@@ -400,17 +404,12 @@ const GameScreen = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleKeyDown]); // handleKeyDown関数が変更された場合のみイベントリスナーを再設定
+  }, [handleKeyDown]);
 
   // ゲーム終了時に即座にリザルト画面へ遷移する強化版useEffect
   useEffect(() => {
     // 明示的な型チェックと即時遷移
     if (gameState.isGameClear === true) {
-      console.log(
-        '【GameScreen】ゲームクリア状態を検出 - 即座にリザルト画面へ遷移します'
-      );
-      console.log('【GameScreen】統計情報詳細:', gameState.stats);
-
       // 統計情報がnullまたは不完全な場合は再計算して確保
       let statsToPass = gameState.stats;
 
@@ -419,8 +418,6 @@ const GameScreen = () => {
         statsToPass.kpm === undefined ||
         statsToPass.kpm === 0
       ) {
-        console.log('【GameScreen】統計情報が不完全なため再計算します');
-
         // 終了時間を確認
         const endTime = gameState.endTime || Date.now();
         const startTime = gameState.startTime || Date.now();
@@ -429,25 +426,11 @@ const GameScreen = () => {
         // useTypingGameフックからのデータを取得（最も正確な情報源）
         const typingStats = typingRef.current?.stats || {};
 
-        console.log('【GameScreen】typingRef.current?.stats:', typingStats);
-
-        // 問題ごとのKPMから総合KPMを計算（Weather Typing公式方法）
-        const problemStats = (gameState.problemStats || []).map((problem) => ({
-          problemKeyCount: problem.problemKeyCount || 0,
-          problemElapsedMs: problem.problemElapsedMs || 0,
-        }));
-
         // ミス数の検証と確認（複数の場所から取得を試みる）
         const missCount = typingStats.missCount ||
           gameState.stats?.missCount ||
           typingRef.current?.statisticsRef?.current?.mistakeCount ||
           0;
-
-        console.log('【統計情報検証】リザルト画面への移行前最終確認:', {
-          typingStats,
-          参照ミス数: missCount,
-          統計情報元: 'GameScreen.js - 再計算ロジック'
-        });
 
         // 正解数と正確性の確認
         const correctCount = typingStats.correctCount ||
@@ -469,10 +452,7 @@ const GameScreen = () => {
           accuracy: accuracy,
           kpm: typingStats.kpm || 0,
           problemKPMs: gameState.problemKPMs || [],
-          problemStats: problemStats,
         };
-
-        console.log('【GameScreen】再計算した統計情報:', statsToPass);
       }
 
       // スムーズな遷移のために最適な遅延
@@ -534,7 +514,6 @@ const GameScreen = () => {
         transition: { delay: 0.5, duration: 0.3 },
         whileHover: { scale: 1.05 },
       },
-      // 新しいステータス表示用のアニメーション
       status: {
         initial: { opacity: 0, scale: 0.9 },
         animate: { opacity: 1, scale: 1 },
@@ -551,37 +530,29 @@ const GameScreen = () => {
 
   // ゲームクリア状態の場合は何も表示しない - 早期リターン
   if (gameState.isGameClear === true) {
-    console.log(
-      '【GameScreenNew】ゲームクリア状態のため、何も表示せずにリターンします'
-    );
     return null;
   }
 
-  // KPM情報の計算
-  const currentKpm = typing.stats?.kpm || 0;
-  const accuracy = typing.stats?.accuracy || 100;
-
-  // ゲーム画面レイアウトの最適化
   return (
-    <div className={styles.typing_game_wrapper}>
+    <div className={styles.typing_game__wrapper}>
       <div className={styles.typing_game}>
-        {/* SF風のコーナー装飾を四隅に追加 */}
-        <div className={styles.cornerDecoration} style={{ top: 10, left: 10 }}>
-          <div className={styles.cornerTech} />
+        {/* SF風のコーナー装飾 */}
+        <div className={styles.typing_game__corner} style={{ top: 10, left: 10 }}>
+          <div className={styles.typing_game__corner_tech} />
         </div>
-        <div className={styles.cornerDecoration} style={{ top: 10, right: 10, transform: 'scaleX(-1)' }}>
-          <div className={styles.cornerTech} />
+        <div className={styles.typing_game__corner} style={{ top: 10, right: 10, transform: 'scaleX(-1)' }}>
+          <div className={styles.typing_game__corner_tech} />
         </div>
-        <div className={styles.cornerDecoration} style={{ bottom: 10, left: 10, transform: 'scaleY(-1)' }}>
-          <div className={styles.cornerTech} />
+        <div className={styles.typing_game__corner} style={{ bottom: 10, left: 10, transform: 'scaleY(-1)' }}>
+          <div className={styles.typing_game__corner_tech} />
         </div>
-        <div className={styles.cornerDecoration} style={{ bottom: 10, right: 10, transform: 'scale(-1)' }}>
-          <div className={styles.cornerTech} />
+        <div className={styles.typing_game__corner} style={{ bottom: 10, right: 10, transform: 'scale(-1)' }}>
+          <div className={styles.typing_game__corner_tech} />
         </div>
 
-        {/* スキャンラインとドットパターンを追加 */}
-        <div className={styles.scanlines}></div>
-        <div className={styles.dotPattern}></div>
+        {/* スキャンラインとドットパターン */}
+        <div className={styles.typing_game__scanlines}></div>
+        <div className={styles.typing_game__dot_pattern}></div>
 
         <motion.header
           className={styles.typing_game__header}
@@ -589,12 +560,10 @@ const GameScreen = () => {
           animate={animationVariants.header.animate}
           transition={animationVariants.header.transition}
         >
-          {/* お題表示を右上に配置するため、左は空にする */}
           <div></div>
 
-          {/* お題表示を右上に配置し、背景とボーダーを削除 */}
           <motion.div
-            className={styles.typing_game__level_display_right}
+            className={styles.typing_game__level_display}
             initial={animationVariants.gameLevelScale.initial}
             animate={animationVariants.gameLevelScale.animate}
             transition={animationVariants.gameLevelScale.transition}
@@ -609,10 +578,10 @@ const GameScreen = () => {
           animate={animationVariants.gameArea.animate}
           transition={animationVariants.gameArea.transition}
         >
-          <div className={styles.typing_game__content_area}>
-            {/* お題エリア - アニメーションを追加 */}
+          <div className={styles.typing_game__content}>
+            {/* お題エリア */}
             <motion.div
-              className={styles.typing_game__problem_area}
+              className={styles.typing_game__problem}
               initial={animationVariants.problemArea.initial}
               animate={animationVariants.problemArea.animate}
               transition={animationVariants.problemArea.transition}
@@ -623,26 +592,25 @@ const GameScreen = () => {
                 className={styles.typing_game__problem_text}
               />
 
-              {/* 入力エリア - シンプル表示専用 */}
+              {/* 入力エリア */}
               <SimpleTypingDisplay
                 romaji={simpleProps.romaji}
                 typedLength={simpleProps.typedLength}
                 nextChar={simpleProps.nextChar}
                 isError={simpleProps.isError}
-                className={styles.typing_game__input_display}
+                className={styles.typing_game__input}
                 inputMode={simpleProps.inputMode}
                 currentInput={simpleProps.currentInput}
                 currentCharRomaji={simpleProps.currentCharRomaji}
               />
             </motion.div>
 
-            {/* キャンバスキーボードを直接表示 - マージンを調整して空白を減らす */}
+            {/* キーボード表示 */}
             <motion.div
-              className={styles.canvas_keyboard_container}
+              className={styles.typing_game__keyboard}
               initial={animationVariants.keyboard.initial}
               animate={animationVariants.keyboard.animate}
               transition={animationVariants.keyboard.transition}
-              style={{ width: '100%', marginBottom: '0.5rem' }}
             >
               <CanvasKeyboard
                 nextKey={nextKey}
@@ -654,9 +622,9 @@ const GameScreen = () => {
           </div>
         </motion.main>
 
-        {/* ESCショートカットをヘッダーの外に移動して絶対配置 */}
+        {/* ショートカットとステータス情報 */}
         <motion.div
-          className={styles.typing_game__shortcuts_inside}
+          className={styles.typing_game__shortcuts}
           onClick={() => {
             soundSystem.play('button');
             goToScreen(SCREENS.MAIN_MENU, {
@@ -664,7 +632,6 @@ const GameScreen = () => {
               soundType: 'button',
             });
           }}
-          style={{ cursor: 'pointer' }}
           initial={animationVariants.shortcut.initial}
           animate={animationVariants.shortcut.animate}
           transition={animationVariants.shortcut.transition}
