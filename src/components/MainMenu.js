@@ -97,7 +97,21 @@ const MainMenu = () => {
       console.log('[MainMenu] BGM再生停止: soundEnabled=' + soundEnabled + ', bgmEnabled=' + bgmEnabled);
     }
 
-    // コンポーネントのアンマウント時にMCPに記録
+    // 周期的に背景効果を更新するアニメーション
+    const interval = setInterval(() => {
+      const targetElement = document.querySelector(`.${styles.mainContainer}`);
+      if (targetElement) {
+        const randomDelay = Math.random() * 3000;
+        setTimeout(() => {
+          targetElement.classList.add(styles.scanlineEffect);
+          setTimeout(() => {
+            targetElement.classList.remove(styles.scanlineEffect);
+          }, 1500);
+        }, randomDelay);
+      }
+    }, 8000);
+
+    // コンポーネントのアンマウント時にMCPに記録とインターバルのクリア
     return () => {
       if (mcpActive) {
         recordUXElement({
@@ -107,6 +121,7 @@ const MainMenu = () => {
           duration: Date.now() - performance.now() // コンポーネントの表示時間を記録
         });
       }
+      clearInterval(interval);
     };
   }, [soundSystem, soundEnabled, bgmEnabled, mcpActive, recordUXElement, recordGameEvent]);
 
@@ -287,6 +302,51 @@ const MainMenu = () => {
     hidden: { y: 20, opacity: 0 },
     show: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300 } },
   };
+
+  // カスタム宇宙船風の装飾コンポーネント
+  const SpaceshipDecoration = () => (
+    <>
+      {/* 左上コーナー装飾 */}
+      <div className={styles.cornerDecoration} style={{ top: 0, left: 0 }}>
+        <div className={styles.cornerTech}></div>
+        <div className={styles.cornerLine}></div>
+      </div>
+      
+      {/* 右上コーナー装飾 */}
+      <div className={styles.cornerDecoration} style={{ top: 0, right: 0 }}>
+        <div className={styles.cornerTech}></div>
+        <div className={styles.cornerLine}></div>
+      </div>
+      
+      {/* 左下コーナー装飾 */}
+      <div className={styles.cornerDecoration} style={{ bottom: 0, left: 0 }}>
+        <div className={styles.cornerTech}></div>
+        <div className={styles.cornerLine}></div>
+      </div>
+      
+      {/* 右下コーナー装飾 */}
+      <div className={styles.cornerDecoration} style={{ bottom: 0, right: 0 }}>
+        <div className={styles.cornerTech}></div>
+        <div className={styles.cornerLine}></div>
+      </div>
+      
+      {/* トップボーダー装飾 */}
+      <div className={styles.techBorder} style={{ top: '5px', left: '50%', transform: 'translateX(-50%)' }}>
+        <div className={styles.techLights}></div>
+      </div>
+      
+      {/* ボトムボーダー装飾 */}
+      <div className={styles.techBorder} style={{ bottom: '5px', left: '50%', transform: 'translateX(-50%)' }}>
+        <div className={styles.techLights}></div>
+      </div>
+      
+      {/* スキャンライン効果 */}
+      <div className={styles.scanlines}></div>
+      
+      {/* ドット模様背景 */}
+      <div className={styles.dotPattern}></div>
+    </>
+  );
 
   // 設定コンテンツをレンダリングする関数
   const renderSettingsContent = useCallback(() => {
@@ -497,6 +557,15 @@ const MainMenu = () => {
 
   return (
     <div className={styles.mainContainer} ref={mainContainerRef}>
+      {/* 宇宙船UI装飾コンポーネント */}
+      <SpaceshipDecoration />
+
+      {/* 宇宙船ID表示 - 新しい要素 */}
+      <div className={styles.shipIdBadge}>
+        <div className={styles.shipIdLabel}>MANABY SPACE CREW</div>
+        <div className={styles.shipIdValue}>SRX-2025</div>
+      </div>
+
       {/* 右上に設定ボタン（アイコンのみ） */}
       <div className={styles.cornerButtons}>
         <button
@@ -504,7 +573,9 @@ const MainMenu = () => {
           onClick={handleOpenSettings}
           aria-label="設定"
         >
-          ⚙️
+          <div className={styles.gearIcon}>
+            <div className={styles.gearInner}></div>
+          </div>
         </button>
       </div>
 
@@ -532,20 +603,29 @@ const MainMenu = () => {
         />
       </motion.div>
 
-      <div className={styles.menuContainer}>
+      <motion.div 
+        className={styles.menuContainer}
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
         {/* タイトル - アニメーション付き */}
         <motion.div
           className={styles.titleContainer}
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ type: 'spring', bounce: 0.4, duration: 0.8 }}
+          variants={itemVariants}
         >
           <h1 className={`screen-title ${styles.title}`}>manaby typing</h1>
+          {/* レトロSF風のサブタイトル追加 */}
+          <div className={styles.subTitleContainer}>
+            <span className={styles.subTitle}>SPACE CREW TYPING MISSION</span>
+            <div className={styles.titleDecoration}></div>
+          </div>
         </motion.div>
 
         {/* メインロゴ（スタートボタン） - アニメーション付き */}
         <motion.div
           className={styles.logoContainer}
+          variants={itemVariants}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
@@ -563,15 +643,20 @@ const MainMenu = () => {
               priority
               unoptimized
             />
+            {/* 新しいスタートフレーム装飾 */}
+            <div className={styles.startButtonFrame}>
+              <div className={styles.frameCorner} style={{ top: 0, left: 0 }}></div>
+              <div className={styles.frameCorner} style={{ top: 0, right: 0 }}></div>
+              <div className={styles.frameCorner} style={{ bottom: 0, left: 0 }}></div>
+              <div className={styles.frameCorner} style={{ bottom: 0, right: 0 }}></div>
+            </div>
           </button>
         </motion.div>
 
         {/* 難易度選択ボタン（横並びトグル式） - アニメーション付き */}
         <motion.div
           className={styles.difficultyToggleGroup}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
+          variants={itemVariants}
         >
           {Object.keys(difficultyLabels).map((key) => (
             <button
@@ -580,40 +665,41 @@ const MainMenu = () => {
               onClick={() => handleDifficultyChange(key)}
               aria-pressed={settings.difficulty === key}
             >
-              {difficultyLabels[key]}
+              <span className={styles.btnText}>{difficultyLabels[key]}</span>
+              {/* 難易度インジケーター */}
+              <span className={`${styles.difficultyIndicator} ${styles[`difficultyIndicator_${key}`]}`}></span>
             </button>
           ))}
         </motion.div>
 
         <motion.div
           className={styles.instructions}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2, duration: 0.5 }}
+          variants={itemVariants}
         >
-          <p>ロゴをクリックまたはスペースキーでスタート！</p>
-
-          {/* ショートカットヘルプ - アニメーション付き */}
-          <motion.div
-            className={styles.shortcutHelp}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 2.0, duration: 0.7 }}
-          >
-            <div className={styles.shortcutList}>
-              <div className={styles.shortcutItem}>
-                <kbd>Space</kbd> <span>ゲーム開始</span>
-              </div>
-              <div className={styles.shortcutItem}>
-                <kbd>R</kbd> <span>ランキング</span>
-              </div>
-              <div className={styles.shortcutItem}>
-                <kbd>ESC</kbd> <span>メニューに戻る</span>
-              </div>
-            </div>
-          </motion.div>
+          <div className={styles.instructionText}>ロゴをクリックまたはスペースキーでスタート！</div>
         </motion.div>
-      </div>
+
+        {/* SF風装飾 - 下部ステータス表示 */}
+        <motion.div 
+          className={styles.statusBar}
+          variants={itemVariants}
+        >
+          <div className={styles.statusItem}>
+            <span className={styles.statusLabel}>STATUS</span>
+            <span className={styles.statusValue}>READY</span>
+          </div>
+          <div className={styles.statusDivider}></div>
+          <div className={styles.statusItem}>
+            <span className={styles.statusLabel}>DIFFICULTY</span>
+            <span className={styles.statusValue}>{soundEnabled ? 'ON' : 'OFF'}</span>
+          </div>
+          <div className={styles.statusDivider}></div>
+          <div className={styles.statusItem}>
+            <span className={styles.statusLabel}>SOUND</span>
+            <span className={styles.statusValue}>{soundEnabled ? 'ON' : 'OFF'}</span>
+          </div>
+        </motion.div>
+      </motion.div>
 
       {/* 右下に情報アイコンボタン */}
       <button
@@ -621,7 +707,7 @@ const MainMenu = () => {
         onClick={handleOpenCredits}
         aria-label="クレジット"
       >
-        ⓘ
+        <div className={styles.infoIcon}>ⓘ</div>
       </button>
 
       {/* 設定モーダルと他のモーダル - 既存コード */}
