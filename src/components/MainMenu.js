@@ -352,57 +352,6 @@ const MainMenu = () => {
   const renderSettingsContent = useCallback(() => {
     return (
       <div className={styles.settingsContainer}>
-        {/* ゲーム設定セクション */}
-        <div className={styles.settingsSection}>
-          <div className={styles.sectionHeader}>
-            <div className={styles.sectionDecoration}></div>
-            <h3 className={styles.sectionTitle}>ゲーム設定</h3>
-          </div>
-
-          {/* 難易度設定パネル */}
-          <div className={styles.settingsPanel}>
-            <div className={styles.settingRow}>
-              <div className={styles.settingLabelGroup}>
-                <label className={styles.settingLabel}>難易度</label>
-                <span className={styles.settingDescription}>
-                  問題の難しさを設定します
-                </span>
-              </div>
-
-              <div className={styles.difficultySelector}>
-                {Object.keys(difficultyLabels).map((key) => (
-                  <button
-                    key={key}
-                    className={`${styles.difficultyButton} ${settings.difficulty === key ? styles.active : ''}`}
-                    onClick={() => handleDifficultyChange(key)}
-                    aria-pressed={settings.difficulty === key}
-                    tabIndex={0} // 明示的にタブ操作可能に設定
-                    onKeyDown={(e) => {
-                      // Enterキーまたはスペースキーでボタンをアクティブにする
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleDifficultyChange(key);
-                      }
-                    }}
-                  >
-                    <span className={styles.difficultyLabel}>{difficultyLabels[key]}</span>
-                    {settings.difficulty === key && (
-                      <span className={styles.activeMark}></span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 区切り線（スタイリッシュなデザイン） */}
-        <div className={styles.settingsDivider}>
-          <div className={styles.dividerLine}></div>
-          <div className={styles.dividerAccent}></div>
-          <div className={styles.dividerLine}></div>
-        </div>
-
         {/* サウンド設定セクション */}
         <div className={styles.settingsSection}>
           <div className={styles.sectionHeader}>
