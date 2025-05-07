@@ -564,6 +564,24 @@ const RankingScreen = () => {
 
   return (
     <div className={styles.rankingContainer}>
+      {/* SF風のコーナー装飾を四隅に追加 */}
+      <div className={styles.cornerDecoration} style={{ top: 10, left: 10 }}>
+        <div className={styles.cornerTech} />
+      </div>
+      <div className={styles.cornerDecoration} style={{ top: 10, right: 10, transform: 'scaleX(-1)' }}>
+        <div className={styles.cornerTech} />
+      </div>
+      <div className={styles.cornerDecoration} style={{ bottom: 10, left: 10, transform: 'scaleY(-1)' }}>
+        <div className={styles.cornerTech} />
+      </div>
+      <div className={styles.cornerDecoration} style={{ bottom: 10, right: 10, transform: 'scale(-1)' }}>
+        <div className={styles.cornerTech} />
+      </div>
+      
+      {/* スキャンラインとドットパターンを追加 */}
+      <div className={styles.scanlines}></div>
+      <div className={styles.dotPattern}></div>
+
       <motion.div
         className={styles.rankingHeader}
         initial={{ y: -50, opacity: 0 }}
@@ -839,6 +857,24 @@ const RankingScreen = () => {
               damping: 30,
             }}
           >
+            {/* モーダル内のSF風装飾 */}
+            <div className={styles.cornerDecoration} style={{ top: 10, left: 10 }}>
+              <div className={styles.cornerTech} />
+            </div>
+            <div className={styles.cornerDecoration} style={{ top: 10, right: 10, transform: 'scaleX(-1)' }}>
+              <div className={styles.cornerTech} />
+            </div>
+            <div className={styles.cornerDecoration} style={{ bottom: 10, left: 10, transform: 'scaleY(-1)' }}>
+              <div className={styles.cornerTech} />
+            </div>
+            <div className={styles.cornerDecoration} style={{ bottom: 10, right: 10, transform: 'scale(-1)' }}>
+              <div className={styles.cornerTech} />
+            </div>
+            
+            {/* モーダル内のスキャンラインとドットパターン */}
+            <div className={styles.scanlines}></div>
+            <div className={styles.dotPattern}></div>
+
             <div className={styles.modalHeader}>
               <h2 className={styles.modalTitle}>オンラインランキング登録</h2>
               <Button
@@ -995,6 +1031,24 @@ const RankingScreen = () => {
               damping: 30,
             }}
           >
+            {/* モーダル内のSF風装飾 */}
+            <div className={styles.cornerDecoration} style={{ top: 10, left: 10 }}>
+              <div className={styles.cornerTech} />
+            </div>
+            <div className={styles.cornerDecoration} style={{ top: 10, right: 10, transform: 'scaleX(-1)' }}>
+              <div className={styles.cornerTech} />
+            </div>
+            <div className={styles.cornerDecoration} style={{ bottom: 10, left: 10, transform: 'scaleY(-1)' }}>
+              <div className={styles.cornerTech} />
+            </div>
+            <div className={styles.cornerDecoration} style={{ bottom: 10, right: 10, transform: 'scale(-1)' }}>
+              <div className={styles.cornerTech} />
+            </div>
+            
+            {/* モーダル内のスキャンラインとドットパターン */}
+            <div className={styles.scanlines}></div>
+            <div className={styles.dotPattern}></div>
+            
             <div className={styles.modalHeader}>
               <h2 className={styles.modalTitle}>デバッグ情報</h2>
               <Button
