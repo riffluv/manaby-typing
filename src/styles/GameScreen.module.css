@@ -219,13 +219,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
-    linear-gradient(135deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
-    linear-gradient(225deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
-    linear-gradient(315deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%),
-    linear-gradient(45deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%);
-  background-size: 20px 20px;
-  opacity: 0.5;
+  background: rgba(255, 140, 0, 0.05); /* シンプルな背景色に変更 */
+  opacity: 0.3;
   z-index: 0;
   pointer-events: none;
   border-radius: 8px;
@@ -562,4 +557,130 @@
   }
 }
 
-@media screen and
+@media screen and (max-width: 640px) {
+  /* スマートフォン向けのスタイル調整 */
+  .typing_game {
+    padding: 0.5rem;
+  }
+
+  .typing_game__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .typing_game__level_display {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.8rem;
+  }
+
+  .typing_game__level_display_right {
+    font-size: 0.8rem;
+  }
+
+  .typing_game__status {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .typing_game__status_item {
+    font-size: 0.75rem;
+  }
+
+  .typing_game__display_toggle {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .typing_game__back_button {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .typing_game__main {
+    padding: 0.5rem 0.5rem 0.3rem;
+  }
+
+  .typing_game__problem_area {
+    padding: 1rem;
+  }
+
+  .typing_game__problem_text {
+    font-size: 1.2rem;
+  }
+
+  .typing_game__input_display {
+    font-size: 1.2rem;
+  }
+
+  .typing_game__next_char {
+    font-size: 1.2rem;
+  }
+
+  .typingCursor {
+    height: 1em;
+  }
+}
+
+/* タブレット向けのスタイル調整 */
+@media screen and (min-width: 641px) and (max-width: 1024px) {
+  .typing_game {
+    padding: 1rem;
+  }
+
+  .typing_game__header {
+    padding: 0.5rem 1rem;
+  }
+
+  .typing_game__level_display {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.9rem;
+  }
+
+  .typing_game__level_display_right {
+    font-size: 0.85rem;
+  }
+
+  .typing_game__status {
+    padding: 0.4rem 0.8rem;
+  }
+
+  .typing_game__status_item {
+    font-size: 0.8rem;
+  }
+
+  .typing_game__display_toggle {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+  }
+
+  .typing_game__back_button {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .typing_game__main {
+    padding: 1rem 0.8rem 0.5rem;
+  }
+
+  .typing_game__problem_area {
+    padding: 1.1rem;
+  }
+
+  .typing_game__problem_text {
+    font-size: 1.3rem;
+  }
+
+  .typing_game__input_display {
+    font-size: 1.3rem;
+  }
+
+  .typing_game__next_char {
+    font-size: 1.3rem;
+  }
+
+  .typingCursor {
+    height: 1.2em;
+  }
+}
