@@ -8,7 +8,6 @@
   border-radius: 8px;
   position: relative;
   border: none;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
   box-sizing: border-box;
   font-family: 'Cascadia Code', 'Source Code Pro', 'Fira Code', 'Consolas', monospace;
   font-size: 1.5rem;
@@ -16,13 +15,14 @@
   letter-spacing: 0.03em;
   color: #e0e0e0;
   margin-bottom: 0.2rem;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: transparent; /* 背景色を透明に変更 */
   overflow-y: visible;
   /* スクロールではなく表示領域を拡張 */
   overflow-x: hidden;
   /* 横方向のスクロールを無効化 */
   overscroll-behavior: contain;
   scroll-behavior: smooth;
+  box-shadow: none; /* ボックスシャドウを削除 */
 }
 
 /* 内部コンテンツラッパー */
@@ -81,7 +81,7 @@
   /* オレンジ色 */
   text-shadow: 0 0 6px rgba(255, 154, 40, 0.6);
   font-weight: 700;
-  background-color: rgba(255, 154, 40, 0.1);
+  background-color: transparent; /* 背景色を透明に変更 */
   border-radius: 2px;
   padding: 0 2px;
   margin: 0 1px;
