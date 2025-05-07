@@ -6,14 +6,18 @@
   width: 800px;
   height: 600px;
   margin: 0 auto;
-  background-color: #121212;
-  border: 4px solid #ff8c00;
-  box-shadow: 0 0 10px #ff8c00, inset 0 0 20px rgba(255, 140, 0, 0.5);
+  background-color: #0a0d14; /* メインメニューと同じ背景色 */
+  border: 4px solid #ff8c00; /* メインメニューと同じオレンジ色のボーダー */
+  box-shadow: 
+    0 0 15px rgba(255, 140, 0, 0.7),
+    inset 0 0 30px rgba(255, 140, 0, 0.3); /* メインメニューと同じシャドウ効果 */
   position: relative;
-  overflow: hidden; /* スクロールを無効化 */
-  padding: 20px; /* パディングを調整 */
+  overflow: hidden;
+  padding: 20px;
+  border-radius: 4px; /* メインメニューと同じ角丸 */
 }
 
+/* メインメニューと同じグリッドパターン背景効果 */
 .resultContainer::before {
   content: '';
   position: absolute;
@@ -21,9 +25,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: linear-gradient(rgba(255, 140, 0, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 140, 0, 0.1) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(10, 13, 20, 0.3) 0%, rgba(10, 13, 20, 0.7) 70%),
+    linear-gradient(rgba(255, 140, 0, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 140, 0, 0.08) 1px, transparent 1px);
+  background-size: 100%, 20px 20px, 20px 20px;
   z-index: 0;
 }
 
@@ -41,11 +47,12 @@
 /* タイトルの個別調整のみ残す */
 .resultTitle {
   margin: 0 0 15px 0;
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7); /* オレンジ色のグロー効果 */
 }
 
 /* ESCキーのヒント表示用スタイル */
 .escHint {
-  font-family: var(--font-normal);
+  font-family: 'Courier New', monospace; /* メインメニューと同じフォント */
   font-size: 12px;
   color: rgba(255, 255, 255, 0.8);
   margin-top: 5px;
@@ -53,7 +60,7 @@
   letter-spacing: 1px;
   padding: 4px 10px;
   background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
+  border-radius: 4px; /* メインメニューと合わせる */
   border: 1px solid rgba(255, 140, 0, 0.3);
   animation: pulse 2s infinite ease-in-out;
 }
@@ -65,7 +72,7 @@
 }
 
 .resultSubtitle {
-  font-family: var(--font-normal);
+  font-family: 'Courier New', monospace; /* メインメニューと同じフォント */
   font-size: 14px;
   color: #ffffff;
   margin-top: 10px;
@@ -108,7 +115,7 @@
 }
 
 .rankLabel {
-  font-family: var(--font-normal);
+  font-family: 'Courier New', monospace; /* メインメニューと同じフォント */
   font-size: 16px;
   color: #fff;
   text-transform: uppercase;
@@ -135,10 +142,10 @@
 }
 
 .statCard {
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.4); /* 背景を少し暗く調整 */
   backdrop-filter: blur(5px);
-  border: none;
-  border-radius: 12px;
+  border: 1px solid rgba(255, 140, 0, 0.3); /* オレンジ色のボーダーを追加 */
+  border-radius: 8px; /* メインメニューと合わせる */
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -150,32 +157,59 @@
               0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
+/* カードにドット模様を追加 */
+.statCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(135deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
+    linear-gradient(225deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
+    linear-gradient(315deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%),
+    linear-gradient(45deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%);
+  background-size: 20px 20px;
+  opacity: 0.5;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 8px;
+}
+
 .statValue {
   color: #ffffff;
-  font-family: var(--font-dot);
+  font-family: 'Courier New', monospace; /* メインメニューと同じフォント */
   font-size: 24px;
   font-weight: bold;
   text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+  position: relative;
+  z-index: 1;
+}
+
+.statLabel {
+  position: relative;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Courier New', monospace; /* メインメニューと同じフォント */
+  font-size: 14px;
+  margin-bottom: 5px;
 }
 
 /* KPMとAccuracy（正解率）のカードを特別に強調 */
 .keyStatCard .statValue {
   font-size: 28px;
-  background: linear-gradient(to bottom, #ffffff, #ffd280);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: none;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+  color: #ff8c00; /* メインメニューと同じオレンジ色 */
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
 }
 
 /* ランクカード特有のスタイル */
 .rankCard {
   position: relative;
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: rgba(0, 0, 0, 0.6);
   overflow: visible;
   z-index: 2;
-  border-width: 3px;
+  border-width: 2px;
   transform: translateZ(0); /* GPU加速を有効に */
 }
 
@@ -210,26 +244,27 @@
   padding: 8px 15px;
   width: 150px;
   height: 45px;
-  border: 2px solid #ff8c00;
-  background-color: rgba(0, 0, 0, 0.7);
+  border: 1px solid #ff8c00;
+  background-color: rgba(0, 0, 0, 0.4);
   color: #fff;
-  font-family: var(--font-normal);
+  font-family: 'Courier New', monospace; /* メインメニューと同じフォント */
   font-size: 13px;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-radius: 30px;
-  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5),
-    inset 0 0 10px rgba(255, 140, 0, 0.3);
+  border-radius: 4px; /* メインメニューと合わせる */
+  box-shadow: 0 0 8px rgba(255, 140, 0, 0.3),
+    inset 0 0 10px rgba(255, 140, 0, 0.1);
   position: relative;
   overflow: visible;
   z-index: 110;
 }
 
 .resultButton:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 15px rgba(255, 140, 0, 0.8),
-    inset 0 0 15px rgba(255, 140, 0, 0.5);
-  border-color: #ffaa33;
+  transform: translateY(-3px);
+  background-color: rgba(10, 10, 15, 0.8);
+  border-color: rgba(255, 140, 0, 0.8);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 140, 0, 0.3);
+  color: #ff8c00; /* オレンジ色に変化 */
 }
 
 .resultButton:active {
@@ -238,17 +273,74 @@
     inset 0 0 5px rgba(255, 140, 0, 0.3);
 }
 
-.resultButton::after {
+/* ボタンにハイテクな背景パターンを追加 */
+.resultButton::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: linear-gradient(rgba(255, 140, 0, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 140, 0, 0.1) 1px, transparent 1px);
-  background-size: 10px 10px;
-  z-index: -1;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(135deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
+    linear-gradient(225deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%) -10px 0,
+    linear-gradient(315deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%),
+    linear-gradient(45deg, rgba(255, 140, 0, 0.05) 25%, transparent 25%);
+  background-size: 20px 20px;
+  opacity: 0.5;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* スキャンラインとコーナー装飾を追加するクラス */
+.scanlines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 1px,
+    rgba(255, 140, 0, 0.03) 1px,
+    rgba(255, 140, 0, 0.03) 2px
+  );
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.7;
+}
+
+.dotPattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(rgba(255, 140, 0, 0.1) 1px, transparent 1px),
+    radial-gradient(rgba(255, 140, 0, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px, 30px 30px;
+  background-position: 0 0, 10px 10px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+}
+
+.cornerDecoration {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.cornerTech {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.7);
+  clip-path: polygon(0 0, 100% 0, 100% 15%, 15% 15%, 15% 100%, 0 100%);
 }
 
 @media (max-width: 850px) {
