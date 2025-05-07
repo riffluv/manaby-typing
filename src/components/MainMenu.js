@@ -642,13 +642,7 @@ const MainMenu = () => {
               priority
               unoptimized
             />
-            {/* 新しいスタートフレーム装飾 */}
-            <div className={styles.startButtonFrame}>
-              <div className={styles.frameCorner} style={{ top: 0, left: 0 }}></div>
-              <div className={styles.frameCorner} style={{ top: 0, right: 0 }}></div>
-              <div className={styles.frameCorner} style={{ bottom: 0, left: 0 }}></div>
-              <div className={styles.frameCorner} style={{ bottom: 0, right: 0 }}></div>
-            </div>
+            {/* スタートフレーム装飾を削除 */}
           </button>
         </motion.div>
 
@@ -674,29 +668,10 @@ const MainMenu = () => {
           className={styles.instructions}
           variants={itemVariants}
         >
-          <div className={styles.instructionText}>ロゴをクリックまたはスペースキーでスタート！</div>
+          <div className={styles.instructionText}>ロゴをクリックまたはSPACEキーでスタート！</div>
         </motion.div>
 
-        {/* SF風装飾 - 下部ステータス表示 */}
-        <motion.div 
-          className={styles.statusBar}
-          variants={itemVariants}
-        >
-          <div className={styles.statusItem}>
-            <span className={styles.statusLabel}>STATUS</span>
-            <span className={styles.statusValue}>READY</span>
-          </div>
-          <div className={styles.statusDivider}></div>
-          <div className={styles.statusItem}>
-            <span className={styles.statusLabel}>DIFFICULTY</span>
-            <span className={styles.statusValue}>{soundEnabled ? 'ON' : 'OFF'}</span>
-          </div>
-          <div className={styles.statusDivider}></div>
-          <div className={styles.statusItem}>
-            <span className={styles.statusLabel}>SOUND</span>
-            <span className={styles.statusValue}>{soundEnabled ? 'ON' : 'OFF'}</span>
-          </div>
-        </motion.div>
+        {/* SF風装飾 - 下部ステータス表示を削除 */}
       </motion.div>
 
       {/* 右下に情報アイコンボタン */}
