@@ -547,6 +547,24 @@ const GameScreen = () => {
   return (
     <div className={styles.typing_game_wrapper}>
       <div className={styles.typing_game}>
+        {/* SF風のコーナー装飾を四隅に追加 */}
+        <div className={styles.cornerDecoration} style={{ top: 10, left: 10 }}>
+          <div className={styles.cornerTech} />
+        </div>
+        <div className={styles.cornerDecoration} style={{ top: 10, right: 10, transform: 'scaleX(-1)' }}>
+          <div className={styles.cornerTech} />
+        </div>
+        <div className={styles.cornerDecoration} style={{ bottom: 10, left: 10, transform: 'scaleY(-1)' }}>
+          <div className={styles.cornerTech} />
+        </div>
+        <div className={styles.cornerDecoration} style={{ bottom: 10, right: 10, transform: 'scale(-1)' }}>
+          <div className={styles.cornerTech} />
+        </div>
+        
+        {/* スキャンラインとドットパターンを追加 */}
+        <div className={styles.scanlines}></div>
+        <div className={styles.dotPattern}></div>
+        
         <motion.header
           className={styles.typing_game__header}
           initial={animationVariants.header.initial}
