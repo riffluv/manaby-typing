@@ -369,6 +369,30 @@ const MainMenu = () => {
           </div>
         </div>
 
+        {/* 新しいセクション：パフォーマンス設定 */}
+        <div className={styles.settingsSection}>
+          <h3 className={styles.settingsSectionTitle}>パフォーマンス設定</h3>
+          <div className={styles.settingsRow}>
+            <label className={styles.settingsLabel}>
+              MCPモードを使用
+              <small className={styles.settingsSubLabel}>
+                （有効にするとパフォーマンス低下の可能性があります）
+              </small>
+            </label>
+            <div className={styles.settingsControl}>
+              <input
+                type="checkbox"
+                checked={settings.useMCP}
+                onChange={(e) => setSettings({ ...settings, useMCP: e.target.checked })}
+                className={styles.settingsCheckbox}
+              />
+              <span className={styles.checkboxLabel}>
+                {settings.useMCP ? 'オン' : 'オフ'}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* ショートカット一覧 */}
         <div className={styles.keyboardShortcuts}>
           <div className={styles.shortcutsHeader}>
@@ -396,7 +420,7 @@ const MainMenu = () => {
         </div>
       </div>
     );
-  }, [settings.difficulty, handleDifficultyChange]);
+  }, [settings.difficulty, settings.useMCP, setSettings, handleDifficultyChange]);
 
   // クレジットコンテンツをレンダリングする関数
   const renderCreditsContent = useCallback(() => {

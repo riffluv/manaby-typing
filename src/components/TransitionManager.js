@@ -174,9 +174,13 @@ const TransitionManager = () => {
 
   // 現在の画面に対応するコンポーネントを返す
   const renderCurrentScreen = () => {
+    // コンテキストから設定を取得
+    const { settings } = useGameContext();
+    
     switch (currentScreen) {
       case SCREENS.GAME:
-        return <GameScreen />;
+        // MCP使用設定に基づいてコンポーネントを選択
+        return settings.useMCP ? <MCPGameScreen /> : <GameScreen />;
       case SCREENS.SETTINGS:
         // 設定画面はメインメニューでモーダル表示するため、メインメニューを表示
         return <MainMenu />;
