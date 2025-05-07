@@ -9,7 +9,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMCPContext } from '@/utils/MCPUtils';
 import styles from '@/styles/GameScreen.module.css';
-import { useSoundSystem } from '@/contexts/SoundContext';
+import { useSoundContext } from '@/contexts/SoundContext';
 import TypingDisplay from '@/components/typing/TypingDisplay';
 import TypingProgress from '@/components/typing/TypingProgress';
 import TypingStats from '@/components/typing/TypingStats';
@@ -36,7 +36,7 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
   const mcpContext = useMCPContext();
 
   // サウンドシステム
-  const soundSystem = useSoundSystem();
+  const { soundSystem } = useSoundContext();
 
   // 画面遷移用
   const router = useRouter();
@@ -84,6 +84,110 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
       router.push(`/${screen}`);
     }
   }, [onNavigate, router]);
+
+  /**
+   * 入力処理（高速化のためuseCallbackで再定義）
+   */
+  const processInput = useCallback((key) => {
+    // パフォーマンス測定開始
+    const startTime = performance.now();
+
+    try {
+      // 入力カウントを増やす（パフォーマンス測定用）
+      performanceRef.current.inputCount++;
+
+      // ローカル処理（高速パス）
+      if (typingModelRef.current) {
+        const result = typingModelRef.current.processLocalInput(key);
+
+        // 入力結果に応じたサウンド再生
+        if (result && result.success) {
+          soundSystem.playSound('success');
+        } else if (result && !result.success) {
+          soundSystem.playSound('miss');
+        }
+
+        // ミス時の振動フィードバック（モバイル向け）
+        if (result && !result.success && navigator.vibrate) {
+          navigator.vibrate(20);
+        }
+      }
+
+      // MCPへの非同期通知
+      if (mcpContext.isActive) {
+        // queueMicrotaskを使用してメインスレッドブロッキングを防止
+        queueMicrotask(() => {
+          mcpContext.recordTypingInput({
+            key: key,
+            isBackspace: key === 'Backspace',
+            timestamp: Date.now(),
+            isAnalyticsOnly: true,
+            processDuration: performance.now() - startTime
+          });
+        });
+      }
+    } catch (error) {
+      console.error('[MCPGameScreen] 入力処理エラー:', error);
+    }
+  }, [mcpContext, soundSystem]);
+
+  /**
+   * キーボード入力ハンドラ
+   */
+  const handleKeyDown = useCallback((e) => {
+    if (!isFocused) return;
+
+    // スペースキーのデフォルト動作を防止
+    if (e.key === ' ') {
+      e.preventDefault();
+    }
+
+    // Tabキーを無効化（フォーカス移動防止）
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      return;
+    }
+
+    // ESCキーでメインメニューに戻る
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      soundSystem.playSound('button');
+      setTimeout(() => navigateTo('menu'), 100);
+      return;
+    }
+
+    // 文字入力でなければ無視
+    if (e.key.length !== 1 && e.key !== 'Backspace') {
+      return;
+    }
+
+    // 高性能入力処理パス
+    processInput(e.key);
+  }, [isFocused, navigateTo, soundSystem, processInput]);
+
+  /**
+   * ウィンドウフォーカス処理
+   */
+  const handleWindowFocus = useCallback(() => {
+    setIsFocused(true);
+    mcpContext.recordUXElement({
+      type: 'focus',
+      component: 'MCPGameScreen',
+      timestamp: Date.now()
+    });
+  }, [mcpContext]);
+
+  /**
+   * ウィンドウブラー処理
+   */
+  const handleWindowBlur = useCallback(() => {
+    setIsFocused(false);
+    mcpContext.recordUXElement({
+      type: 'blur',
+      component: 'MCPGameScreen',
+      timestamp: Date.now()
+    });
+  }, [mcpContext]);
 
   /**
    * 問題初期化処理
@@ -316,86 +420,6 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
   }, [problem, handleKeyDown, handleWindowFocus, handleWindowBlur]);
 
   /**
-   * キーボード入力ハンドラ
-   */
-  const handleKeyDown = useCallback((e) => {
-    if (!isFocused) return;
-
-    // スペースキーのデフォルト動作を防止
-    if (e.key === ' ') {
-      e.preventDefault();
-    }
-
-    // Tabキーを無効化（フォーカス移動防止）
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      return;
-    }
-
-    // ESCキーでメインメニューに戻る
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      soundSystem.playSound('button');
-      setTimeout(() => navigateTo('menu'), 100);
-      return;
-    }
-
-    // 文字入力でなければ無視
-    if (e.key.length !== 1 && e.key !== 'Backspace') {
-      return;
-    }
-
-    // 高性能入力処理パス
-    processInput(e.key);
-  }, [isFocused, navigateTo, soundSystem, processInput]);
-
-  /**
-   * 入力処理（高速化のためuseCallbackで再定義）
-   */
-  const processInput = useCallback((key) => {
-    // パフォーマンス測定開始
-    const startTime = performance.now();
-
-    try {
-      // 入力カウントを増やす（パフォーマンス測定用）
-      performanceRef.current.inputCount++;
-
-      // ローカル処理（高速パス）
-      if (typingModelRef.current) {
-        const result = typingModelRef.current.processLocalInput(key);
-
-        // 入力結果に応じたサウンド再生
-        if (result && result.success) {
-          soundSystem.playSound('success');
-        } else if (result && !result.success) {
-          soundSystem.playSound('miss');
-        }
-
-        // ミス時の振動フィードバック（モバイル向け）
-        if (result && !result.success && navigator.vibrate) {
-          navigator.vibrate(20);
-        }
-      }
-
-      // MCPへの非同期通知
-      if (mcpContext.isActive) {
-        // queueMicrotaskを使用してメインスレッドブロッキングを防止
-        queueMicrotask(() => {
-          mcpContext.recordTypingInput({
-            key: key,
-            isBackspace: key === 'Backspace',
-            timestamp: Date.now(),
-            isAnalyticsOnly: true,
-            processDuration: performance.now() - startTime
-          });
-        });
-      }
-    } catch (error) {
-      console.error('[MCPGameScreen] 入力処理エラー:', error);
-    }
-  }, [mcpContext, soundSystem]);
-
-  /**
    * 表示情報更新ハンドラ
    */
   const handleDisplayUpdate = useCallback((data) => {
@@ -456,30 +480,6 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
       soundSystem.playSound('miss');
     }
   }, [problem, soundSystem, onProblemComplete, sendPerformanceReport]);
-
-  /**
-   * ウィンドウフォーカス処理
-   */
-  const handleWindowFocus = useCallback(() => {
-    setIsFocused(true);
-    mcpContext.recordUXElement({
-      type: 'focus',
-      component: 'MCPGameScreen',
-      timestamp: Date.now()
-    });
-  }, [mcpContext]);
-
-  /**
-   * ウィンドウブラー処理
-   */
-  const handleWindowBlur = useCallback(() => {
-    setIsFocused(false);
-    mcpContext.recordUXElement({
-      type: 'blur',
-      component: 'MCPGameScreen',
-      timestamp: Date.now()
-    });
-  }, [mcpContext]);
 
   /**
    * レンダリング

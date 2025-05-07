@@ -7,6 +7,7 @@ import { useSoundContext } from '../contexts/SoundContext';
 import soundSystem from '../utils/SoundUtils'; // soundSystemをインポート
 import MainMenu from './MainMenu';
 import GameScreen from './GameScreen';
+import MCPGameScreen from './MCPGameScreen'; // MCPGameScreenをインポート
 import ResultScreen from './ResultScreen';
 import RankingScreen from './RankingScreen';
 import { useSettingsModal } from './MainMenu';
