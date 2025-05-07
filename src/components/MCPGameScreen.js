@@ -186,12 +186,12 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
       const perf = performanceRef.current;
       const now = performance.now();
       const elapsed = now - perf.lastFrameTime;
-      
+
       // フレーム間時間が長すぎる場合は遅延フレームとしてカウント
       if (elapsed > 50) { // 50ms以上かかったフレームは遅い (20fps未満)
         perf.slowFrames++;
       }
-      
+
       perf.lastFrameTime = now;
       perf.frameCount++;
 
@@ -494,7 +494,7 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
         >
           メニューに戻る
         </button>
-        
+
         {/* パフォーマンス表示（開発モードのみ表示） */}
         {process.env.NODE_ENV === 'development' && (
           <div className={styles.performanceInfo}>
