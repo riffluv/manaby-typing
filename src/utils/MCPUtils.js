@@ -620,6 +620,13 @@ class MCPContextManager {
    */
   async _flushMetricsBufferAsync() {
     try {
+      // バッファサイズのチェックとトリミング（メモリ制限）
+      if (this.metricsBuffer.length > 1000) {
+        // バッファが非常に大きい場合、古いエントリを破棄して最新の1000件のみ保持
+        console.warn(`[MCP] メトリクスバッファが肥大化しています (${this.metricsBuffer.length}件)。古いエントリを破棄します。`);
+        this.metricsBuffer = this.metricsBuffer.slice(-1000);
+      }
+
       const metrics = [...this.metricsBuffer];
       this.metricsBuffer = [];
 
@@ -644,12 +651,19 @@ class MCPContextManager {
       }
     } catch (err) {
       logUtil.error('[MCP] メトリクス送信エラー:', err);
+      // エラー時にもバッファをクリアして確実にメモリリークを防止
+      this.metricsBuffer = [];
     } finally {
       // 処理完了フラグを設定
       this.isBackgroundProcessing = false;
 
       // バッファにまだ十分なデータがあれば再度フラッシュをスケジュール
-      if (this.metricsBuffer.length >= 50) {
+      // ただし、直前のフラッシュから少なくとも500ms経過していることを確認
+      const now = Date.now();
+      const lastBatchTime = this.analyticsData.lastBatchTime || 0;
+      const timeSinceLastBatch = now - lastBatchTime;
+
+      if (this.metricsBuffer.length >= 50 && timeSinceLastBatch >= 500) {
         this._scheduleBackgroundFlush();
       }
     }

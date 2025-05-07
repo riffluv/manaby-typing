@@ -1,7 +1,7 @@
 /**
  * MCPGameScreen.js
  * MCPアーキテクチャを利用した高性能タイピングゲーム画面
- * リファクタリング済み（2025年5月7日）
+ * リファクタリング済み（2025年5月8日）- パフォーマンス最適化
  */
 'use client';
 
@@ -19,6 +19,7 @@ const TypingCommands = {
   INIT_PROBLEM: 'init_problem',
   PROCESS_INPUT: 'process_input',
   COMPLETE_PROBLEM: 'complete_problem',
+  PERFORMANCE_REPORT: 'performance_report',
 };
 
 const TypingEvents = {
@@ -57,6 +58,21 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
 
   // フォーカス状態
   const [isFocused, setIsFocused] = useState(true);
+
+  // パフォーマンス監視用
+  const performanceRef = useRef({
+    startTime: Date.now(),
+    frameCount: 0,
+    lastFpsUpdate: Date.now(),
+    fps: 60,
+    inputCount: 0,
+    lastFrameTime: 0,
+    memoryUsage: [],
+    slowFrames: 0,
+    // 新しいパフォーマンスメトリクス
+    lastPerformanceReport: Date.now(),
+    performanceReportInterval: 30000, // 30秒ごとにレポート
+  });
 
   /**
    * 画面遷移処理
@@ -128,6 +144,9 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
       });
     };
 
+    // パフォーマンスモニタリングの開始
+    startPerformanceMonitoring();
+
     // 初期化処理実行
     initializeProblem();
 
@@ -137,8 +156,137 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
       if (typeof window !== 'undefined' && window._mcp) {
         window._mcp.off(TypingEvents.DISPLAY_UPDATED, handleDisplayUpdate);
       }
+
+      // パフォーマンスモニタリングを停止
+      stopPerformanceMonitoring();
     };
   }, [problem, mcpContext]);
+
+  /**
+   * パフォーマンス監視を開始
+   */
+  const startPerformanceMonitoring = useCallback(() => {
+    // パフォーマンスカウンターをリセット
+    performanceRef.current = {
+      startTime: Date.now(),
+      frameCount: 0,
+      lastFpsUpdate: Date.now(),
+      fps: 60,
+      inputCount: 0,
+      lastFrameTime: performance.now(),
+      memoryUsage: [],
+      slowFrames: 0,
+      lastPerformanceReport: Date.now(),
+      performanceReportInterval: 30000,
+    };
+
+    // FPS計測用のRAF
+    let frameId = null;
+    const measureFps = () => {
+      const perf = performanceRef.current;
+      const now = performance.now();
+      const elapsed = now - perf.lastFrameTime;
+      
+      // フレーム間時間が長すぎる場合は遅延フレームとしてカウント
+      if (elapsed > 50) { // 50ms以上かかったフレームは遅い (20fps未満)
+        perf.slowFrames++;
+      }
+      
+      perf.lastFrameTime = now;
+      perf.frameCount++;
+
+      // 1秒ごとにFPSを更新
+      if (now - perf.lastFpsUpdate > 1000) {
+        // FPSを計算
+        const fps = Math.round(
+          (perf.frameCount * 1000) / (now - perf.lastFpsUpdate)
+        );
+        perf.fps = fps;
+        perf.lastFpsUpdate = now;
+        perf.frameCount = 0;
+
+        // メモリ使用状況の記録（メモリ測定APIが利用可能な場合）
+        if (window.performance && window.performance.memory) {
+          const memory = window.performance.memory;
+          perf.memoryUsage.push({
+            time: now,
+            used: memory.usedJSHeapSize,
+            total: memory.totalJSHeapSize,
+            limit: memory.jsHeapSizeLimit
+          });
+
+          // 最大10件のメモリ記録を保持
+          if (perf.memoryUsage.length > 10) {
+            perf.memoryUsage.shift();
+          }
+        }
+
+        // 定期的なパフォーマンスレポートの送信
+        if (now - perf.lastPerformanceReport > perf.performanceReportInterval) {
+          sendPerformanceReport();
+          perf.lastPerformanceReport = now;
+        }
+      }
+
+      // 次のフレームを計測
+      frameId = requestAnimationFrame(measureFps);
+    };
+
+    // 計測を開始
+    frameId = requestAnimationFrame(measureFps);
+
+    // クリーンアップ関数を返す
+    return () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, []);
+
+  /**
+   * パフォーマンス監視を停止
+   */
+  const stopPerformanceMonitoring = useCallback(() => {
+    // 最終的なパフォーマンスレポートを送信
+    sendPerformanceReport();
+  }, []);
+
+  /**
+   * パフォーマンスレポートを送信
+   */
+  const sendPerformanceReport = useCallback(() => {
+    const perf = performanceRef.current;
+    if (!mcpContext.isActive) return;
+
+    try {
+      const now = Date.now();
+      const totalElapsed = now - perf.startTime;
+
+      // パフォーマンスデータの収集
+      const performanceData = {
+        fps: perf.fps,
+        slowFrames: perf.slowFrames,
+        inputCount: perf.inputCount,
+        totalElapsedMs: totalElapsed,
+        timestamp: now,
+        memory: perf.memoryUsage.length > 0 ? perf.memoryUsage[perf.memoryUsage.length - 1] : null
+      };
+
+      // パフォーマンスメトリクスを記録
+      mcpContext.recordPerformanceMetric({
+        type: 'game_performance',
+        component: 'MCPGameScreen',
+        data: performanceData
+      });
+
+      // MCPにも通知
+      if (window._mcp) {
+        window._mcp.send(TypingCommands.PERFORMANCE_REPORT, performanceData);
+      }
+    } catch (err) {
+      console.error('パフォーマンスレポート送信エラー:', err);
+    }
+  }, [mcpContext]);
 
   /**
    * キーボード入力イベントの登録
@@ -146,8 +294,11 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
   useEffect(() => {
     if (!problem) return;
 
+    // キーボードイベントリスナー関数を定義
+    const keydownHandler = (e) => handleKeyDown(e);
+
     // キーボードイベントリスナー登録
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', keydownHandler);
 
     // フォーカス関連イベントリスナー登録
     window.addEventListener('focus', handleWindowFocus);
@@ -155,11 +306,14 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
 
     // クリーンアップ関数
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', keydownHandler);
       window.removeEventListener('focus', handleWindowFocus);
       window.removeEventListener('blur', handleWindowBlur);
+
+      // メモリリーク防止のための追加クリーンアップ
+      typingModelRef.current = null;
     };
-  }, [problem, isFocused, handleKeyDown]);
+  }, [problem, handleKeyDown, handleWindowFocus, handleWindowBlur]);
 
   /**
    * キーボード入力ハンドラ
@@ -193,16 +347,19 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
 
     // 高性能入力処理パス
     processInput(e.key);
-  }, [isFocused, navigateTo, soundSystem]);
+  }, [isFocused, navigateTo, soundSystem, processInput]);
 
   /**
-   * 入力処理（高速化のためuseCallbackの外に定義）
+   * 入力処理（高速化のためuseCallbackで再定義）
    */
-  const processInput = (key) => {
+  const processInput = useCallback((key) => {
     // パフォーマンス測定開始
     const startTime = performance.now();
 
     try {
+      // 入力カウントを増やす（パフォーマンス測定用）
+      performanceRef.current.inputCount++;
+
       // ローカル処理（高速パス）
       if (typingModelRef.current) {
         const result = typingModelRef.current.processLocalInput(key);
@@ -236,7 +393,7 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
     } catch (error) {
       console.error('[MCPGameScreen] 入力処理エラー:', error);
     }
-  };
+  }, [mcpContext, soundSystem]);
 
   /**
    * 表示情報更新ハンドラ
@@ -261,6 +418,9 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
 
       // 完了音再生
       soundSystem.playSound('complete');
+
+      // 最終パフォーマンスレポートを送信
+      sendPerformanceReport();
 
       // 完了コマンド送信と結果処理
       setTimeout(() => {
@@ -295,7 +455,7 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
     if (newInfo.isError) {
       soundSystem.playSound('miss');
     }
-  }, [problem, soundSystem, onProblemComplete]);
+  }, [problem, soundSystem, onProblemComplete, sendPerformanceReport]);
 
   /**
    * ウィンドウフォーカス処理
@@ -334,6 +494,13 @@ const MCPGameScreen = ({ problem, onProblemComplete, onNavigate }) => {
         >
           メニューに戻る
         </button>
+        
+        {/* パフォーマンス表示（開発モードのみ表示） */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className={styles.performanceInfo}>
+            FPS: {performanceRef.current.fps}
+          </div>
+        )}
       </div>
 
       <div className={styles.gameContent}>

@@ -32,10 +32,11 @@ export function useTypingGame({
     lastInputTime: 0,
     inputCount: 0,
     frameRate: 0,
-    inputTimings: [], // 入力タイミング分析用
+    inputTimings: [], // 入力タイミング分析用（最大100件に制限）
+    measurementStartTime: Date.now(),
   });
 
-  // 表示情報の状態
+  // 表示情報の状態（メモ化で再レンダリング防止）
   const [displayInfo, setDisplayInfo] = useState({
     romaji: '',
     typedLength: 0,
