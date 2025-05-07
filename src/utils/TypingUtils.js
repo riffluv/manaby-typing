@@ -1,5 +1,23 @@
 import * as wanakana from 'wanakana';
 
+// デバッグログフラグ - デフォルトで無効化
+const DEBUG_TYPING_UTILS = process.env.NODE_ENV === 'development' && false;
+
+/**
+ * ログユーティリティ - コンソールログを条件付きにする
+ */
+const logUtil = {
+  debug: (message, ...args) => {
+    if (DEBUG_TYPING_UTILS) console.log(message, ...args);
+  },
+  warn: (message, ...args) => {
+    console.warn(message, ...args);
+  },
+  error: (message, ...args) => {
+    console.error(message, ...args);
+  }
+};
+
 // ローマ字変換用のマッピング
 // 最も一般的に使用されるパターンを一番先頭に配置（表示優先）
 const romajiMap = {
@@ -631,7 +649,7 @@ export default class TypingUtils {
       return 0;
     }
 
-    console.log('【calculateAverageKPM】有効な問題データ数:', validProblems.length);
+    logUtil.debug('【calculateAverageKPM】有効な問題データ数:', validProblems.length);
 
     // 問題ごとにKPMを計算
     const kpmValues = validProblems.map(problem => {
@@ -646,7 +664,7 @@ export default class TypingUtils {
       // KPM = キー数 / 時間(分)
       const kpm = keyCount / (elapsedTimeMs / 60000);
 
-      console.log(`【問題KPM計算】問題キー数: ${keyCount}, 時間: ${elapsedTimeMs}ms, KPM: ${kpm.toFixed(2)}`);
+      logUtil.debug(`【問題KPM計算】問題キー数: ${keyCount}, 時間: ${elapsedTimeMs}ms, KPM: ${kpm.toFixed(2)}`);
 
       return kpm;
     });
@@ -655,7 +673,7 @@ export default class TypingUtils {
     const totalKpm = kpmValues.reduce((sum, kpm) => sum + kpm, 0);
     const averageKpm = kpmValues.length > 0 ? totalKpm / kpmValues.length : 0;
 
-    console.log(`【平均KPM計算】合計KPM: ${totalKpm.toFixed(2)}, 問題数: ${kpmValues.length}, 平均: ${averageKpm.toFixed(2)}`);
+    logUtil.debug(`【平均KPM計算】合計KPM: ${totalKpm.toFixed(2)}, 問題数: ${kpmValues.length}, 平均: ${averageKpm.toFixed(2)}`);
 
     // 合理的な最大値でKPMをキャップ（600が現実的な上限）
     return Math.min(Math.floor(averageKpm), 600);

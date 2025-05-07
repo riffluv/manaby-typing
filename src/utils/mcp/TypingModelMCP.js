@@ -489,8 +489,86 @@ export class TypingModelMCP {
       return { success: false, status: 'already_completed' };
     }
 
-    // 入力文字を半角に変換
-    const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key.toLowerCase());
+    // パフォーマンス計測開始
+    const perfStartTime = performance.now && performance.now();
+
+    // 入力文字を半角に変換（処理を簡略化して高速化）
+    const halfWidthChar = key.toLowerCase().replace(/[Ａ-Ｚａ-ｚ０-９]/g,
+      s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+
+    // キャッシュキーの生成（セッション状態と入力文字で一意に）
+    const cacheKey = `${this._state.internal.currentCharIndex}:${this._state.internal.currentInput}:${halfWidthChar}`;
+
+    // キャッシュを確認（ある場合は即時返却）
+    if (this._inputResultCache && this._inputResultCache.has(cacheKey)) {
+      const cachedResult = this._inputResultCache.get(cacheKey);
+
+      // キャッシュから状態を復元
+      if (cachedResult.stateUpdates) {
+        const updates = cachedResult.stateUpdates;
+
+        // 重要な状態のみを更新（必要最小限）
+        if (updates.completed !== undefined) {
+          this._state.internal.completed = updates.completed;
+          this._state.display.isCompleted = updates.completed;
+        }
+        if (updates.currentCharIndex !== undefined) {
+          this._state.internal.currentCharIndex = updates.currentCharIndex;
+        }
+        if (updates.typedRomaji !== undefined) {
+          this._state.internal.typedRomaji = updates.typedRomaji;
+        }
+        if (updates.currentInput !== undefined) {
+          this._state.internal.currentInput = updates.currentInput;
+        }
+        if (updates.typedLength !== undefined) {
+          this._state.display.typedLength = updates.typedLength;
+        }
+
+        // 統計情報の更新（正解時のみ）
+        if (cachedResult.success && updates.statsIncrement) {
+          const now = Date.now();
+
+          // 開始時間の初期化
+          if (!this._state.stats.startTime) {
+            this._state.stats.startTime = now;
+          }
+          if (!this._state.stats.currentProblemStartTime) {
+            this._state.stats.currentProblemStartTime = now;
+          }
+
+          // カウンターの更新
+          this._state.stats.correctKeyCount += updates.statsIncrement;
+        }
+      }
+
+      // 表示情報を最小限更新（UI負荷最小化）
+      if (cachedResult.success) {
+        // キャッシュから復元可能な表示情報を優先使用
+        if (cachedResult.displayUpdates) {
+          Object.assign(this._state.display, cachedResult.displayUpdates);
+        } else {
+          // 後方互換性のためのフォールバック
+          this._fastUpdateDisplayInfoMinimal();
+        }
+      } else if (!cachedResult.success) {
+        // エラー表示の設定
+        this._state.display.isError = true;
+
+        // エラー表示のクリアをスケジュール（非同期・ブロッキングしない）
+        if (this._errorAnimationTimerId) {
+          clearTimeout(this._errorAnimationTimerId);
+        }
+
+        this._errorAnimationTimerId = setTimeout(() => {
+          this._state.display.isError = false;
+          this._errorAnimationTimerId = null;
+        }, 200);
+      }
+
+      // キャッシュ済み結果を返却
+      return cachedResult.result;
+    }
 
     // 既存のセッション処理を使用
     const result = session.processInput(halfWidthChar);
@@ -518,11 +596,47 @@ export class TypingModelMCP {
         this._state.display.isCompleted = true;
       }
 
-      // 表示情報を高速更新（最小限の更新のみ行う）
-      this._fastUpdateDisplayInfoLocal();
+      // 表示情報を最小限更新（最も負荷の少ないメソッド）
+      this._fastUpdateDisplayInfoMinimal();
 
-      // 統計情報の更新は低頻度で行う（レスポンスには影響しない）
-      this._updateStatsThrottled();
+      // 統計情報のスロットリング更新（さらに頻度を下げる）
+      this._updateStatsThrottled(2000); // 2000msに1回程度に制限
+
+      // 結果をキャッシュに保存（次回の高速化のため）
+      if (!this._inputResultCache) {
+        this._inputResultCache = new Map();
+      }
+
+      // キャッシュサイズを管理（メモリ使用を制限）
+      if (this._inputResultCache.size > 1000) {
+        // 最も古い20%のエントリを削除
+        const entries = Array.from(this._inputResultCache.keys());
+        const removeCount = Math.floor(entries.length * 0.2);
+        entries.slice(0, removeCount).forEach(key => {
+          this._inputResultCache.delete(key);
+        });
+      }
+
+      // 状態更新情報を含めてキャッシュ
+      this._inputResultCache.set(cacheKey, {
+        result,
+        success: true,
+        stateUpdates: {
+          currentCharIndex: this._state.internal.currentCharIndex,
+          typedRomaji: this._state.internal.typedRomaji,
+          currentInput: this._state.internal.currentInput,
+          completed: this._state.internal.completed,
+          typedLength: this._state.display.typedLength,
+          statsIncrement: 1
+        },
+        displayUpdates: {
+          typedLength: this._state.display.typedLength,
+          nextChar: this._state.display.nextChar,
+          currentInput: this._state.display.currentInput,
+          currentCharRomaji: this._state.display.currentCharRomaji,
+          inputMode: this._state.display.inputMode
+        }
+      });
     } else {
       // 不正解時の処理
       // 統計情報を更新
@@ -539,99 +653,75 @@ export class TypingModelMCP {
       this._errorAnimationTimerId = setTimeout(() => {
         this._state.display.isError = false;
         this._errorAnimationTimerId = null;
-
-        // 表示情報の更新イベントは非同期で発行
-        setTimeout(() => {
-          this._emitEvent(TypingEvents.DISPLAY_UPDATED, {
-            displayInfo: this.getDisplayInfo()
-          });
-        }, 0);
       }, 200);
+
+      // エラー結果もキャッシュに保存
+      if (!this._inputResultCache) {
+        this._inputResultCache = new Map();
+      }
+
+      this._inputResultCache.set(cacheKey, {
+        result,
+        success: false,
+        stateUpdates: null
+      });
+    }
+
+    // パフォーマンス計測・ログ出力（開発時のみ）
+    if (performance.now && (process.env.NODE_ENV === 'development')) {
+      const processingTime = performance.now() - perfStartTime;
+      if (processingTime > 16.67) { // 60fps相当のフレーム時間
+        console.warn(`[TypingModelMCP] 処理時間が最適以下: ${processingTime.toFixed(2)}ms`);
+      }
     }
 
     return result;
   }
 
   /**
-   * ローカル処理用の高速表示情報更新メソッド（MCP通信なし）
+   * 最小限の表示情報更新（レスポンス重視）
+   * 必須項目のみを直接更新し、イベント発行なしで最速で処理
    * @private
    */
-  _fastUpdateDisplayInfoLocal() {
+  _fastUpdateDisplayInfoMinimal() {
     const session = this._state.internal.session;
     if (!session) return;
 
-    // 最小限の情報のみを直接更新（パフォーマンス重視）
-    const coloringInfo = session.getColoringInfo();
+    try {
+      // 必要最低限の情報だけを直接更新（最大パフォーマンス向上）
+      const coloringInfo = session.getColoringInfo();
 
-    this._state.display.typedLength = coloringInfo.typedLength || 0;
-    this._state.display.nextChar = coloringInfo.expectedNextChar || '';
-    this._state.display.currentInput = coloringInfo.currentInput || '';
+      // 表示で必要な属性のみ更新
+      this._state.display.typedLength = coloringInfo.typedLength || 0;
+      this._state.display.nextChar = coloringInfo.expectedNextChar || '';
+      this._state.display.currentInput = coloringInfo.currentInput || '';
 
-    // 子音入力状態の簡易判定
-    if (coloringInfo.currentInput) {
-      const currentInput = coloringInfo.currentInput;
-      const currentCharRomaji = coloringInfo.currentCharRomaji || '';
-
-      this._state.display.inputMode = currentCharRomaji &&
-        currentInput &&
-        currentCharRomaji.length > currentInput.length
-        ? 'consonant' : 'normal';
-      this._state.display.currentCharRomaji = currentCharRomaji;
+      // 子音入力状態の判定は軽量実装に置き換え
+      if (coloringInfo.currentInput) {
+        const currentInput = coloringInfo.currentInput;
+        const currentCharRomaji = coloringInfo.currentCharRomaji || '';
+        this._state.display.inputMode =
+          currentCharRomaji && currentInput && currentCharRomaji.length > currentInput.length
+            ? 'consonant' : 'normal';
+        this._state.display.currentCharRomaji = currentCharRomaji;
+      }
+    } catch (error) {
+      // エラーが発生しても処理を続行
+      console.error('[TypingModelMCP] 表示情報更新エラー:', error);
     }
-
-    // イベント発行はメインスレッドをブロックしない形で非同期実行
-    setTimeout(() => {
-      this._emitEvent(TypingEvents.DISPLAY_UPDATED, {
-        displayInfo: this.getDisplayInfo()
-      });
-    }, 0);
-  }
-
-  /**
-   * 内部メソッド: 表示情報の高速更新（最適化版）
-   * 通常の更新よりも軽量に実装し、高頻度の呼び出しに対応
-   * @private
-   */
-  _fastUpdateDisplayInfo() {
-    const session = this._state.internal.session;
-    if (!session) return;
-
-    // 最小限の情報のみ更新（パフォーマンス重視）
-    const coloringInfo = session.getColoringInfo();
-
-    this._state.display.typedLength = coloringInfo.typedLength || 0;
-    this._state.display.nextChar = coloringInfo.expectedNextChar || '';
-    this._state.display.currentInput = coloringInfo.currentInput || '';
-
-    // 子音入力状態の判定（簡略化）
-    if (coloringInfo.currentInput) {
-      const currentInput = coloringInfo.currentInput;
-      const currentCharRomaji = coloringInfo.currentCharRomaji || '';
-
-      // 子音入力中の簡易判定
-      const isConsonant = currentCharRomaji &&
-        currentInput &&
-        currentCharRomaji.length > currentInput.length;
-
-      this._state.display.inputMode = isConsonant ? 'consonant' : 'normal';
-      this._state.display.currentCharRomaji = currentCharRomaji;
-    }
-
-    // 表示情報の更新イベントを発行
-    this._emitEvent(TypingEvents.DISPLAY_UPDATED, {
-      displayInfo: this.getDisplayInfo()
-    });
   }
 
   /**
    * 内部メソッド: スロットリングされた統計情報の更新
+   * 指定時間内の連続呼び出しを制限
+   * @param {number} throttleTime スロットリング時間(ms)
    * @private
    */
-  _updateStatsThrottled() {
-    // パフォーマンス重視のため、より厳しいスロットリングを適用
+  _updateStatsThrottled(throttleTime = 1000) {
+    // パフォーマンス重視のため、厳しいスロットリングを適用
     const now = Date.now();
     const lastUpdateTime = this._lastStatsUpdateTime || 0;
-    const statsUpdateThrottleTime = 1000; // 1秒に1回まで制限
+    const statsUpdateThrottleTime = throttleTime;
 
     if (!this._statsUpdateTimerId && now - lastUpdateTime > statsUpdateThrottleTime) {
       this._statsUpdateTimerId = setTimeout(() => {

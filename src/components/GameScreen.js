@@ -15,6 +15,24 @@ import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import { useTypingGame } from '../hooks/useTypingGame';
 
+// デバッグログフラグ - デフォルトで無効化
+const DEBUG_GAME_SCREEN = process.env.NODE_ENV === 'development' && false;
+
+/**
+ * ログユーティリティ - コンソールログを条件付きにする
+ */
+const logUtil = {
+  debug: (message, ...args) => {
+    if (DEBUG_GAME_SCREEN) console.log(message, ...args);
+  },
+  warn: (message, ...args) => {
+    console.warn(message, ...args);
+  },
+  error: (message, ...args) => {
+    console.error(message, ...args);
+  }
+};
+
 // コンポーネントをインポート
 import ProblemDisplay from './typing/ProblemDisplay';
 import CanvasKeyboard from './typing/CanvasKeyboard';
@@ -44,7 +62,7 @@ const GameScreen = () => {
   // 問題完了時のコールバック
   const handleProblemComplete = useCallback(
     (problemStats) => {
-      console.log(
+      logUtil.debug(
         '【handleProblemComplete】問題完了コールバック発火:',
         problemStats
       );
@@ -53,7 +71,7 @@ const GameScreen = () => {
       const isGameClear = solvedCount >= requiredProblemCount;
 
       // デバッグ情報追加
-      console.log('【goToNextProblem】問題切り替え処理実行:', {
+      logUtil.debug('【goToNextProblem】問題切り替え処理実行:', {
         solvedCount,
         isGameClear,
         problemStats,
@@ -85,7 +103,7 @@ const GameScreen = () => {
         const previousMissCount = gameState.totalMissCount || 0;
         const totalMissCount = previousMissCount + currentProblemMissCount;
 
-        console.log('【累積統計情報】', {
+        logUtil.debug('【累積統計情報】', {
           これまでの正解数: previousCorrectKeyCount,
           現在の問題の正解数: currentProblemCorrectKeys,
           合計正解数: totalCorrectKeyCount,
@@ -95,7 +113,7 @@ const GameScreen = () => {
         });
 
         // より詳細なデバッグ情報
-        console.log('【統計情報検証】typingStats詳細:', {
+        logUtil.debug('【統計情報検証】typingStats詳細:', {
           typingStats,
           correctKeyCount: currentProblemCorrectKeys,
           missCount: currentProblemMissCount,
@@ -105,41 +123,41 @@ const GameScreen = () => {
         // 問題ごとのKPMを累積
         const allProblemKPMs = [...gameState.problemKPMs || [], problemKPM].filter(kpm => kpm > 0);
 
-        console.log('【KPM計算】累積された問題ごとのKPM:', allProblemKPMs);
+        logUtil.debug('【KPM計算】累積された問題ごとのKPM:', allProblemKPMs);
 
         // KPM計算 - 問題ごとのKPMの平均値を優先
         let averageKPM = 0;
         if (allProblemKPMs && allProblemKPMs.length > 0) {
           // 問題ごとのKPMの平均を計算
           averageKPM = allProblemKPMs.reduce((sum, kpm) => sum + kpm, 0) / allProblemKPMs.length;
-          console.log('【KPM計算】全問題のKPM平均値計算:', {
+          logUtil.debug('【KPM計算】全問題のKPM平均値計算:', {
             kpmValues: allProblemKPMs,
             平均値: averageKPM
           });
         } else {
           // 問題データがない場合は単純計算
           averageKPM = Math.floor(correctKeyCount / (elapsedTimeMs / 60000));
-          console.log('【KPM計算】フォールバック - 単純計算によるKPM:', averageKPM);
+          logUtil.debug('【KPM計算】フォールバック - 単純計算によるKPM:', averageKPM);
         }
 
         // KPMが不正な値の場合は補正
         if (averageKPM <= 0 && totalCorrectKeyCount > 0) {
           averageKPM = 1;
-          console.log('【KPM計算】KPM値が不正なので最低値1を設定します');
+          logUtil.debug('【KPM計算】KPM値が不正なので最低値1を設定します');
         }
 
         // 正確性の計算を修正（正確性 = 正解数 / (正解数 + ミス数) * 100）
         const totalKeystrokes = totalCorrectKeyCount + totalMissCount;
         const accuracy = totalKeystrokes > 0 ? (totalCorrectKeyCount / totalKeystrokes) * 100 : 100;
 
-        console.log('【正確性計算】', {
+        logUtil.debug('【正確性計算】', {
           正解数: totalCorrectKeyCount,
           ミス数: totalMissCount,
           総入力数: totalKeystrokes,
           正確性: accuracy
         });
 
-        console.log('【KPM計算】最終KPM値:', averageKPM);
+        logUtil.debug('【KPM計算】最終KPM値:', averageKPM);
 
         // 統計情報の計算
         const stats = {
@@ -152,7 +170,7 @@ const GameScreen = () => {
           elapsedTimeMs: elapsedTimeMs // リザルト画面でも使用できるように
         };
 
-        console.log('【ゲームクリア】 統計情報計算結果:', stats);
+        logUtil.debug('【ゲームクリア】 統計情報計算結果:', stats);
 
         // 1回のみの状態更新で、すべてのデータを一度に設定
         setGameState((prevState) => ({
@@ -173,14 +191,14 @@ const GameScreen = () => {
 
         // 念のため、少し遅延させてから画面遷移を確認（状態のプロパゲーションを待つ）
         const timeoutId = setTimeout(() => {
-          console.log('【遅延確認】現在のゲーム状態:', {
+          logUtil.debug('【遅延確認】現在のゲーム状態:', {
             isGameClear: gameState.isGameClear,
             stats: gameState.stats,
           });
 
           // すでに遷移していなければ強制的に遷移
           if (gameState.isGameClear !== true) {
-            console.log(
+            logUtil.debug(
               '【修正】遷移が行われていないため、強制的に状態を更新します'
             );
             setGameState((prevState) => ({
@@ -212,7 +230,7 @@ const GameScreen = () => {
         const totalCorrectKeyCount = previousCorrectKeyCount + currentCorrectKeys;
         const totalMissCount = previousMissCount + currentMissCount;
 
-        console.log('【次の問題への移行】問題間の累積統計:', {
+        logUtil.debug('【次の問題への移行】問題間の累積統計:', {
           この問題の正解数: currentCorrectKeys,
           この問題のミス数: currentMissCount,
           これまでの正解数: previousCorrectKeyCount,
@@ -221,7 +239,7 @@ const GameScreen = () => {
           累積ミス数: totalMissCount
         });
 
-        console.log('【次の問題】', {
+        logUtil.debug('【次の問題】', {
           現在の問題: gameState.currentProblem?.displayText,
           次の問題: nextProblem?.displayText,
           インデックス: nextProblemIndex,
@@ -560,11 +578,11 @@ const GameScreen = () => {
         <div className={styles.cornerDecoration} style={{ bottom: 10, right: 10, transform: 'scale(-1)' }}>
           <div className={styles.cornerTech} />
         </div>
-        
+
         {/* スキャンラインとドットパターンを追加 */}
         <div className={styles.scanlines}></div>
         <div className={styles.dotPattern}></div>
-        
+
         <motion.header
           className={styles.typing_game__header}
           initial={animationVariants.header.initial}

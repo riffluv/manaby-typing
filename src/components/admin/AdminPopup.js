@@ -6,8 +6,8 @@ import { useGameContext } from '../../contexts/GameContext';
 import html2canvas from 'html2canvas';
 import FirebaseUtils from '../../utils/FirebaseUtils';
 
-// デバッグモード設定（本番環境ではfalseに設定）
-const DEBUG_MODE = process.env.NODE_ENV === 'development';
+// デバッグモード設定（デフォルトで無効化）
+const DEBUG_MODE = process.env.NODE_ENV === 'development' && false;
 
 // ログ出力用ヘルパー関数
 const logDebug = (message, data) => {
@@ -49,16 +49,16 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
 
   // メインコンテナ要素を取得する共通関数（App Router & 従来のPage Router両対応）
   const getMainContainer = useCallback(() => {
-    const container = 
+    const container =
       document.querySelector('body > div') || // App Routerの一般的な構造
       document.querySelector('#__next > div') || // 従来のページルーター
       document.querySelector('main') || // mainタグ
       document.body; // どれも見つからなければbody要素を使用
-    
+
     if (!container) {
       throw new Error('メインコンテナ要素が見つかりません');
     }
-    
+
     return container;
   }, []);
 
@@ -66,7 +66,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
   const getSpaBackgroundElement = useCallback(() => {
     try {
       logDebug('内部背景要素を検索中...');
-      
+
       // より具体的なセレクタを最初に試す
       const specificSelectors = {
         'MAIN_MENU': [
@@ -84,7 +84,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
           '#game-screen'
         ],
         'RESULT': [
-          '[class*="ResultScreen_container"]', 
+          '[class*="ResultScreen_container"]',
           '.ResultScreen_container',
           '#result-screen'
         ],
@@ -104,7 +104,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
           '#credits-screen'
         ]
       };
-      
+
       // 汎用的なセレクタ - より多くのパターンを追加
       const genericSelectors = [
         // CSSモジュールの可能性を考慮したセレクタ
@@ -124,21 +124,21 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
         '#__next > div',
         'body > div'
       ];
-      
+
       // デバッグ出力
       logDebug(`現在の選択画面: ${selectedScreen}`);
-      
+
       // 選択された画面に対応するセレクタを取得
       const screenSelectors = specificSelectors[selectedScreen] || [];
-      
+
       // 複数のセレクタを順番に試す
       let element = null;
-      
+
       // 特定の画面のセレクタを最初に試す
       for (const selector of screenSelectors) {
         const elements = Array.from(document.querySelectorAll(selector));
         logDebug(`セレクタ "${selector}" で ${elements.length} 個の要素が見つかりました`);
-        
+
         if (elements.length > 0) {
           // 表示されている要素を優先
           const visibleElements = elements.filter(el => {
@@ -147,7 +147,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
             return (
               style.display !== 'none' &&
               style.visibility !== 'hidden' &&
-              rect.width > 50 && 
+              rect.width > 50 &&
               rect.height > 50 &&
               rect.top >= 0 &&
               rect.left >= 0 &&
@@ -155,7 +155,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
               rect.right <= window.innerWidth
             );
           });
-          
+
           if (visibleElements.length > 0) {
             element = visibleElements[0];
             logDebug('表示中の要素を発見しました', element);
@@ -166,14 +166,14 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
           }
         }
       }
-      
+
       // 最初の試みで要素が見つからなかった場合、汎用セレクタを試す
       if (!element) {
         logDebug('特定の要素が見つからなかったため、汎用セレクタを試します');
-        
+
         for (const selector of genericSelectors) {
           const elements = Array.from(document.querySelectorAll(selector));
-          
+
           if (elements.length > 0) {
             // 表示されていて十分なサイズを持つ要素を優先
             const visibleElements = elements.filter(el => {
@@ -182,11 +182,11 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
               return (
                 style.display !== 'none' &&
                 style.visibility !== 'hidden' &&
-                rect.width > 100 && 
+                rect.width > 100 &&
                 rect.height > 100
               );
             });
-            
+
             if (visibleElements.length > 0) {
               // サイズの大きい要素を優先（背景である可能性が高い）
               const sortedElements = visibleElements.sort((a, b) => {
@@ -194,7 +194,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
                 const rectB = b.getBoundingClientRect();
                 return (rectB.width * rectB.height) - (rectA.width * rectA.height);
               });
-              
+
               element = sortedElements[0];
               logDebug('汎用セレクタから要素を発見しました', element);
               break;
@@ -205,7 +205,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
           }
         }
       }
-      
+
       // 特殊な最終手段 - MainMenuコンポーネントの検出を強化
       if (!element && selectedScreen === 'MAIN_MENU') {
         // document.body内のすべての子要素を取得し、最も大きな要素を見つける
@@ -217,17 +217,17 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
           const isDirectBodyChild = el.parentNode === document.body || el.parentNode.parentNode === document.body;
           const hasSize = rect.width > 200 && rect.height > 200;
           const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
-          
+
           return isDirectBodyChild && hasSize && isVisible;
         });
-        
+
         // サイズの大きい順にソート
         const sortedElements = visibleLargeElements.sort((a, b) => {
           const rectA = a.getBoundingClientRect();
           const rectB = b.getBoundingClientRect();
           return (rectB.width * rectB.height) - (rectA.width * rectA.height);
         });
-        
+
         if (sortedElements.length > 0) {
           element = sortedElements[0];
           logDebug('最終手段: サイズの大きな要素を発見しました', element);
@@ -237,11 +237,11 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
       // 最終手段としてリアルタイムのDOM構造を探索
       if (!element) {
         logDebug('物理的なDOM要素を探索します');
-        
+
         // メインメニューの明確なマーカー要素を探す
         // タイトルやボタンなど、特徴的な内容を持つ要素を探す
         const potentialParents = [];
-        
+
         // タイトル要素を探す
         document.querySelectorAll('h1, h2, [class*="title"]').forEach(el => {
           const text = el.textContent.toLowerCase();
@@ -258,7 +258,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
             }
           }
         });
-        
+
         // ロゴ画像を探す
         document.querySelectorAll('img').forEach(el => {
           const src = el.src.toLowerCase();
@@ -274,7 +274,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
             }
           }
         });
-        
+
         if (potentialParents.length > 0) {
           // 最も大きな親要素を選ぶ
           const largestParent = potentialParents.sort((a, b) => {
@@ -282,18 +282,18 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
             const rectB = b.getBoundingClientRect();
             return (rectB.width * rectB.height) - (rectA.width * rectA.height);
           })[0];
-          
+
           element = largestParent;
           logDebug('コンテンツマーカーから親要素を発見しました', element);
         }
       }
-      
+
       // 最後の手段として、メインコンテナを使用
       if (!element) {
         element = getMainContainer();
         logDebug('内部要素は見つからなかったため、メインコンテナを使用します', element);
       }
-      
+
       return element;
     } catch (error) {
       logError('内部背景要素の検索中にエラーが発生しました:', error);
@@ -413,9 +413,9 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
     try {
       setIsSavingBackground(true);
       let targetElement;
-      
+
       // キャプチャするターゲット要素を決定
-      switch(captureMode) {
+      switch (captureMode) {
         case 'container':
           // 外側のコンテナ（レトロドットパターン背景）をキャプチャ
           if (backgroundRef?.current) {
@@ -425,7 +425,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
             throw new Error('外側ドット背景要素の参照が取得できません');
           }
           break;
-          
+
         case 'spa-background':
           // SPA内部の背景要素のみをキャプチャ
           try {
@@ -437,7 +437,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
             throw err;
           }
           break;
-          
+
         default:
           // 従来通りSPAのメインコンテナをキャプチャ
           targetElement = getMainContainer();
@@ -491,10 +491,10 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
       const captureMode = background.cssStyleInfo?.captureMode || 'spa';
       const targetScreen = background.screenId || 'ALL';
       const backgroundImageData = background.imageData;
-      
+
       // 背景のキャプチャモードに応じた適用方法を選択
-      switch(captureMode) {
-        case 'container': 
+      switch (captureMode) {
+        case 'container':
           // 外側のドット背景に適用
           if (backgroundRef?.current) {
             // 背景コンポーネントのスタイルを直接変更
@@ -507,7 +507,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
             throw new Error('外側ドット背景要素の参照が取得できません');
           }
           break;
-          
+
         case 'spa-background':
           // SPA内部の背景に適用
           try {
@@ -520,7 +520,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
             throw new Error('SPA内部背景の適用に失敗しました。画面を切り替えてみてください。');
           }
           break;
-          
+
         default:
           // 従来通りSPAのメインコンテナに適用
           const mainContainer = getMainContainer();
@@ -542,7 +542,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
         } else {
           targetElement = getMainContainer();
         }
-        
+
         // backgroundImage以外のスタイルを適用
         Object.entries(cssStyleInfo).forEach(([key, value]) => {
           if (key !== 'backgroundImage' && key !== 'captureMode') {
@@ -564,17 +564,17 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
 
         // アクティブな背景情報を更新
         const activeBackgrounds = JSON.parse(localStorage.getItem('activeBackgrounds') || '{}');
-        
+
         // captureMode別の情報を保存
         if (!activeBackgrounds[captureMode]) {
           activeBackgrounds[captureMode] = {};
         }
-        
+
         activeBackgrounds[captureMode][targetScreen] = {
           id: background.id,
           timestamp: new Date().toISOString(),
         };
-        
+
         localStorage.setItem('activeBackgrounds', JSON.stringify(activeBackgrounds));
 
         logDebug(`${getScreenDisplayName(targetScreen)}用の${getCaptureModeDisplayName(captureMode)}を適用しました`);
@@ -596,10 +596,10 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
     try {
       // 全キャプチャモードをリセット（全ての背景をリセット）
       const captureModes = ['spa', 'container', 'spa-background'];
-      
+
       captureModes.forEach(mode => {
         try {
-          switch(mode) {
+          switch (mode) {
             case 'container':
               // 外側ドット背景のリセット
               if (backgroundRef?.current) {
@@ -607,7 +607,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
                 logDebug('外側ドット背景をリセットしました');
               }
               break;
-              
+
             case 'spa-background':
               // SPA内部背景のリセット
               try {
@@ -619,33 +619,33 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
                 logDebug('SPA内部背景のリセットをスキップしました（要素が見つかりません）');
               }
               break;
-              
+
             default:
               // SPA画面全体背景のリセット
               const mainContainer = getMainContainer();
               mainContainer.style.backgroundImage = '';
               logDebug('SPA画面全体の背景をリセットしました');
           }
-          
+
           // localStorage から各モードの背景情報を削除
           localStorage.removeItem(`savedBackgroundImage_${mode}_${selectedScreen}`);
           localStorage.removeItem(`savedBackgroundStyle_${mode}_${selectedScreen}`);
-          
+
           // アクティブ背景情報も更新
           const activeBackgrounds = JSON.parse(localStorage.getItem('activeBackgrounds') || '{}');
           if (activeBackgrounds[mode]) {
             delete activeBackgrounds[mode][selectedScreen];
           }
           localStorage.setItem('activeBackgrounds', JSON.stringify(activeBackgrounds));
-          
+
         } catch (e) {
           logError(`${mode}モードの背景リセット中にエラーが発生しました:`, e);
         }
       });
-      
+
       // 成功メッセージを表示
       showSuccessMessage(setShowRestoreSuccess);
-      
+
     } catch (error) {
       logError('背景のリセット中にエラーが発生しました:', error);
     }
@@ -664,7 +664,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
       if (success) {
         logDebug('背景を削除しました:', backgroundId);
         showSuccessMessage(setShowRestoreSuccess);
-        
+
         // 背景一覧を更新
         fetchSavedBackgrounds();
       }
@@ -683,7 +683,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
     try {
       setIsDeletingRankings(true);
       const success = await FirebaseUtils.deleteRankingsByDifficulty(selectedDifficulty);
-      
+
       if (success) {
         logDebug(`難易度「${selectedDifficulty}」のランキングを削除しました`);
         showSuccessMessage(setShowDeleteSuccess);
@@ -705,7 +705,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
     try {
       setIsDeletingRankings(true);
       const success = await FirebaseUtils.deleteAllRankings();
-      
+
       if (success) {
         logDebug('すべてのランキングデータを削除しました');
         showSuccessMessage(setShowDeleteSuccess);
@@ -755,35 +755,31 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
         {/* タブメニュー */}
         <div className={styles.adminPopup__tabs}>
           <button
-            className={`${styles.adminPopup__tab} ${
-              activeTab === 'settings' ? styles['adminPopup__tab--active'] : ''
-            }`}
+            className={`${styles.adminPopup__tab} ${activeTab === 'settings' ? styles['adminPopup__tab--active'] : ''
+              }`}
             onClick={() => handleTabChange('settings')}
           >
             設定
           </button>
           <button
-            className={`${styles.adminPopup__tab} ${
-              activeTab === 'background'
+            className={`${styles.adminPopup__tab} ${activeTab === 'background'
                 ? styles['adminPopup__tab--active']
                 : ''
-            }`}
+              }`}
             onClick={() => handleTabChange('background')}
           >
             背景保存
           </button>
           <button
-            className={`${styles.adminPopup__tab} ${
-              activeTab === 'gallery' ? styles['adminPopup__tab--active'] : ''
-            }`}
+            className={`${styles.adminPopup__tab} ${activeTab === 'gallery' ? styles['adminPopup__tab--active'] : ''
+              }`}
             onClick={() => handleTabChange('gallery')}
           >
             着せ替え
           </button>
           <button
-            className={`${styles.adminPopup__tab} ${
-              activeTab === 'rankings' ? styles['adminPopup__tab--active'] : ''
-            }`}
+            className={`${styles.adminPopup__tab} ${activeTab === 'rankings' ? styles['adminPopup__tab--active'] : ''
+              }`}
             onClick={() => handleTabChange('rankings')}
           >
             ランキング
@@ -916,8 +912,8 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
                   {isSavingBackground
                     ? '保存中...'
                     : `${getCaptureModeDisplayName(captureMode)}を${getScreenDisplayName(
-                        selectedScreen
-                      )}用に保存`}
+                      selectedScreen
+                    )}用に保存`}
                 </button>
                 <p className={styles.adminPopup__info}>
                   選択した範囲をキャプチャして保存します。保存した背景は後で再利用できます。
@@ -1083,7 +1079,7 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
                 >
                   {isDeletingRankings ? '削除中...' : `${getDifficultyDisplayName(selectedDifficulty)}のランキングを削除`}
                 </button>
-                
+
                 <button
                   className={`${styles.adminPopup__button} ${styles['adminPopup__button--danger']}`}
                   onClick={deleteAllRankings}

@@ -1,6 +1,26 @@
 'use client';
 
 /**
+ * デバッグログフラグ - デフォルトで無効化
+ */
+const DEBUG_SOUND_UTILS = process.env.NODE_ENV === 'development' && false;
+
+/**
+ * ログユーティリティ - コンソールログを条件付きにする
+ */
+const logUtil = {
+  debug: (message, ...args) => {
+    if (DEBUG_SOUND_UTILS) console.log(message, ...args);
+  },
+  warn: (message, ...args) => {
+    console.warn(message, ...args);
+  },
+  error: (message, ...args) => {
+    console.error(message, ...args);
+  }
+};
+
+/**
  * Web Audio APIを使用したサウンドシステム
  * BGMおよび基本的な効果音のみに対応したシンプル版
  */
@@ -67,7 +87,7 @@ class SoundUtils {
       });
     }
 
-    console.log('[DEBUG] サウンドシステム初期化完了');
+    logUtil.debug('サウンドシステム初期化完了');
   }
 
   /**
@@ -104,7 +124,7 @@ class SoundUtils {
         this.volume = parseFloat(storedSfxVolume);
       }
 
-      console.log('[DEBUG] ローカルストレージから音声設定を読み込みました', {
+      logUtil.debug('ローカルストレージから音声設定を読み込みました', {
         bgmEnabled: this.bgmEnabled,
         bgmVolume: this.bgmVolume,
         sfxEnabled: this.sfxEnabled,
@@ -134,7 +154,7 @@ class SoundUtils {
     // まだ対話していない場合のみ実行
     if (!this.userInteracted) {
       this.userInteracted = true;
-      console.log('[DEBUG] ユーザーインタラクションを検知しました');
+      logUtil.debug('ユーザーインタラクションを検知しました');
 
       // AudioContextを再開
       if (this.context && this.context.state === 'suspended') {
@@ -146,7 +166,7 @@ class SoundUtils {
       // 保留中のBGMがあれば再生
       if (this.pendingBgm) {
         const { name, loop } = this.pendingBgm;
-        console.log(`[DEBUG] 保留中のBGM「${name}」を再生します`);
+        logUtil.debug(`保留中のBGM「${name}」を再生します`);
         this._playBgmInternal(name, loop);
         this.pendingBgm = null;
       }
@@ -204,7 +224,7 @@ class SoundUtils {
 
       // キャッシュバスティングのためにURLにタイムスタンプを追加
       const cacheBustedUrl = `${url}?t=${this.timestamp}`;
-      console.log(`[DEBUG] サウンド「${name}」をロード中: ${cacheBustedUrl}`);
+      logUtil.debug(`サウンド「${name}」をロード中: ${cacheBustedUrl}`);
 
       const response = await fetch(cacheBustedUrl);
       if (!response.ok) {
@@ -219,7 +239,7 @@ class SoundUtils {
           arrayBuffer,
           (audioBuffer) => {
             this.sfxBuffers[lowerName] = audioBuffer;
-            console.log(`[DEBUG] サウンド「${name}」のロード完了`);
+            logUtil.debug(`サウンド「${name}」のロード完了`);
             resolve();
           },
           (error) => {
@@ -425,7 +445,7 @@ class SoundUtils {
     if (this.sfxEnabled) {
       this.gainNode.gain.value = this.volume;
     }
-    console.log(`[DEBUG] 効果音の音量を設定: ${this.volume}`);
+    logUtil.debug(`効果音の音量を設定: ${this.volume}`);
   }
 
   /**
@@ -440,7 +460,7 @@ class SoundUtils {
 
     this.sfxEnabled = enabled;
     this.gainNode.gain.value = enabled ? this.volume : 0;
-    console.log(`[DEBUG] 効果音を${enabled ? '有効' : '無効'}にしました`);
+    logUtil.debug(`効果音を${enabled ? '有効' : '無効'}にしました`);
   }
 
   /**
@@ -464,7 +484,7 @@ class SoundUtils {
       this.bgmElement.volume = this.bgmEnabled ? this.bgmVolume : 0;
     }
 
-    console.log(`[DEBUG] BGMの音量を設定: ${this.bgmVolume}`);
+    logUtil.debug(`BGMの音量を設定: ${this.bgmVolume}`);
   }
 
   /**
@@ -487,7 +507,7 @@ class SoundUtils {
       }
     }
 
-    console.log(`[DEBUG] BGMを${enabled ? '有効' : '無効'}にしました`);
+    logUtil.debug(`BGMを${enabled ? '有効' : '無効'}にしました`);
   }
 
   /**
@@ -532,7 +552,7 @@ class SoundUtils {
 
     // ユーザーインタラクションがまだない場合は保留状態にする
     if (!this.userInteracted) {
-      console.log(`[DEBUG] BGM「${name}」は保留状態にセットされました。ユーザーインタラクション後に再生されます`);
+      logUtil.debug(`BGM「${name}」は保留状態にセットされました。ユーザーインタラクション後に再生されます`);
       this.pendingBgm = { name, loop };
       return;
     }
@@ -578,7 +598,7 @@ class SoundUtils {
           // 自動再生ポリシーによるブロックの場合、保留状態にする
           if (!this.pendingBgm) {
             this.pendingBgm = { name, loop };
-            console.log(`[DEBUG] BGM「${name}」が自動再生ポリシーでブロックされました。保留状態に設定しました`);
+            logUtil.debug(`BGM「${name}」が自動再生ポリシーでブロックされました。保留状態に設定しました`);
           }
         });
       }
@@ -587,7 +607,7 @@ class SoundUtils {
       this.currentBgm = name;
       this.bgmElement = audio;
 
-      console.log(`[DEBUG] BGM「${name}」を再生開始しました`);
+      logUtil.debug(`BGM「${name}」を再生開始しました`);
     } catch (error) {
       console.error(`BGM「${name}」の再生に失敗:`, error);
     }
@@ -599,7 +619,7 @@ class SoundUtils {
   pauseBgm() {
     if (this.bgmElement && !this.bgmElement.paused) {
       this.bgmElement.pause();
-      console.log(`[DEBUG] BGM「${this.currentBgm}」を一時停止しました`);
+      logUtil.debug(`BGM「${this.currentBgm}」を一時停止しました`);
     }
   }
 
@@ -614,7 +634,7 @@ class SoundUtils {
           console.error(`BGM「${this.currentBgm}」の再開に失敗:`, error);
         });
       }
-      console.log(`[DEBUG] BGM「${this.currentBgm}」を再開しました`);
+      logUtil.debug(`BGM「${this.currentBgm}」を再開しました`);
     }
   }
 
@@ -626,7 +646,7 @@ class SoundUtils {
       this.bgmElement.pause();
       this.bgmElement.currentTime = 0;
       this.bgmElement = null;
-      console.log(`[DEBUG] BGM「${this.currentBgm}」を停止しました`);
+      logUtil.debug(`BGM「${this.currentBgm}」を停止しました`);
       this.currentBgm = null;
     }
   }

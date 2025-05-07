@@ -3,6 +3,9 @@ import { motion } from 'framer-motion';
 import styles from '../../styles/GameScreen.module.css';
 import { Animation } from '../../utils/DesignTokens';
 
+// デバッグログフラグ - デフォルトで無効化
+const DEBUG_PROBLEM_DISPLAY = process.env.NODE_ENV === 'development' && false;
+
 /**
  * 改良版問題表示コンポーネント
  * タイピングゲームのお題（問題文）を表示する
@@ -14,9 +17,9 @@ import { Animation } from '../../utils/DesignTokens';
  * @param {string} props.className - 追加で適用するCSSクラス名
  */
 const ProblemDisplay = ({ text = '', animate = true, className = '' }) => {
-  // パフォーマンス向上のためコンソール出力を開発環境のみに制限
-  if (process.env.NODE_ENV === 'development') {
-    console.debug('[ProblemDisplay] レンダリング:', {
+  // パフォーマンス向上のためコンソール出力をデバッグフラグ条件付きに
+  if (DEBUG_PROBLEM_DISPLAY) {
+    console.log('[ProblemDisplay] レンダリング:', {
       textLength: text?.length,
     });
   }
@@ -78,7 +81,7 @@ const ProblemDisplay = ({ text = '', animate = true, className = '' }) => {
 // シンプルな比較関数: テキストと animate プロパティが変わったときのみ再レンダリング
 const arePropsEqual = (prevProps, nextProps) => {
   return (
-    prevProps.text === nextProps.text && 
+    prevProps.text === nextProps.text &&
     prevProps.animate === nextProps.animate &&
     prevProps.className === nextProps.className
   );

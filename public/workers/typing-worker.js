@@ -4,6 +4,14 @@
  * メインスレッドをブロックせずにタイピング判定処理を行う
  */
 
+// ロガーをインポート（Worker用のimport構文）
+importScripts('./worker-log-utils.js');
+
+// ロガーの設定
+const logger = self.workerLogger || console;
+logger.setModuleName('TypingWorker');
+logger.setLogLevel(6); // NONE レベルに設定（ログ出力を完全に無効化）
+
 // 初期設定
 const DEBUG_WORKER = false;
 const DEBUG_CACHE = false;
@@ -79,6 +87,18 @@ self.onmessage = function (e) {
         handleClearInputHistory(callbackId);
         break;
 
+      case 'setLogLevel':
+        // ログレベル設定
+        if (typeof data.level === 'number') {
+          logger.setLogLevel(data.level);
+          self.postMessage({
+            type: 'logLevelChanged',
+            data: { level: data.level },
+            callbackId
+          });
+        }
+        break;
+
       case 'ping':
         // 疎通確認
         self.postMessage({
@@ -104,7 +124,7 @@ self.onmessage = function (e) {
 
       default:
         // 不明なメッセージ
-        console.warn(`[Worker] 未知のメッセージタイプ: ${type}`);
+        logger.warn(`未知のメッセージタイプ: ${type}`);
         self.postMessage({
           type: 'error',
           error: `未知のメッセージタイプ: ${type}`,
@@ -113,7 +133,7 @@ self.onmessage = function (e) {
     }
   } catch (error) {
     // エラー処理
-    console.error('[Worker] メッセージ処理エラー:', error);
+    logger.error('メッセージ処理エラー:', error);
     self.postMessage({
       type: 'worker_error',
       data: {
@@ -146,7 +166,7 @@ function handleProcessInput(data, callbackId) {
       callbackId
     });
   } catch (error) {
-    console.error('[Worker] 入力処理エラー:', error);
+    logger.error('入力処理エラー:', error);
     self.postMessage({
       type: 'INPUT_RESULT',
       error: error.message,
@@ -271,7 +291,7 @@ function processInput(session, char) {
     };
   } catch (error) {
     // エラー処理
-    console.error('[Worker] 処理エラー:', error);
+    logger.error('処理エラー:', error);
     return {
       success: false,
       status: 'error',
@@ -293,7 +313,7 @@ function handleGetColoringInfo(session, callbackId) {
       callbackId
     });
   } catch (error) {
-    console.error('[Worker] 色分け情報エラー:', error);
+    logger.error('色分け情報エラー:', error);
     self.postMessage({
       type: 'COLORING_RESULT',
       error: error.message,
@@ -369,7 +389,7 @@ function handleCalculateStatistics(data, callbackId) {
       callbackId
     });
   } catch (error) {
-    console.error('[Worker] 統計計算エラー:', error);
+    logger.error('統計計算エラー:', error);
     self.postMessage({
       type: 'STATS_RESULT',
       error: error.message,
@@ -387,7 +407,7 @@ function handlePreloadPatterns(data, callbackId) {
 
     if (patterns && Array.isArray(patterns)) {
       // パターンをキャッシュに保存（実際の実装はより複雑）
-      console.log(`[Worker] ${patterns.length} 個のパターンをプリロードしました`);
+      logger.info(`${patterns.length} 個のパターンをプリロードしました`);
     }
 
     self.postMessage({
@@ -396,7 +416,7 @@ function handlePreloadPatterns(data, callbackId) {
       callbackId
     });
   } catch (error) {
-    console.error('[Worker] パターンロードエラー:', error);
+    logger.error('パターンロードエラー:', error);
     self.postMessage({
       type: 'PRELOAD_RESULT',
       error: error.message,
@@ -430,8 +450,12 @@ function handleReset(callbackId) {
       data: { success: true },
       callbackId
     });
+
+    // ログクリア
+    logger.clearLogHistory();
+    logger.info('ワーカーとキャッシュをリセットしました');
   } catch (error) {
-    console.error('[Worker] リセットエラー:', error);
+    logger.error('リセットエラー:', error);
     self.postMessage({
       type: 'RESET_RESULT',
       error: error.message,
@@ -453,8 +477,10 @@ function handleClearInputHistory(callbackId) {
       data: { success: true },
       callbackId
     });
+
+    logger.debug('入力履歴をクリアしました');
   } catch (error) {
-    console.error('[Worker] 履歴クリアエラー:', error);
+    logger.error('履歴クリアエラー:', error);
     self.postMessage({
       type: 'CLEAR_RESULT',
       error: error.message,
@@ -479,13 +505,16 @@ function handleGetMetrics(callbackId) {
       timestamp: Date.now()
     };
 
+    // ログ履歴のサイズも含める
+    currentMetrics.logHistorySize = logger.getLogHistory().length;
+
     self.postMessage({
       type: 'METRICS_RESULT',
       data: currentMetrics,
       callbackId
     });
   } catch (error) {
-    console.error('[Worker] メトリクス取得エラー:', error);
+    logger.error('メトリクス取得エラー:', error);
     self.postMessage({
       type: 'METRICS_RESULT',
       error: error.message,
@@ -496,7 +525,7 @@ function handleGetMetrics(callbackId) {
 
 // エラーハンドリング
 self.addEventListener('error', function (e) {
-  console.error('[Worker] グローバルエラー:', e.message);
+  logger.error('グローバルエラー:', e.message);
   self.postMessage({
     type: 'worker_error',
     data: {
@@ -510,4 +539,4 @@ self.addEventListener('error', function (e) {
 });
 
 // 初期化完了メッセージ
-console.log('[Worker] タイピングワーカーが初期化されました');
+logger.info('タイピングワーカーが初期化されました');

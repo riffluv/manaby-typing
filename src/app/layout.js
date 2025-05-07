@@ -1,6 +1,11 @@
 import './globals.css';
 import { fontClasses } from './fonts';  // fonts.jsからfontClassesをインポート
 import MCPInitializer from '../components/MCPInitializer';
+import { logger, LOG_LEVELS } from '../utils/LogUtils';
+
+// ログ出力を完全に無効化（NONE）に設定
+logger.setLogLevel(LOG_LEVELS.NONE);
+logger.clearLogHistory(); // ログ履歴もクリア
 
 export const metadata = {
   title: 'タイピング練習ゲーム',
@@ -26,21 +31,21 @@ export default function RootLayout({ children }) {
           `
         }} />
 
-        {/* MCP初期化スクリプト */}
+        {/* MCP初期化スクリプト - ログ出力を完全に無効化 */}
         <script dangerouslySetInnerHTML={{
           __html: `
             // MCPオブジェクトの初期化
             window._mcp = window._mcp || {
               send: function(channel, data) {
-                console.log('[MCP] メッセージ送信:', channel, data);
+                // ログ出力を抑制
                 return true;
               },
               sendMessage: function(channel, data) {
-                console.log('[MCP] メッセージ送信:', channel, data);
+                // ログ出力を抑制
                 return true;
               },
               setContext: function(context) {
-                console.log('[MCP] コンテキスト設定:', context);
+                // ログ出力を抑制
                 this.context = context;
                 return true;
               },
@@ -48,7 +53,7 @@ export default function RootLayout({ children }) {
               handlers: new Map(),
               eventListeners: new Map()
             };
-            console.log('[MCP] 初期化完了');
+            // 初期化メッセージも抑制
           `
         }} />
       </head>

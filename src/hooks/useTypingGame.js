@@ -147,44 +147,55 @@ export function useTypingGame({
     // 更新が必要ないなら何もしない
     if (!pendingUpdates.hasUpdates) return;
 
-    // 各UI要素を必要に応じて更新
-    if (pendingUpdates.displayInfo) {
-      setDisplayInfo(pendingUpdates.displayInfo);
-    }
-
-    if (pendingUpdates.progress !== null) {
-      setProgressPercentage(pendingUpdates.progress);
-    }
-
-    if (pendingUpdates.stats) {
-      setDisplayStats(pendingUpdates.stats);
-    }
-
-    if (pendingUpdates.error) {
-      setErrorAnimation(true);
-
-      // エラーアニメーションを一定時間後に消す
-      if (errorAnimationTimerRef.current) {
-        clearTimeout(errorAnimationTimerRef.current);
+    // 高速化: 複数回の更新をハイパフォーマンスモードでバッチ処理
+    // React 18以上では自動バッチ処理されるが、念のため明示的に最適化
+    const updateFunction = () => {
+      // 各UI要素を必要に応じて更新（最小限に抑える）
+      if (pendingUpdates.displayInfo) {
+        setDisplayInfo(pendingUpdates.displayInfo);
       }
 
-      errorAnimationTimerRef.current = setTimeout(() => {
-        setErrorAnimation(false);
-        errorAnimationTimerRef.current = null;
-      }, 200);
-    }
+      if (pendingUpdates.progress !== null) {
+        setProgressPercentage(pendingUpdates.progress);
+      }
 
-    // 保留中の更新をクリア
-    pendingUIUpdatesRef.current = {
-      hasUpdates: false,
-      displayInfo: null,
-      progress: null,
-      stats: null,
-      error: false
+      if (pendingUpdates.stats) {
+        setDisplayStats(pendingUpdates.stats);
+      }
+
+      if (pendingUpdates.error) {
+        setErrorAnimation(true);
+
+        // エラーアニメーションを一定時間後に消す
+        if (errorAnimationTimerRef.current) {
+          clearTimeout(errorAnimationTimerRef.current);
+        }
+
+        errorAnimationTimerRef.current = setTimeout(() => {
+          setErrorAnimation(false);
+          errorAnimationTimerRef.current = null;
+        }, 200);
+      }
+
+      // 保留中の更新をクリア
+      pendingUIUpdatesRef.current = {
+        hasUpdates: false,
+        displayInfo: null,
+        progress: null,
+        stats: null,
+        error: false
+      };
+
+      // アニメーションフレーム参照をクリア
+      lastAnimationFrameRef.current = null;
     };
 
-    // アニメーションフレーム参照をクリア
-    lastAnimationFrameRef.current = null;
+    // React 18の場合はflushSyncを使用、それ以外は直接実行
+    if (typeof React !== 'undefined' && React.flushSync) {
+      React.flushSync(updateFunction);
+    } else {
+      updateFunction();
+    }
   }, []);
 
   /**
@@ -216,7 +227,14 @@ export function useTypingGame({
 
     // アニメーションフレームがまだスケジュールされていなければスケジュール
     if (!lastAnimationFrameRef.current && pendingUpdates.hasUpdates) {
-      lastAnimationFrameRef.current = requestAnimationFrame(processUIUpdates);
+      // 高速化: モニターのリフレッシュレートに合わせた処理
+      // 60Hz以上の場合は高速化
+      if (typeof window !== 'undefined' && window.requestIdleCallback && !updates.error) {
+        // アイドル時間を利用してUIを更新（エラー以外の低優先度更新）
+        lastAnimationFrameRef.current = window.requestIdleCallback(processUIUpdates, { timeout: 50 });
+      } else {
+        lastAnimationFrameRef.current = requestAnimationFrame(processUIUpdates);
+      }
     }
   }, [processUIUpdates]);
 
@@ -251,11 +269,58 @@ export function useTypingGame({
     const stats = statisticsRef.current;
     const isFirstInput = !stats.currentProblemStartTime;
 
-    // 入力文字を半角に変換
-    const halfWidthChar = TypingUtils.convertFullWidthToHalfWidth(key.toLowerCase());
+    // 入力文字を半角に変換（高速化）
+    const halfWidthChar = key.toLowerCase().replace(/[Ａ-Ｚａ-ｚ０-９]/g,
+      s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
 
     // 入力処理（高速化のため直接セッションを操作）
-    const result = session.processInput(halfWidthChar);
+    // MCP連携: MCPモデルが利用可能な場合は直接パスを使用
+    let result;
+    if (typeof window !== 'undefined' && window._mcp && window._mcp._typingModel) {
+      const typingModel = window._mcp._typingModel;
+      if (typeof typingModel.processLocalInput === 'function') {
+        // MCPモデルの高速パスを使用（最高性能）
+        result = typingModel.processLocalInput(halfWidthChar);
+
+        // 結果の処理は最小限に（MCPが内部で処理済み）
+        if (result.success) {
+          // 効果音再生のみMain UIスレッドで実行
+          if (playSound) {
+            queueMicrotask(() => {
+              soundSystem.playSound('success');
+            });
+          }
+
+          if (result.status === 'all_completed') {
+            queueMicrotask(() => {
+              completeProblem();
+            });
+          }
+
+          // UI更新をMCPが担当するため、最小限にとどめる
+          // 必要に応じてスロットリングされた表示更新のみ
+          if (perf.inputCount % 3 === 0) { // 3回に1回だけ更新
+            queueMicrotask(() => {
+              _updateDisplayDataFromMCP();
+            });
+          }
+
+          return result;
+        } else {
+          // 不正解時のみイベント処理（効果音とエラー表示）
+          if (playSound) {
+            soundSystem.playSound('error');
+          }
+
+          // エラー表示のみ即時更新
+          scheduleUIUpdate({ error: true });
+          return result;
+        }
+      }
+    }
+
+    // 従来のセッション処理をフォールバックとして使用
+    result = session.processInput(halfWidthChar);
 
     // 入力結果によって処理を分岐
     if (result.success) {
@@ -296,7 +361,7 @@ export function useTypingGame({
       });
 
       // 統計表示の更新（スロットリング）
-      const statsUpdateDebounceTime = 500; // 500ms
+      const statsUpdateDebounceTime = 1000; // 1000msにスロットリング強化
       if (!statsUpdateTimerRef.current &&
         (!stats.lastStatsUpdateTime || now - stats.lastStatsUpdateTime > statsUpdateDebounceTime)) {
         statsUpdateTimerRef.current = setTimeout(() => {
@@ -331,6 +396,50 @@ export function useTypingGame({
       return { success: false, status: result.status };
     }
   }, [playSound, completeProblem, scheduleUIUpdate]);
+
+  /**
+   * MCPからデータを取得して表示を更新する内部関数
+   * @private
+   */
+  const _updateDisplayDataFromMCP = useCallback(() => {
+    // MCPが利用可能な場合のみ実行
+    if (typeof window === 'undefined' || !window._mcp || !window._mcp._typingModel) {
+      return;
+    }
+
+    try {
+      const typingModel = window._mcp._typingModel;
+
+      // 表示情報を最小限取得
+      const displayInfo = typingModel.getDisplayInfo();
+      if (!displayInfo) return;
+
+      // 表示情報を更新
+      scheduleUIUpdate({
+        displayInfo: {
+          romaji: displayInfo.romaji || '',
+          typedLength: displayInfo.typedLength || 0,
+          currentInputLength: 0, // 互換性維持
+          currentCharIndex: 0, // 互換性維持
+          currentInput: displayInfo.currentInput || '',
+          expectedNextChar: displayInfo.nextChar || '',
+          currentCharRomaji: displayInfo.currentCharRomaji || '',
+        },
+        progress: displayInfo.progress || progressRef.current
+      });
+
+      // 完了状態を確認
+      if (displayInfo.isCompleted && !completedRef.current) {
+        // 完了処理を遅延実行
+        queueMicrotask(() => {
+          completeProblem();
+        });
+      }
+    } catch (error) {
+      // エラーが発生しても処理を続行
+      console.error('MCP表示データ更新エラー:', error);
+    }
+  }, [scheduleUIUpdate, completeProblem]);
 
   /**
    * 表示用統計情報を更新する内部関数

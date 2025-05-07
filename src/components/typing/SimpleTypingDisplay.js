@@ -1,6 +1,9 @@
 import React, { memo, useRef, useEffect } from 'react';
 import styles from '../../styles/typing/SimpleTypingDisplay.module.css';
 
+// デバッグログフラグ - デフォルトで無効化
+const DEBUG_TYPING_DISPLAY = process.env.NODE_ENV === 'development' && false;
+
 /**
  * シンプルなタイピング表示コンポーネント（完全リファクタリング版）
  * 
@@ -25,7 +28,7 @@ const SimpleTypingDisplay = memo(({
   const contentRef = useRef(null);
 
   // ローマ字が存在するか確認（デバッグ情報も出力）
-  if (process.env.NODE_ENV === 'development') {
+  if (DEBUG_TYPING_DISPLAY) {
     console.log('SimpleTypingDisplay - 受け取ったromaji:', JSON.stringify({
       romaji: romaji || '<なし>',
       typedLength,

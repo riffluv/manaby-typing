@@ -1,5 +1,23 @@
 import { useMemo, useRef } from 'react';
 
+// デバッグログフラグ - デフォルトで無効化
+const DEBUG_ADAPTER = process.env.NODE_ENV === 'development' && false;
+
+/**
+ * ログユーティリティ - コンソールログを条件付きにする
+ */
+const logUtil = {
+  debug: (message, ...args) => {
+    if (DEBUG_ADAPTER) console.log(message, ...args);
+  },
+  warn: (message, ...args) => {
+    console.warn(message, ...args);
+  },
+  error: (message, ...args) => {
+    console.error(message, ...args);
+  }
+};
+
 /**
  * 既存のタイピングフックの出力をシンプル表示用に変換するアダプター（改良版）
  * 複雑な状態を単純な表示用プロパティに変換する
@@ -119,7 +137,7 @@ export function useSimpleTypingAdapter(typingHook) {
       if (!romaji || romaji.trim() === '') {
         // 前回有効だったローマ字があれば、それを使用
         if (lastValidRomaji.current) {
-          console.log(`[useSimpleTypingAdapter] ローマ字が空のため、前回の有効なローマ字を使用: ${lastValidRomaji.current}`);
+          logUtil.debug(`[useSimpleTypingAdapter] ローマ字が空のため、前回の有効なローマ字を使用: ${lastValidRomaji.current}`);
           romaji = lastValidRomaji.current;
         } else {
           // バックアップとして"問題の原文"からローマ字を再構築することを試みる
@@ -130,7 +148,7 @@ export function useSimpleTypingAdapter(typingHook) {
 
           // 問題テキストがあれば、ローマ字辞書からの変換も試みる
           if (problemText) {
-            console.log('[useSimpleTypingAdapter] ローマ字の再構築を試みます:', problemText);
+            logUtil.debug('[useSimpleTypingAdapter] ローマ字の再構築を試みます:', problemText);
             romaji = originalRomaji || problemText; // 少なくとも何かを表示
           }
         }
@@ -159,17 +177,15 @@ export function useSimpleTypingAdapter(typingHook) {
       }
 
       // デバッグ情報
-      if (process.env.NODE_ENV === 'development') {
-        console.log('【useSimpleTypingAdapter】データ取得結果:', {
-          romaji: romaji || '<空文字>',
-          typedLength,
-          nextChar: nextChar || '<なし>',
-          currentInput: currentInput || '<なし>',
-          currentCharRomaji: currentCharRomaji || '<なし>',
-          visibleRange: romaji ? `${visibleStart}-${visibleEnd} (${romaji.length}文字中)` : 'なし',
-          lastValidRomaji: lastValidRomaji.current || '<なし>',
-        });
-      }
+      logUtil.debug('【useSimpleTypingAdapter】データ取得結果:', {
+        romaji: romaji || '<空文字>',
+        typedLength,
+        nextChar: nextChar || '<なし>',
+        currentInput: currentInput || '<なし>',
+        currentCharRomaji: currentCharRomaji || '<なし>',
+        visibleRange: romaji ? `${visibleStart}-${visibleEnd} (${romaji.length}文字中)` : 'なし',
+        lastValidRomaji: lastValidRomaji.current || '<なし>',
+      });
 
       // 入力モードを取得（子音入力中かどうか）
       const typingSession = safeGet(typingHook, 'typingSession', {});
@@ -216,7 +232,7 @@ export function useSimpleTypingAdapter(typingHook) {
         displayInfo // displayInfoも含める
       };
     } catch (error) {
-      console.error('useSimpleTypingAdapter エラー:', error);
+      logUtil.error('useSimpleTypingAdapter エラー:', error);
       // エラーが発生した場合でもクラッシュせずデフォルト値を返す
       return {
         romaji: lastValidRomaji.current || '',

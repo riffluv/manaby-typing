@@ -7,11 +7,32 @@
 
 import { useState, useEffect } from 'react';
 
+// デバッグ設定
+const DEBUG_MCP = process.env.NODE_ENV === 'development' && false; // 開発環境でもデフォルトでログを無効化
+
 // プロジェクト識別用のメタデータ
 const PROJECT_METADATA = {
   name: 'Manaby Typing Game',
   version: '1.0.0', // バージョン更新
   repositoryUrl: process.env.NEXT_PUBLIC_GITHUB_REPO || 'https://github.com/riffluv/manaby-typing',
+};
+
+/**
+ * ログユーティリティ - コンソールログを条件付きにする
+ */
+const logUtil = {
+  debug: (message, ...args) => {
+    if (DEBUG_MCP) console.log(message, ...args);
+  },
+  info: (message, ...args) => {
+    if (DEBUG_MCP) console.log(message, ...args);
+  },
+  warn: (message, ...args) => {
+    console.warn(message, ...args);
+  },
+  error: (message, ...args) => {
+    console.error(message, ...args);
+  }
 };
 
 /**
@@ -27,11 +48,11 @@ class MCPUtils {
   initialize() {
     return new Promise((resolve, reject) => {
       try {
-        console.log('[MCPUtils] MCP初期化を開始します');
+        logUtil.debug('[MCPUtils] MCP初期化を開始します');
 
         // MCP接続の確認と早期リターン最適化
         if (typeof window === 'undefined' || !window._mcp) {
-          console.warn('[MCPUtils] MCP接続が利用できません。フォールバックモードで動作します。');
+          logUtil.warn('[MCPUtils] MCP接続が利用できません。フォールバックモードで動作します。');
           return resolve({ status: 'fallback', reason: 'mcp_not_available' });
         }
 
@@ -47,20 +68,20 @@ class MCPUtils {
           .then((results) => {
             const failures = results.filter(r => r.status === 'rejected');
             if (failures.length > 0) {
-              console.warn(`[MCPUtils] ${failures.length}個のモジュールで初期化エラーが発生しました:`,
+              logUtil.warn(`[MCPUtils] ${failures.length}個のモジュールで初期化エラーが発生しました:`,
                 failures.map(f => f.reason?.message || '不明なエラー'));
             }
 
-            console.log('[MCPUtils] MCPの初期化が完了しました');
+            logUtil.debug('[MCPUtils] MCPの初期化が完了しました');
             resolve({ status: 'success', moduleResults: results });
           })
           .catch((error) => {
-            console.error('[MCPUtils] MCP初期化エラー:', error);
+            logUtil.error('[MCPUtils] MCP初期化エラー:', error);
             // エラーでも機能不全ではなくフォールバックモードとして継続
             resolve({ status: 'partial_failure', error });
           });
       } catch (error) {
-        console.error('[MCPUtils] MCP初期化の例外:', error);
+        logUtil.error('[MCPUtils] MCP初期化の例外:', error);
         // 完全な失敗の場合のみreject
         reject(error);
       }
@@ -82,12 +103,12 @@ class MCPUtils {
 
       mcp.registerHandler = function (eventName, handler) {
         if (typeof handler !== 'function') {
-          console.error('[MCP] ハンドラは関数である必要があります:', eventName);
+          logUtil.error('[MCP] ハンドラは関数である必要があります:', eventName);
           return;
         }
 
         this.handlers.set(eventName, handler);
-        console.log(`[MCP] ハンドラを登録しました: ${eventName}`);
+        logUtil.debug(`[MCP] ハンドラを登録しました: ${eventName}`);
       };
 
       // コールバック付きsend機能の拡張
@@ -103,7 +124,7 @@ class MCPUtils {
             }
             return result;
           } catch (error) {
-            console.error(`[MCP] ハンドラ実行エラー (${channel}):`, error);
+            logUtil.error(`[MCP] ハンドラ実行エラー (${channel}):`, error);
             if (callback && typeof callback === 'function') {
               callback({ success: false, error: error.message });
             }
@@ -115,7 +136,7 @@ class MCPUtils {
         if (originalSend) {
           originalSend.call(this, channel, data);
         } else {
-          console.warn(`[MCP] チャンネル ${channel} のハンドラがありません`);
+          logUtil.warn(`[MCP] チャンネル ${channel} のハンドラがありません`);
         }
 
         if (callback && typeof callback === 'function') {
@@ -129,7 +150,7 @@ class MCPUtils {
 
       mcp.on = function (eventName, listener) {
         if (typeof listener !== 'function') {
-          console.error('[MCP] リスナーは関数である必要があります:', eventName);
+          logUtil.error('[MCP] リスナーは関数である必要があります:', eventName);
           return;
         }
 
@@ -171,13 +192,13 @@ class MCPUtils {
           try {
             listener(data);
           } catch (error) {
-            console.error(`[MCP] リスナー実行エラー (${channel}):`, error);
+            logUtil.error(`[MCP] リスナー実行エラー (${channel}):`, error);
           }
         });
       };
     }
 
-    console.log('[MCPUtils] MCPシステムを拡張しました');
+    logUtil.debug('[MCPUtils] MCPシステムを拡張しました');
   }
 
   /**
@@ -194,14 +215,14 @@ class MCPUtils {
           if (!model) {
             throw new Error('タイピングモデルの初期化に失敗しました');
           }
-          console.log('[MCPUtils] タイピングゲームのMCPを初期化しました');
+          logUtil.debug('[MCPUtils] タイピングゲームのMCPを初期化しました');
           resolve({ model });
         }).catch((error) => {
-          console.error('[MCPUtils] タイピングゲームのMCP初期化エラー:', error);
+          logUtil.error('[MCPUtils] タイピングゲームのMCP初期化エラー:', error);
           reject(error);
         });
       } catch (error) {
-        console.error('[MCPUtils] タイピングゲームのMCP初期化の例外:', error);
+        logUtil.error('[MCPUtils] タイピングゲームのMCP初期化の例外:', error);
         reject(error);
       }
     });
@@ -387,7 +408,7 @@ class MCPContextManager {
     this.workerSupported = typeof Worker !== 'undefined';
     this.worker = null;
 
-    console.log(`[MCP] 初期化完了 (有効: ${this.mcpEnabled}, Worker: ${this.workerSupported ? 'サポート' : '未サポート'})`);
+    logUtil.debug(`[MCP] 初期化完了 (有効: ${this.mcpEnabled}, Worker: ${this.workerSupported ? 'サポート' : '未サポート'})`);
   }
 
   /**
@@ -416,10 +437,10 @@ class MCPContextManager {
       // MCP側にコンテキストを通知（分析専用）
       if (window._mcp) {
         window._mcp.setContext?.(this.context);
-        console.log('[MCP] コンテキストを設定しました:', this.context);
+        logUtil.debug('[MCP] コンテキストを設定しました:', this.context);
       }
     } catch (err) {
-      console.error('[MCP] コンテキスト設定エラー:', err);
+      logUtil.error('[MCP] コンテキスト設定エラー:', err);
     }
   }
 
@@ -464,7 +485,7 @@ class MCPContextManager {
         this._scheduleBackgroundFlush();
       }
     } catch (err) {
-      console.error('[MCP] タイピング記録エラー:', err);
+      logUtil.error('[MCP] タイピング記録エラー:', err);
     }
   }
 
@@ -491,7 +512,7 @@ class MCPContextManager {
         this._scheduleBackgroundFlush();
       }
     } catch (err) {
-      console.error('[MCP] ゲームイベント記録エラー:', err);
+      logUtil.error('[MCP] ゲームイベント記録エラー:', err);
     }
   }
 
@@ -518,7 +539,7 @@ class MCPContextManager {
         this._scheduleBackgroundFlush();
       }
     } catch (err) {
-      console.error('[MCP] パフォーマンス記録エラー:', err);
+      logUtil.error('[MCP] パフォーマンス記録エラー:', err);
     }
   }
 
@@ -545,7 +566,7 @@ class MCPContextManager {
         this._scheduleBackgroundFlush();
       }
     } catch (err) {
-      console.error('[MCP] UX要素記録エラー:', err);
+      logUtil.error('[MCP] UX要素記録エラー:', err);
     }
   }
 
@@ -613,7 +634,7 @@ class MCPContextManager {
           // 現状は直接処理
           await this._sendMetricsDirectly(metrics);
         } catch (err) {
-          console.error('[MCP] Worker初期化エラー:', err);
+          logUtil.error('[MCP] Worker初期化エラー:', err);
           // フォールバック: 直接送信
           await this._sendMetricsDirectly(metrics);
         }
@@ -622,7 +643,7 @@ class MCPContextManager {
         await this._sendMetricsDirectly(metrics);
       }
     } catch (err) {
-      console.error('[MCP] メトリクス送信エラー:', err);
+      logUtil.error('[MCP] メトリクス送信エラー:', err);
     } finally {
       // 処理完了フラグを設定
       this.isBackgroundProcessing = false;
@@ -645,8 +666,8 @@ class MCPContextManager {
     }
 
     // 開発環境では詳細ログを出力
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[MCP] ${metrics.length}件のデータを送信（分析用）`);
+    if (DEBUG_MCP) {
+      logUtil.debug(`[MCP] ${metrics.length}件のデータを送信（分析用）`);
     }
 
     try {
@@ -661,7 +682,7 @@ class MCPContextManager {
         }
       }
     } catch (err) {
-      console.error('[MCP] メトリクス送信エラー:', err);
+      logUtil.error('[MCP] メトリクス送信エラー:', err);
       // エラー時はメトリクスを破棄（レスポンスへの影響を避ける）
     }
   }
