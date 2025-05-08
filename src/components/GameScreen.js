@@ -462,7 +462,7 @@ const GameScreen = () => {
     }
   }, []);
 
-  // キー入力ハンドラー - useCallback で最適化
+  // キー入力ハンドラー - 高速レスポンス処理版
   const handleKeyDown = useCallback(
     (e) => {
       // ゲームクリア時は何もしない
@@ -481,7 +481,7 @@ const GameScreen = () => {
         return;
       }
 
-      // 入力に関係のないキーは無視
+      // 入力に関係のないキーは無視（高速処理）
       if (e.key.length !== 1 || e.ctrlKey || e.altKey || e.metaKey) {
         return;
       }
@@ -502,19 +502,7 @@ const GameScreen = () => {
       // AudioContextの状態がsuspendedの場合は再開
       soundSystem.resume();
 
-      // パフォーマンス測定のためのタイムスタンプ
-      const startTime = performance.now();
-
-      // MCPモードから統合したパフォーマンス最適化 - 高速入力処理
-      try {
-        // まず高速パス処理を試みる - 最も高頻度のパターンのみ
-        processInput(e.key);
-      } catch (err) {
-        // 高速パス処理に失敗した場合、通常の処理に戻る
-        console.error('高速処理失敗:', err);
-      }
-
-      // Weather Typingのように、最初のキー入力時にタイマー計測を開始
+      // 最初のキー入力時にタイマー計測を開始
       if (!gameState.hasStartedTyping) {
         const now = Date.now();
         setGameState((prevState) => ({
@@ -524,12 +512,17 @@ const GameScreen = () => {
           currentProblemStartTime: now, // 最初の問題の開始時間も設定
         }));
       }
-      
-      // 通常の入力処理を非同期で行う（レスポンス改善）
-      queueMicrotask(() => {
-        // タイピング処理を行う - 効果音はuseTypingGame内で処理される
+
+      // *** 最適化された直接タイピング処理 ***
+      // typingのhandleInputを直接呼び出し、パフォーマンスを最大化
+      try {
         typing.handleInput(e.key);
-      });
+        
+        // パフォーマンスモニタリング
+        performanceRef.current.inputCount++;
+      } catch (err) {
+        console.error('タイピング処理エラー:', err);
+      }
     },
     [
       gameState.isGameClear,
@@ -537,7 +530,6 @@ const GameScreen = () => {
       typing,
       goToScreen,
       setGameState,
-      processInput
     ]
   );
 
