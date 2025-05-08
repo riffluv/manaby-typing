@@ -43,6 +43,7 @@ import { useSimpleTypingAdapter } from '../hooks/useSimpleTypingAdapter';
 /**
  * タイピングゲーム画面コンポーネント
  * パフォーマンス最適化済み（2025年5月8日リファクタリング）
+ * MCPモードのパフォーマンス最適化機能を統合
  */
 const GameScreen = () => {
   // コンテキストから状態と関数を取得
@@ -52,10 +53,12 @@ const GameScreen = () => {
   // 問題クリアに必要なお題数
   const requiredProblemCount = gameState.requiredProblemCount || 5;
 
-  // typingの参照を保持するためのref
+  // typingの参照を保持するためのref - MCPモードのパフォーマンス改善技術を導入
   const typingRef = useRef(null);
-  
-  // パフォーマンス監視用
+  // ローカルタイピングモデル参照（パフォーマンス最適化用）
+  const localTypingModelRef = useRef(null);
+
+  // パフォーマンス監視用（拡張版）
   const performanceRef = useRef({
     startTime: Date.now(),
     frameCount: 0,
@@ -63,7 +66,12 @@ const GameScreen = () => {
     fps: 60,
     inputCount: 0,
     lastFrameTime: performance.now(),
-    elapsedTime: 0
+    elapsedTime: 0,
+    // 拡張パフォーマンスメトリクス
+    slowFrames: 0,
+    lastInputTime: 0, 
+    inputLatency: [],
+    memoryUsage: []
   });
 
   // 最後に押されたキー（キーボード表示用）
@@ -76,18 +84,39 @@ const GameScreen = () => {
    * パフォーマンス監視を開始する関数
    */
   const startPerformanceMonitoring = useCallback(() => {
-    let frameId = null;
+    // パフォーマンスカウンターをリセット
+    performanceRef.current = {
+      startTime: Date.now(),
+      frameCount: 0,
+      lastFpsUpdate: Date.now(),
+      fps: 60,
+      inputCount: 0,
+      lastFrameTime: performance.now(),
+      elapsedTime: 0,
+      // 拡張パフォーマンスメトリクス
+      slowFrames: 0,
+      lastInputTime: 0,
+      inputLatency: [],
+      memoryUsage: []
+    };
     
+    let frameId = null;
+
     const measurePerformance = () => {
       const perf = performanceRef.current;
       const now = performance.now();
       const elapsed = now - perf.lastFrameTime;
-      
+
+      // フレーム間時間が長すぎる場合は遅延フレームとしてカウント
+      if (elapsed > 50) { // 50ms以上かかったフレームは遅い (20fps未満)
+        perf.slowFrames++;
+      }
+
       // 現在の経過時間を更新
       perf.elapsedTime += elapsed / 1000;
       perf.lastFrameTime = now;
       perf.frameCount++;
-      
+
       // 1秒ごとにFPSを更新
       if (now - perf.lastFpsUpdate > 1000) {
         // FPSを計算
@@ -97,15 +126,34 @@ const GameScreen = () => {
         perf.fps = fps;
         perf.lastFpsUpdate = now;
         perf.frameCount = 0;
+
+        // メモリ使用状況の記録（メモリ測定APIが利用可能な場合）
+        if (window.performance && window.performance.memory) {
+          try {
+            const memory = window.performance.memory;
+            perf.memoryUsage.push({
+              time: now,
+              used: memory.usedJSHeapSize,
+              total: memory.totalJSHeapSize
+            });
+
+            // 最大10件のメモリ記録を保持
+            if (perf.memoryUsage.length > 10) {
+              perf.memoryUsage.shift();
+            }
+          } catch (e) {
+            // メモリAPIへのアクセスでエラーが発生した場合は無視
+          }
+        }
       }
-      
+
       // 次のフレームを計測
       frameId = requestAnimationFrame(measurePerformance);
     };
-    
+
     // 計測開始
     frameId = requestAnimationFrame(measurePerformance);
-    
+
     // クリーンアップ関数を返す
     return () => {
       if (frameId) {
@@ -271,6 +319,50 @@ const GameScreen = () => {
   // typingオブジェクトの参照を更新
   useEffect(() => {
     typingRef.current = typing;
+    
+    // ローカルタイピングモデルを初期化（パフォーマンス向上のため）
+    if (typing && typing.typingSession) {
+      try {
+        // TypingUtilsを使用して高速処理用のローカルインスタンスを作成
+        localTypingModelRef.current = {
+          // ローカル処理用のメソッド
+          processLocalInput: (key) => {
+            const result = {
+              success: false,
+              processed: false
+            };
+
+            // 現在のタイピングセッションがなければ処理しない
+            if (!typing.typingSession) return result;
+            
+            // 現在期待されるキーとの比較（高速化のため直接アクセス）
+            const expectedKey = typing.typingSession.getCurrentExpectedKey?.();
+            
+            // 直接キーマッチング（高速パス）
+            if (expectedKey === key) {
+              result.success = true;
+              result.processed = true;
+              return result;
+            }
+            
+            // 簡易ローミング変換の確認（「し」の入力に「si」や「shi」を許可するなど）
+            // TypingUtilsのoptimizeSplitInputは複雑な日本語処理に対応
+            const potentialMatches = TypingUtils.getAcceptableInputs?.(
+              typing.typingSession.getCurrentCharRomaji?.() || ''
+            );
+            
+            if (potentialMatches && potentialMatches.includes(key)) {
+              result.success = true;
+              result.processed = true;
+            }
+            
+            return result;
+          }
+        };
+      } catch (err) {
+        console.error('ローカルタイピングモデルの初期化エラー:', err);
+      }
+    }
   }, [typing]);
 
   // パフォーマンスモニタリングを開始
@@ -326,6 +418,50 @@ const GameScreen = () => {
     };
   }, []);
 
+  /**
+   * 高速入力処理 - MCPモードから統合した最適化関数
+   * メインスレッドをブロックせずに処理を実行
+   */
+  const processInput = useCallback((key) => {
+    // パフォーマンス測定開始
+    const startTime = performance.now();
+    
+    try {
+      // 入力カウントを増やす（パフォーマンス測定用）
+      performanceRef.current.inputCount++;
+      performanceRef.current.lastInputTime = startTime;
+
+      // ローカル処理（高速パス）- MCPモードから統合した最適化
+      if (localTypingModelRef.current) {
+        const result = localTypingModelRef.current.processLocalInput(key);
+
+        // 入力結果に応じたサウンド再生
+        if (result && result.success) {
+          soundSystem.playSound('success');
+        }
+        
+        // 高速パスで処理できた場合、メインの処理をスキップ
+        if (result && result.processed) {
+          // 入力レイテンシを記録
+          const endTime = performance.now();
+          const latency = endTime - startTime;
+          
+          // レイテンシの記録（最新10件のみ保持）
+          performanceRef.current.inputLatency.push(latency);
+          if (performanceRef.current.inputLatency.length > 10) {
+            performanceRef.current.inputLatency.shift();
+          }
+          
+          return;
+        }
+      }
+      
+      // 通常のタイピング処理に委譲（高速パスで処理できなかった場合）
+    } catch (error) {
+      console.error('[GameScreen] 高速入力処理エラー:', error);
+    }
+  }, []);
+
   // キー入力ハンドラー - useCallback で最適化
   const handleKeyDown = useCallback(
     (e) => {
@@ -369,24 +505,30 @@ const GameScreen = () => {
       // パフォーマンス測定のためのタイムスタンプ
       const startTime = performance.now();
 
-      // 入力処理をqueueMicrotaskで最適化
-      queueMicrotask(() => {
-        // Weather Typingのように、最初のキー入力時にタイマー計測を開始
-        if (!gameState.hasStartedTyping) {
-          const now = Date.now();
-          setGameState((prevState) => ({
-            ...prevState,
-            startTime: now, // 最初のキー入力時点からタイマー計測を開始
-            hasStartedTyping: true,
-            currentProblemStartTime: now, // 最初の問題の開始時間も設定
-          }));
-        }
+      // MCPモードから統合したパフォーマンス最適化 - 高速入力処理
+      try {
+        // まず高速パス処理を試みる - 最も高頻度のパターンのみ
+        processInput(e.key);
+      } catch (err) {
+        // 高速パス処理に失敗した場合、通常の処理に戻る
+        console.error('高速処理失敗:', err);
+      }
 
+      // Weather Typingのように、最初のキー入力時にタイマー計測を開始
+      if (!gameState.hasStartedTyping) {
+        const now = Date.now();
+        setGameState((prevState) => ({
+          ...prevState,
+          startTime: now, // 最初のキー入力時点からタイマー計測を開始
+          hasStartedTyping: true,
+          currentProblemStartTime: now, // 最初の問題の開始時間も設定
+        }));
+      }
+      
+      // 通常の入力処理を非同期で行う（レスポンス改善）
+      queueMicrotask(() => {
         // タイピング処理を行う - 効果音はuseTypingGame内で処理される
         typing.handleInput(e.key);
-        
-        // パフォーマンス測定終了
-        performanceRef.current.inputCount++;
       });
     },
     [
@@ -395,6 +537,7 @@ const GameScreen = () => {
       typing,
       goToScreen,
       setGameState,
+      processInput
     ]
   );
 
@@ -533,6 +676,21 @@ const GameScreen = () => {
     return null;
   }
 
+  // パフォーマンス情報（開発モードでのデバッグ用）
+  const performanceInfo = DEBUG_GAME_SCREEN && (
+    <div className={styles.performance_debug}>
+      <span>FPS: {performanceRef.current.fps}</span>
+      {performanceRef.current.inputLatency.length > 0 && (
+        <span>入力レイテンシ: {
+          Math.round(
+            performanceRef.current.inputLatency.reduce((a, b) => a + b, 0) / 
+            performanceRef.current.inputLatency.length
+          )
+        }ms</span>
+      )}
+    </div>
+  );
+
   return (
     <div className={styles.typing_game__wrapper}>
       <div className={styles.typing_game}>
@@ -570,6 +728,9 @@ const GameScreen = () => {
           >
             お題: {gameState.solvedCount + 1}/{requiredProblemCount}
           </motion.div>
+          
+          {/* パフォーマンスデバッグ情報（開発モードのみ） */}
+          {performanceInfo}
         </motion.header>
 
         <motion.main

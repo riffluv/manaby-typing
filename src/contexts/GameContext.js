@@ -36,8 +36,8 @@ const DEFAULT_SETTINGS = {
   sfxEnabled: true,
   sfxVolume: 1.0,
   requiredProblemCount: 8, // デフォルトお題数
-  // MCP使用フラグ（デフォルトでは無効）
-  useMCP: false,
+  // 高速パフォーマンスモードは常に有効
+  highPerformanceMode: true,
 };
 
 // 初期ゲーム状態

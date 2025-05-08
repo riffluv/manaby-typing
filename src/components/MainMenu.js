@@ -311,38 +311,38 @@ const MainMenu = () => {
         <div className={styles.cornerTech}></div>
         <div className={styles.cornerLine}></div>
       </div>
-      
+
       {/* 右上コーナー装飾 */}
       <div className={styles.cornerDecoration} style={{ top: 0, right: 0 }}>
         <div className={styles.cornerTech}></div>
         <div className={styles.cornerLine}></div>
       </div>
-      
+
       {/* 左下コーナー装飾 */}
       <div className={styles.cornerDecoration} style={{ bottom: 0, left: 0 }}>
         <div className={styles.cornerTech}></div>
         <div className={styles.cornerLine}></div>
       </div>
-      
+
       {/* 右下コーナー装飾 */}
       <div className={styles.cornerDecoration} style={{ bottom: 0, right: 0 }}>
         <div className={styles.cornerTech}></div>
         <div className={styles.cornerLine}></div>
       </div>
-      
+
       {/* トップボーダー装飾 */}
       <div className={styles.techBorder} style={{ top: '5px', left: '50%', transform: 'translateX(-50%)' }}>
         <div className={styles.techLights}></div>
       </div>
-      
+
       {/* ボトムボーダー装飾 */}
       <div className={styles.techBorder} style={{ bottom: '5px', left: '50%', transform: 'translateX(-50%)' }}>
         <div className={styles.techLights}></div>
       </div>
-      
+
       {/* スキャンライン効果 */}
       <div className={styles.scanlines}></div>
-      
+
       {/* ドット模様背景 */}
       <div className={styles.dotPattern}></div>
     </>
@@ -374,20 +374,20 @@ const MainMenu = () => {
           <h3 className={styles.settingsSectionTitle}>パフォーマンス設定</h3>
           <div className={styles.settingsRow}>
             <label className={styles.settingsLabel}>
-              MCPモードを使用
+              高パフォーマンスモード
               <small className={styles.settingsSubLabel}>
-                （有効にするとパフォーマンス低下の可能性があります）
+                （入力レスポンスを最適化します）
               </small>
             </label>
             <div className={styles.settingsControl}>
               <input
                 type="checkbox"
-                checked={settings.useMCP}
-                onChange={(e) => setSettings({ ...settings, useMCP: e.target.checked })}
+                checked={true}
+                disabled={true}
                 className={styles.settingsCheckbox}
               />
               <span className={styles.checkboxLabel}>
-                {settings.useMCP ? 'オン' : 'オフ'}
+                常に有効
               </span>
             </div>
           </div>
@@ -420,7 +420,7 @@ const MainMenu = () => {
         </div>
       </div>
     );
-  }, [settings.difficulty, settings.useMCP, setSettings, handleDifficultyChange]);
+  }, [settings.difficulty, setSettings, handleDifficultyChange]);
 
   // クレジットコンテンツをレンダリングする関数
   const renderCreditsContent = useCallback(() => {
@@ -575,7 +575,7 @@ const MainMenu = () => {
         />
       </motion.div>
 
-      <motion.div 
+      <motion.div
         className={styles.menuContainer}
         variants={containerVariants}
         initial="hidden"

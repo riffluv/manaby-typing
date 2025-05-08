@@ -7,7 +7,7 @@ import { useSoundContext } from '../contexts/SoundContext';
 import soundSystem from '../utils/SoundUtils'; // soundSystemをインポート
 import MainMenu from './MainMenu';
 import GameScreen from './GameScreen';
-import MCPGameScreen from './MCPGameScreen'; // MCPGameScreenをインポート
+// MCPGameScreenのインポートを削除
 import ResultScreen from './ResultScreen';
 import RankingScreen from './RankingScreen';
 import { useSettingsModal } from './MainMenu';
@@ -177,11 +177,11 @@ const TransitionManager = () => {
   const renderCurrentScreen = () => {
     // コンテキストから設定を取得
     const { settings } = useGameContext();
-    
+
     switch (currentScreen) {
       case SCREENS.GAME:
-        // MCP使用設定に基づいてコンポーネントを選択
-        return settings.useMCP ? <MCPGameScreen /> : <GameScreen />;
+        // 常にパフォーマンス最適化されたGameScreenを使用する
+        return <GameScreen />;
       case SCREENS.SETTINGS:
         // 設定画面はメインメニューでモーダル表示するため、メインメニューを表示
         return <MainMenu />;
