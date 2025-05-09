@@ -2,10 +2,16 @@
  * TypingWorkerManager.js
  * タイピング処理用WebワーカーとMCPシステムを統合的に管理するクラス
  * タイピングゲームのパフォーマンス最適化のための中枢システム
- * 2025年5月9日: パフォーマンスモニタリング機能とバッチ処理機能を強化
+ * 2025年5月9日: タイピング即時応答のためにメインスレッド処理を追加
  */
 
 import mcpUtils from './MCPUtils';
+import {
+  processTypingInputOnMainThread,
+  getColoringInfoOnMainThread,
+  getNextExpectedKeyOnMainThread,
+  clearMainThreadCache
+} from './TypingProcessorMain';
 
 /**
  * WebワーカーとMCPシステムを統合的に管理するシングルトンクラス
@@ -45,6 +51,9 @@ class TypingWorkerManager {
       averageResponseTime: 0,
       lastPerformanceReport: null,
       highPriorityOperations: 0,
+      // メインスレッド処理メトリクス
+      mainThreadProcessCalls: 0,
+      mainThreadProcessingTime: 0,
     };
     // キャッシュ - パフォーマンス向上のため
     this.cache = {
@@ -54,6 +63,13 @@ class TypingWorkerManager {
 
     // フォールバックモード（Workerが使えない場合）
     this.fallbackMode = false;
+
+    // 処理モード設定
+    this.processingMode = {
+      typing: 'main-thread', // 'worker' または 'main-thread'
+      effects: 'worker',     // 'worker' または 'main-thread' 
+      statistics: 'worker'   // 'worker' または 'main-thread'
+    };
 
     // 高速アクセス用に共有オブジェクト
     this.sharedState = {
@@ -458,9 +474,7 @@ class TypingWorkerManager {
     // エラーメトリクスを記録
     this.metrics.lastErrorTime = Date.now();
     this.metrics.lastErrorMessage = message;
-  }
-
-  /**
+  }  /**
    * 入力を処理し、結果を返す
    * @param {Object} session タイピングセッション
    * @param {string} char 入力された文字
@@ -473,9 +487,8 @@ class TypingWorkerManager {
     }
 
     // キャッシュキーを作成
-    const cacheKey = `${session.currentCharIndex}_${
-      session.currentInput || ''
-    }_${char}`;
+    const cacheKey = `${session.currentCharIndex}_${session.currentInput || ''
+      }_${char}`;
 
     // キャッシュチェック
     if (this.cache.inputResults.has(cacheKey)) {
@@ -488,34 +501,81 @@ class TypingWorkerManager {
 
     const startTime = performance.now();
 
-    // ワーカーに入力処理メッセージを送信
-    return this._postToWorker(
-      'processInput',
-      { session, char, cacheKey },
-      'high'
-    ).then((result) => {
-      // 処理時間を記録
-      const processingTime = performance.now() - startTime;
-      this.metrics.processingTime += processingTime;
+    // 処理モードに応じて処理を分岐
+    if (this.processingMode.typing === 'main-thread') {
+      // メインスレッドで処理
+      this.metrics.mainThreadProcessCalls++;
 
-      // 結果をキャッシュ
-      if (result && result.success !== false) {
-        this.cache.inputResults.set(cacheKey, result);
+      try {
+        // 明示的にインポートされた関数を使用
+        const result = processTypingInputOnMainThread(session, char);
 
-        // キャッシュサイズを制限
-        if (this.cache.inputResults.size > 1000) {
-          // 古いエントリを削除
-          const keys = Array.from(this.cache.inputResults.keys()).slice(0, 200);
-          for (const key of keys) {
-            this.cache.inputResults.delete(key);
+        // 処理時間を記録
+        const processingTime = performance.now() - startTime;
+        this.metrics.mainThreadProcessingTime += processingTime;
+        this.metrics.processingTime += processingTime;
+
+        // 結果をキャッシュ
+        if (result && result.success !== false) {
+          this.cache.inputResults.set(cacheKey, result);
+
+          // キャッシュサイズを制限
+          if (this.cache.inputResults.size > 1000) {
+            // 古いエントリを削除
+            const keys = Array.from(this.cache.inputResults.keys()).slice(0, 200);
+            for (const key of keys) {
+              this.cache.inputResults.delete(key);
+            }
           }
         }
+
+        return Promise.resolve(result);
+      } catch (error) {
+        console.error('メインスレッド処理エラー:', error);
+        // フォールバック: WebWorkerでの処理を試みる
+        console.warn('メインスレッド処理に失敗したため、WebWorkerでの処理を試みます');
+        return this._postToWorker(
+          'processInput',
+          { session, char, cacheKey },
+          'high'
+        ).then((result) => {
+          const processingTime = performance.now() - startTime;
+          this.metrics.processingTime += processingTime;
+          if (result && result.success !== false) {
+            this.cache.inputResults.set(cacheKey, result);
+          }
+          return result;
+        });
       }
+    } else {
+      // ワーカーに入力処理メッセージを送信
+      return this._postToWorker(
+        'processInput',
+        { session, char, cacheKey },
+        'high'
+      ).then((result) => {
+        // 処理時間を記録
+        const processingTime = performance.now() - startTime;
+        this.metrics.processingTime += processingTime;
 
-      return result;
-    });
+        // 結果をキャッシュ
+        if (result && result.success !== false) {
+          this.cache.inputResults.set(cacheKey, result);
+
+          // キャッシュサイズを制限
+          if (this.cache.inputResults.size > 1000) {
+            // 古いエントリを削除
+            const keys = Array.from(this.cache.inputResults.keys()).slice(0, 200);
+            for (const key of keys) {
+              this.cache.inputResults.delete(key);
+            }
+          }
+        }
+
+        return result;
+      });
+    }
   }
-
   /**
    * 色分け情報を取得
    * @param {Object} session タイピングセッション
@@ -527,9 +587,8 @@ class TypingWorkerManager {
     }
 
     // キャッシュキーを作成
-    const cacheKey = `color_${session.currentCharIndex || 0}_${
-      session.currentInput || ''
-    }_${session.completed ? 1 : 0}`;
+    const cacheKey = `color_${session.currentCharIndex || 0}_${session.currentInput || ''
+      }_${session.completed ? 1 : 0}`;
 
     // キャッシュチェック
     if (this.cache.coloringInfo.has(cacheKey)) {
@@ -537,11 +596,15 @@ class TypingWorkerManager {
       return Promise.resolve(this.cache.coloringInfo.get(cacheKey));
     }
 
-    this.metrics.cacheMisses++;
+    this.metrics.cacheMisses++;    // 処理モードに応じて処理を分岐
+    if (this.processingMode.typing === 'main-thread') {
+      // メインスレッドで処理
+      this.metrics.mainThreadProcessCalls++;
 
-    // ワーカーに色分け情報メッセージを送信
-    return this._postToWorker('getColoringInfo', session, 'normal').then(
-      (result) => {
+      try {
+        // 明示的にインポートされた関数を使用
+        const result = getColoringInfoOnMainThread(session);
+
         // 結果をキャッシュ
         if (result && !result.error) {
           this.cache.coloringInfo.set(cacheKey, result);
@@ -558,11 +621,45 @@ class TypingWorkerManager {
           }
         }
 
-        return result;
+        return Promise.resolve(result);
+      } catch (error) {
+        console.error('メインスレッド処理エラー (色分け情報):', error);
+        // フォールバック: WebWorkerでの処理を試みる
+        console.warn('メインスレッド処理に失敗したため、WebWorkerでの処理を試みます');
+        return this._postToWorker('getColoringInfo', session, 'normal').then(
+          (result) => {
+            if (result && !result.error) {
+              this.cache.coloringInfo.set(cacheKey, result);
+            }
+            return result;
+          }
+        );
       }
-    );
-  }
+    } else {
+      // ワーカーに色分け情報メッセージを送信
+      return this._postToWorker('getColoringInfo', session, 'normal').then(
+        (result) => {
+          // 結果をキャッシュ
+          if (result && !result.error) {
+            this.cache.coloringInfo.set(cacheKey, result);
 
+            // キャッシュサイズを制限
+            if (this.cache.coloringInfo.size > 500) {
+              const keys = Array.from(this.cache.coloringInfo.keys()).slice(
+                0,
+                100
+              );
+              for (const key of keys) {
+                this.cache.coloringInfo.delete(key);
+              }
+            }
+          }
+
+          return result;
+        }
+      );
+    }
+  }
   /**
    * 次に期待されるキーを高速取得
    * @param {Object} session タイピングセッション
@@ -585,19 +682,49 @@ class TypingWorkerManager {
       this.sharedState.nextExpectedKey
     ) {
       return Promise.resolve({ key: this.sharedState.nextExpectedKey });
-    }
+    }    // 処理モードに応じて処理を分岐
+    if (this.processingMode.typing === 'main-thread') {
+      // メインスレッドで処理
+      this.metrics.mainThreadProcessCalls++;
 
-    // ワーカーに次のキー取得メッセージを送信
-    return this._postToWorker('getNextExpectedKey', session, 'high').then(
-      (result) => {
+      try {
+        // 明示的にインポートされた関数を使用
+        const result = getNextExpectedKeyOnMainThread(session);
+
         // 共有状態を更新
         if (result && result.key !== undefined) {
           this.sharedState.nextExpectedKey = result.key;
           this.sharedState.lastUpdateTimestamp = now;
         }
-        return result;
+
+        return Promise.resolve(result);
+      } catch (error) {
+        console.error('メインスレッド処理エラー (次のキー):', error);
+        // フォールバック: WebWorkerでの処理を試みる
+        console.warn('メインスレッド処理に失敗したため、WebWorkerでの処理を試みます');
+        return this._postToWorker('getNextExpectedKey', session, 'high').then(
+          (result) => {
+            if (result && result.key !== undefined) {
+              this.sharedState.nextExpectedKey = result.key;
+              this.sharedState.lastUpdateTimestamp = now;
+            }
+            return result;
+          }
+        );
       }
-    );
+    } else {
+      // ワーカーに次のキー取得メッセージを送信
+      return this._postToWorker('getNextExpectedKey', session, 'high').then(
+        (result) => {
+          // 共有状態を更新
+          if (result && result.key !== undefined) {
+            this.sharedState.nextExpectedKey = result.key;
+            this.sharedState.lastUpdateTimestamp = now;
+          }
+          return result;
+        }
+      );
+    }
   }
 
   /**
@@ -641,12 +768,10 @@ class TypingWorkerManager {
     // ワーカーにパターン事前ロードメッセージを送信
     return this._postToWorker('PRELOAD_PATTERNS', { patterns }, 'normal');
   }
-
   /**
    * リセット
    * @returns {Promise<Object>} リセット結果
-   */
-  reset() {
+   */  reset() {
     // キャッシュをクリア
     this.cache.inputResults.clear();
     this.cache.coloringInfo.clear();
@@ -656,8 +781,59 @@ class TypingWorkerManager {
     this.sharedState.inputMode = 'normal';
     this.sharedState.lastUpdateTimestamp = 0;
 
+    // メインスレッド処理のキャッシュもクリア
+    if (typeof clearMainThreadCache === 'function') {
+      clearMainThreadCache();
+    }
+
     // ワーカーにリセットメッセージを送信
     return this._postToWorker('RESET', null, 'high');
+  }
+
+  /**
+   * 処理モードを設定
+   * @param {Object} modes 処理モード設定
+   * @returns {Promise<Object>} 設定結果
+   */
+  setProcessingModes(modes) {
+    if (!modes || typeof modes !== 'object') {
+      return Promise.reject(new Error('無効なモード設定'));
+    }
+
+    // 現在のモードをバックアップ
+    const previousModes = { ...this.processingMode };
+
+    // モードを更新
+    if (modes.typing === 'worker' || modes.typing === 'main-thread') {
+      this.processingMode.typing = modes.typing;
+    }
+
+    if (modes.effects === 'worker' || modes.effects === 'main-thread') {
+      this.processingMode.effects = modes.effects;
+    }
+
+    if (modes.statistics === 'worker' || modes.statistics === 'main-thread') {
+      this.processingMode.statistics = modes.statistics;
+    }
+
+    // モード変更ログ
+    console.log('[TypingWorkerManager] 処理モード変更:', this.processingMode);
+
+    // モードが変わった場合はキャッシュをクリア
+    if (previousModes.typing !== this.processingMode.typing) {
+      this.cache.inputResults.clear();
+      this.cache.coloringInfo.clear();
+
+      if (typeof clearMainThreadCache === 'function') {
+        clearMainThreadCache();
+      }
+    }
+
+    return Promise.resolve({
+      success: true,
+      currentModes: { ...this.processingMode },
+      previousModes
+    });
   }
 
   /**
@@ -748,6 +924,62 @@ class TypingWorkerManager {
 
     // ワーカーにバッチ処理メッセージを送信
     return this._postToWorker('batch', operations, 'normal');
+  }
+
+  /**
+   * メインスレッドでのタイピング入力処理
+   * @param {Object} session タイピングセッション
+   * @param {string} char 入力された文字
+   * @returns {Promise<Object>} 処理結果
+   */
+  processTypingInput(session, char) {
+    return new Promise((resolve, reject) => {
+      try {
+        // セッションとキャラクターの簡易チェック
+        if (!session || !char) {
+          return reject(new Error('無効な入力'));
+        }
+
+        this.metrics.mainThreadProcessCalls++;
+
+        const startTime = performance.now();
+
+        // メインスレッドで直接処理
+        const result = processTypingInputOnMainThread(session, char);
+
+        // 処理時間をメトリクスに追加
+        this.metrics.mainThreadProcessingTime +=
+          performance.now() - startTime;
+
+        resolve(result);
+      } catch (error) {
+        console.error('[TypingWorkerManager] メインスレッド処理エラー:', error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * メインスレッドでの色分け情報取得
+   * @param {Object} session タイピングセッション
+   * @returns {Promise<Object>} 色分け情報
+   */
+  getColoringInfoMainThread(session) {
+    return new Promise((resolve, reject) => {
+      try {
+        if (!session) {
+          return reject(new Error('無効なセッション'));
+        }
+
+        // メインスレッドで直接処理
+        const result = getColoringInfoOnMainThread(session);
+
+        resolve(result);
+      } catch (error) {
+        console.error('[TypingWorkerManager] メインスレッド色分け処理エラー:', error);
+        reject(error);
+      }
+    });
   }
 }
 

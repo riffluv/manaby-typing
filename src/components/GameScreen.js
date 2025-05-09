@@ -8,6 +8,7 @@ import { usePageTransition } from './TransitionManager';
 import Button from './common/Button';
 import ErrorBoundary from './common/ErrorBoundary';
 import { PerformanceDebugDisplay } from './common/PerformanceMonitor';
+import ProcessingModeSelector from './common/ProcessingModeSelector';
 import TypingArea from './typing/TypingArea';
 import GameStatusBar from './typing/GameStatusBar';
 import {
@@ -132,12 +133,13 @@ const GameScreen = () => {
                 メニューへ
               </span>
             </span>
-          </motion.div>
-
-          {/* パフォーマンス情報（開発モードでのデバッグ用） */}
+          </motion.div>          {/* パフォーマンス情報（開発モードでのデバッグ用） */}
           {DEBUG_GAME_SCREEN && (
             <PerformanceDebugDisplay metrics={performanceMetrics} />
           )}
+
+          {/* 処理モード設定パネル */}
+          <ProcessingModeSelector />
         </div>
       </div>
     </ErrorBoundary>
