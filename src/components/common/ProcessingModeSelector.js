@@ -55,30 +55,6 @@ export default function ProcessingModeSelector() {
           <h3 className={styles.title}>処理モード設定</h3>
 
           <div className={styles.modeGroup}>
-            <label>タイピング処理：</label>
-            <div className={styles.radioGroup}>
-              <label>
-                <input
-                  type="radio"
-                  name="typingMode"
-                  checked={modes.typing === 'main-thread'}
-                  onChange={() => handleModeChange('typing', 'main-thread')}
-                />
-                メインスレッド
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="typingMode"
-                  checked={modes.typing === 'worker'}
-                  onChange={() => handleModeChange('typing', 'worker')}
-                />
-                WebWorker
-              </label>
-            </div>
-          </div>
-
-          <div className={styles.modeGroup}>
             <label>エフェクト処理：</label>
             <div className={styles.radioGroup}>
               <label>
@@ -127,7 +103,6 @@ export default function ProcessingModeSelector() {
           </div>
 
           <p className={styles.note}>
-            タイピング入力はメインスレッド推奨<br />
             派手な演出はWorker推奨
           </p>
 

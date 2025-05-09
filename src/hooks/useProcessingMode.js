@@ -52,7 +52,12 @@ export default function useProcessingMode(defaultModes = {
    * @returns {Promise} 設定結果のPromise
    */
   const changeMode = (key, value) => {
-    if (!['typing', 'effects', 'statistics'].includes(key) ||
+    if (key === 'typing') {
+      console.warn('[処理モード] タイピング処理モードは変更できません。');
+      return Promise.resolve({ success: false, message: 'タイピング処理モードは変更できません。', currentModes: modes });
+    }
+
+    if (!['effects', 'statistics'].includes(key) ||
       !['worker', 'main-thread'].includes(value)) {
       return Promise.reject(new Error('無効なモード設定'));
     }

@@ -108,7 +108,7 @@ class TypingWorkerManager {
         '[TypingWorkerManager] WebWorkerがサポートされていません。フォールバックモードを使用します。'
       );
       this.fallbackMode = true;
-      this.initialized = true; // フォールバックモードでも初期化完了とする
+      this.initialized = false; // フォールバックモードでは初期化完了としない
       return;
     }
 
@@ -501,229 +501,95 @@ class TypingWorkerManager {
 
     const startTime = performance.now();
 
-    // 処理モードに応じて処理を分岐
-    if (this.processingMode.typing === 'main-thread') {
-      // メインスレッドで処理
-      this.metrics.mainThreadProcessCalls++;
+    // タイピング処理は常にメインスレッドで実行
+    this.metrics.mainThreadProcessCalls++;
 
-      try {
-        // 明示的にインポートされた関数を使用
-        const result = processTypingInputOnMainThread(session, char);
+    try {
+      const result = processTypingInputOnMainThread(session, char);
+      const processingTime = performance.now() - startTime;
+      this.metrics.mainThreadProcessingTime += processingTime;
+      this.metrics.processingTime += processingTime;
 
-        // 処理時間を記録
-        const processingTime = performance.now() - startTime;
-        this.metrics.mainThreadProcessingTime += processingTime;
-        this.metrics.processingTime += processingTime;
-
-        // 結果をキャッシュ
-        if (result && result.success !== false) {
-          this.cache.inputResults.set(cacheKey, result);
-
-          // キャッシュサイズを制限
-          if (this.cache.inputResults.size > 1000) {
-            // 古いエントリを削除
-            const keys = Array.from(this.cache.inputResults.keys()).slice(0, 200);
-            for (const key of keys) {
-              this.cache.inputResults.delete(key);
-            }
+      if (result && result.success !== false) {
+        this.cache.inputResults.set(cacheKey, result);
+        if (this.cache.inputResults.size > 1000) {
+          const keys = Array.from(this.cache.inputResults.keys()).slice(0, 200);
+          for (const key of keys) {
+            this.cache.inputResults.delete(key);
           }
         }
-
-        return Promise.resolve(result);
-      } catch (error) {
-        console.error('メインスレッド処理エラー:', error);
-        // フォールバック: WebWorkerでの処理を試みる
-        console.warn('メインスレッド処理に失敗したため、WebWorkerでの処理を試みます');
-        return this._postToWorker(
-          'processInput',
-          { session, char, cacheKey },
-          'high'
-        ).then((result) => {
-          const processingTime = performance.now() - startTime;
-          this.metrics.processingTime += processingTime;
-          if (result && result.success !== false) {
-            this.cache.inputResults.set(cacheKey, result);
-          }
-          return result;
-        });
       }
-    } else {
-      // ワーカーに入力処理メッセージを送信
-      return this._postToWorker(
-        'processInput',
-        { session, char, cacheKey },
-        'high'
-      ).then((result) => {
-        // 処理時間を記録
-        const processingTime = performance.now() - startTime;
-        this.metrics.processingTime += processingTime;
-
-        // 結果をキャッシュ
-        if (result && result.success !== false) {
-          this.cache.inputResults.set(cacheKey, result);
-
-          // キャッシュサイズを制限
-          if (this.cache.inputResults.size > 1000) {
-            // 古いエントリを削除
-            const keys = Array.from(this.cache.inputResults.keys()).slice(0, 200);
-            for (const key of keys) {
-              this.cache.inputResults.delete(key);
-            }
-          }
-        }
-
-        return result;
-      });
+      return Promise.resolve(result);
+    } catch (error) {
+      console.error('メインスレッド処理エラー:', error);
+      return Promise.reject(error); // Web Workerへのフォールバックを削除
     }
   }
-  /**
-   * 色分け情報を取得
-   * @param {Object} session タイピングセッション
-   * @returns {Promise<Object>} 色分け情報
-   */
+
   getColoringInfo(session) {
     if (!session) {
       return Promise.reject(new Error('無効なセッション'));
     }
 
-    // キャッシュキーを作成
     const cacheKey = `color_${session.currentCharIndex || 0}_${session.currentInput || ''
       }_${session.completed ? 1 : 0}`;
 
-    // キャッシュチェック
     if (this.cache.coloringInfo.has(cacheKey)) {
       this.metrics.cacheHits++;
       return Promise.resolve(this.cache.coloringInfo.get(cacheKey));
     }
 
-    this.metrics.cacheMisses++;    // 処理モードに応じて処理を分岐
-    if (this.processingMode.typing === 'main-thread') {
-      // メインスレッドで処理
-      this.metrics.mainThreadProcessCalls++;
+    this.metrics.cacheMisses++;
 
-      try {
-        // 明示的にインポートされた関数を使用
-        const result = getColoringInfoOnMainThread(session);
-
-        // 結果をキャッシュ
-        if (result && !result.error) {
-          this.cache.coloringInfo.set(cacheKey, result);
-
-          // キャッシュサイズを制限
-          if (this.cache.coloringInfo.size > 500) {
-            const keys = Array.from(this.cache.coloringInfo.keys()).slice(
-              0,
-              100
-            );
-            for (const key of keys) {
-              this.cache.coloringInfo.delete(key);
-            }
+    // タイピング関連の表示情報は常にメインスレッドで処理
+    this.metrics.mainThreadProcessCalls++;
+    try {
+      const result = getColoringInfoOnMainThread(session);
+      if (result && !result.error) {
+        this.cache.coloringInfo.set(cacheKey, result);
+        if (this.cache.coloringInfo.size > 500) { // 修正点: 括弧を追加
+          const keys = Array.from(this.cache.coloringInfo.keys()).slice(0, 100);
+          for (const key of keys) {
+            this.cache.coloringInfo.delete(key);
           }
         }
-
-        return Promise.resolve(result);
-      } catch (error) {
-        console.error('メインスレッド処理エラー (色分け情報):', error);
-        // フォールバック: WebWorkerでの処理を試みる
-        console.warn('メインスレッド処理に失敗したため、WebWorkerでの処理を試みます');
-        return this._postToWorker('getColoringInfo', session, 'normal').then(
-          (result) => {
-            if (result && !result.error) {
-              this.cache.coloringInfo.set(cacheKey, result);
-            }
-            return result;
-          }
-        );
       }
-    } else {
-      // ワーカーに色分け情報メッセージを送信
-      return this._postToWorker('getColoringInfo', session, 'normal').then(
-        (result) => {
-          // 結果をキャッシュ
-          if (result && !result.error) {
-            this.cache.coloringInfo.set(cacheKey, result);
-
-            // キャッシュサイズを制限
-            if (this.cache.coloringInfo.size > 500) {
-              const keys = Array.from(this.cache.coloringInfo.keys()).slice(
-                0,
-                100
-              );
-              for (const key of keys) {
-                this.cache.coloringInfo.delete(key);
-              }
-            }
-          }
-
-          return result;
-        }
-      );
+      return Promise.resolve(result);
+    } catch (error) {
+      console.error('メインスレッド処理エラー (色分け情報):', error);
+      return Promise.reject(error); // Web Workerへのフォールバックを削除
     }
   }
-  /**
-   * 次に期待されるキーを高速取得
-   * @param {Object} session タイピングセッション
-   * @returns {Promise<Object>} 次のキー情報
-   */
+
   getNextExpectedKey(session) {
     if (!session) {
       return Promise.reject(new Error('無効なセッション'));
     }
 
-    // 完了状態ならすぐに空を返す（高速パス）
     if (session.completed) {
       return Promise.resolve({ key: '' });
     }
 
-    // 最終更新が1ms以内なら共有状態から取得（超高速パス）
     const now = Date.now();
     if (
       this.sharedState.lastUpdateTimestamp > now - 1 &&
       this.sharedState.nextExpectedKey
     ) {
       return Promise.resolve({ key: this.sharedState.nextExpectedKey });
-    }    // 処理モードに応じて処理を分岐
-    if (this.processingMode.typing === 'main-thread') {
-      // メインスレッドで処理
-      this.metrics.mainThreadProcessCalls++;
+    }
 
-      try {
-        // 明示的にインポートされた関数を使用
-        const result = getNextExpectedKeyOnMainThread(session);
-
-        // 共有状態を更新
-        if (result && result.key !== undefined) {
-          this.sharedState.nextExpectedKey = result.key;
-          this.sharedState.lastUpdateTimestamp = now;
-        }
-
-        return Promise.resolve(result);
-      } catch (error) {
-        console.error('メインスレッド処理エラー (次のキー):', error);
-        // フォールバック: WebWorkerでの処理を試みる
-        console.warn('メインスレッド処理に失敗したため、WebWorkerでの処理を試みます');
-        return this._postToWorker('getNextExpectedKey', session, 'high').then(
-          (result) => {
-            if (result && result.key !== undefined) {
-              this.sharedState.nextExpectedKey = result.key;
-              this.sharedState.lastUpdateTimestamp = now;
-            }
-            return result;
-          }
-        );
+    // タイピング関連のキー取得は常にメインスレッドで処理
+    this.metrics.mainThreadProcessCalls++;
+    try {
+      const result = getNextExpectedKeyOnMainThread(session);
+      if (result && result.key !== undefined) {
+        this.sharedState.nextExpectedKey = result.key;
+        this.sharedState.lastUpdateTimestamp = now;
       }
-    } else {
-      // ワーカーに次のキー取得メッセージを送信
-      return this._postToWorker('getNextExpectedKey', session, 'high').then(
-        (result) => {
-          // 共有状態を更新
-          if (result && result.key !== undefined) {
-            this.sharedState.nextExpectedKey = result.key;
-            this.sharedState.lastUpdateTimestamp = now;
-          }
-          return result;
-        }
-      );
+      return Promise.resolve(result);
+    } catch (error) {
+      console.error('メインスレッド処理エラー (次のキー):', error);
+      return Promise.reject(error); // Web Workerへのフォールバックを削除
     }
   }
 
