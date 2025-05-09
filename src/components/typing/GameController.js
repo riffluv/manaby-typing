@@ -14,6 +14,7 @@ import { usePerformanceMonitor } from '../common/PerformanceMonitor';
 export function useGameController({
   onDebugInfoUpdate = null,
   onLastPressedKeyChange = null,
+  goToScreen = null, // 画面遷移関数を追加
 }) {
   const { gameState, setGameState, problems } = useGameContext();
 
@@ -282,6 +283,30 @@ export function useGameController({
         return;
       }
 
+      // ESCキーの処理 - メインメニューに戻る
+      if (e.key === 'Escape') {
+        // ボタンクリック音を再生
+        soundSystem.play('button');
+        
+        // ゲーム状態をリセットして、メインメニューに戻る
+        queueMicrotask(() => {
+          // ゲームを終了状態にする
+          setGameState(prev => ({
+            ...prev,
+            isGameOver: true 
+          }));
+          
+          // メインメニューに遷移（直接goToScreenを使用）
+          if (goToScreen) {
+            goToScreen(SCREENS.MAIN_MENU, {
+              playSound: true,
+              soundType: 'button',
+            });
+          }
+        });
+        return;
+      }
+
       // 入力に関係のないキーは無視（高速処理）
       if (e.key.length !== 1 || e.ctrlKey || e.altKey || e.metaKey) {
         return;
@@ -319,7 +344,7 @@ export function useGameController({
 
       // パフォーマンス測定開始
       const inputPerf = recordInputEvent();
-
+      
       // typingのhandleInputを直接呼び出し、パフォーマンスを最大化
       try {
         typing.handleInput(e.key);
@@ -336,6 +361,7 @@ export function useGameController({
       setGameState,
       onLastPressedKeyChange,
       recordInputEvent,
+      goToScreen // 依存配列にgoToScreenを追加
     ]
   );
 

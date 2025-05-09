@@ -41,6 +41,7 @@ const GameScreen = () => {
   } = useGameController({
     onDebugInfoUpdate: DEBUG_GAME_SCREEN ? setDebugInfo : null,
     onLastPressedKeyChange: setLastPressedKey,
+    goToScreen, // goToScreen関数をGameControllerに渡す
   });
 
   // ゲーム完了ハンドラー
