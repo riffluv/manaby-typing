@@ -33,7 +33,7 @@ const TypingAreaRefactored = ({
     const key = typing?.getNextKey?.() || '';
     console.log('[TypingAreaRefactored] 次のキー:', key);
     return key;
-  }, [typing, typing?.displayInfo?.currentCharIndex]);// 表示データの更新（キャラクターインデックスが変わったときに更新）
+  }, [typing, typing?.displayInfo?.currentCharIndex, typing?.displayInfo?.typedLength]);// 表示データの更新（キャラクターインデックスが変わったときに更新）
   useEffect(() => {
     if (typing?.displayInfo) {      // displayInfoの特定のプロパティを依存配列で監視し、値が変わった時だけ更新
       const { romaji, typedLength, currentCharIndex, currentInput, currentCharRomaji, expectedNextChar } = typing.displayInfo;
@@ -116,11 +116,12 @@ const TypingAreaRefactored = ({
         />        <SimpleTypingDisplay
           romaji={displayData.romaji}
           typedLength={displayData.typedLength}
-          nextChar={nextKey}
+          nextChar={displayData.expectedNextChar || nextKey}
           isError={typing.errorAnimation}
           className={styles.typing_area__romaji}
-          currentInput={typing?.displayInfo?.currentInput || ''}
-          currentCharRomaji={typing?.displayInfo?.currentCharRomaji || ''}
+          currentInput={displayData.currentInput || typing?.displayInfo?.currentInput || ''}
+          currentCharRomaji={displayData.currentCharRomaji || typing?.displayInfo?.currentCharRomaji || ''}
+          inputMode={displayData.currentInput ? 'consonant' : 'normal'}
         />
       </motion.div>
 

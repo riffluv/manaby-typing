@@ -168,12 +168,8 @@ const SimpleTypingDisplay = memo(({
 
   return (
     <div className={containerClass} ref={containerRef}>
-      <div className={styles.typingTextContent} ref={contentRef}>
-        {/* 前の部分が省略されている場合の省略記号 */}
-        {prefixEllipsis && (
-          <span className={styles.ellipsis}>{prefixEllipsis}</span>
-        )}
-
+      <div className={styles.typingTextContent} ref={contentRef}>        {/* 前の部分が省略されている場合の省略記号 */}
+        {prefixEllipsis && (<span className={styles.ellipsis}>{prefixEllipsis}</span>)}
         {/* 入力済み部分 */}
         {typed && (
           <span className={styles.typed}>
@@ -190,9 +186,7 @@ const SimpleTypingDisplay = memo(({
 
         {/* 次に入力すべき文字（ハイライト表示） */}
         {displayNextChar && (
-          <span className={styles.nextChar} ref={nextCharRef}>
-            {displayNextChar}
-          </span>
+          <span className={styles.nextChar} ref={nextCharRef}>{displayNextChar}</span>
         )}
 
         {/* 子音入力中の場合は、現在の仮名の残りを表示 */}
@@ -200,15 +194,11 @@ const SimpleTypingDisplay = memo(({
           <span className={styles.currentCharRemaining}>
             {currentCharRomaji.substring((currentInput?.length || 0) + 1)}
           </span>
-        )}
-
-        {/* 残りの未入力部分 */}
+        )}        {/* 残りの未入力部分 */}
         {displayRemaining && <span className={styles.remaining}>{displayRemaining}</span>}
 
         {/* 後の部分が省略されている場合の省略記号 */}
-        {suffixEllipsis && (
-          <span className={styles.ellipsis}>{suffixEllipsis}</span>
-        )}
+        {suffixEllipsis && <span className={styles.ellipsis}>{suffixEllipsis}</span>}
 
         {/* タイピングカーソル */}
         <span className={styles.typingCursor}></span>
