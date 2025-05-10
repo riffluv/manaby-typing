@@ -39,7 +39,6 @@ export function useTypingStats(options = {}) {
 
   // タイマー参照
   const statsUpdateTimerRef = useRef(null);
-
   /**
    * 統計情報のリセット
    */
@@ -51,6 +50,8 @@ export function useTypingStats(options = {}) {
       mistakeCount: 0,
       startTime: null,
       currentProblemStartTime: null,
+      // 前の問題のミス数を記録（問題ごとのミス数計算用）
+      previousProblemMistakeCount: keepHistory ? currentStats.mistakeCount || 0 : 0,
       // 履歴を保持するオプション
       problemStats: keepHistory ? currentStats.problemStats || [] : [],
     };
@@ -167,14 +168,28 @@ export function useTypingStats(options = {}) {
 
     // 統計情報を更新
     const updatedProblemStats = [...(stats.problemStats || []), problemData];
-    stats.problemStats = updatedProblemStats;
-
-    // 表示用統計情報を更新
+    stats.problemStats = updatedProblemStats;    // 表示用統計情報を更新
     updateDisplayStats();
 
+    // 問題ごとのKPMリスト
+    const updatedProblemKPMs = updatedProblemStats.map(p => p.problemKPM).filter(kpm => kpm > 0);
+
+    // 拡張した統計情報を返す
     return {
+      // 元の情報
       problem: problemData,
       allProblems: updatedProblemStats,
+
+      // GameControllerRefactoredで必要な情報
+      problemKeyCount: problemData.problemKeyCount,
+      problemElapsedMs: problemData.problemElapsedMs,
+      problemKPM: problemData.problemKPM,
+      problemMistakeCount: stats.mistakeCount - (stats.previousProblemMistakeCount || 0),
+      updatedProblemKPMs: updatedProblemKPMs,
+
+      // リザルト画面で表示する累計情報
+      totalCorrectKeyCount: stats.correctKeyCount,
+      totalMissCount: stats.mistakeCount
     };
   }, [updateDisplayStats]);
 

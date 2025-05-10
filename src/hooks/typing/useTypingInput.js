@@ -92,11 +92,10 @@ export function useTypingInput(options = {}) {
         const progress = session.getCompletionPercentage();
 
         // コールバック呼び出し
-        onCorrectInput({ key, displayInfo, progress, result });
-
-        // 完了チェック - 即時処理
+        onCorrectInput({ key, displayInfo, progress, result });        // 完了チェック - 即時処理
         if (result.status === 'all_completed') {
-          onComplete();
+          // 統計情報を含めて完了通知
+          onComplete({ result, displayInfo, progress });
         }
 
         return { success: true, displayInfo, progress };

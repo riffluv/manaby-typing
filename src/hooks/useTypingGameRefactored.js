@@ -134,9 +134,29 @@ export function useTypingGameRefactored(options = {}) {
         };
         onDebugInfoUpdate(debugInfoRef.current);
       }
-    },
-    onComplete: () => {
+    }, onComplete: (inputData) => {
+      // 状態を完了に設定
       typingCore.markAsCompleted();
+
+      // 問題統計情報を記録し、上位コールバックに渡す
+      const stats = typingStats.recordProblemCompletion();
+
+      // パラメータ準備（既存のフォーマットと互換性を持たせる）
+      const typingStatsData = {
+        problemKeyCount: stats.problemKeyCount,
+        problemElapsedMs: stats.problemElapsedMs,
+        problemKPM: stats.problemKPM,
+        problemMistakeCount: stats.problemMistakeCount,
+        updatedProblemKPMs: stats.updatedProblemKPMs,
+        displayStats: typingStats.displayStats
+      };
+
+      console.log('[useTypingGameRefactored] 問題完了 - 統計情報:', typingStatsData);
+
+      // 上位レイヤーに完了を通知
+      if (typeof onComplete === 'function') {
+        onComplete(typingStatsData);
+      }
     },
   });
   /**
