@@ -35,20 +35,44 @@ export function getRandomProblem(options = {}) {
     useMemory = true,
   } = options;
 
+  // デバッグログ：難易度と選択条件
+  console.log('[ProblemSelector] 問題選択:', {
+    指定された難易度: difficulty,
+    カテゴリ: category || '指定なし',
+    除外数: excludeRecent.length,
+    難易度設定値チェック: {
+      ALL: DIFFICULTIES.ALL,
+      EASY: DIFFICULTIES.EASY,
+      NORMAL: DIFFICULTIES.NORMAL,
+      HARD: DIFFICULTIES.HARD,
+      入力値との一致: {
+        ALL: difficulty === DIFFICULTIES.ALL,
+        EASY: difficulty === DIFFICULTIES.EASY,
+        NORMAL: difficulty === DIFFICULTIES.NORMAL,
+        HARD: difficulty === DIFFICULTIES.HARD
+      }
+    }
+  });
+
   // 難易度に基づいて利用可能な問題を取得
   let availableProblems = [];
 
   if (difficulty === DIFFICULTIES.EASY || difficulty === DIFFICULTIES.ALL) {
     availableProblems = availableProblems.concat(easyProblems);
+    console.log('[ProblemSelector] EASY問題を追加:', easyProblems.length);
   }
 
   if (difficulty === DIFFICULTIES.NORMAL || difficulty === DIFFICULTIES.ALL) {
     availableProblems = availableProblems.concat(normalProblems);
+    console.log('[ProblemSelector] NORMAL問題を追加:', normalProblems.length);
   }
 
   if (difficulty === DIFFICULTIES.HARD || difficulty === DIFFICULTIES.ALL) {
     availableProblems = availableProblems.concat(hardProblems);
+    console.log('[ProblemSelector] HARD問題を追加:', hardProblems.length);
   }
+
+  console.log(`[ProblemSelector] 難易度「${difficulty}」の選択可能な問題数:`, availableProblems.length);
 
   // カテゴリによるフィルタリング
   if (category && category !== 'all') {

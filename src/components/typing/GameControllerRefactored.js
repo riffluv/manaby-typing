@@ -12,6 +12,7 @@ import { useTypingGameRefactored } from '../../hooks/useTypingGameRefactored';
 import soundSystem from '../../utils/SoundUtils';
 import { getRandomProblem } from '../../utils/ProblemSelector';
 import TypingUtils from '../../utils/TypingUtils'; // KPM計算用にTypingUtilsをインポート
+import typingWorkerManager from '../../utils/TypingWorkerManager'; // Worker管理のためのインポートを追加
 
 /**
  * ゲームコントローラーフックのリファクタリング版
@@ -175,11 +176,24 @@ export function useGameControllerRefactored(options = {}) {
         totalMissKeys: (prev.totalMissKeys || 0) + currentProblemMistakes
       }));// 次の問題をセット（最小限のディレイで素早く表示）
       setTimeout(() => {
+        // 難易度設定の確認ログ
+        console.log('[GameControllerRefactored] 次の問題選択 - 難易度設定:', {
+          difficulty: gameState.difficulty,
+          category: gameState.category
+        });
+        
         // 新しい問題を取得
         const nextProblem = getRandomProblem({
           difficulty: gameState.difficulty,
           category: gameState.category,
           excludeRecent: [currentProblem?.displayText],
+        });
+
+        // 選択された問題の詳細をログ
+        console.log('[GameControllerRefactored] 次の問題を選択:', {
+          displayText: nextProblem?.displayText,
+          kanaText: nextProblem?.kanaText,
+          選択された難易度: gameState.difficulty
         });
 
         // 問題をセット
@@ -260,6 +274,16 @@ export function useGameControllerRefactored(options = {}) {
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      
+      // Workerの終了処理を追加
+      // メッセージチャネルが閉じられたエラーを防ぐため、コンポーネントのアンマウント時に
+      // 明示的にリソースを解放する
+      if (typingWorkerManager && typeof typingWorkerManager.reset === 'function') {
+        console.log('[GameControllerRefactored] コンポーネントのアンマウント時にWorkerをリセットします');
+        typingWorkerManager.reset().catch(err => {
+          console.warn('[GameControllerRefactored] Worker終了中にエラーが発生しました:', err);
+        });
+      }
     };
   }, [handleKeyDown]);
   /**
@@ -268,6 +292,12 @@ export function useGameControllerRefactored(options = {}) {
   useEffect(() => {
     // 初回ロード時か問題がない場合は新しい問題をセット
     if (!currentProblem) {
+      // 難易度設定の確認とデバッグログ
+      console.log('[GameControllerRefactored] 現在の難易度設定:', {
+        difficulty: gameState.difficulty,
+        category: gameState.category
+      });
+      
       const initialProblem = getRandomProblem({
         difficulty: gameState.difficulty,
         category: gameState.category,
@@ -275,7 +305,10 @@ export function useGameControllerRefactored(options = {}) {
 
       console.log('[GameControllerRefactored] 初期問題をロード:', {
         displayText: initialProblem?.displayText,
-        kanaText: initialProblem?.kanaText
+        kanaText: initialProblem?.kanaText,
+        選択された難易度: gameState.difficulty,
+        カテゴリー: gameState.category,
+        問題オブジェクト全体: initialProblem
       });
 
       setCurrentProblem(initialProblem);
@@ -342,4 +375,13 @@ export function useGameCompleteHandlerRefactored(gameState, goToScreen, typingRe
       }
     }
   }, [gameState, goToScreen, typingRef]);
+}
+
+/**
+ * Workerクリーンアップ
+ * コンポーネントのアンマウント時にWorkerを適切に終了
+ */
+export function cleanupTypingWorker() {
+  // タイピングWorkerのクリーンアップ
+  typingWorkerManager.cleanup();
 }

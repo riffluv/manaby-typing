@@ -13,6 +13,7 @@ import SoundSettings from './common/SoundSettings'; // 共通サウンド設定�
 import CreditsContent from './common/CreditsContent'; // 共通クレジットコンポーネント
 import { creditsData } from '../utils/CreditsData'; // クレジットデータ
 import mcpUtils, { useMCPContext } from '../utils/MCPUtils'; // MCP連携の追加
+import typingWorkerManager from '../utils/TypingWorkerManager'; // Worker管理のためのインポートを追加
 
 // 設定モーダルの表示状態を外部から制御するためのカスタムフック
 export const useSettingsModal = () => {
@@ -120,8 +121,15 @@ const MainMenu = () => {
           timestamp: Date.now(),
           duration: Date.now() - performance.now() // コンポーネントの表示時間を記録
         });
+      }      clearInterval(interval);
+
+      // Workerをリセット
+      if (typingWorkerManager && typeof typingWorkerManager.reset === 'function') {
+        console.log('[MainMenu] コンポーネントのアンマウント時にWorkerをリセットします');
+        typingWorkerManager.reset().catch(err => {
+          console.warn('[MainMenu] Worker終了中にエラーが発生しました:', err);
+        });
       }
-      clearInterval(interval);
     };
   }, [soundSystem, soundEnabled, bgmEnabled, mcpActive, recordUXElement, recordGameEvent]);
 
@@ -215,15 +223,13 @@ const MainMenu = () => {
       });
     }
 
-    // モーダル表示フラグをすべてリセット
-    setShowCredits(false);
+    // モーダル表示フラグをすべてリセット    setShowCredits(false);
     setShowDevOptions(false);
 
-    if (settingsModalControl.showSettingsModal) {
-      settingsModalControl.closeSettingsModal();
+    if (showSettingsModal) {
+      closeSettingsModal();
     }
   }, [playButtonSound, mcpActive, recordUXElement, showCredits, closeSettingsModal]);
-
   // 難易度を表示するテキスト（日本語表記）
   const difficultyLabels = {
     easy: 'やさしい',

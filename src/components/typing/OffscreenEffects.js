@@ -111,14 +111,29 @@ const OffscreenEffects = ({
     worker.postMessage({
       type: 'fps',
       data: { fps }
-    });
-
-    return () => {
-      // クリーンアップ
+    });    return () => {
+      // クリーンアップ - メッセージチャネルが閉じられたエラーを防ぐための改善
       if (workerRef.current) {
-        workerRef.current.postMessage({ type: 'stop' });
-        workerRef.current.terminate();
-        workerRef.current = null;
+        try {
+          // 最後のメッセージ送信を試みる前にエラーハンドラーを追加
+          const errorHandler = () => {
+            console.warn('[OffscreenEffects] Worker通信エラー - 既に終了している可能性があります');
+          };
+          workerRef.current.onerror = errorHandler;
+          
+          // 安全にメッセージ送信を試みる
+          try {
+            workerRef.current.postMessage({ type: 'stop' });
+          } catch (err) {
+            console.warn('[OffscreenEffects] 終了メッセージの送信に失敗しました:', err);
+          }
+          
+          // 最終的にWorkerを終了
+          workerRef.current.terminate();
+          workerRef.current = null;
+        } catch (err) {
+          console.error('[OffscreenEffects] Workerのクリーンアップ中にエラーが発生しました:', err);
+        }
       }
     };
   }, [isSupported, enabled, canvasSize, fps, onEffectSpawned]);

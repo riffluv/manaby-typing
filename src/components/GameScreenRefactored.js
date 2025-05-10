@@ -31,8 +31,16 @@ const DEBUG_GAME_SCREEN = process.env.NODE_ENV === 'development' && false;
  * コンポーネントの責任分離とパフォーマンス最適化
  */
 const GameScreenRefactored = () => {
-  const { gameState } = useGameContext();
+  const { gameState, settings } = useGameContext();
   const { goToScreen } = usePageTransition();
+
+  // 初期化時に設定とゲーム状態をログ出力
+  console.log('[GameScreenRefactored] 初期化 - 設定とゲーム状態:', {
+    現在の難易度: settings.difficulty,
+    ゲーム状態の難易度: gameState.difficulty,
+    カテゴリー: gameState.category,
+    問題数設定: gameState.requiredProblemCount,
+  });
 
   // パフォーマンスメトリクス表示用の状態
   const [debugInfo, setDebugInfo] = useState({});

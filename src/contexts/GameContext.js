@@ -173,6 +173,14 @@ export const GameProvider = ({ children }) => {
       // 問題をランダム化して取得
       const requiredProblemCount =
         settings.requiredProblemCount || DEFAULT_SETTINGS.requiredProblemCount;
+      
+      // 詳細なデバッグログ
+      console.log('[GameContext] ゲームリセット - 難易度設定:', {
+        設定難易度: settings.difficulty,
+        問題数: requiredProblemCount,
+        UseRefactored: settings.useRefactoredGameScreen
+      });
+      
       const currentProblems = getRandomizedProblems(
         settings.difficulty,
         requiredProblemCount
@@ -195,14 +203,17 @@ export const GameProvider = ({ children }) => {
         problems: currentProblems,
         requiredProblemCount,
         playerName: StorageUtils.getUsername() || INITIAL_GAME_STATE.playerName,
+        // 難易度を明示的にゲームステートにも設定
+        difficulty: settings.difficulty,
+        category: 'all' // カテゴリーも明示的に設定
       };
 
       setGameState(resetState);
-      console.log('[GameContext] ゲームリセット完了');
+      console.log('[GameContext] ゲームリセット完了', resetState);
     } catch (error) {
       console.error('[GameContext] ゲームリセットエラー:', error);
     }
-  }, [settings.difficulty, settings.requiredProblemCount]);
+  }, [settings.difficulty, settings.requiredProblemCount, settings.useRefactoredGameScreen]);
 
   // 画面を切り替える関数
   const navigateTo = useCallback((screen) => {
