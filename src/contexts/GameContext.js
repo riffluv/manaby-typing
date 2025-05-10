@@ -38,6 +38,8 @@ const DEFAULT_SETTINGS = {
   requiredProblemCount: 8, // デフォルトお題数
   // 高速パフォーマンスモードは常に有効
   highPerformanceMode: true,
+  // リファクタリング版GameScreenの使用フラグ
+  useRefactoredGameScreen: false,
 };
 
 // 初期ゲーム状態

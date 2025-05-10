@@ -7,7 +7,7 @@ import { useSoundContext } from '../contexts/SoundContext';
 import soundSystem from '../utils/SoundUtils'; // soundSystemをインポート
 import MainMenu from './MainMenu';
 import GameScreen from './GameScreen';
-// MCPGameScreenのインポートを削除
+import GameScreenRefactored from './GameScreenRefactored'; // リファクタリング版のインポート
 import ResultScreen from './ResultScreen';
 import RankingScreen from './RankingScreen';
 import { useSettingsModal } from './MainMenu';
@@ -125,8 +125,7 @@ const TransitionManager = () => {
   globalSettingsModalControl = settingsModalControl;
 
   // 画面が変更されたときの処理（簡潔化）
-  useEffect(() => {
-    // 設定画面への遷移時はメインメニューを表示して設定モーダルを開く
+  useEffect(() => {    // 設定画面への遷移時はメインメニューを表示して設定モーダルを開く
     if (
       currentScreen === SCREENS.SETTINGS &&
       previousScreen !== SCREENS.SETTINGS
@@ -137,6 +136,9 @@ const TransitionManager = () => {
       setTimeout(() => {
         if (globalSettingsModalControl) {
           globalSettingsModalControl.openSettingsModal();
+          console.log('設定モーダルを開きました');
+        } else {
+          console.warn('設定モーダルコントローラが見つかりません');
         }
       }, 100);
     }
@@ -171,17 +173,17 @@ const TransitionManager = () => {
   const transitionVariants = getTransitionForScreen(
     previousScreen,
     currentScreen
-  );
-
-  // 現在の画面に対応するコンポーネントを返す
+  );  // 現在の画面に対応するコンポーネントを返す
   const renderCurrentScreen = () => {
     // コンテキストから設定を取得
     const { settings } = useGameContext();
 
     switch (currentScreen) {
       case SCREENS.GAME:
-        // 常にパフォーマンス最適化されたGameScreenを使用する
-        return <GameScreen />;
+        // 設定に基づいてGameScreenの通常版またはリファクタリング版を使用
+        const useRefactored = settings.useRefactoredGameScreen;
+        console.log(`[TransitionManager] レンダリングするゲームスクリーン: ${useRefactored ? 'リファクタリング版' : '通常版'}`);
+        return useRefactored ? <GameScreenRefactored /> : <GameScreen />;
       case SCREENS.SETTINGS:
         // 設定画面はメインメニューでモーダル表示するため、メインメニューを表示
         return <MainMenu />;

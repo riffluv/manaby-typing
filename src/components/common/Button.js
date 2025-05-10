@@ -85,7 +85,6 @@ const Button = ({
   const buttonProps = { ...rest };
   // loadingはDOMプロパティとして渡さない（falseの場合にエラーが出る原因）
   delete buttonProps.loading;
-
   return (
     <motion.button
       className={buttonClassName}
@@ -94,6 +93,7 @@ const Button = ({
       whileTap={!isDisabled ? buttonAnimations.whileTap : undefined}
       whileHover={!isDisabled ? buttonAnimations.whileHover : undefined}
       transition={buttonAnimations.transition}
+      style={{}} // 空のスタイルオブジェクトを明示的に追加
       {...buttonProps}
     >
       {loading && (
@@ -143,7 +143,6 @@ export const ToggleButton = ({
       .filter(Boolean)
       .join(' ');
   }, [isOn, disabled, className]);
-
   return (
     <motion.button
       className={toggleClassName}
@@ -152,6 +151,7 @@ export const ToggleButton = ({
       whileTap={!disabled ? buttonAnimations.whileTap : undefined}
       whileHover={!disabled ? buttonAnimations.whileHover : undefined}
       transition={buttonAnimations.transition}
+      style={{}} // 空のスタイルオブジェクトを明示的に追加
       aria-pressed={isOn}
       role="switch"
     >

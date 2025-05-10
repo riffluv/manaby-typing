@@ -44,9 +44,9 @@ const MainMenu = () => {
 
   // MCP連携の追加
   const { isActive: mcpActive, recordUXElement, recordGameEvent } = useMCPContext();
-
   // モーダル表示状態を管理するstate
   const [showCredits, setShowCredits] = useState(false);
+  const [showDevOptions, setShowDevOptions] = useState(false);
 
   // グローバル設定モーダル状態を使用
   const {
@@ -215,8 +215,13 @@ const MainMenu = () => {
       });
     }
 
+    // モーダル表示フラグをすべてリセット
     setShowCredits(false);
-    closeSettingsModal();
+    setShowDevOptions(false);
+
+    if (settingsModalControl.showSettingsModal) {
+      settingsModalControl.closeSettingsModal();
+    }
   }, [playButtonSound, mcpActive, recordUXElement, showCredits, closeSettingsModal]);
 
   // 難易度を表示するテキスト（日本語表記）
@@ -436,6 +441,66 @@ const MainMenu = () => {
       />
     );
   }, []);
+
+  /**
+   * 開発者設定オプションをレンダリングする関数
+   */
+  const renderDeveloperOptions = useCallback(() => {
+    return (
+      <div className={styles.developerOptions}>
+        <h3 className={styles.developerOptionTitle}>実験的機能</h3>
+
+        {/* リファクタリング版ゲームスクリーンの切り替え */}
+        <div className={styles.optionRow}>
+          <label htmlFor="useRefactoredGameScreen" className={styles.optionLabel}>
+            リファクタリング版ゲームスクリーン
+            <span className={styles.optionStatus}>
+              {settings.useRefactoredGameScreen ? '(有効)' : '(無効)'}
+            </span>
+          </label>
+          <ToggleButton
+            id="useRefactoredGameScreen"
+            isOn={settings.useRefactoredGameScreen}
+            onToggle={() => {
+              // 設定を更新
+              const newValue = !settings.useRefactoredGameScreen;
+              setSettings({
+                ...settings,
+                useRefactoredGameScreen: newValue
+              });
+
+              // デバッグログ
+              console.log(`リファクタリング版に切り替え: ${newValue}`);
+
+              // フィードバック（オプション）
+              playButtonSound();
+            }}
+            onText="使用する"
+            offText="従来版"
+          />
+        </div>
+
+        <div className={styles.optionDescription}>
+          リファクタリングされた新しいゲームスクリーン実装を使用します。
+          パフォーマンスが向上しますが、まだ実験的な実装です。
+        </div>
+
+        <div className={styles.versionInfo}>
+          <p>現在のバージョン: 0.5.0 (2025年5月10日)</p>
+          <p>リファクタリング版: 0.9.0</p>
+        </div>
+
+        {/* 現在の設定状態を表示 */}
+        <div className={styles.debugInfo}>
+          <h4>現在の設定状態:</h4>
+          <pre>{JSON.stringify({
+            useRefactoredGameScreen: settings.useRefactoredGameScreen,
+            difficulty: settings.difficulty
+          }, null, 2)}</pre>
+        </div>
+      </div>
+    );
+  }, [settings, setSettings, playButtonSound]);
 
   // キーボードイベントリスナーを追加（ショートカット機能拡充）
   useEffect(() => {
@@ -659,10 +724,20 @@ const MainMenu = () => {
       {/* 設定モーダルと他のモーダル - 既存コード */}
       <Modal isOpen={showSettingsModal} onClose={handleCloseModal} title="設定">
         {renderSettingsContent()}
-      </Modal>
-
-      <Modal isOpen={showCredits} onClose={handleCloseModal} title="クレジット">
+      </Modal>      <Modal isOpen={showCredits} onClose={handleCloseModal} title="クレジット">
         {renderCreditsContent()}
+      </Modal>
+      {/* 開発者設定モーダル */}
+      <Modal
+        isOpen={showDevOptions}
+        onClose={() => {
+          setShowDevOptions(false);
+          // 開発者モーダルが閉じられたことをログに記録
+          console.log('開発者設定モーダルを閉じました');
+        }}
+        title="開発者設定"
+      >
+        {renderDeveloperOptions()}
       </Modal>
 
       {/* MCP状態表示（開発環境のみ） */}
@@ -670,6 +745,18 @@ const MainMenu = () => {
         <div className={styles.mcpStatusIndicator}>
           <div className={styles.mcpStatusDot} title="MCP接続中"></div>
         </div>
+      )}
+
+      {/* 開発者設定ボタン（開発環境または管理者モードのみ） */}
+      {process.env.NODE_ENV === 'development' && (
+        <button
+          className={`${styles.creditButton} ${styles.devButton}`}
+          onClick={() => setShowDevOptions(true)}
+          aria-label="開発者設定"
+          style={{ right: 80 }} // クレジットボタンの左に配置
+        >
+          <div className={styles.devIcon}>⚙️</div>
+        </button>
       )}
     </div>
   );

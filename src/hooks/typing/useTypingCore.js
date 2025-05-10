@@ -55,8 +55,7 @@ export function useTypingCore(options = {}) {
 
   /**
    * セッション初期化処理
-   */
-  const initializeSession = useCallback((problem) => {
+   */  const initializeSession = useCallback((problem) => {
     // 問題データの検証
     if (!validateProblem(problem)) {
       console.warn('[useTypingCore] 無効な問題データです', problem);
@@ -73,11 +72,16 @@ export function useTypingCore(options = {}) {
 
       // セッションを保存
       sessionRef.current = session;
-      completedRef.current = false;
-
-      // 表示情報を初期化
+      completedRef.current = false;      // 表示情報を初期化
       const colorInfo = session.getColoringInfo();
-      setDisplayInfo({
+
+      console.log('[useTypingCore] 初期化時の表示情報:', {
+        romaji: (colorInfo.romaji || '').substring(0, 30) + '...',
+        currentCharIndex: colorInfo.currentCharIndex || 0,
+        expectedNextChar: colorInfo.expectedNextChar || '',
+      });
+      // 表示情報を初期値として設定
+      const initialDisplayInfo = {
         romaji: colorInfo.romaji || '',
         typedLength: 0,
         currentInputLength: colorInfo.currentInputLength || 0,
@@ -85,7 +89,10 @@ export function useTypingCore(options = {}) {
         currentInput: colorInfo.currentInput || '',
         expectedNextChar: colorInfo.expectedNextChar || '',
         currentCharRomaji: colorInfo.currentCharRomaji || '',
-      });
+      };
+
+      // 表示情報を更新
+      setDisplayInfo(initialDisplayInfo);
 
       // 進捗をリセット
       setProgressPercentage(0);
@@ -104,7 +111,7 @@ export function useTypingCore(options = {}) {
       console.error('[useTypingCore] セッション初期化エラー:', error);
       return false;
     }
-  }, [validateProblem, onSessionInitialized]);
+  }, [validateProblem]);
 
   /**
    * 次に入力すべきキーを取得
@@ -137,15 +144,20 @@ export function useTypingCore(options = {}) {
       progress: 100
     });
   }, [onProblemStateChange]);
-
   /**
    * 初期問題の設定（マウント時または問題変更時）
    */
   useEffect(() => {
     if (initialProblem) {
-      initializeSession(initialProblem);
+      // 初期化を一度だけ行うようにするためのフラグを使う
+      const shouldInitialize = !isInitialized ||
+        (initialProblem?.displayText !== sessionRef.current?.displayText);
+
+      if (shouldInitialize) {
+        initializeSession(initialProblem);
+      }
     }
-  }, [initialProblem, initializeSession]);
+  }, [initialProblem, initializeSession, isInitialized]);
 
   // 公開API
   return {

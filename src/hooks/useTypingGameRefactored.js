@@ -139,11 +139,14 @@ export function useTypingGameRefactored(options = {}) {
       typingCore.markAsCompleted();
     },
   });
-
   /**
    * 問題設定メソッド
    */
   const setProblem = useCallback((problem) => {
+    console.log('[useTypingGameRefactored] 問題を設定します:', {
+      displayText: problem?.displayText?.substring(0, 20) + '...',
+      kanaText: problem?.kanaText?.substring(0, 20) + '...'
+    });
     return typingCore.initializeSession(problem);
   }, [typingCore]);
 
@@ -153,7 +156,6 @@ export function useTypingGameRefactored(options = {}) {
   const getNextKey = useCallback(() => {
     return typingCore.getExpectedNextKey();
   }, [typingCore]);
-
   /**
    * 公開API
    */
@@ -161,11 +163,16 @@ export function useTypingGameRefactored(options = {}) {
     // 状態
     isInitialized: typingCore.isInitialized,
     isCompleted: typingCore.isCompleted,
-    displayInfo: typingCore.displayInfo,
-    displayStats: typingStats.displayStats,
-    progressPercentage: typingCore.progressPercentage,
-    errorAnimation: typingInput.errorAnimation,
-    lastPressedKey: typingInput.lastPressedKey,
+    displayInfo: typingCore.displayInfo || {
+      romaji: '',
+      typedLength: 0,
+      currentInputLength: 0,
+      currentCharIndex: 0,
+    },
+    displayStats: typingStats.displayStats || {},
+    progressPercentage: typingCore.progressPercentage || 0,
+    errorAnimation: typingInput.errorAnimation || false,
+    lastPressedKey: typingInput.lastPressedKey || '',
 
     // タイピングセッション参照（直接アクセス用）
     typingSession: typingCore.sessionRef.current,
