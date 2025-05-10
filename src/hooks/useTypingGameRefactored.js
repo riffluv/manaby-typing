@@ -45,19 +45,21 @@ export function useTypingGameRefactored(options = {}) {
 
   /**
    * 問題状態変更時の処理
-   */
-  const handleProblemStateChange = useCallback(({ type, progress }) => {
+   */  const handleProblemStateChange = useCallback(({ type, progress }) => {
     if (type === 'completed') {
       const statsData = typingStats.recordProblemCompletion();
 
       // コールバック呼び出し
       onProblemComplete({
-        problemKeyCount: statsData.problem.problemKeyCount,
-        problemElapsedMs: statsData.problem.problemElapsedMs,
-        problemKPM: statsData.problem.problemKPM,
-        updatedProblemKPMs: statsData.allProblems.map(p => p.problemKPM || 0),
-        problemStats: statsData.allProblems
+        problemKeyCount: statsData.problemKeyCount,
+        problemElapsedMs: statsData.problemElapsedMs,
+        problemKPM: statsData.problemKPM,
+        updatedProblemKPMs: [], // statsDataから正しく取得できない場合はからの配列を設定
+        problemStats: [] // statsDataから正しく取得できない場合はからの配列を設定
       });
+
+      // デバッグログ出力
+      console.log('[handleProblemStateChange] 問題完了時の統計:', statsData);
     }
   }, [onProblemComplete]);
 
@@ -92,13 +94,48 @@ export function useTypingGameRefactored(options = {}) {
 
   /**
    * 入力処理
-   */
-  const typingInput = useTypingInput({
+   */  const typingInput = useTypingInput({
     sessionRef: typingCore.sessionRef,
     isCompleted: typingCore.isCompleted,
     completedRef: typingCore.completedRef,
     playSound,
     soundSystem,
+    // 問題完了時に呼び出されるコールバック
+    onComplete: (inputData) => {
+      // 状態を完了に設定
+      typingCore.markAsCompleted();
+
+      // 問題統計情報を記録し、上位コールバックに渡す
+      const stats = typingStats.recordProblemCompletion();
+
+      // 現在のミス数を明示的に取得
+      const rawTypingStats = typingStats.statsRef.current || {};
+      const mistakeCount = rawTypingStats.mistakeCount || 0;
+
+      // パラメータ準備（シンプルにする）
+      const typingStatsData = {
+        problemKeyCount: stats.problemKeyCount || 0,
+        problemElapsedMs: stats.problemElapsedMs || 0,
+        problemKPM: stats.problemKPM || 0,
+        problemMistakeCount: stats.problemMistakeCount || 0,
+        displayStats: typingStats.displayStats,
+        // 累計ミス数を直接取得
+        totalMistakes: mistakeCount
+      };
+
+      console.log('[useTypingGameRefactored] 問題完了 - 統計情報:', {
+        ...typingStatsData,
+        直接取得したミス数: mistakeCount,
+        表示用ミス数: typingStats.displayStats.mistakeCount
+      });
+
+      // 上位レイヤーに完了を通知
+      if (typeof options.onComplete === 'function') {
+        options.onComplete(typingStatsData);
+      } else {
+        console.log('[useTypingGameRefactored] 注意: onCompleteコールバックが定義されていません');
+      }
+    },
     onCorrectInput: ({ key, displayInfo, progress }) => {
       // 表示情報の更新
       typingCore.setDisplayInfo(displayInfo);
@@ -121,41 +158,25 @@ export function useTypingGameRefactored(options = {}) {
         };
         onDebugInfoUpdate(debugInfoRef.current);
       }
-    },
-    onIncorrectInput: ({ key }) => {
+    }, onIncorrectInput: ({ key }) => {
       // 統計情報を更新
       typingStats.countMistake();
+
+      // ミスカウント後の情報をログ出力
+      const mistakeCount = typingStats.statsRef.current?.mistakeCount || 0;
+      console.log('[useTypingGameRefactored] ミス入力を検出:', {
+        key,
+        現在のミス数: mistakeCount,
+        表示用ミス数: typingStats.displayStats.mistakeCount
+      });
 
       // デバッグ情報の更新
       if (onDebugInfoUpdate) {
         debugInfoRef.current = {
           ...debugInfoRef.current,
           lastErrorKey: key,
-        };
-        onDebugInfoUpdate(debugInfoRef.current);
-      }
-    }, onComplete: (inputData) => {
-      // 状態を完了に設定
-      typingCore.markAsCompleted();
-
-      // 問題統計情報を記録し、上位コールバックに渡す
-      const stats = typingStats.recordProblemCompletion();
-
-      // パラメータ準備（既存のフォーマットと互換性を持たせる）
-      const typingStatsData = {
-        problemKeyCount: stats.problemKeyCount,
-        problemElapsedMs: stats.problemElapsedMs,
-        problemKPM: stats.problemKPM,
-        problemMistakeCount: stats.problemMistakeCount,
-        updatedProblemKPMs: stats.updatedProblemKPMs,
-        displayStats: typingStats.displayStats
-      };
-
-      console.log('[useTypingGameRefactored] 問題完了 - 統計情報:', typingStatsData);
-
-      // 上位レイヤーに完了を通知
-      if (typeof onComplete === 'function') {
-        onComplete(typingStatsData);
+          mistakeCount: mistakeCount
+        }; onDebugInfoUpdate(debugInfoRef.current);
       }
     },
   });
@@ -178,8 +199,7 @@ export function useTypingGameRefactored(options = {}) {
   }, [typingCore]);
   /**
    * 公開API
-   */
-  return {
+   */  return {
     // 状態
     isInitialized: typingCore.isInitialized,
     isCompleted: typingCore.isCompleted,
@@ -197,6 +217,12 @@ export function useTypingGameRefactored(options = {}) {
     // タイピングセッション参照（直接アクセス用）
     typingSession: typingCore.sessionRef.current,
     typingSessionRef: typingCore.sessionRef,
+
+    // typingStatsオブジェクト全体を公開
+    typingStats,
+
+    // 統計参照を直接公開（アクセスしやすいように）
+    statsRef: typingStats.statsRef,
 
     // メソッド
     handleInput: typingInput.handleInput,

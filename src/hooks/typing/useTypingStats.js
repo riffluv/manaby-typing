@@ -87,14 +87,19 @@ export function useTypingStats(options = {}) {
       }, updateInterval);
     }
   }, []);
-
   /**
    * 不正解入力をカウント
    */
   const countMistake = useCallback(() => {
     statsRef.current.mistakeCount += 1;
-  }, []);
+    console.log('[useTypingStats] ミス数カウント更新:', statsRef.current.mistakeCount);
 
+    // 即時に表示用の統計も更新する
+    setDisplayStats(prev => ({
+      ...prev,
+      mistakeCount: statsRef.current.mistakeCount
+    }));
+  }, []);
   /**
    * 表示用統計情報を更新
    */
@@ -103,21 +108,25 @@ export function useTypingStats(options = {}) {
     const correctCount = stats.correctKeyCount;
     const missCount = stats.mistakeCount;
 
-    // 問題データがある場合は平均KPMを計算
+    // シンプルなKPM計算 = キー数 ÷ 経過時間(分)
+    // 経過時間を計算
     let kpm = 0;
-    if (stats.problemStats && stats.problemStats.length > 0) {
-      // 各問題のKPMの平均値を使用
-      kpm = TypingUtils.calculateAverageKPM(stats.problemStats);
-    } else {
-      // 問題データがない場合は単純計算
-      const startTime = stats.startTime || Date.now();
-      const elapsedTimeMs = Date.now() - startTime;
+    const startTime = stats.startTime || Date.now();
+    const elapsedTimeMs = Date.now() - startTime;
+    const elapsedMinutes = elapsedTimeMs / 60000; // ミリ秒から分に変換
 
-      // ゼロ除算を防ぐ
-      if (elapsedTimeMs > 0) {
-        kpm = Math.floor(correctCount / (elapsedTimeMs / 60000));
-      }
+    // KPM計算 - 単純にキー数 ÷ 経過時間(分)
+    if (elapsedMinutes > 0) {
+      kpm = Math.floor(correctCount / elapsedMinutes);
     }
+
+    // ログ出力
+    console.log('[useTypingStats] KPM計算:', {
+      correctCount,
+      elapsedTimeMs,
+      elapsedMinutes,
+      kpm
+    });
 
     // 最低値の保証
     if (kpm <= 0 && correctCount > 0) {
@@ -141,7 +150,6 @@ export function useTypingStats(options = {}) {
 
     return newDisplayStats;
   }, [onStatsUpdate]);
-
   /**
    * 問題完了時の統計処理
    */
@@ -155,11 +163,20 @@ export function useTypingStats(options = {}) {
       ? timestamp - stats.currentProblemStartTime
       : 0;
     const problemKeyCount = stats.correctKeyCount || 0;
+    const problemMistakeCount = stats.mistakeCount || 0;
 
-    // 問題の詳細データを作成
+    // 現在のミス数を詳細にログ出力
+    console.log('[useTypingStats] 問題完了時のミス数:', {
+      mistakeCount: stats.mistakeCount,
+      currentProblemStartTime: stats.currentProblemStartTime,
+      elapsedMs: problemElapsedMs
+    });
+
+    // 問題の詳細データを作成 - シンプルな計算
     const problemData = {
       problemKeyCount,
       problemElapsedMs,
+      problemMistakeCount,
       problemKPM: problemElapsedMs > 0
         ? Math.floor((problemKeyCount / (problemElapsedMs / 60000)))
         : 0,
@@ -169,27 +186,25 @@ export function useTypingStats(options = {}) {
     // 統計情報を更新
     const updatedProblemStats = [...(stats.problemStats || []), problemData];
     stats.problemStats = updatedProblemStats;    // 表示用統計情報を更新
-    updateDisplayStats();
-
-    // 問題ごとのKPMリスト
-    const updatedProblemKPMs = updatedProblemStats.map(p => p.problemKPM).filter(kpm => kpm > 0);
+    updateDisplayStats();      // シンプルな統計情報を返す
+    console.log('[useTypingStats] 問題完了 - 統計情報:', {
+      正解キー数: problemData.problemKeyCount,
+      ミス数: problemData.problemMistakeCount,
+      経過時間: problemData.problemElapsedMs,
+      KPM: problemData.problemKPM
+    });
 
     // 拡張した統計情報を返す
     return {
-      // 元の情報
-      problem: problemData,
-      allProblems: updatedProblemStats,
-
-      // GameControllerRefactoredで必要な情報
+      // 問題情報
       problemKeyCount: problemData.problemKeyCount,
       problemElapsedMs: problemData.problemElapsedMs,
       problemKPM: problemData.problemKPM,
-      problemMistakeCount: stats.mistakeCount - (stats.previousProblemMistakeCount || 0),
-      updatedProblemKPMs: updatedProblemKPMs,
+      problemMistakeCount: problemData.problemMistakeCount,
 
-      // リザルト画面で表示する累計情報
-      totalCorrectKeyCount: stats.correctKeyCount,
-      totalMissCount: stats.mistakeCount
+      // 累計情報
+      correctKeyCount: stats.correctKeyCount,
+      mistakeCount: stats.mistakeCount
     };
   }, [updateDisplayStats]);
 

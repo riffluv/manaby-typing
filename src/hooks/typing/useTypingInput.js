@@ -99,8 +99,7 @@ export function useTypingInput(options = {}) {
         }
 
         return { success: true, displayInfo, progress };
-      } else {
-        // 不正解時の処理
+      } else {        // 不正解時の処理
         // 効果音再生
         if (playSound && soundSystem) {
           soundSystem.playSound('error');
@@ -109,8 +108,22 @@ export function useTypingInput(options = {}) {
         // エラーアニメーション表示
         showErrorAnimation();
 
-        // コールバック呼び出し
-        onIncorrectInput({ key });
+        // 期待されるキーを取得
+        const expectedKey = session.getCurrentExpectedKey() || '';
+
+        // ログ出力 - ミスの詳細を記録
+        console.log('[useTypingInput] 不正解入力:', {
+          入力キー: key,
+          期待キー: expectedKey,
+          一致: key === expectedKey
+        });
+
+        // コールバック呼び出し - 詳細情報を追加
+        onIncorrectInput({
+          key,
+          expectedKey,
+          timestamp: Date.now()
+        });
 
         return { success: false, reason: 'incorrect_input' };
       }

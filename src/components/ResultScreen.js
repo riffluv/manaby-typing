@@ -42,43 +42,8 @@ const ResultScreen = ({
         'ResultScreen: statsデータが不足しているか、KPMが0です',
         finalStats
       );
-    }
-
-    // ローカルランキングにデータを保存
-    const saveToLocalRanking = () => {
-      if (!finalStats) return;
-
-      try {
-        // 必要なデータを取得
-        const kpm = finalStats.kpm || 0;
-        const accuracy = finalStats.accuracy || 0;
-        const timeInSeconds = finalStats.totalTime || 0;
-        const mistakes = finalStats.missCount || 0;
-        const difficulty = gameState?.difficulty || gameState?.settings?.difficulty || 'normal';
-        const rank = TypingUtils.getRank(kpm);
-
-        console.log('ResultScreen: ローカルランキングにデータを保存します', {
-          kpm, accuracy, timeInSeconds, mistakes, difficulty, rank
-        });
-
-        // RecordUtilsの関数を呼び出してデータを保存
-        const saved = saveGameRecord(
-          kpm,
-          accuracy,
-          timeInSeconds,
-          mistakes,
-          difficulty,
-          rank
-        );
-
-        console.log('ResultScreen: ローカルランキングの保存結果:', saved);
-      } catch (error) {
-        console.error('ResultScreen: ローカルランキング保存中にエラーが発生しました:', error);
-      }
-    };
-
-    // ランキングに保存
-    saveToLocalRanking();
+    }    // ローカルランキングへの保存は無効化
+    console.log('ResultScreen: リファクタリング中のため、ランキング保存は無効化されています');
 
   }, [stats, gameState]);
 
@@ -183,112 +148,51 @@ const ResultScreen = ({
         delay: 0.5,
       },
     },
-  };
-
-  // セーフティチェック - statsがundefinedの場合のデフォルト値
+  };  // スコア計算はすべて削除し、ダミーデータを使用
   const safeStats = useMemo(() => {
-    // まずprops経由のstatsを確認
-    if (stats && stats.kpm !== undefined && stats.kpm > 0) {
-      console.log('ResultScreen: propsからの有効なstatsを使用します', stats);
-      return stats;
-    }
+    console.log('ResultScreen: スコア計算機能は削除されました');
 
-    // 次にgameContextからのstatsを確認
-    if (gameState && gameState.stats && gameState.stats.kpm !== undefined && gameState.stats.kpm > 0) {
-      console.log('ResultScreen: gameContextからの有効なstatsを使用します', gameState.stats);
-      return gameState.stats;
-    }
-
-    // どちらも有効でない場合は最終手段としてデータを再構築
-    console.warn('ResultScreen: 有効なKPMデータがありません。データの再構築を試みます');
-
-    // 利用可能なデータを集める
-    const baseStats = stats || gameState?.stats || {};
-    const problemStats = baseStats.problemStats || [];
-
-    // correctCount（正解キー数）がある場合は直接使用
-    const correctCount = baseStats.correctCount || 0;
-    const missCount = baseStats.missCount || 0;
-    const totalKeystrokes = correctCount + missCount;
-
-    console.log('ResultScreen: 再構築用データ', {
-      correctCount,
-      missCount,
-      totalKeystrokes,
-      problemStats,
-      baseStats
-    });
-
-    // 既存のKPM値を確認（0でなければ使用）
-    let kpm = baseStats.kpm || 0;
-
-    // KPMが0の場合、問題ごとのデータから計算を試みる
-    if (kpm <= 0 && problemStats.length > 0) {
-      console.log('ResultScreen: 問題データからKPMを再計算します');
-      kpm = TypingUtils.calculateAverageKPM(problemStats);
-      console.log('ResultScreen: 再計算したKPM:', kpm);
-    }
-
-    // それでもKPMが0の場合、経過時間から計算
-    if (kpm <= 0 && correctCount > 0) {
-      const elapsedTimeMs = baseStats.elapsedTimeMs || baseStats.totalTime * 1000 || 0;
-      if (elapsedTimeMs > 0) {
-        kpm = Math.floor(correctCount / (elapsedTimeMs / 60000));
-        console.log('ResultScreen: 時間からKPMを再計算:', kpm);
-      }
-    }
-
-    // 最後の手段として、正解キー数が0より大きければ最低でも1を設定
-    if (kpm <= 0 && correctCount > 0) {
-      kpm = 1;
-      console.log('ResultScreen: 最低値としてKPM=1を設定');
-    }
-
-    // 正確性を計算（正解数÷(正解数+ミス数)×100）
-    const accuracy = totalKeystrokes > 0
-      ? (correctCount / totalKeystrokes) * 100
-      : 100;
-
-    console.log('ResultScreen: 正確性を再計算:', {
-      correctCount,
-      missCount,
-      totalKeystrokes,
-      accuracy
-    });
-
-    // 再構築したデータを返す
+    // リファクタリング用にダミーデータを返す
     return {
-      ...baseStats,
-      kpm: kpm,
-      correctCount: correctCount,
-      missCount: missCount,
-      accuracy: accuracy,
-      totalTime: baseStats.totalTime || 0,
-      elapsedTimeMs: baseStats.elapsedTimeMs || baseStats.totalTime * 1000 || 0
+      kpm: 0,
+      correctCount: 0,
+      missCount: 0,
+      accuracy: 0,
+      totalTime: 0,
+      elapsedTimeMs: 0,
+      rank: 'F'
     };
-  }, [stats, gameState]);
+  }, []);
 
-  // デバッグ用にKPMを確認
-  console.log('ResultScreen: KPM値', safeStats.kpm);
+  // スコア計算のデバッグログも削除
+  console.log('ResultScreen: 詳細なKPM分析', {
+    safeStatsのKPM値: safeStats.kpm,
+    元のstatsのKPM値: stats?.kpm,
+    gameStateのKPM値: gameState?.stats?.kpm,
+    safeStats全体: safeStats
+  });
 
-  // ランク計算のデバッグ
-  const rank = TypingUtils.getRank(safeStats.kpm || 0);
-  console.log(`ResultScreen: KPM ${safeStats.kpm} に基づくランク: ${rank}`);
-
-  // 数値を固定して計算が再実行されないようにする
+  // KPMが異常に高い場合の警告
+  if (safeStats.kpm > 500) {
+    console.warn('ResultScreen: KPM値が異常に高い値です:', safeStats.kpm);
+    console.warn('元の計算データ:', {
+      correctCount: safeStats.correctCount,
+      elapsedTimeMs: safeStats.elapsedTimeMs,
+      elapsedMinutes: safeStats.elapsedTimeMs / 60000
+    });
+  }
+  // すべてのスコア計算コードを削除し、単純なダミーデータを使用
   const fixedStats = useMemo(() => {
+    console.log('ResultScreen: 固定値を使用します');
+
     return {
-      totalTime: formatDecimal(safeStats.totalTime || 0),
-      // 修正: accuracy はすでにパーセント表示（0-100）になっているため、
-      // 100を掛ける必要はありません
-      accuracy: formatDecimal(safeStats.accuracy || 0),
-      kpm: Math.floor(safeStats.kpm || 0),
-      correctCount: safeStats.correctCount || 0,
-      missCount: safeStats.missCount || 0,
-      rank: TypingUtils.getRank(safeStats.kpm || 0),
-      rankColor: TypingUtils.getRankColor(
-        TypingUtils.getRank(safeStats.kpm || 0)
-      ),
+      totalTime: '0.0',
+      accuracy: '0.0',
+      kpm: 0,
+      correctCount: 0,
+      missCount: 0,
+      rank: '-',
+      rankColor: TypingUtils.getRankColor('F'),
     };
   }, [safeStats]);
 
@@ -344,7 +248,7 @@ const ResultScreen = ({
       <div className={styles.cornerDecoration} style={{ bottom: 10, right: 10, transform: 'scale(-1)' }}>
         <div className={styles.cornerTech} />
       </div>
-      
+
       {/* スキャンラインとドットパターンを追加 */}
       <div className={styles.scanlines}></div>
       <div className={styles.dotPattern}></div>

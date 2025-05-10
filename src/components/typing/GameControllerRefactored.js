@@ -45,11 +45,9 @@ export function useGameControllerRefactored(options = {}) {
   const typingRef = useRef(null);
 
   // Game Contextから状態更新関数を取得
-  const { setGameState } = useGameContext();
-  /**
+  const { setGameState } = useGameContext();  /**
    * 問題が完了した時の処理
-   */
-  const handleProblemComplete = useCallback((typingStats) => {
+   */  const handleProblemComplete = useCallback((typingStats) => {
     // 効果音再生
     soundSystem.playSound('clear');
 
@@ -60,96 +58,41 @@ export function useGameControllerRefactored(options = {}) {
     // ゲームクリア判定
     const isGameClear = newSolvedCount >= gameState.requiredProblemCount;
 
-    // 現在の問題の正解キー数とミス数を取得
-    const currentCorrectKeys = typingStats.problemKeyCount || 0;
-    const currentMissCount = typingStats.problemMistakeCount || 0;
+    // すべてのスコア計算は削除 - リファクタリングのための準備
 
-    // これまでの累積カウンターを取得
-    const previousCorrectKeyCount = gameState.totalCorrectKeyCount || 0;
-    const previousMissCount = gameState.totalMissCount || 0;
+    console.log('[GameControllerRefactored] スコア計算は削除されました');
 
-    // 累積カウンターを更新
-    const totalCorrectKeyCount = previousCorrectKeyCount + currentCorrectKeys;
-    const totalMissCount = previousMissCount + currentMissCount;
-
-    // 各問題のKPMを累積
-    const allProblemKPMs = [
-      ...(gameState.problemKPMs || []),
-      typingStats.problemKPM
-    ].filter(kpm => kpm > 0); if (isGameClear) {
+    if (isGameClear) {
       // ゲームクリア時の処理
       console.log('[GameControllerRefactored] 全問題完了 - リザルト画面に遷移します');
 
-      // 終了時間を記録
-      const endTime = Date.now();
-      const startTime = gameState.startTime || typingRef.current?.typingStats?.statsRef?.current?.startTime || endTime;
-      const elapsedTimeMs = endTime - startTime;
-
-      // KPM計算 - 問題ごとのKPMの平均値を優先
-      let averageKPM = 0;
-      if (allProblemKPMs && allProblemKPMs.length > 0) {
-        // 問題ごとのKPMの平均を計算
-        averageKPM = allProblemKPMs.reduce((sum, kpm) => sum + kpm, 0) / allProblemKPMs.length;
-      } else {
-        // 問題データがない場合は単純計算
-        averageKPM = Math.floor(totalCorrectKeyCount / (elapsedTimeMs / 60000));
-      }
-
-      // KPMが不正な値の場合は補正
-      if (averageKPM <= 0 && totalCorrectKeyCount > 0) {
-        averageKPM = 1;
-      }
-
-      // 正確性の計算（正確性 = 正解数 / (正解数 + ミス数) * 100）
-      const totalKeystrokes = totalCorrectKeyCount + totalMissCount;
-      const accuracy = totalKeystrokes > 0
-        ? (totalCorrectKeyCount / totalKeystrokes) * 100
-        : 100;
-
-      // 従来版と完全に同じフォーマットで統計情報を作成
-      const stats = {
-        totalTime: elapsedTimeMs / 1000,
-        correctCount: totalCorrectKeyCount,
-        missCount: totalMissCount,
-        accuracy: accuracy,
-        kpm: Math.floor(averageKPM),
-        problemKPMs: allProblemKPMs,
-        elapsedTimeMs: elapsedTimeMs
-      };
-
-      console.log('[GameControllerRefactored] 最終統計情報:', stats);
-
-      // スコアデータをGameContextに保存（通常モードと同じプロパティ名を使用）
+      // スコア関連のデータをすべて削除
       setGameState(prev => ({
         ...prev,
         solvedCount: newSolvedCount,
-        totalCorrectKeyCount: totalCorrectKeyCount,
-        totalMissCount: totalMissCount,
-        problemKPMs: allProblemKPMs,
-        playTime: Math.floor(stats.totalTime),
-        startTime: startTime,
-        endTime: endTime,
-        stats: stats,
-        isGameClear: true
+        isGameClear: true,
+        // スコアデータは含めない
       }));
 
-      // すぐに遷移させると最後の問題の成績が反映されないため少し遅延を設ける
+      // リザルト画面に遷移
+      window.lastResultTransition = Date.now();
+
       setTimeout(() => {
+        console.log('[GameControllerRefactored] handleProblemComplete: リザルト画面に遷移 - スコアなし');
         goToScreen(SCREENS.RESULT, {
           playSound: true,
           soundType: 'result',
+          // スコア情報はリザルト画面に渡さない
+          gameState: {}
         });
       }, 300);
     } else {
       // ゲームクリアでない場合 - 次の問題に進む処理
 
-      // 累積カウンターを含めてゲーム状態を更新
+      // 問題数だけ更新する
       setGameState(prev => ({
         ...prev,
         solvedCount: newSolvedCount,
-        totalCorrectKeyCount: totalCorrectKeyCount,
-        totalMissCount: totalMissCount,
-        problemKPMs: allProblemKPMs,
       }));
 
       // 次の問題をセット（少し遅延を入れる）
@@ -290,10 +233,35 @@ export function useGameControllerRefactored(options = {}) {
 
 /**
  * ゲーム完了ハンドラーフック
- * バックアップとしての役割のみを担う（主な遷移ロジックはhandleProblemCompleteで処理）
+ * バックアップとしての役割を担う（主な遷移ロジックはhandleProblemCompleteで処理）
  */
-export function useGameCompleteHandlerRefactored(gameState, goToScreen) {
-  // このハンドラーは主にバックアップとして機能する
-  // 実際の遷移はhandleProblemCompleteで直接行う
-  // リファクタリングモードのコードバージョン管理のために残す
+export function useGameCompleteHandlerRefactored(gameState, goToScreen, typingRef) {
+  useEffect(() => {
+    // 明示的なゲームクリアの場合のみ処理
+    if (gameState.isGameClear === true) {
+      console.log('[GameCompleteHandlerRefactored] ゲーム完了を検出しました - スコア計算は行いません');
+
+      // スコア計算をすべて削除
+
+      // スムーズな遷移のための遅延（500ms以上前に遷移していない場合のみ）
+      const lastTransitionTime = window.lastResultTransition || 0;
+      const now = Date.now();
+
+      if (now - lastTransitionTime > 500) {
+        window.lastResultTransition = now;
+
+        // handleProblemCompleteとの衝突を回避するため少し余裕を持たせる
+        setTimeout(() => {
+          console.log('[GameCompleteHandlerRefactored] リザルト画面に遷移します - スコアなし');
+          goToScreen(SCREENS.RESULT, {
+            playSound: true,
+            // スコア情報は渡さない
+            gameState: {}
+          });
+        }, 250);
+      } else {
+        console.log(`[GameCompleteHandlerRefactored] ${now - lastTransitionTime}ms以内に遷移したため、重複遷移をスキップします`);
+      }
+    }
+  }, [gameState, goToScreen, typingRef]);
 }
