@@ -169,19 +169,27 @@ const ResultScreen = ({
   const safeStats = useMemo(() => {
     // 送られてきたstatsかgameStateのstatsを取得
     const inputStats = stats || gameState?.stats;
-    console.log('ResultScreen: 統計データ処理:', inputStats);
+    console.log('ResultScreen: 統計データ処理:', inputStats); if (inputStats && typeof inputStats === 'object') {
+      // デバッグ: より詳細なデータ
+      console.log('ResultScreen: 詳細なステータスデータ', {
+        入力されたcorrectCount: inputStats.correctCount,
+        入力されたmissCount: inputStats.missCount,
+        入力されたaccuracy: inputStats.accuracy,
+        解答した問題数: inputStats.solvedProblems,
+        残りのデータ: inputStats
+      });
 
-    if (inputStats && typeof inputStats === 'object') {
-      // 統計情報をそのまま使用
+      // 統計情報をそのまま使用（正解キー数とミス数は必ず数値にする）
       return {
         kpm: inputStats.kpm || 0,
-        correctCount: inputStats.correctCount || 0,
-        missCount: inputStats.missCount || 0,
+        correctCount: typeof inputStats.correctCount === 'number' ? inputStats.correctCount : 0,
+        missCount: typeof inputStats.missCount === 'number' ? inputStats.missCount : 0,
         accuracy: inputStats.accuracy || 0,
         totalTime: inputStats.totalTime || 0,
         elapsedTimeMs: inputStats.elapsedTimeMs || 0,
         rank: inputStats.rank || 'F',
-        problemKPMs: inputStats.problemKPMs || []
+        problemKPMs: inputStats.problemKPMs || [],
+        solvedProblems: inputStats.solvedProblems
       };
     }
 
@@ -340,9 +348,7 @@ const ResultScreen = ({
           >
             <div className={styles.statLabel}>Accuracy</div>
             <div className={styles.statValue}>{fixedStats.accuracy}%</div>
-          </motion.div>
-
-          {/* 正解数 */}
+          </motion.div>          {/* 正解数：打鍵数（キーストローク）を表示 */}
           <motion.div className={styles.statCard} whileHover={{ scale: 1.03 }}>
             <div className={styles.statLabel}>Correct</div>
             <div className={styles.statValue}>{fixedStats.correctCount}</div>
@@ -353,6 +359,14 @@ const ResultScreen = ({
             <div className={styles.statLabel}>Miss</div>
             <div className={styles.statValue}>{fixedStats.missCount}</div>
           </motion.div>
+
+          {/* 問題数（必要な場合のみ表示） */}
+          {fixedStats.solvedProblems !== undefined && (
+            <motion.div className={styles.statCard} whileHover={{ scale: 1.03 }}>
+              <div className={styles.statLabel}>Problems</div>
+              <div className={styles.statValue}>{fixedStats.solvedProblems}</div>
+            </motion.div>
+          )}
         </motion.div>
       </motion.div>
 

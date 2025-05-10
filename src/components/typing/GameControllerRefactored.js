@@ -11,6 +11,7 @@ import { useGameContext, SCREENS } from '../../contexts/GameContext';
 import { useTypingGameRefactored } from '../../hooks/useTypingGameRefactored';
 import soundSystem from '../../utils/SoundUtils';
 import { getRandomProblem } from '../../utils/ProblemSelector';
+import TypingUtils from '../../utils/TypingUtils'; // KPM計算用にTypingUtilsをインポート
 
 /**
  * ゲームコントローラーフックのリファクタリング版
@@ -84,24 +85,32 @@ export function useGameControllerRefactored(options = {}) {
         // 問題データがない場合は単純計算
         const totalCorrectKeyCount = typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
         averageKPM = Math.floor(totalCorrectKeyCount / (elapsedTimeMs / 60000));
-      }
-      // キー入力の統計
-      const correctKeyCount = typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
-      const missCount = typing?.typingStats?.statsRef?.current?.mistakeCount || 0;
-      const totalKeystrokes = correctKeyCount + missCount;
-      const accuracy = totalKeystrokes > 0 ? Math.round((correctKeyCount / totalKeystrokes) * 100) : 100;
-      // 問題数の統計（実際に解いた問題数）
+      }      // ゲーム全体の累積キー入力統計の計算
+      // 最後のお題のキー入力状況
+      const lastProblemCorrectKeys = typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
+      const lastProblemMissKeys = typing?.typingStats?.statsRef?.current?.mistakeCount || 0;
+
+      // 累積入力数の計算（全問題の累積）
+      const totalCorrectKeyCount = (gameState.totalCorrectKeys || 0) + lastProblemCorrectKeys;
+      const totalMissCount = (gameState.totalMissKeys || 0) + lastProblemMissKeys;
+      const totalKeystrokes = totalCorrectKeyCount + totalMissCount;
+      const accuracy = totalKeystrokes > 0 ? Math.round((totalCorrectKeyCount / totalKeystrokes) * 100) : 100;
+
+      // 問題数は「解いた問題数」を表示
       const correctProblemCount = newSolvedCount;
 
-      console.log('[GameControllerRefactored] 統計情報を整理:', {
-        キー正解数: correctKeyCount,
-        キーミス数: missCount,
-        問題正解数: correctProblemCount, // 問題数として正しく表示
+      // より詳細なデバッグログ
+      console.log('[GameControllerRefactored] 統計情報の詳細:', {
+        累積キー正解数: totalCorrectKeyCount,
+        累積キーミス数: totalMissCount,
+        最後の問題キー正解数: lastProblemCorrectKeys,
+        最後の問題キーミス数: lastProblemMissKeys,
+        問題正解数: correctProblemCount,
+        累積打鍵総数: totalKeystrokes,
         正確率: accuracy,
-        KPM: averageKPM
-      });
-
-      // スコアデータをGameContextに保存
+        KPM: averageKPM,
+        問題別KPM: allProblemKPMs
+      });      // スコアデータをGameContextに保存
       setGameState(prev => ({
         ...prev,
         solvedCount: newSolvedCount,
@@ -109,16 +118,20 @@ export function useGameControllerRefactored(options = {}) {
         problemKPMs: allProblemKPMs,
         startTime: startTime,
         endTime: endTime,
-        // リザルト画面で使用する統計情報
+        // 全問題の累積統計を保存
+        totalCorrectKeys: totalCorrectKeyCount,
+        totalMissKeys: totalMissCount,
+        // リザルト画面で使用する統計情報（従来モードと同じ形式で提供）
         stats: {
           kpm: Math.round(averageKPM * 10) / 10, // 小数点1位までの平均KPM
-          correctCount: correctProblemCount, // 問題の正解数に修正
-          missCount: missCount,
-          accuracy: accuracy,
-          rank: typing?.typingStats?.displayStats?.rank || 'F',
+          correctCount: totalCorrectKeyCount, // 累積の正解キー数
+          missCount: totalMissCount, // 累積のミス入力数
+          accuracy: accuracy, // 正確率（累積値から計算）
+          rank: TypingUtils.getRank(averageKPM) || 'F',
           problemKPMs: allProblemKPMs,
           elapsedTimeMs: elapsedTimeMs,
-          totalTime: elapsedTimeMs / 1000
+          totalTime: elapsedTimeMs / 1000,
+          solvedProblems: correctProblemCount // 別途、解いた問題数も追加
         }
       }));
 
@@ -135,15 +148,32 @@ export function useGameControllerRefactored(options = {}) {
         });
       }, 300);
     } else {
-      // ゲームクリアでない場合 - 次の問題に進む処理
+      // ゲームクリアでない場合 - 次の問題に進む処理      // 問題数と統計情報を更新
+      const currentProblemKPM = typing?.typingStats?.displayStats?.kpm || 0;
+      const currentProblemCorrectKeys = typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
+      const currentProblemMistakes = typing?.typingStats?.statsRef?.current?.mistakeCount || 0;
 
-      // 問題数だけ更新する
+      console.log('[GameControllerRefactored] 問題完了統計: ', {
+        KPM: currentProblemKPM,
+        正解キー数: currentProblemCorrectKeys,
+        ミス数: currentProblemMistakes
+      });
+
+      // 問題ごとのKPM情報を蓄積
+      const updatedProblemKPMs = [
+        ...(gameState.problemKPMs || []),
+        currentProblemKPM
+      ].filter(kpm => kpm > 0);
+
+      // 全問題の累積統計を更新
       setGameState(prev => ({
         ...prev,
         solvedCount: newSolvedCount,
-      }));
-
-      // 次の問題をセット（少し遅延を入れる）
+        problemKPMs: updatedProblemKPMs,
+        // 累積打鍵数も追跡
+        totalCorrectKeys: (prev.totalCorrectKeys || 0) + currentProblemCorrectKeys,
+        totalMissKeys: (prev.totalMissKeys || 0) + currentProblemMistakes
+      }));// 次の問題をセット（最小限のディレイで素早く表示）
       setTimeout(() => {
         // 新しい問題を取得
         const nextProblem = getRandomProblem({
@@ -154,7 +184,7 @@ export function useGameControllerRefactored(options = {}) {
 
         // 問題をセット
         setCurrentProblem(nextProblem);
-      }, 500); // 0.5秒遅延
+      }, 50); // 0.05秒のわずかなディレイ（従来モードと同等）
     }
   }, [gameState, currentProblem, setGameState, goToScreen]);
   /**
