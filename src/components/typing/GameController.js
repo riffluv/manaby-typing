@@ -50,9 +50,7 @@ export function useGameController({
       const isGameClear = solvedCount >= requiredProblemCount;
 
       // problemStatsから問題ごとの情報を取得
-      const { problemKPM = 0, updatedProblemKPMs = [] } = problemStats;
-
-      if (isGameClear) {
+      const { problemKPM = 0, updatedProblemKPMs = [] } = problemStats; if (isGameClear) {
         // 終了時間を記録
         const endTime = Date.now();
         const startTime =
@@ -72,6 +70,14 @@ export function useGameController({
         const currentProblemMissCount = typingStats.missCount || 0;
         const previousMissCount = gameState.totalMissCount || 0;
         const totalMissCount = previousMissCount + currentProblemMissCount;
+
+        console.log('GameController: 問題完了時の統計情報', {
+          個別問題KPM: problemKPM,
+          累積正解数: totalCorrectKeyCount,
+          累積ミス数: totalMissCount,
+          最終問題の正解数: currentProblemCorrectKeys,
+          最終問題のミス数: currentProblemMissCount
+        });
 
         // 問題ごとのKPMを累積
         const allProblemKPMs = [
@@ -287,15 +293,15 @@ export function useGameController({
       if (e.key === 'Escape') {
         // ボタンクリック音を再生
         soundSystem.play('button');
-        
+
         // ゲーム状態をリセットして、メインメニューに戻る
         queueMicrotask(() => {
           // ゲームを終了状態にする
           setGameState(prev => ({
             ...prev,
-            isGameOver: true 
+            isGameOver: true
           }));
-          
+
           // メインメニューに遷移（直接goToScreenを使用）
           if (goToScreen) {
             goToScreen(SCREENS.MAIN_MENU, {
@@ -344,7 +350,7 @@ export function useGameController({
 
       // パフォーマンス測定開始
       const inputPerf = recordInputEvent();
-      
+
       // typingのhandleInputを直接呼び出し、パフォーマンスを最大化
       try {
         typing.handleInput(e.key);

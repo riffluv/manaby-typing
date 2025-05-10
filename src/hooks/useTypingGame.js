@@ -374,7 +374,7 @@ export function useTypingGame({
       rank: displayStats.rank,
       rankColor: TypingUtils.getRankColor(displayStats.rank),
       problemStats: statsRef.current.problemStats,
-      elapsedTimeSeconds: statsRef.current.startTime 
+      elapsedTimeSeconds: statsRef.current.startTime
         ? (Date.now() - statsRef.current.startTime) / 1000
         : 0
     };

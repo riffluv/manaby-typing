@@ -5,35 +5,36 @@ import TypingUtils from './TypingUtils';
 
 /**
  * ゲーム記録をローカルストレージに保存する
- * @param {number} kpm - 1分あたりの入力キー数
- * @param {number} accuracy - 正確性（%）
- * @param {number} time - プレイ時間（秒）
- * @param {number} mistakes - ミス入力回数
- * @param {string} difficulty - 難易度
- * @param {string} rank - ランク (GOD, DIVINE, LEGEND, ...)
+ * @param {Object} recordData - 記録データ
+ * @param {string} recordData.username - ユーザー名
+ * @param {number} recordData.kpm - 1分あたりの入力キー数
+ * @param {number} recordData.correctCount - 正解入力数
+ * @param {number} recordData.missCount - ミス入力数
+ * @param {number} recordData.accuracy - 正確性（%）
+ * @param {number} [recordData.timestamp] - 記録日時
+ * @param {string} [recordData.difficulty] - 難易度
  * @returns {boolean} 保存に成功したかどうか
  */
-export const saveGameRecord = (
-  kpm,
-  accuracy,
-  time,
-  mistakes,
-  difficulty,
-  rank
-) => {
+export const saveGameRecord = (recordData = {}) => {
   try {
     // 既存の記録を取得
     let existingRecords = getGameRecords();
 
+    // KPMからランクを計算
+    const kpm = recordData.kpm || 0;
+    // ランク計算（TypingUtilsにgetKPMRank関数がない場合はgetRankを使用）
+    const rank = TypingUtils.getRank ? TypingUtils.getRank(kpm) : 'F';
+
     // 新しい記録を作成
     const newRecord = {
+      username: recordData.username || 'Anonymous',
       kpm: parseFloat(kpm) || 0,
-      rank: rank || TypingUtils.getKPMRank(kpm), // ランクが渡されなかった場合は計算
-      accuracy: parseFloat(accuracy) || 0,
-      time: time || 0,
-      mistakes: mistakes || 0,
-      difficulty: difficulty || 'normal',
-      date: new Date().toISOString(),
+      rank: rank,
+      accuracy: parseFloat(recordData.accuracy) || 0,
+      correctCount: recordData.correctCount || 0,
+      missCount: recordData.missCount || 0,
+      difficulty: recordData.difficulty || 'normal',
+      date: recordData.timestamp ? new Date(recordData.timestamp).toISOString() : new Date().toISOString(),
     };
 
     // 新しい記録を先頭に追加

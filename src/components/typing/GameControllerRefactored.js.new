@@ -85,12 +85,15 @@ export function useGameControllerRefactored(options = {}) {
       const endTime = Date.now();
       const startTime = gameState.startTime || typing.typingStats?.statsRef?.current?.startTime || endTime;
       const elapsedTimeMs = endTime - startTime;
-      
-      // KPM計算 - 問題ごとのKPMの平均値を優先
+        // KPM計算 - 問題ごとのKPMの平均値を優先
       let averageKPM = 0;
       if (allProblemKPMs && allProblemKPMs.length > 0) {
         // 問題ごとのKPMの平均を計算
         averageKPM = allProblemKPMs.reduce((sum, kpm) => sum + kpm, 0) / allProblemKPMs.length;
+        console.log('[GameControllerRefactored] 問題ごとのKPM平均:', {
+          平均KPM: averageKPM,
+          個別KPM: allProblemKPMs
+        });
       } else {
         // 問題データがない場合は単純計算
         averageKPM = Math.floor(totalCorrectKeyCount / (elapsedTimeMs / 60000));

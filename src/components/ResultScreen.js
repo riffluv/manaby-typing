@@ -42,8 +42,25 @@ const ResultScreen = ({
         'ResultScreen: statsデータが不足しているか、KPMが0です',
         finalStats
       );
-    }    // ローカルランキングへの保存は無効化
-    console.log('ResultScreen: リファクタリング中のため、ランキング保存は無効化されています');
+    }    // スコアデータがあればローカルランキングに保存
+    if (finalStats && finalStats.kpm > 0) {
+      try {
+        // 匿名のユーザー名でスコアを保存
+        saveGameRecord({
+          username: 'Player',
+          kpm: finalStats.kpm,
+          correctCount: finalStats.correctCount || 0,
+          missCount: finalStats.missCount || 0,
+          accuracy: finalStats.accuracy || 0,
+          timestamp: Date.now()
+        });
+        console.log('ResultScreen: ローカルランキングにスコアを保存しました');
+      } catch (error) {
+        console.error('ResultScreen: ランキング保存でエラーが発生しました:', error);
+      }
+    } else {
+      console.log('ResultScreen: スコアデータが無いためランキング保存をスキップします');
+    }
 
   }, [stats, gameState]);
 
@@ -148,11 +165,27 @@ const ResultScreen = ({
         delay: 0.5,
       },
     },
-  };  // スコア計算はすべて削除し、ダミーデータを使用
+  };  // 統計データを安全に取得
   const safeStats = useMemo(() => {
-    console.log('ResultScreen: スコア計算機能は削除されました');
+    // 送られてきたstatsかgameStateのstatsを取得
+    const inputStats = stats || gameState?.stats;
+    console.log('ResultScreen: 統計データ処理:', inputStats);
 
-    // リファクタリング用にダミーデータを返す
+    if (inputStats && typeof inputStats === 'object') {
+      // 統計情報をそのまま使用
+      return {
+        kpm: inputStats.kpm || 0,
+        correctCount: inputStats.correctCount || 0,
+        missCount: inputStats.missCount || 0,
+        accuracy: inputStats.accuracy || 0,
+        totalTime: inputStats.totalTime || 0,
+        elapsedTimeMs: inputStats.elapsedTimeMs || 0,
+        rank: inputStats.rank || 'F',
+        problemKPMs: inputStats.problemKPMs || []
+      };
+    }
+
+    // データが無い場合はデフォルト値を返す
     return {
       kpm: 0,
       correctCount: 0,
@@ -160,9 +193,10 @@ const ResultScreen = ({
       accuracy: 0,
       totalTime: 0,
       elapsedTimeMs: 0,
-      rank: 'F'
+      rank: 'F',
+      problemKPMs: []
     };
-  }, []);
+  }, [stats, gameState?.stats]);
 
   // スコア計算のデバッグログも削除
   console.log('ResultScreen: 詳細なKPM分析', {
@@ -180,19 +214,32 @@ const ResultScreen = ({
       elapsedTimeMs: safeStats.elapsedTimeMs,
       elapsedMinutes: safeStats.elapsedTimeMs / 60000
     });
-  }
-  // すべてのスコア計算コードを削除し、単純なダミーデータを使用
+  }  // 表示用に整形した統計情報を生成
   const fixedStats = useMemo(() => {
-    console.log('ResultScreen: 固定値を使用します');
+    console.log('ResultScreen: 統計情報を表示用に整形');
+
+    // KPMが異常に高い場合の警告
+    if (safeStats.kpm > 500) {
+      console.warn('ResultScreen: KPM値が異常に高い値です:', safeStats.kpm);
+    }
+
+    // ランクカラーの取得
+    const rankColor = TypingUtils.getRankColor(safeStats.rank || 'F');
+
+    // 小数点以下を整形
+    const formattedKpm = safeStats.kpm ? formatDecimal(safeStats.kpm) : '0.0';
+    const formattedAccuracy = safeStats.accuracy ? formatDecimal(safeStats.accuracy) : '0.0';
+    const formattedTime = safeStats.totalTime ? formatDecimal(safeStats.totalTime) : '0.0';
 
     return {
-      totalTime: '0.0',
-      accuracy: '0.0',
-      kpm: 0,
-      correctCount: 0,
-      missCount: 0,
-      rank: '-',
-      rankColor: TypingUtils.getRankColor('F'),
+      totalTime: formattedTime,
+      accuracy: formattedAccuracy,
+      kpm: formattedKpm,
+      correctCount: safeStats.correctCount || 0,
+      missCount: safeStats.missCount || 0,
+      rank: safeStats.rank || '-',
+      rankColor: rankColor,
+      problemKPMs: safeStats.problemKPMs || []
     };
   }, [safeStats]);
 

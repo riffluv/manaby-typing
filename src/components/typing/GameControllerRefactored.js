@@ -60,18 +60,66 @@ export function useGameControllerRefactored(options = {}) {
 
     // すべてのスコア計算は削除 - リファクタリングのための準備
 
-    console.log('[GameControllerRefactored] スコア計算は削除されました');
-
-    if (isGameClear) {
+    console.log('[GameControllerRefactored] スコア計算は削除されました'); if (isGameClear) {
       // ゲームクリア時の処理
       console.log('[GameControllerRefactored] 全問題完了 - リザルト画面に遷移します');
 
-      // スコア関連のデータをすべて削除
+      // 終了時間を記録
+      const endTime = Date.now();
+      const startTime = gameState.startTime || typing.typingStats?.statsRef?.current?.startTime || endTime;
+      const elapsedTimeMs = endTime - startTime;
+
+      // KPM計算 - 問題ごとのKPMの平均値を優先
+      let averageKPM = 0;
+      // 各問題のKPMを累積
+      const allProblemKPMs = [
+        ...(gameState.problemKPMs || []),
+        typing?.typingStats?.displayStats?.kpm || 0
+      ].filter(kpm => kpm > 0);
+
+      if (allProblemKPMs && allProblemKPMs.length > 0) {
+        // 問題ごとのKPMの平均を計算
+        averageKPM = allProblemKPMs.reduce((sum, kpm) => sum + kpm, 0) / allProblemKPMs.length;
+      } else {
+        // 問題データがない場合は単純計算
+        const totalCorrectKeyCount = typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
+        averageKPM = Math.floor(totalCorrectKeyCount / (elapsedTimeMs / 60000));
+      }
+      // キー入力の統計
+      const correctKeyCount = typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
+      const missCount = typing?.typingStats?.statsRef?.current?.mistakeCount || 0;
+      const totalKeystrokes = correctKeyCount + missCount;
+      const accuracy = totalKeystrokes > 0 ? Math.round((correctKeyCount / totalKeystrokes) * 100) : 100;
+      // 問題数の統計（実際に解いた問題数）
+      const correctProblemCount = newSolvedCount;
+
+      console.log('[GameControllerRefactored] 統計情報を整理:', {
+        キー正解数: correctKeyCount,
+        キーミス数: missCount,
+        問題正解数: correctProblemCount, // 問題数として正しく表示
+        正確率: accuracy,
+        KPM: averageKPM
+      });
+
+      // スコアデータをGameContextに保存
       setGameState(prev => ({
         ...prev,
         solvedCount: newSolvedCount,
         isGameClear: true,
-        // スコアデータは含めない
+        problemKPMs: allProblemKPMs,
+        startTime: startTime,
+        endTime: endTime,
+        // リザルト画面で使用する統計情報
+        stats: {
+          kpm: Math.round(averageKPM * 10) / 10, // 小数点1位までの平均KPM
+          correctCount: correctProblemCount, // 問題の正解数に修正
+          missCount: missCount,
+          accuracy: accuracy,
+          rank: typing?.typingStats?.displayStats?.rank || 'F',
+          problemKPMs: allProblemKPMs,
+          elapsedTimeMs: elapsedTimeMs,
+          totalTime: elapsedTimeMs / 1000
+        }
       }));
 
       // リザルト画面に遷移
