@@ -33,6 +33,7 @@
     "@types/react": "19.1.2",
     "concurrently": "^9.1.2",
     "nodemon": "^3.1.10",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "worker-loader": "^3.0.8"
   }
 }

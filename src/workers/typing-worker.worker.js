@@ -1,0 +1,126 @@
+/**
+ * typing-worker.worker.js
+ * タイピング処理用Web Worker (Webpack用にエクスポート処理追加)
+ * メインスレッドをブロックせずにタイピング判定処理を行う
+ * 2025年5月11日: Webpack Worker形式に最適化
+ */
+
+// ロガー設定（Worker内で使用）
+const logger = {
+  setModuleName: (name) => {
+    logger.moduleName = name;
+  },
+  setLogLevel: (level) => {
+    logger.logLevel = level;
+  },
+  log: (...args) => {
+    if (DEBUG_WORKER) console.log(`[TypingWorker]`, ...args);
+  },
+  warn: (...args) => {
+    console.warn(`[TypingWorker]`, ...args);
+  },
+  error: (...args) => {
+    console.error(`[TypingWorker]`, ...args);
+  },
+  moduleName: 'TypingWorker',
+  logLevel: 3
+};
+
+// 初期設定
+const DEBUG_WORKER = false;
+const DEBUG_CACHE = false;
+
+// キャッシュ設定
+const cache = {
+  processInput: new Map(),
+  coloringInfo: new Map(),
+  patternMatches: new Map(),
+  // 高速アクセス用キャッシュを追加
+  expectedKeys: new Map(),
+  completionStats: new Map(),
+};
+
+// パフォーマンス設定
+const performanceSettings = {
+  maxCacheSize: 1000,
+  useOptimizations: true,
+  useSharedMemory: false, // 共有メモリは使わない
+  batchProcessing: true,
+};
+
+// ワーカーコンテキストのチェック
+const ctx = self || this;
+
+// メッセージハンドラ
+ctx.addEventListener('message', function (e) {
+  const message = e.data;
+
+  if (!message || !message.type) {
+    postError('無効なメッセージフォーマット');
+    return;
+  }
+  // メッセージの種類に応じた処理
+  switch (message.type) {
+    case 'ping':
+      // 接続確認
+      ctx.postMessage({
+        type: 'pong',
+        callbackId: message.callbackId,
+        received: true,
+        timestamp: Date.now()
+      });
+      break;
+
+    case 'setProcessingModes':
+      // 処理モードの設定
+      try {
+        const { modes } = message.data || {};
+        logger.log('処理モードを設定:', modes);
+
+        // 設定を適用
+        if (modes) {
+          processingModes = {
+            ...processingModes,
+            ...modes
+          };
+        }
+
+        // 成功を返す
+        ctx.postMessage({
+          type: 'setProcessingModes',
+          callbackId: message.callbackId,
+          success: true
+        });
+      } catch (error) {
+        logger.error('処理モード設定エラー:', error);
+        ctx.postMessage({
+          type: 'setProcessingModes',
+          callbackId: message.callbackId,
+          error: error.message
+        });
+      }
+      break;
+
+    // その他のメッセージハンドラ (元のファイルから必要なものをコピー)
+
+    default:
+      // 未知のメッセージタイプ
+      postError(`未知のメッセージタイプ: ${message.type}`);
+      break;
+  }
+});
+
+// エラー報告関数
+function postError(message) {
+  ctx.postMessage({
+    type: 'error',
+    error: message,
+    timestamp: Date.now()
+  });
+}
+
+// モジュールとしてエクスポート (Webpackのworker-loader用)
+export default function createTypingWorker() {
+  // worker-loader用のエクスポート
+  return null;
+}

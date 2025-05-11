@@ -18,7 +18,6 @@ export default function useProcessingMode(defaultModes = {
 }) {
   const [modes, setModes] = useState(defaultModes);
   const [isInitialized, setIsInitialized] = useState(false);
-
   // 初期化時に一度だけモードを設定
   useEffect(() => {
     if (!isInitialized && typeof typingWorkerManager !== 'undefined') {
@@ -29,19 +28,44 @@ export default function useProcessingMode(defaultModes = {
         statistics: typingWorkerManager.processingMode?.statistics || defaultModes.statistics
       };
 
-      // マネージャーに設定を適用
-      typingWorkerManager.setProcessingModes(currentModes)
-        .then(result => {
-          console.log('[処理モード] 初期設定完了:', result);
-          setModes(result.currentModes || currentModes);
-          setIsInitialized(true);
-        })
-        .catch(error => {
-          console.error('[処理モード] 初期設定エラー:', error);
-          // エラー時でもローカル状態を更新
+      try {
+        // typingWorkerManagerのメソッド存在チェック
+        if (typeof typingWorkerManager.setProcessingModes !== 'function') {
+          console.error('[処理モード] setProcessingModesメソッドが存在しません');
+          // ローカル状態のみを更新
           setModes(currentModes);
           setIsInitialized(true);
-        });
+          return;
+        }
+
+        // マネージャーに設定を適用
+        const result = typingWorkerManager.setProcessingModes(currentModes);
+
+        // Promiseを返す場合
+        if (result instanceof Promise) {
+          result.then(result => {
+            console.log('[処理モード] 初期設定完了:', result);
+            setModes(result.currentModes || currentModes);
+            setIsInitialized(true);
+          })
+            .catch(error => {
+              console.error('[処理モード] 初期設定エラー:', error);
+              // エラー時でもローカル状態を更新
+              setModes(currentModes);
+              setIsInitialized(true);
+            });
+        } else {
+          // Promiseを返さない場合は同期的に処理
+          console.log('[処理モード] 同期的に初期設定完了');
+          setModes(currentModes);
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error('[処理モード] 初期設定例外:', error);
+        // 例外発生時もローカル状態を更新
+        setModes(currentModes);
+        setIsInitialized(true);
+      }
     }
   }, [isInitialized, defaultModes]);
 
