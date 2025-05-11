@@ -89,7 +89,6 @@ const TypingAreaRefactored = ({
       </div>
     );
   }
-
   // currentProblemが存在するか検証
   if (!currentProblem) {
     console.log('[TypingAreaRefactored] 問題データがありません');
@@ -99,6 +98,13 @@ const TypingAreaRefactored = ({
       </div>
     );
   }
+  
+  // 問題データのログ出力（デバッグ用）
+  console.log('[TypingAreaRefactored] レンダリング中の問題データ:', {
+    displayText: currentProblem?.displayText,
+    typing_sessionあり: typing?.typingSession ? 'あり' : 'なし',
+    typing_session問題: typing?.typingSession?.problem?.displayText
+  });
 
   return (
     <div className={`${styles.typing_area} ${className}`}>
@@ -110,10 +116,11 @@ const TypingAreaRefactored = ({
         className={styles.typing_area__problem}
         data-error={typing.errorAnimation ? 'true' : 'false'}
       >        <ProblemDisplay
+          key={`problem-${currentProblem?.displayText}`}
           text={currentProblem?.displayText || '表示するお題がありません'}
           animate={true}
           className={typing.errorAnimation ? styles.typing_area__problem_error : ''}
-        />        <SimpleTypingDisplay
+        /><SimpleTypingDisplay
           romaji={displayData.romaji}
           typedLength={displayData.typedLength}
           nextChar={displayData.expectedNextChar || nextKey}

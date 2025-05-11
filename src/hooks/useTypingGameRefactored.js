@@ -179,8 +179,7 @@ export function useTypingGameRefactored(options = {}) {
         }; onDebugInfoUpdate(debugInfoRef.current);
       }
     },
-  });
-  /**
+  });  /**
    * 問題設定メソッド
    */
   const setProblem = useCallback((problem) => {
@@ -188,8 +187,29 @@ export function useTypingGameRefactored(options = {}) {
       displayText: problem?.displayText?.substring(0, 20) + '...',
       kanaText: problem?.kanaText?.substring(0, 20) + '...'
     });
-    return typingCore.initializeSession(problem);
-  }, [typingCore]);
+    
+    // 前のセッションの統計をリセット
+    typingStats.resetStats();
+    
+    // 新しい問題でセッションを初期化
+    const result = typingCore.initializeSession(problem);
+    
+    // 強制的に表示情報を更新（初期化直後に確実に更新）
+    if (result && typingCore.sessionRef.current) {
+      const colorInfo = typingCore.sessionRef.current.getColoringInfo();
+      typingCore.setDisplayInfo({
+        romaji: colorInfo.romaji || '',
+        typedLength: 0,
+        currentInputLength: colorInfo.currentInputLength || 0,
+        currentCharIndex: colorInfo.currentCharIndex || 0,
+        currentInput: colorInfo.currentInput || '',
+        expectedNextChar: colorInfo.expectedNextChar || '',
+        currentCharRomaji: colorInfo.currentCharRomaji || '',
+      });
+    }
+    
+    return result;
+  }, [typingCore, typingStats]);
 
   /**
    * 次の入力キーを取得

@@ -52,7 +52,6 @@ export function useTypingCore(options = {}) {
     if (!problem.displayText || typeof problem.displayText !== 'string') return false;
     return true;
   }, []);
-
   /**
    * セッション初期化処理
    */  const initializeSession = useCallback((problem) => {
@@ -61,6 +60,13 @@ export function useTypingCore(options = {}) {
       console.warn('[useTypingCore] 無効な問題データです', problem);
       return false;
     }
+    
+    // 問題データログ
+    console.log('[useTypingCore] 問題データ初期化:', {
+      displayText: problem.displayText,
+      kanaText: problem.kanaText?.substring(0, 20) + '...',
+      timestamp: new Date().toLocaleTimeString()
+    });
 
     try {
       // 新しいタイピングセッションを作成

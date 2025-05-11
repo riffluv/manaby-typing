@@ -174,7 +174,7 @@ export function useGameControllerRefactored(options = {}) {
         // 累積打鍵数も追跡
         totalCorrectKeys: (prev.totalCorrectKeys || 0) + currentProblemCorrectKeys,
         totalMissKeys: (prev.totalMissKeys || 0) + currentProblemMistakes
-      }));// 次の問題をセット（最小限のディレイで素早く表示）
+      }));      // 次の問題をセット（最小限のディレイで素早く表示）
       setTimeout(() => {
         // 難易度設定の確認ログ
         console.log('[GameControllerRefactored] 次の問題選択 - 難易度設定:', {
@@ -198,6 +198,14 @@ export function useGameControllerRefactored(options = {}) {
 
         // 問題をセット
         setCurrentProblem(nextProblem);
+        
+        // タイピングオブジェクトが存在し、setProblemメソッドがある場合は問題を設定
+        if (typing && typing.setProblem) {
+          console.log('[GameControllerRefactored] 次の問題をタイピングセッションに設定します');
+          typing.setProblem(nextProblem);
+        } else {
+          console.warn('[GameControllerRefactored] タイピングオブジェクトまたはsetProblem関数がありません');
+        }
       }, 50); // 0.05秒のわずかなディレイ（従来モードと同等）
     }
   }, [gameState, currentProblem, setGameState, goToScreen]);
@@ -319,13 +327,22 @@ export function useGameControllerRefactored(options = {}) {
         typing.setProblem(initialProblem);
       }
     }
-  }, [gameState.difficulty, gameState.category, currentProblem, typing]);
+  }, [gameState.difficulty, gameState.category, currentProblem, typing]);  // 返す前に問題状態のログ出力
+  console.log('[GameControllerRefactored] 現在の状態:', {
+    'currentProblem': currentProblem?.displayText,
+    'typing.displayInfo': typing?.displayInfo ? 'あり' : 'なし',
+    'typingRefあり?': typingRef.current ? 'あり' : 'なし',
+    'gameState.currentProblem': gameState.currentProblem?.displayText,
+  });
+
   return {
     // 状態
     typing,
     typingRef: typingRef,  // 修正済みのRef
     currentProblem,
     gameState,
+    // 現在のゲーム状態を含むオブジェクト
+    gameState: { currentProblem },  // 現在の問題をgameStateの一部として明示的に共有
 
     // メソッド
     getNextKey,

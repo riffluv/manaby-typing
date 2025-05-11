@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import styles from '../../styles/GameScreen.module.css';
 import { Animation } from '../../utils/DesignTokens';
 
-// デバッグログフラグ - デフォルトで無効化
-const DEBUG_PROBLEM_DISPLAY = process.env.NODE_ENV === 'development' && false;
+// デバッグログフラグ - 一時的に有効化（問題解決後に戻すことを推奨）
+const DEBUG_PROBLEM_DISPLAY = process.env.NODE_ENV === 'development' && true;
 
 /**
  * 改良版問題表示コンポーネント
@@ -16,11 +16,12 @@ const DEBUG_PROBLEM_DISPLAY = process.env.NODE_ENV === 'development' && false;
  * @param {boolean} props.animate - アニメーション効果を適用するかどうか
  * @param {string} props.className - 追加で適用するCSSクラス名
  */
-const ProblemDisplay = ({ text = '', animate = true, className = '' }) => {
-  // パフォーマンス向上のためコンソール出力をデバッグフラグ条件付きに
+const ProblemDisplay = ({ text = '', animate = true, className = '' }) => {  // パフォーマンス向上のためコンソール出力をデバッグフラグ条件付きに
   if (DEBUG_PROBLEM_DISPLAY) {
     console.log('[ProblemDisplay] レンダリング:', {
+      text: text,
       textLength: text?.length,
+      timestamp: new Date().toLocaleTimeString()
     });
   }
 

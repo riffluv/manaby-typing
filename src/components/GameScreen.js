@@ -105,11 +105,10 @@ const GameScreen = () => {
             requiredCount={gameState.requiredProblemCount || 5}
             typingStats={typing?.stats || {}}
           />          {/* メイン画面 */}
-          <main className={styles.typing_game__main}>
-            {/* タイピングエリア */}
+          <main className={styles.typing_game__main}>            {/* タイピングエリア */}
             <TypingAreaRefactored
               typing={typing}
-              currentProblem={currentGameState?.currentProblem || gameState.currentProblem}
+              currentProblem={typing?.typingSession?.problem || currentGameState?.currentProblem || gameState.currentProblem}
               lastPressedKey={lastPressedKey}
               className={styles.typing_game__typing_area}
             />
