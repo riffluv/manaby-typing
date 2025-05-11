@@ -103,21 +103,12 @@ const GameScreen = () => {
             solvedCount={gameState.solvedCount}
             requiredCount={gameState.requiredProblemCount || 5}
             typingStats={typing?.stats || {}}
-          />          {/* メイン画面 */}
-          <main className={styles.typing_game__main}>            {/* タイピングエリア */}            <TypingArea
-              typing={typing}
-              currentProblem={typing?.typingSession?.problem || currentGameState?.currentProblem || gameState.currentProblem}
-              lastPressedKey={lastPressedKey}
-              className={styles.typing_game__typing_area}
-            />
-
-            {/* 進捗インジケーター */}
-            <div className={styles.typing_game__progress}>
-              <div
-                className={styles.typing_game__progress_bar}
-                style={{ width: `${typing?.progressPercentage || 0}%` }}
-              />
-            </div>
+          />          {/* メイン画面 */}          <main className={styles.typing_game__main}>            {/* タイピングエリア */}            <TypingArea
+            typing={typing}
+            currentProblem={typing?.typingSession?.problem || currentGameState?.currentProblem || gameState.currentProblem}
+            lastPressedKey={lastPressedKey}
+            className={styles.typing_game__typing_area}
+          />
 
             {/* デバッグ情報 */}
             {DEBUG_GAME_SCREEN && (

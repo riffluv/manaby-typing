@@ -10,7 +10,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import ProblemDisplay from './ProblemDisplay';
 import SimpleTypingDisplay from './SimpleTypingDisplay';
-import CanvasKeyboard from './CanvasKeyboard';
 import styles from '../../styles/typing/TypingArea.module.css';
 
 /**
@@ -67,18 +66,7 @@ const TypingArea = ({
     typing?.displayInfo?.currentInput,
     typing?.displayInfo?.currentCharRomaji,
     typing?.displayInfo?.expectedNextChar
-  ]);
-  // アニメーション用のバリアント（キーボードのみ）
-  const animationVariants = useMemo(
-    () => ({
-      keyboard: {
-        initial: { opacity: 0, y: 25 },
-        animate: { opacity: 1, y: 0 },
-        transition: { delay: 0.3, duration: 0.4 },
-      },
-    }),
-    []
-  );
+  ]);  // キーボード関連のアニメーションを削除
   if (!typing) {
     console.log('[TypingArea] typingオブジェクトがありません');
     return (
@@ -131,23 +119,9 @@ const TypingArea = ({
           currentInput={displayData.currentInput || typing?.displayInfo?.currentInput || ''}
           currentCharRomaji={displayData.currentCharRomaji || typing?.displayInfo?.currentCharRomaji || ''}
           inputMode={displayData.currentInput ? 'consonant' : 'normal'}
-        />
-      </div>
-
-      {/* キーボード表示 */}
-      <motion.div
-        variants={animationVariants.keyboard}
-        initial="initial"
-        animate="animate"
-        className={styles.typing_area__keyboard}
-      >        
-        <CanvasKeyboard
-          nextKey={nextKey}
-          lastPressedKey={lastPressedKey}
-          isError={typing.errorAnimation}
-          className={styles.typing_area__keyboard_canvas}
-        />
-      </motion.div>
+        />      </div>
+      
+      {/* キーボード表示部分を削除 */}
     </div>
   );
 };

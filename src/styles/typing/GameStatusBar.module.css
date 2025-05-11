@@ -17,6 +17,19 @@
   z-index: 10;
 }
 
+/* 空のステータスバー - 高さを確保したバージョン */
+.empty_bar {
+  padding: 0.5rem 1rem;
+  min-height: 40px; /* 元のヘッダーより少し小さめの高さを設定 */
+  background: rgba(0, 0, 0, 0.15); /* より薄い背景色 */
+  border-bottom: 1px solid rgba(0, 180, 255, 0.1); /* より薄いボーダー */
+  border-top: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .status_info {
   display: flex;
   gap: 1.2rem;
