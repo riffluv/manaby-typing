@@ -1,16 +1,21 @@
 'use client';
 
+/**
+ * TypingArea.js
+ * 最適化版タイピングエリアコンポーネント
+ * 責任: タイピング入力表示とキーボード表示
+ */
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import ProblemDisplay from './ProblemDisplay';
 import SimpleTypingDisplay from './SimpleTypingDisplay';
 import CanvasKeyboard from './CanvasKeyboard';
-import { useSimpleTypingAdapter } from '../../hooks/useSimpleTypingAdapter';
 import styles from '../../styles/typing/TypingArea.module.css';
 
 /**
- * タイピングエリアコンポーネント
- * GameScreenから分離した表示用コンポーネント
+ * 最適化版タイピングエリアコンポーネント
+ * 副作用を減らし、パフォーマンスを最適化
  */
 const TypingArea = ({
   typing,
@@ -18,22 +23,54 @@ const TypingArea = ({
   lastPressedKey = '',
   className = '',
 }) => {
-  // シンプル表示用のプロパティを取得
-  const simpleProps = useSimpleTypingAdapter(typing);
-
+  // タイピング表示用の状態
+  const [displayData, setDisplayData] = useState({
+    romaji: '',
+    typedLength: 0,
+    currentCharIndex: 0,
+  });  
+  
   // 次に入力すべきキーを取得
   const nextKey = useMemo(() => {
-    return typing?.typingSession?.getCurrentExpectedKey?.() || '';
-  }, [typing]);
+    const key = typing?.getNextKey?.() || '';
+    console.log('[TypingArea] 次のキー:', key);
+    return key;
+  }, [typing, typing?.displayInfo?.currentCharIndex, typing?.displayInfo?.typedLength]);
 
-  // アニメーション用のバリアント
+  // 表示データの更新（キャラクターインデックスが変わったときに更新）
+  useEffect(() => {
+    if (typing?.displayInfo) {      // displayInfoの特定のプロパティを依存配列で監視し、値が変わった時だけ更新
+      const { romaji, typedLength, currentCharIndex, currentInput, currentCharRomaji, expectedNextChar } = typing.displayInfo;
+
+      // デバッグ出力
+      console.log('[TypingArea] 表示データ更新:', {
+        romaji: romaji?.substring(0, 20) + (romaji?.length > 20 ? '...' : ''),
+        typedLength,
+        currentCharIndex,
+        currentInput,
+        expectedNextChar
+      });
+
+      setDisplayData({
+        romaji: romaji || '',
+        typedLength: typedLength || 0,
+        currentCharIndex: currentCharIndex || 0,
+        currentInput: currentInput || '',
+        currentCharRomaji: currentCharRomaji || '',
+        expectedNextChar: expectedNextChar || '',
+      });
+    }
+  }, [
+    typing?.displayInfo?.romaji,
+    typing?.displayInfo?.typedLength,
+    typing?.displayInfo?.currentCharIndex,
+    typing?.displayInfo?.currentInput,
+    typing?.displayInfo?.currentCharRomaji,
+    typing?.displayInfo?.expectedNextChar
+  ]);
+  // アニメーション用のバリアント（キーボードのみ）
   const animationVariants = useMemo(
     () => ({
-      problemArea: {
-        initial: { opacity: 0, y: 15 },
-        animate: { opacity: 1, y: 0 },
-        transition: { delay: 0.2, duration: 0.3 },
-      },
       keyboard: {
         initial: { opacity: 0, y: 25 },
         animate: { opacity: 1, y: 0 },
@@ -42,8 +79,8 @@ const TypingArea = ({
     }),
     []
   );
-
   if (!typing) {
+    console.log('[TypingArea] typingオブジェクトがありません');
     return (
       <div className={`${styles.typing_area} ${className}`}>
         <div className={styles.typing_loading}>読み込み中...</div>
@@ -51,46 +88,64 @@ const TypingArea = ({
     );
   }
 
+  // currentProblemが存在するか検証
+  if (!currentProblem) {
+    console.log('[TypingArea] 問題データがありません');
+    return (
+      <div className={`${styles.typing_area} ${className}`}>
+        <div className={styles.typing_loading}>問題を読み込み中...</div>
+      </div>
+    );
+  }    // 問題データの詳細ログ出力（デバッグ用）
+  console.log('[TypingArea] レンダリング中の問題データ:', {
+    displayText: currentProblem?.displayText,
+    displayTextLength: currentProblem?.displayText?.length,
+    kanaText: currentProblem?.kanaText?.substring(0, 20) + '...',
+    typing_sessionあり: typing?.typingSession ? 'あり' : 'なし',
+    typing_session問題: typing?.typingSession?.problem?.displayText,
+    typing_session問題_length: typing?.typingSession?.problem?.displayText?.length,
+    一致: currentProblem?.displayText === typing?.typingSession?.problem?.displayText,
+    timestamp: new Date().toLocaleTimeString()
+  });
+
   return (
     <div className={`${styles.typing_area} ${className}`}>
-      {/* お題エリア */}
-      <motion.div
-        className={styles.problem_container}
-        initial={animationVariants.problemArea.initial}
-        animate={animationVariants.problemArea.animate}
-        transition={animationVariants.problemArea.transition}
+      {/* 問題表示エリア */}
+      <div
+        className={styles.typing_area__problem}
+        data-error={typing.errorAnimation ? 'true' : 'false'}
       >
-        {/* 問題表示コンポーネント */}
         <ProblemDisplay
-          text={currentProblem?.displayText || ''}
-          className={styles.problem_text}
-        />
-
-        {/* 入力エリア */}
+          // 問題テキストのみをキーにして、必要な時だけ再レンダリングされるようにする
+          key={`problem-${currentProblem?.displayText}`}
+          text={currentProblem?.displayText || '表示するお題がありません'}
+          animate={false}
+          className={typing.errorAnimation ? styles.typing_area__problem_error : ''}
+        /> 
         <SimpleTypingDisplay
-          romaji={simpleProps.romaji}
-          typedLength={simpleProps.typedLength}
-          nextChar={simpleProps.nextChar}
-          isError={simpleProps.isError}
-          className={styles.input_area}
-          inputMode={simpleProps.inputMode}
-          currentInput={simpleProps.currentInput}
-          currentCharRomaji={simpleProps.currentCharRomaji}
+          romaji={displayData.romaji}
+          typedLength={displayData.typedLength}
+          nextChar={displayData.expectedNextChar || nextKey}
+          isError={typing.errorAnimation}
+          className={styles.typing_area__romaji}
+          currentInput={displayData.currentInput || typing?.displayInfo?.currentInput || ''}
+          currentCharRomaji={displayData.currentCharRomaji || typing?.displayInfo?.currentCharRomaji || ''}
+          inputMode={displayData.currentInput ? 'consonant' : 'normal'}
         />
-      </motion.div>
+      </div>
 
       {/* キーボード表示 */}
       <motion.div
-        className={styles.keyboard_container}
-        initial={animationVariants.keyboard.initial}
-        animate={animationVariants.keyboard.animate}
-        transition={animationVariants.keyboard.transition}
-      >
+        variants={animationVariants.keyboard}
+        initial="initial"
+        animate="animate"
+        className={styles.typing_area__keyboard}
+      >        
         <CanvasKeyboard
           nextKey={nextKey}
           lastPressedKey={lastPressedKey}
           isError={typing.errorAnimation}
-          layout="jp"
+          className={styles.typing_area__keyboard_canvas}
         />
       </motion.div>
     </div>

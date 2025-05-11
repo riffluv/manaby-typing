@@ -9,12 +9,12 @@ import Button from './common/Button';
 import ErrorBoundary from './common/ErrorBoundary';
 import { PerformanceDebugDisplay } from './common/PerformanceMonitor';
 import ProcessingModeSelector from './common/ProcessingModeSelector';
-import TypingAreaRefactored from './typing/TypingAreaRefactored';
+import TypingArea from './typing/TypingArea';
 import GameStatusBar from './typing/GameStatusBar';
 import {
-  useGameControllerRefactored as useGameController,
-  useGameCompleteHandlerRefactored as useGameCompleteHandler,
-} from './typing/GameControllerRefactored';
+  useGameController,
+  useGameCompleteHandler,
+} from './typing/GameController';
 
 // デバッグログフラグ - デフォルトで無効化
 const DEBUG_GAME_SCREEN = process.env.NODE_ENV === 'development' && false;
@@ -28,9 +28,8 @@ const DEBUG_GAME_SCREEN = process.env.NODE_ENV === 'development' && false;
 const GameScreen = () => {
   const { gameState } = useGameContext();
   const { goToScreen } = usePageTransition();
-
-  // リファクタリング状況を確認するログ
-  console.log('[GameScreen] 従来モードもリファクタリングモードのコードを使用しています。2025年5月11日更新');
+  // リファクタリング完了のログ
+  console.log('[GameScreen] リファクタリングが完了しました。2025年5月11日更新');
 
   // パフォーマンスメトリクス表示用の状態
   const [debugInfo, setDebugInfo] = useState({});
@@ -105,8 +104,7 @@ const GameScreen = () => {
             requiredCount={gameState.requiredProblemCount || 5}
             typingStats={typing?.stats || {}}
           />          {/* メイン画面 */}
-          <main className={styles.typing_game__main}>            {/* タイピングエリア */}
-            <TypingAreaRefactored
+          <main className={styles.typing_game__main}>            {/* タイピングエリア */}            <TypingArea
               typing={typing}
               currentProblem={typing?.typingSession?.problem || currentGameState?.currentProblem || gameState.currentProblem}
               lastPressedKey={lastPressedKey}

@@ -1,416 +1,277 @@
+'use client';
+
 /**
  * useTypingGame.js
- * タイピングゲームの核となるカスタムフック
- * リファクタリング済み（2025年5月8日）- 高速レスポンス最適化版
+ * タイピングゲームの統合カスタムフック
+ * 最適化版 - モジュール分割と責任の明確化
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import TypingUtils from '../utils/TypingUtils';
-import soundSystem from '../utils/SoundUtils';
-import typingWorkerManager from '../utils/TypingWorkerManager';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTypingCore } from './typing/useTypingCore';
+import { useTypingInput } from './typing/useTypingInput';
+import { useTypingStats } from './typing/useTypingStats';
+import TypingUtils from '@/utils/TypingUtils';
+
+const DEFAULT_SOUND_SYSTEM = {
+  playSound: () => { }, // 無効なデフォルト実装
+};
 
 /**
- * タイピングゲームのコアロジックを扱うカスタムフック
- * パフォーマンス最適化版
+ * タイピングゲームの統合カスタムフック
+ * 3つの専門フックを組み合わせて、完全なタイピングゲーム体験を提供
  * 
  * @param {Object} options タイピングゲームの設定オプション
  * @param {Object} options.initialProblem 初期問題
  * @param {boolean} options.playSound 効果音を再生するかどうか
+ * @param {Object} options.soundSystem サウンドシステム
  * @param {Function} options.onProblemComplete 問題完了時のコールバック
+ * @param {Function} options.onDebugInfoUpdate デバッグ情報更新のコールバック
  * @returns {Object} タイピングゲームの状態と操作メソッド
  */
-export function useTypingGame({
-  initialProblem = null,
-  playSound = true,
-  onProblemComplete = () => { }
-} = {}) {
-  // タイピングセッション（直接アクセス用）
-  const typingSessionRef = useRef(null);
+export function useTypingGame(options = {}) {
+  const {
+    initialProblem = null,
+    playSound = true,
+    soundSystem = DEFAULT_SOUND_SYSTEM,
+    onProblemComplete = () => { },
+    onDebugInfoUpdate = null,
+  } = options;
 
-  // 基本表示情報
-  const [displayInfo, setDisplayInfo] = useState({
-    romaji: '',
-    typedLength: 0,
-    currentInputLength: 0,
-    currentCharIndex: 0,
-    currentInput: '',
-    expectedNextChar: '',
-    currentCharRomaji: '',
-  });
+  // デバッグ情報
+  const debugInfoRef = useRef({});
 
-  // 統計情報は参照で管理（再レンダリング防止）
-  const statsRef = useRef({
-    correctKeyCount: 0,
-    mistakeCount: 0,
-    startTime: null,
-    currentProblemStartTime: null,
-    problemStats: [],
-  });
-
-  // UIのみに必要な統計情報
-  const [displayStats, setDisplayStats] = useState({
-    correctKeyCount: 0,
-    mistakeCount: 0,
-    kpm: 0,
-    rank: 'F',
-  });
-
-  // UI状態フラグ
-  const [errorAnimation, setErrorAnimation] = useState(false);
-  const [progressPercentage, setProgressPercentage] = useState(0);
-  const completedRef = useRef(false);
-
-  // タイマー参照
-  const errorTimerRef = useRef(null);
-  const statsUpdateTimerRef = useRef(null);
+  // 進捗更新の最小閾値（パーセント）
+  const PROGRESS_UPDATE_THRESHOLD = 5;
 
   /**
-   * 問題完了時の処理
-   * 直接呼び出しのみでスケジューリングはしない
-   */
-  const completeProblem = useCallback(() => {
-    // すでに完了済みなら何もしない
-    if (completedRef.current) return;
+   * 問題状態変更時の処理
+   */  
+  const handleProblemStateChange = useCallback(({ type, progress }) => {
+    if (type === 'completed') {
+      const statsData = typingStats.recordProblemCompletion();
 
-    // 完了フラグを設定
-    completedRef.current = true;
+      // コールバック呼び出し
+      onProblemComplete({
+        problemKeyCount: statsData.problemKeyCount,
+        problemElapsedMs: statsData.problemElapsedMs,
+        problemKPM: statsData.problemKPM,
+        updatedProblemKPMs: [], // statsDataから正しく取得できない場合はからの配列を設定
+        problemStats: [] // statsDataから正しく取得できない場合はからの配列を設定
+      });
 
-    // 問題ごとの統計情報を計算
-    const now = Date.now();
-    const stats = statsRef.current;
-    const problemElapsedMs = stats.currentProblemStartTime
-      ? now - stats.currentProblemStartTime
-      : 0;
-    const problemKeyCount = stats.correctKeyCount || 0;
-
-    // 問題の詳細データを作成
-    const problemData = {
-      problemKeyCount,
-      problemElapsedMs,
-      problemKPM: problemElapsedMs > 0
-        ? Math.floor((problemKeyCount / (problemElapsedMs / 60000)))
-        : 0,
-      timestamp: now,
-    };
-
-    // 統計情報を更新
-    const updatedProblemStats = [...(stats.problemStats || []), problemData];
-    stats.problemStats = updatedProblemStats;
-
-    // 進捗100%に設定
-    setProgressPercentage(100);
-
-    // 表示用統計情報を更新
-    updateDisplayStats();
-
-    // コールバック呼び出し
-    onProblemComplete({
-      problemKeyCount,
-      problemElapsedMs,
-      problemKPM: problemData.problemKPM,
-      updatedProblemKPMs: updatedProblemStats.map(p => p.problemKPM || 0),
-      problemStats: updatedProblemStats
-    });
+      // デバッグログ出力
+      console.log('[handleProblemStateChange] 問題完了時の統計:', statsData);
+    }
   }, [onProblemComplete]);
 
   /**
-   * 表示用統計情報を更新
+   * コアタイピング機能
    */
-  const updateDisplayStats = useCallback(() => {
-    const stats = statsRef.current;
-    const correctCount = stats.correctKeyCount;
-    const missCount = stats.mistakeCount;
-
-    // 問題データがある場合は平均KPMを計算
-    let kpm = 0;
-    if (stats.problemStats && stats.problemStats.length > 0) {
-      // 各問題のKPMの平均値を使用
-      kpm = TypingUtils.calculateAverageKPM(stats.problemStats);
-    } else {
-      // 問題データがない場合は単純計算
-      const startTime = stats.startTime || Date.now();
-      const elapsedTimeMs = Date.now() - startTime;
-
-      // ゼロ除算を防ぐ
-      if (elapsedTimeMs > 0) {
-        kpm = Math.floor(correctCount / (elapsedTimeMs / 60000));
-      }
-    }
-
-    // 最低値の保証
-    if (kpm <= 0 && correctCount > 0) {
-      kpm = 1;
-    }
-
-    const rank = TypingUtils.getRank(kpm);
-
-    // 表示用統計情報の更新
-    setDisplayStats({
-      correctKeyCount: correctCount,
-      mistakeCount: missCount,
-      kpm,
-      rank,
-    });
-  }, []);
+  const typingCore = useTypingCore({
+    initialProblem,
+    onProblemStateChange: handleProblemStateChange,
+    onSessionInitialized: (session) => {
+      // セッション初期化時の追加処理
+      typingStats.resetStats();
+    },
+  });
 
   /**
-   * UI更新を一括処理
-   * 重要なパフォーマンス最適化ポイント
+   * 統計情報管理
    */
-  const updateUI = useCallback((updates = {}) => {
-    if (updates.displayInfo) {
-      setDisplayInfo(updates.displayInfo);
-    }
-
-    if (updates.progress !== undefined) {
-      setProgressPercentage(updates.progress);
-    }
-
-    if (updates.error) {
-      // エラーアニメーション表示
-      setErrorAnimation(true);
-
-      // エラーアニメーションのタイマーをリセット
-      if (errorTimerRef.current) {
-        clearTimeout(errorTimerRef.current);
+  const typingStats = useTypingStats({
+    onStatsUpdate: (stats) => {
+      // デバッグ情報の更新
+      if (onDebugInfoUpdate) {
+        const debugInfo = {
+          ...debugInfoRef.current,
+          stats,
+        };
+        debugInfoRef.current = debugInfo;
+        onDebugInfoUpdate(debugInfo);
       }
-
-      // タイマーを設定してエラーアニメーションを消す
-      errorTimerRef.current = setTimeout(() => {
-        setErrorAnimation(false);
-        errorTimerRef.current = null;
-      }, 150); // 高速応答のため短縮
     }
-  }, []);
+  });
 
   /**
-   * タイピング入力処理 - 高速パフォーマンス版
-   * 主要な最適化ポイント
-   */
-  const handleInput = useCallback((key) => {
-    // セッションがない場合や完了済みの場合は何もしない
-    const session = typingSessionRef.current;
-    if (!session || completedRef.current) {
-      return false;
-    }
+   * 入力処理
+   */  
+  const typingInput = useTypingInput({
+    sessionRef: typingCore.sessionRef,
+    isCompleted: typingCore.isCompleted,
+    completedRef: typingCore.completedRef,
+    playSound,
+    soundSystem,
+    // 問題完了時に呼び出されるコールバック
+    onComplete: (inputData) => {
+      // 状態を完了に設定
+      typingCore.markAsCompleted();
 
-    // 入力開始時間を記録
-    const now = Date.now();
-    const stats = statsRef.current;
-    const isFirstInput = !stats.startTime;
+      // 問題統計情報を記録し、上位コールバックに渡す
+      const stats = typingStats.recordProblemCompletion();
 
-    // 入力を処理（直接処理で高速化）
-    const result = session.processInput(key);
+      // 現在のミス数を明示的に取得
+      const rawTypingStats = typingStats.statsRef.current || {};
+      const mistakeCount = rawTypingStats.mistakeCount || 0;
 
-    // 入力結果によって処理を分岐
-    if (result.success) {
-      // 正解時の処理
-      // 初回入力時のみ開始時間を記録
-      if (isFirstInput) {
-        stats.startTime = now;
-        stats.currentProblemStartTime = now;
-      }
-
-      // 効果音再生
-      if (playSound) {
-        soundSystem.playSound('success');
-      }
-
-      // 正解カウントを更新
-      stats.correctKeyCount += 1;
-
-      // 進捗表示の更新（大きな変化があるときのみ）
-      const newProgress = session.getCompletionPercentage();
-      if (Math.abs(newProgress - progressPercentage) >= 5) {
-        setProgressPercentage(newProgress);
-      }
-
-      // 表示情報の更新
-      const colorInfo = session.getColoringInfo();
-      updateUI({
-        displayInfo: {
-          romaji: colorInfo.romaji || '',
-          typedLength: colorInfo.typedLength || 0,
-          currentInputLength: colorInfo.currentInputLength || 0,
-          currentCharIndex: colorInfo.currentCharIndex || 0,
-          currentInput: colorInfo.currentInput || '',
-          expectedNextChar: colorInfo.expectedNextChar || '',
-          currentCharRomaji: colorInfo.currentCharRomaji || '',
-        }
-      });
-
-      // 統計情報の更新は頻度を下げる（1秒ごと）
-      if (!statsUpdateTimerRef.current) {
-        statsUpdateTimerRef.current = setTimeout(() => {
-          updateDisplayStats();
-          statsUpdateTimerRef.current = null;
-        }, 250); // 頻度を下げて負荷軽減
-      }
-
-      // 完了チェック - 即時処理
-      if (result.status === 'all_completed') {
-        completeProblem();
-      }
-
-      return true;
-    } else {
-      // 不正解時の処理
-      // 効果音再生
-      if (playSound) {
-        soundSystem.playSound('error');
-      }
-
-      // エラーカウントを更新
-      stats.mistakeCount += 1;
-
-      // エラーアニメーション表示
-      updateUI({ error: true });
-
-      return false;
-    }
-  }, [playSound, completeProblem, updateUI, updateDisplayStats, progressPercentage]);
-
-  /**
-   * セッション初期化処理
-   */
-  const initializeSession = useCallback((problem) => {
-    if (!problem) return;
-
-    try {
-      // タイマーをクリア
-      if (statsUpdateTimerRef.current) {
-        clearTimeout(statsUpdateTimerRef.current);
-        statsUpdateTimerRef.current = null;
-      }
-
-      if (errorTimerRef.current) {
-        clearTimeout(errorTimerRef.current);
-        errorTimerRef.current = null;
-      }
-
-      // 新しいタイピングセッションを作成
-      const session = TypingUtils.createTypingSession(problem);
-      if (!session) return;
-
-      // セッションを保存
-      typingSessionRef.current = session;
-
-      // 表示情報を初期化
-      setDisplayInfo({
-        romaji: session.displayRomaji || '',
-        typedLength: 0,
-        currentInputLength: 0,
-        currentCharIndex: 0,
-        currentInput: '',
-        expectedNextChar: session.getCurrentExpectedKey() || '',
-        currentCharRomaji: session.patterns[0] ? session.patterns[0][0] : '',
-      });
-
-      // 状態をリセット
-      completedRef.current = false;
-      setErrorAnimation(false);
-      setProgressPercentage(0);
-
-      // 統計情報もリセット
-      statsRef.current = {
-        correctKeyCount: 0,
-        mistakeCount: 0,
-        startTime: null,
-        currentProblemStartTime: null,
-        problemStats: [],
+      // パラメータ準備（シンプルにする）
+      const typingStatsData = {
+        problemKeyCount: stats.problemKeyCount || 0,
+        problemElapsedMs: stats.problemElapsedMs || 0,
+        problemKPM: stats.problemKPM || 0,
+        problemMistakeCount: stats.problemMistakeCount || 0,
+        displayStats: typingStats.displayStats,
+        // 累計ミス数を直接取得
+        totalMistakes: mistakeCount
       };
 
-      // 表示用統計情報も初期化
-      setDisplayStats({
-        correctKeyCount: 0,
-        mistakeCount: 0,
-        kpm: 0,
-        rank: 'F',
+      console.log('[useTypingGame] 問題完了 - 統計情報:', {
+        ...typingStatsData,
+        直接取得したミス数: mistakeCount,
+        表示用ミス数: typingStats.displayStats.mistakeCount
       });
-    } catch (error) {
-      console.error('タイピングセッションの初期化に失敗:', error);
-    }
-  }, []);
 
-  /**
-   * 初期問題の設定
-   */
-  useEffect(() => {
-    if (initialProblem) {
-      initializeSession(initialProblem);
-    }
-  }, [initialProblem, initializeSession]);
-
-  /**
-   * クリーンアップ処理
-   */
-  useEffect(() => {
-    return () => {
-      // 各種タイマーをクリア
-      if (errorTimerRef.current) {
-        clearTimeout(errorTimerRef.current);
+      // 上位レイヤーに完了を通知
+      if (typeof options.onComplete === 'function') {
+        options.onComplete(typingStatsData);
+      } else {
+        console.log('[useTypingGame] 注意: onCompleteコールバックが定義されていません');
       }
-      if (statsUpdateTimerRef.current) {
-        clearTimeout(statsUpdateTimerRef.current);
+    },
+    onCorrectInput: ({ key, displayInfo, progress }) => {
+      // 表示情報の更新
+      typingCore.setDisplayInfo(displayInfo);
+
+      // 大きな進捗変化があるときのみ更新
+      if (Math.abs(progress - typingCore.progressPercentage) >= PROGRESS_UPDATE_THRESHOLD) {
+        typingCore.setProgressPercentage(progress);
       }
-    };
-  }, []);
+
+      // 統計情報を更新
+      typingStats.countCorrectKey(Date.now());
+
+      // デバッグ情報の更新
+      if (onDebugInfoUpdate) {
+        debugInfoRef.current = {
+          ...debugInfoRef.current,
+          lastKey: key,
+          displayInfo,
+          progress,
+        };
+        onDebugInfoUpdate(debugInfoRef.current);
+      }
+    }, 
+    onIncorrectInput: ({ key }) => {
+      // 統計情報を更新
+      typingStats.countMistake();
+
+      // ミスカウント後の情報をログ出力
+      const mistakeCount = typingStats.statsRef.current?.mistakeCount || 0;
+      console.log('[useTypingGame] ミス入力を検出:', {
+        key,
+        現在のミス数: mistakeCount,
+        表示用ミス数: typingStats.displayStats.mistakeCount
+      });
+
+      // デバッグ情報の更新
+      if (onDebugInfoUpdate) {
+        debugInfoRef.current = {
+          ...debugInfoRef.current,
+          lastErrorKey: key,
+          mistakeCount: mistakeCount
+        }; 
+        onDebugInfoUpdate(debugInfoRef.current);
+      }
+    },
+  });
 
   /**
-   * 統計情報オブジェクト（メモ化）
+   * 問題設定メソッド
    */
-  const stats = useMemo(() => {
-    const correctCount = displayStats.correctKeyCount;
-    const missCount = displayStats.mistakeCount;
-    const totalCount = correctCount + missCount;
-    const accuracy = totalCount > 0 ? (correctCount / totalCount) * 100 : 0;
-
-    return {
-      correctCount,
-      missCount,
-      totalCount,
-      accuracy: parseFloat(accuracy.toFixed(2)),
-      kpm: displayStats.kpm,
-      rank: displayStats.rank,
-      rankColor: TypingUtils.getRankColor(displayStats.rank),
-      problemStats: statsRef.current.problemStats,
-      elapsedTimeSeconds: statsRef.current.startTime
-        ? (Date.now() - statsRef.current.startTime) / 1000
-        : 0
-    };
-  }, [displayStats]);
-
-  /**
-   * ランキング登録関数
-   */
-  const submitScore = useCallback((username = 'Anonymous', endpoint) => {
-    if (!stats || !stats.kpm) {
-      return Promise.reject(new Error('有効なスコアデータがありません'));
+  const setProblem = useCallback((problem) => {
+    console.log('[useTypingGame] 問題を設定します:', {
+      displayText: problem?.displayText?.substring(0, 20) + '...',
+      kanaText: problem?.kanaText?.substring(0, 20) + '...'
+    });
+    
+    // 前のセッションの統計をリセット
+    typingStats.resetStats();
+    
+    // 新しい問題でセッションを初期化
+    const result = typingCore.initializeSession(problem);
+    
+    // 強制的に表示情報を更新（初期化直後に確実に更新）
+    if (result && typingCore.sessionRef.current) {
+      const colorInfo = typingCore.sessionRef.current.getColoringInfo();
+      typingCore.setDisplayInfo({
+        romaji: colorInfo.romaji || '',
+        typedLength: 0,
+        currentInputLength: colorInfo.currentInputLength || 0,
+        currentCharIndex: colorInfo.currentCharIndex || 0,
+        currentInput: colorInfo.currentInput || '',
+        expectedNextChar: colorInfo.expectedNextChar || '',
+        currentCharRomaji: colorInfo.currentCharRomaji || '',
+      });
     }
+    
+    return result;
+  }, [typingCore, typingStats]);
 
-    const recordData = {
-      username,
-      score: stats.correctCount || 0,
-      kpm: stats.kpm || 0,
-      accuracy: stats.accuracy || 0,
-      problemCount: statsRef.current.problemStats?.length || 0,
-      endpoint,
-      timestamp: Date.now()
-    };
+  /**
+   * 次の入力キーを取得
+   */
+  const getNextKey = useCallback(() => {
+    return typingCore.getExpectedNextKey();
+  }, [typingCore]);
 
-    return typingWorkerManager.submitRanking(recordData);
-  }, [stats]);
-
-  // 公開するインターフェースはそのまま維持（互換性のため）
+  /**
+   * 公開API
+   */  
   return {
-    displayInfo,
-    displayStats,
-    progressPercentage,
-    errorAnimation,
-    handleInput,
-    initializeSession,
-    submitScore,
-    stats,
-    typingSession: typingSessionRef.current, // 直接アクセス用に公開
+    // 状態
+    isInitialized: typingCore.isInitialized,
+    isCompleted: typingCore.isCompleted,
+    displayInfo: typingCore.displayInfo || {
+      romaji: '',
+      typedLength: 0,
+      currentInputLength: 0,
+      currentCharIndex: 0,
+    },
+    displayStats: typingStats.displayStats || {},
+    progressPercentage: typingCore.progressPercentage || 0,
+    errorAnimation: typingInput.errorAnimation || false,
+    lastPressedKey: typingInput.lastPressedKey || '',
+
+    // タイピングセッション参照（直接アクセス用）
+    typingSession: typingCore.sessionRef.current,
+    typingSessionRef: typingCore.sessionRef,
+
+    // typingStatsオブジェクト全体を公開
+    typingStats,
+
+    // 統計参照を直接公開（アクセスしやすいように）
+    statsRef: typingStats.statsRef,
+
+    // メソッド
+    handleInput: typingInput.handleInput,
+    setProblem,
+    getNextKey,
+
+    // 統計メソッド
+    resetStats: typingStats.resetStats,
+    updateDisplayStats: typingStats.updateDisplayStats,
+
+    // パフォーマンスメトリクス
+    performanceMetrics: {
+      get inputLatency() {
+        return debugInfoRef.current.inputLatency;
+      },
+      set inputLatency(value) {
+        debugInfoRef.current.inputLatency = value;
+        if (onDebugInfoUpdate) {
+          onDebugInfoUpdate(debugInfoRef.current);
+        }
+      }
+    }
   };
 }

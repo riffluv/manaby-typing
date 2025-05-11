@@ -458,37 +458,22 @@ const MainMenu = () => {
 
         {/* リファクタリング版ゲームスクリーンの切り替え */}
         <div className={styles.optionRow}>
-          <label htmlFor="useRefactoredGameScreen" className={styles.optionLabel}>
-            リファクタリング版ゲームスクリーン
+          <label className={styles.optionLabel}>
+            最適化版エンジン
             <span className={styles.optionStatus}>
-              {settings.useRefactoredGameScreen ? '(有効)' : '(無効)'}
+              (常時有効)
             </span>
           </label>
           <ToggleButton
-            id="useRefactoredGameScreen"
-            isOn={settings.useRefactoredGameScreen}
-            onToggle={() => {
-              // 設定を更新
-              const newValue = !settings.useRefactoredGameScreen;
-              setSettings({
-                ...settings,
-                useRefactoredGameScreen: newValue
-              });
-
-              // デバッグログ
-              console.log(`リファクタリング版に切り替え: ${newValue}`);
-
-              // フィードバック（オプション）
-              playButtonSound();
-            }}
-            onText="使用する"
-            offText="従来版"
+            id="useOptimizedEngine"
+            isOn={true}
+            disabled={true}
+            onText="有効"
+            offText="無効"
           />
-        </div>
-
-        <div className={styles.optionDescription}>
-          リファクタリングされた新しいゲームスクリーン実装を使用します。
-          パフォーマンスが向上しますが、まだ実験的な実装です。
+        </div>        <div className={styles.optionDescription}>
+          最適化版タイピングエンジンを使用しています。
+          入力レスポンスとパフォーマンスが向上しています。
         </div>
 
         <div className={styles.versionInfo}>
@@ -498,9 +483,8 @@ const MainMenu = () => {
 
         {/* 現在の設定状態を表示 */}
         <div className={styles.debugInfo}>
-          <h4>現在の設定状態:</h4>
-          <pre>{JSON.stringify({
-            useRefactoredGameScreen: settings.useRefactoredGameScreen,
+          <h4>現在の設定状態:</h4>          <pre>{JSON.stringify({
+            optimizedEngine: true,  // 最適化エンジンは常に有効
             difficulty: settings.difficulty
           }, null, 2)}</pre>
         </div>

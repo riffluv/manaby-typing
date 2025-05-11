@@ -7,7 +7,7 @@ import { useSoundContext } from '../contexts/SoundContext';
 import soundSystem from '../utils/SoundUtils'; // soundSystemをインポート
 import MainMenu from './MainMenu';
 import GameScreen from './GameScreen';
-import GameScreenRefactored from './GameScreenRefactored'; // リファクタリング版のインポート
+// GameScreenRefactoredはもう使用しません（標準バージョンに統合済み）
 import ResultScreen from './ResultScreen';
 import RankingScreen from './RankingScreen';
 import { useSettingsModal } from './MainMenu';
@@ -178,12 +178,10 @@ const TransitionManager = () => {
     // コンテキストから設定を取得
     const { settings } = useGameContext();
 
-    switch (currentScreen) {
-      case SCREENS.GAME:
-        // 設定に基づいてGameScreenの通常版またはリファクタリング版を使用
-        const useRefactored = settings.useRefactoredGameScreen;
-        console.log(`[TransitionManager] レンダリングするゲームスクリーン: ${useRefactored ? 'リファクタリング版' : '通常版'}`);
-        return useRefactored ? <GameScreenRefactored /> : <GameScreen />;
+    switch (currentScreen) {      case SCREENS.GAME:
+        // GameScreenのリファクタリング版は標準版に統合済みのため、常に標準版を使用
+        console.log(`[TransitionManager] ゲームスクリーンを表示（リファクタリング統合済み）`);
+        return <GameScreen />;
       case SCREENS.SETTINGS:
         // 設定画面はメインメニューでモーダル表示するため、メインメニューを表示
         return <MainMenu />;

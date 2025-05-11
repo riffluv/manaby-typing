@@ -43,46 +43,34 @@ const ProblemDisplay = ({ text = '', animate = true, className = '' }) => {  // 
       </>
     );
   };
-
   // クラス名を結合（修正: GameScreenから渡されるclassNameを優先的に使用）
   const combinedClassName = `typing-problem ${styles.typingProblem} ${className}`.trim();
 
-  // アニメーションなしの場合
-  if (!animate) {
-    return (
-      <p
-        className={combinedClassName}
-        data-testid="problem-display"
-      >
-        {renderTextWithLineBreaks(text)}
-      </p>
-    );
-  }
-
-  // アニメーション効果付きの表示
+  // アニメーションなしの通常表示（リクエストに基づいて変更）
+  // animateプロパティは残しつつも、すべての場合で通常表示を使用
   return (
-    <motion.p
+    <p
       className={combinedClassName}
-      initial={{ y: -10, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{
-        delay: 0.2,
-        duration: parseFloat(Animation.duration.slow),
-        type: 'spring',
-        stiffness: 120,
-        damping: 10,
-      }}
       data-testid="problem-display"
     >
       {renderTextWithLineBreaks(text)}
-    </motion.p>
+    </p>
   );
 };
 
 // シンプルな比較関数: テキストと animate プロパティが変わったときのみ再レンダリング
 const arePropsEqual = (prevProps, nextProps) => {
+  // テキストが変わった場合は必ず再レンダリング（デバッグログも追加）
+  if (prevProps.text !== nextProps.text) {
+    console.log('[ProblemDisplay] テキストが変更されたため再レンダリング:', {
+      prevText: prevProps.text?.substring(0, 10) + '...',
+      newText: nextProps.text?.substring(0, 10) + '...'
+    });
+    return false;
+  }
+  
   return (
-    prevProps.text === nextProps.text &&
+    // テキスト比較は上で行ったため、残りのプロパティのみチェック
     prevProps.animate === nextProps.animate &&
     prevProps.className === nextProps.className
   );
