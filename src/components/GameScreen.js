@@ -9,24 +9,28 @@ import Button from './common/Button';
 import ErrorBoundary from './common/ErrorBoundary';
 import { PerformanceDebugDisplay } from './common/PerformanceMonitor';
 import ProcessingModeSelector from './common/ProcessingModeSelector';
-import TypingArea from './typing/TypingArea';
+import TypingAreaRefactored from './typing/TypingAreaRefactored';
 import GameStatusBar from './typing/GameStatusBar';
 import {
-  useGameController,
-  useGameCompleteHandler,
-} from './typing/GameController';
+  useGameControllerRefactored as useGameController,
+  useGameCompleteHandlerRefactored as useGameCompleteHandler,
+} from './typing/GameControllerRefactored';
 
 // デバッグログフラグ - デフォルトで無効化
 const DEBUG_GAME_SCREEN = process.env.NODE_ENV === 'development' && false;
 
 /**
  * タイピングゲーム画面コンポーネント
- * リファクタリング済み（2025年5月8日, 5月9日）- コンポーネント分離最適化版
+ * リファクタリング済み（2025年5月8日, 5月9日, 5月11日）- コンポーネント分離最適化版
  * UI部分とロジック部分を明確に分離
+ * 5月11日: リファクタリング版のコントローラーを使用するように更新
  */
 const GameScreen = () => {
   const { gameState } = useGameContext();
   const { goToScreen } = usePageTransition();
+
+  // リファクタリング状況を確認するログ
+  console.log('[GameScreen] 従来モードもリファクタリングモードのコードを使用しています。2025年5月11日更新');
 
   // パフォーマンスメトリクス表示用の状態
   const [debugInfo, setDebugInfo] = useState({});
@@ -100,46 +104,46 @@ const GameScreen = () => {
             solvedCount={gameState.solvedCount}
             requiredCount={gameState.requiredProblemCount || 5}
             typingStats={typing?.stats || {}}
-          />
+          />          {/* メイン画面 */}
+          <main className={styles.typing_game__main}>
+            {/* タイピングエリア */}
+            <TypingAreaRefactored
+              typing={typing}
+              currentProblem={currentGameState?.currentProblem || gameState.currentProblem}
+              lastPressedKey={lastPressedKey}
+              className={styles.typing_game__typing_area}
+            />
 
-          <motion.main
-            className={styles.typing_game__main}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.4 }}
-          >
-            <div className={styles.typing_game__content}>
-              {/* タイピングエリア */}
-              <TypingArea
-                typing={typing}
-                currentProblem={gameState.currentProblem}
-                lastPressedKey={lastPressedKey}
+            {/* 進捗インジケーター */}
+            <div className={styles.typing_game__progress}>
+              <div
+                className={styles.typing_game__progress_bar}
+                style={{ width: `${typing?.progressPercentage || 0}%` }}
               />
             </div>
-          </motion.main>
 
-          {/* ショートカットとステータス情報 */}
-          <motion.div
-            className={styles.typing_game__shortcuts}
-            onClick={handleMenuButtonClick}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.3 }}
-            whileHover={{ scale: 1.05 }}
-          >
-            <span className={styles.typing_game__shortcut_item}>
-              <kbd>Esc</kbd>{' '}
-              <span className={styles.typing_game__shortcut_text}>
-                メニューへ
-              </span>
-            </span>
-          </motion.div>          {/* パフォーマンス情報（開発モードでのデバッグ用） */}
-          {DEBUG_GAME_SCREEN && (
-            <PerformanceDebugDisplay metrics={performanceMetrics} />
-          )}
-
-          {/* 処理モード設定パネル */}
-          <ProcessingModeSelector />
+            {/* デバッグ情報 */}
+            {DEBUG_GAME_SCREEN && (
+              <PerformanceDebugDisplay
+                inputLatency={performanceMetrics?.inputLatency || 0}
+                fps={debugInfo?.fps}
+                stats={typing?.displayStats}
+                nextKey={getNextKey()}
+                className={styles.typing_game__debug}
+              />
+            )}
+          </main>          {/* 設定バー */}
+          <div className={styles.typing_game__settings}>
+            <ProcessingModeSelector />
+            <Button
+              onClick={handleMenuButtonClick}
+              variant="secondary"
+              size="small"
+              className={styles.typing_game__menu_button}
+            >
+              メニュー
+            </Button>
+          </div>
         </div>
       </div>
     </ErrorBoundary>

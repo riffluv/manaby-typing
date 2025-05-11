@@ -2,9 +2,10 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameContext, SCREENS } from '../../contexts/GameContext';
-import { useTypingGame } from '../../hooks/useTypingGame';
+import { useTypingGameRefactored as useTypingGame } from '../../hooks/useTypingGameRefactored';
 import soundSystem from '../../utils/SoundUtils';
 import { usePerformanceMonitor } from '../common/PerformanceMonitor';
+import typingWorkerManager from '../../utils/TypingWorkerManager';
 
 /**
  * ゲームコントローラーコンポーネント
@@ -271,11 +272,19 @@ export function useGameController({
       }
     };
 
-    initSound();
-
-    // クリーンアップ関数
+    initSound();    // クリーンアップ関数
     return () => {
       isMounted = false;
+
+      // Workerの終了処理を追加
+      // メッセージチャネルが閉じられたエラーを防ぐため、コンポーネントのアンマウント時に
+      // 明示的にリソースを解放する
+      if (typingWorkerManager && typeof typingWorkerManager.reset === 'function') {
+        console.log('[GameController] コンポーネントのアンマウント時にWorkerをリセットします');
+        typingWorkerManager.reset().catch(err => {
+          console.warn('[GameController] Worker終了中にエラーが発生しました:', err);
+        });
+      }
     };
   }, []);
 
@@ -383,91 +392,90 @@ export function useGameController({
   const getNextKey = useCallback(() => {
     return typing.typingSession?.getCurrentExpectedKey?.() || '';
   }, [typing]);
+  // パフォーマンスメトリクス参照オブジェクト
+  const performanceRef = useRef({
+    lastKeyPressTime: 0,
+    inputLatency: 0,
+  });
+
+  // 入力レイテンシーを記録
+  useEffect(() => {
+    if (metrics && metrics.inputLatency) {
+      performanceRef.current.inputLatency = metrics.inputLatency;
+      performanceRef.current.lastKeyPressTime = Date.now();
+    }
+  }, [metrics]);
 
   return {
     typing,
     typingRef,
-    lastPressedKey,
-    soundsLoaded,
-    handleKeyDown,
-    getNextKey,
-    performanceMetrics: metrics,
+    currentProblem: gameState.currentProblem,
     gameState,
+
+    // メソッド
+    getNextKey,
+
+    // パフォーマンスメトリクス
+    performanceMetrics: {
+      get inputLatency() {
+        return performanceRef.current.inputLatency;
+      },
+      get lastKeyPressTime() {
+        return performanceRef.current.lastKeyPressTime;
+      }
+    },
   };
 }
 
 /**
- * ゲーム状態をリザルト画面へ遷移させる
+ * ゲーム完了ハンドラーフック
+ * バックアップとしての役割を担う（主な遷移ロジックはhandleProblemCompleteで処理）
  * @param {Object} gameState ゲーム状態
  * @param {Function} goToScreen 画面遷移関数
  * @param {Object} typingRef タイピングの参照
  */
-export function useGameCompleteHandler(gameState, goToScreen, typingRef) {
-  useEffect(() => {
-    // 明示的な型チェックと即時遷移
+export function useGameCompleteHandler(gameState, goToScreen, typingRef) {  useEffect(() => {
+    // 明示的なゲームクリアの場合のみ処理
     if (gameState.isGameClear === true) {
-      // 統計情報がnullまたは不完全な場合は再計算して確保
-      let statsToPass = gameState.stats;
+      console.log('[GameCompleteHandler] ゲーム完了を検出しました - スコア計算は行いません');
 
-      if (
-        !statsToPass ||
-        statsToPass.kpm === undefined ||
-        statsToPass.kpm === 0
-      ) {
-        // 終了時間を確認
-        const endTime = gameState.endTime || Date.now();
-        const startTime = gameState.startTime || Date.now();
-        const elapsedTimeMs = endTime - startTime;
+      // スコア計算をすべて削除
 
-        // useTypingGameフックからのデータを取得（最も正確な情報源）
-        const typingStats = typingRef.current?.stats || {};
-
-        // ミス数の検証と確認（複数の場所から取得を試みる）
-        const missCount =
-          typingStats.missCount ||
-          gameState.stats?.missCount ||
-          typingRef.current?.statisticsRef?.current?.mistakeCount ||
-          0;
-
-        // 正解数と正確性の確認
-        const correctCount =
-          typingStats.correctCount ||
-          gameState.stats?.correctCount ||
-          typingRef.current?.statisticsRef?.current?.correctKeyCount ||
-          0;
-
-        // 正確性の再計算
-        const totalKeystrokes = correctCount + missCount;
-        const accuracy =
-          totalKeystrokes > 0
-            ? Math.round((correctCount / totalKeystrokes) * 100)
-            : 100;
-
-        // 統計情報を構築
-        statsToPass = {
-          totalTime: typingStats.elapsedTimeSeconds || elapsedTimeMs / 1000,
-          correctCount: correctCount,
-          missCount: missCount,
-          accuracy: accuracy,
-          kpm: typingStats.kpm || 0,
-          problemKPMs: gameState.problemKPMs || [],
-        };
+      // スムーズな遷移のための遅延（500ms以上前に遷移していない場合のみ）
+      const lastTransitionTime = window.lastResultTransition || 0;
+      const now = Date.now();
+      
+      // 500ms以上前に遷移していない場合は新たに遷移を実行
+      if (now - lastTransitionTime > 500) {
+        // 遷移タイムスタンプを記録
+        window.lastResultTransition = now;
+        
+        // 遷移を実行
+        setTimeout(() => {
+          goToScreen(SCREENS.RESULT, {
+            gameState: { stats: gameState.stats },
+          });
+        }, 150);
+      } else {
+        console.log(`[GameCompleteHandler] ${now - lastTransitionTime}ms以内に遷移したため、重複遷移をスキップします`);
       }
-
-      // スムーズな遷移のために最適な遅延
-      const timeoutId = setTimeout(() => {
-        // 確実に統計情報を渡すためにgameStateパラメータとして渡す
-        goToScreen(SCREENS.RESULT, {
-          gameState: { stats: statsToPass },
-        });
-      }, 150);
-
-      // クリーンアップ関数でタイマーをクリア
-      return () => clearTimeout(timeoutId);
     }
   }, [gameState, goToScreen, typingRef]);
 
   return null;
 }
 
-export default { useGameController, useGameCompleteHandler };
+/**
+ * Workerクリーンアップ
+ * コンポーネントのアンマウント時にWorkerを適切に終了
+ */
+export function cleanupTypingWorker() {
+  // タイピングWorkerのクリーンアップ
+  if (typingWorkerManager && typeof typingWorkerManager.reset === 'function') {
+    typingWorkerManager.reset().catch(err => {
+      console.warn('[GameController] Worker終了中にエラーが発生しました:', err);
+    });
+  }
+}
+
+export default { useGameController, useGameCompleteHandler, cleanupTypingWorker };
