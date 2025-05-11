@@ -42,12 +42,10 @@ const MainMenu = () => {
   const { soundSystem, soundEnabled, sfxEnabled, bgmEnabled } = useSoundContext();
   const { goToScreen, isTransitioning } = usePageTransition();
   const mainContainerRef = useRef(null);
-
   // MCP連携の追加
   const { isActive: mcpActive, recordUXElement, recordGameEvent } = useMCPContext();
   // モーダル表示状態を管理するstate
   const [showCredits, setShowCredits] = useState(false);
-  const [showDevOptions, setShowDevOptions] = useState(false);
 
   // グローバル設定モーダル状態を使用
   const {
@@ -209,7 +207,6 @@ const MainMenu = () => {
 
     setShowCredits(true);
   }, [playButtonSound, mcpActive, recordUXElement]);
-
   // モーダルを閉じる関数
   const handleCloseModal = useCallback(() => {
     playButtonSound();
@@ -223,13 +220,13 @@ const MainMenu = () => {
       });
     }
 
-    // モーダル表示フラグをすべてリセット    setShowCredits(false);
-    setShowDevOptions(false);
+    // モーダル表示フラグをリセット
+    setShowCredits(false);
 
     if (showSettingsModal) {
       closeSettingsModal();
     }
-  }, [playButtonSound, mcpActive, recordUXElement, showCredits, closeSettingsModal]);
+  }, [playButtonSound, mcpActive, recordUXElement, showCredits, closeSettingsModal, showSettingsModal]);
   // 難易度を表示するテキスト（日本語表記）
   const difficultyLabels = {
     easy: 'やさしい',
@@ -447,56 +444,17 @@ const MainMenu = () => {
       />
     );
   }, []);
-
-  /**
-   * 開発者設定オプションをレンダリングする関数
-   */
-  const renderDeveloperOptions = useCallback(() => {
-    return (
-      <div className={styles.developerOptions}>
-        <h3 className={styles.developerOptionTitle}>実験的機能</h3>
-
-        {/* リファクタリング版ゲームスクリーンの切り替え */}
-        <div className={styles.optionRow}>
-          <label className={styles.optionLabel}>
-            最適化版エンジン
-            <span className={styles.optionStatus}>
-              (常時有効)
-            </span>
-          </label>
-          <ToggleButton
-            id="useOptimizedEngine"
-            isOn={true}
-            disabled={true}
-            onText="有効"
-            offText="無効"
-          />
-        </div>        <div className={styles.optionDescription}>
-          最適化版タイピングエンジンを使用しています。
-          入力レスポンスとパフォーマンスが向上しています。
-        </div>
-
-        <div className={styles.versionInfo}>
-          <p>現在のバージョン: 0.5.0 (2025年5月10日)</p>
-          <p>リファクタリング版: 0.9.0</p>
-        </div>
-
-        {/* 現在の設定状態を表示 */}
-        <div className={styles.debugInfo}>
-          <h4>現在の設定状態:</h4>          <pre>{JSON.stringify({
-            optimizedEngine: true,  // 最適化エンジンは常に有効
-            difficulty: settings.difficulty
-          }, null, 2)}</pre>
-        </div>
-      </div>
-    );
-  }, [settings, setSettings, playButtonSound]);
-
+  // 開発者設定オプションのレンダリング関数は不要なため削除
   // キーボードイベントリスナーを追加（ショートカット機能拡充）
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // モーダルが開いている場合はゲームコントロールを無効化
+      // モーダルが開いている場合
       if (showSettingsModal || showCredits) {
+        // ESCキーが押されたらモーダルを閉じる
+        if (e.key === 'Escape') {
+          handleCloseModal();
+          return;
+        }
         return;
       }
 
@@ -580,7 +538,7 @@ const MainMenu = () => {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isTransitioning, showSettingsModal, showCredits, playButtonSound, mcpActive, recordUXElement, goToScreen, openSettingsModal]);
+  }, [isTransitioning, showSettingsModal, showCredits, playButtonSound, mcpActive, recordUXElement, goToScreen, openSettingsModal, handleCloseModal]);
 
   return (
     <div className={styles.mainContainer} ref={mainContainerRef}>
@@ -714,40 +672,22 @@ const MainMenu = () => {
       {/* 設定モーダルと他のモーダル - 既存コード */}
       <Modal isOpen={showSettingsModal} onClose={handleCloseModal} title="設定">
         {renderSettingsContent()}
-      </Modal>      <Modal isOpen={showCredits} onClose={handleCloseModal} title="クレジット">
-        {renderCreditsContent()}
-      </Modal>
-      {/* 開発者設定モーダル */}
-      <Modal
-        isOpen={showDevOptions}
-        onClose={() => {
-          setShowDevOptions(false);
-          // 開発者モーダルが閉じられたことをログに記録
-          console.log('開発者設定モーダルを閉じました');
-        }}
-        title="開発者設定"
+      </Modal>      <Modal 
+        isOpen={showCredits} 
+        onClose={handleCloseModal}
+        title="クレジット"
+        disableEscKey={false}  
+        disableOverlayClick={false}
       >
-        {renderDeveloperOptions()}
-      </Modal>
+        {renderCreditsContent()}
+      </Modal>{/* 開発者設定モーダル - 不要なため削除 */}
 
       {/* MCP状態表示（開発環境のみ） */}
       {process.env.NODE_ENV === 'development' && mcpActive && (
         <div className={styles.mcpStatusIndicator}>
           <div className={styles.mcpStatusDot} title="MCP接続中"></div>
         </div>
-      )}
-
-      {/* 開発者設定ボタン（開発環境または管理者モードのみ） */}
-      {process.env.NODE_ENV === 'development' && (
-        <button
-          className={`${styles.creditButton} ${styles.devButton}`}
-          onClick={() => setShowDevOptions(true)}
-          aria-label="開発者設定"
-          style={{ right: 80 }} // クレジットボタンの左に配置
-        >
-          <div className={styles.devIcon}>⚙️</div>
-        </button>
-      )}
+      )}      {/* 開発者設定ボタン - 不要なため削除 */}
     </div>
   );
 };
