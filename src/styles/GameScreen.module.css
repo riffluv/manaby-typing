@@ -157,7 +157,8 @@
   overflow: hidden;
   width: 100%;
   box-sizing: border-box;
-  min-height: 460px; /* 最小高さを設定して、コンテンツが下に押しやられないようにする */
+  min-height: 460px;
+  /* 最小高さを設定して、コンテンツが下に押しやられないようにする */
 }
 
 /* スクロールバーのスタイル */
@@ -242,7 +243,8 @@
   justify-content: center;
   align-items: center;
   position: absolute;
-  bottom: 75px; /* 元の位置を維持 */
+  bottom: 75px;
+  /* 元の位置を維持 */
   left: 0;
   right: 0;
   margin: 0 auto;
@@ -342,45 +344,43 @@
   }
 }
 
-/* ESCショートカットのスタイル - メインメニューのボタンスタイルに合わせる */
-.typing_game__shortcuts {
+/* ESCショートカットメニューボタンのスタイル - メインメニューのボタンスタイルに合わせる */
+.typing_game__menu_button {
   position: absolute;
   left: 15px;
   bottom: 15px;
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-
-.typing_game__shortcut_item {
-  padding: 0.3rem 0.6rem;
-  background-color: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 140, 0, 0.3);
+  background-color: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 140, 0, 0.6);
   border-radius: 4px;
-  font-size: 0.8rem;
-  font-family: 'Courier New', monospace;
-  /* メインメニューと同じフォント */
-  color: rgba(255, 255, 255, 0.9);
-  transition: all 0.2s ease;
-}
-
-.typing_game__shortcut_item kbd {
+  padding: 8px 12px;
   font-family: 'Courier New', monospace;
   color: #ff8c00;
-  /* メインメニューと同じオレンジ色 */
+  font-size: 0.85rem;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.typing_game__shortcut_text {
-  margin-left: 4px;
+.typing_game__menu_button:hover {
+  background-color: rgba(0, 0, 0, 0.75);
+  border-color: rgba(255, 140, 0, 0.8);
+  box-shadow: 0 0 15px rgba(255, 140, 0, 0.5);
 }
 
-.typing_game__shortcuts:hover .typing_game__shortcut_item {
-  background-color: rgba(0, 0, 0, 0.6);
-  border-color: rgba(255, 140, 0, 0.6);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 140, 0, 0.3);
+.typing_game__menu_button:focus {
+  outline: none;
+  box-shadow: 0 0 15px rgba(255, 140, 0, 0.7);
+}
+
+.typing_game__menu_button span {
+  margin-right: 6px;
+  opacity: 0.7;
+  font-weight: bold;
+  letter-spacing: 1px;
+  font-size: 0.8rem;
 }
 
 /* コーナー装飾を追加 - メインメニューと同様 */

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import styles from '../styles/GameScreen.module.css';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
 import { motion } from 'framer-motion';
@@ -45,7 +45,6 @@ const GameScreen = () => {
     onLastPressedKeyChange: setLastPressedKey,
     goToScreen, // goToScreen関数をGameControllerに渡す
   });
-
   // ゲーム完了ハンドラー
   useGameCompleteHandler(gameState, goToScreen, typingRef);
 
@@ -56,6 +55,23 @@ const GameScreen = () => {
       soundType: 'button',
     });
   }, [goToScreen]);
+
+  // ESCキーのショートカット機能を追加
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        handleMenuButtonClick();
+      }
+    };
+
+    // キーボードイベントリスナーを登録
+    window.addEventListener('keydown', handleKeyDown);
+
+    // クリーンアップ関数
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleMenuButtonClick]);
 
   // ゲームクリア状態の場合は何も表示しない - 早期リターン
   if (gameState.isGameClear === true) {
@@ -88,18 +104,15 @@ const GameScreen = () => {
               nextKey={getNextKey()}
               className={styles.typing_game__debug}
             />
-          )}
-        </main>          {/* 設定バー */}
-        <div className={styles.typing_game__settings}>
-          <Button
-            onClick={handleMenuButtonClick}
-            variant="secondary"
-            size="small"
-            className={styles.typing_game__menu_button}
-          >
-            メニュー
-          </Button>
-        </div>
+          )}        </main>
+
+        {/* SF風のショートカットメニューボタン */}
+        <button
+          onClick={handleMenuButtonClick}
+          className={styles.typing_game__menu_button}
+        >
+          <span>Esc:</span> メニュー
+        </button>
       </div>
     </div>
   </ErrorBoundary>
