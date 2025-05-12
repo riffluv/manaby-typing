@@ -200,67 +200,42 @@ export function useGameController(options = {}) {
         // 累積打鍵数も追跡
         totalCorrectKeys: (prev.totalCorrectKeys || 0) + currentProblemCorrectKeys,
         totalMissKeys: (prev.totalMissKeys || 0) + currentProblemMistakes
-      }));
-
-      // 次の問題をセット（最小限のディレイで素早く表示）
-      setTimeout(() => {
-        // 難易度設定の確認ログ
-        console.log('[GameController] 次の問題選択 - 難易度設定:', {
-          difficulty: gameState.difficulty,
-          category: gameState.category
-        });
-
-        // 新しい問題を取得
-        const nextProblem = getRandomProblem({
-          difficulty: gameState.difficulty,
-          category: gameState.category,
-          excludeRecent: [currentProblem?.displayText],
-        });
-
-        // 選択された問題の詳細をログ
-        console.log('[GameController] 次の問題を選択:', {
-          displayText: nextProblem?.displayText,
-          kanaText: nextProblem?.kanaText,
-          選択された難易度: gameState.difficulty
-        });        // 問題をセットする前にデバッグログ
-        console.log('[GameController] 問題設定前の状態:', {
-          currentProblem: currentProblem?.displayText,
-          nextProblem: nextProblem?.displayText,
-          hasTyping: !!typing,
-          hasSetProblem: !!typing?.setProblem
-        });
-
-        // 問題をセット
-        setCurrentProblem(nextProblem);
-        // タイピングオブジェクトが存在し、setProblemメソッドがある場合は問題を設定
-        if (typing && typing.setProblem) {
-          console.log('[GameController] 次の問題をタイピングセッションに設定します:', {
-            displayText: nextProblem?.displayText,
-            time: new Date().toTimeString()
+      }));      // 次の問題をセット（超高速応答バージョン - マイクロタスクを使用）
+      queueMicrotask(() => {
+        try {
+          // 新しい問題を即座に生成（ログは開発環境でのみ出力）
+          const nextProblem = getRandomProblem({
+            difficulty: gameState.difficulty,
+            category: gameState.category,
+            excludeRecent: [currentProblem?.displayText],
           });
 
-          // 現在の問題と次の問題を比較（デバッグ用）
-          console.log('[GameController] 問題切り替え:', {
-            current: currentProblem?.displayText,
-            next: nextProblem?.displayText,
-            same: currentProblem?.displayText === nextProblem?.displayText
-          });
+          // デバッグ情報（開発環境のみ）
+          if (DEBUG_MODE) {
+            debugLog('次の問題を選択:', {
+              displayText: nextProblem?.displayText?.substring(0, 10) + '...',
+              難易度: gameState.difficulty
+            });
+          }
 
-          // 問題設定を確実に行うために少し遅延させる
-          setTimeout(() => {
+          // 問題をすぐにセット
+          setCurrentProblem(nextProblem);
+
+          // タイピングセッション更新（即時）
+          if (typing?.setProblem) {
+            // 同期的に問題を設定してレスポンスを最大限に速く
             typing.setProblem(nextProblem);
 
-            // 問題設定後の状態を確認
-            console.log('[GameController] 問題設定後の状態:', {
-              displayText: nextProblem?.displayText,
-              typing_problem: typing.typingSession?.problem?.displayText,
-              time: new Date().toTimeString()
-            });
-          }, 20); // 遅延を若干増やして確実に設定されるようにする
-        } else {
-          console.warn('[GameController] タイピングオブジェクトまたはsetProblem関数がありません');
+            // パフォーマンスマーク（開発環境のみ）
+            if (DEBUG_MODE && typeof performance !== 'undefined' && performance.mark) {
+              performance.mark('problem-set-complete');
+            }
+          }
+        } catch (err) {
+          // エラーが発生しても処理を継続
+          console.error('[GameController] 問題設定エラー:', err);
         }
-      }, 50); // 0.05秒のわずかなディレイ（従来モードと同等）
+      });
     }
   }, [gameState, currentProblem, setGameState, goToScreen]);
 
@@ -277,62 +252,57 @@ export function useGameController(options = {}) {
 
   // 初期化後にRefに保存
   typingRef.current = typing;  /**
-   * キーイベントハンドラ（リファクタリング・安定化版 2025年5月12日）
+   * キーイベントハンドラ（超高速パフォーマンス版 2025年5月12日）
    */
   const handleKeyDown = useCallback((e) => {
-    // キーイベントのセーフティチェック
-    if (!e || typeof e.key !== 'string') {
-      debugLog('無効なキーイベント:', e);
-      return;
-    }
+    // 最小限のセーフティチェック（処理速度優先）
+    if (!e?.key) return;
 
-    // 最後に押されたキーを記録（デバッグ用）
-    if (onLastPressedKeyChange) {
-      onLastPressedKeyChange(e.key);
-    }
-
-    // Escキーでメニューに戻る
+    // Escキーは特別処理（ショートカット）
     if (e.key === 'Escape') {
-      debugLog('Escキーが押されました - メニューに戻ります');
-      goToScreen(SCREENS.MAIN_MENU, {
-        playSound: true,
-        soundType: 'button',
-      });
+      goToScreen(SCREENS.MAIN_MENU, { playSound: true, soundType: 'button' });
       return;
+    }
+
+    // 入力キー記録を非同期処理に移動してメインスレッドを高速化
+    if (onLastPressedKeyChange) {
+      queueMicrotask(() => {
+        onLastPressedKeyChange(e.key);
+      });
     }
 
     // タイピングセッションのセーフティチェック
     if (!typing || !typing.typingSession) {
       debugLog('タイピングセッションがありません - 入力を無視します');
       return;
-    }
-
-    // パフォーマンス計測開始
-    const startTime = performance.now();
-    performanceRef.current.totalKeyPresses++;
-
+    }    // パフォーマンス最適化 - 最小限の処理のみをメインスレッドで行う
     try {
-      // 入力処理（try-catchで保護）
+      // 入力処理を直接実行して高速化（typingmania-refの実装に着想）
       const result = typing.handleInput(e.key);
 
-      // パフォーマンス計測終了と記録
-      const endTime = performance.now();
-      const processingTime = endTime - startTime;
-      performanceRef.current.inputLatency = processingTime;
-      performanceRef.current.lastKeyPressTime = Date.now();
+      // キー入力カウント更新を非同期処理に移動
+      queueMicrotask(() => {
+        performanceRef.current.totalKeyPresses++;
+        performanceRef.current.lastKeyPressTime = Date.now();
 
-      // デバッグ情報の更新
-      if (typing.performanceMetrics) {
-        typing.performanceMetrics.inputLatency = processingTime;
-      }
+        // パフォーマンスモニタリング（開発環境のみ）
+        if (DEBUG_MODE) {
+          // メトリクスの更新
+          if (typing.performanceMetrics) {
+            typing.performanceMetrics.lastKeyTime = Date.now();
+          }
+        }
+      });
 
-      // キー入力イベントの伝播を止める
-      if (result && result.success) {
+      // キー入力イベントの伝播を即座に止める（最高優先度）
+      if (result?.success) {
         e.preventDefault();
       }
     } catch (err) {
-      console.error('[GameController] キー入力処理エラー:', err);
-      // エラーが発生しても次の入力を受け付けられるようにする
+      // エラー発生時もユーザー体験を維持
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[GameController] キー入力処理エラー:', err);
+      }
     }
   }, [typing, goToScreen, onLastPressedKeyChange]);
 

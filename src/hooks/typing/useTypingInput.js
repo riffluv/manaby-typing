@@ -71,120 +71,116 @@ export function useTypingInput(options = {}) {
       setErrorAnimation(false);
       errorTimerRef.current = null;
     }, 150); // 高速応答のため短縮
-  }, []);
-  /**
-   * タイピング入力処理 - 高速パフォーマンス版（リファクタリング・安定化版 2025年5月12日）
+  }, []);  /**
+   * タイピング入力処理 - 超高速パフォーマンス版（リファクタリング・安定化版 2025年5月12日）
    */
   const handleInput = useCallback((key) => {
-    // キー入力のセーフティチェック
+    // キー入力のセーフティチェック（最小限に）
     if (typeof key !== 'string') {
       debugLog('無効なキー入力:', key);
       return { success: false, reason: 'invalid_key' };
     }
 
-    // 入力統計を更新
-    inputStatsRef.current.totalKeyPresses++;
-    inputStatsRef.current.lastKeyTime = Date.now();
-
-    // 入力キーを記録
-    setLastPressedKey(key);
-
-    // セッションのセーフティチェック（詳細な診断情報を含める）
-    const session = sessionRef.current;
-    if (!session) {
-      debugLog('セッションが存在しません');
-      return { success: false, reason: 'session_not_found' };
-    }
-
+    // 高速パスチェック - 完了フラグを最初にチェック
     if (completedRef.current || isCompleted) {
-      debugLog('セッションは既に完了しています');
+      // 設定済みの最終状態を維持（状態変更なし）
       return { success: false, reason: 'session_completed' };
     }
 
-    // processInput関数の存在確認
+    // 高速パスチェック - セッション存在確認
+    const session = sessionRef.current;
+    if (!session) {
+      return { success: false, reason: 'session_not_found' };
+    }
+
+    // パフォーマンス計測開始
+    const startProcessingTime = performance.now();
+
+    // 入力キーを記録（React状態更新を遅延させて高速化）
+    queueMicrotask(() => {
+      // 入力統計を更新
+      inputStatsRef.current.totalKeyPresses++;
+      inputStatsRef.current.lastKeyTime = Date.now();
+      // 状態更新の最小化
+      setLastPressedKey(prevKey => prevKey !== key ? key : prevKey);
+    });
+
+    // 入力処理を高速化（最小限のチェックのみ）
     if (typeof session.processInput !== 'function') {
-      console.error('[useTypingInput] セッションにprocessInput関数がありません', session);
+      // 無効なセッションエラー
       return { success: false, reason: 'invalid_session' };
     }
 
     try {
-      // 入力処理開始時刻
-      const startTime = performance.now();
-
-      // 入力を処理（直接処理で高速化）
+      // 入力処理の高速化
       const result = session.processInput(key);
 
-      // 処理時間を計測
-      const processingTime = performance.now() - startTime;
-
-      // 処理結果のセーフティチェック
+      // 処理結果の簡潔なチェック
       if (!result) {
-        debugLog('processInputが無効な結果を返しました');
         return { success: false, reason: 'invalid_result' };
       }
 
+      // パフォーマンスモニタリング（条件付き）
+      if (DEBUG_MODE) {
+        const processingTime = performance.now() - startProcessingTime;
+        if (processingTime > 5) { // 5ms以上かかった場合のみ記録
+          debugLog(`入力処理パフォーマンス警告: ${processingTime.toFixed(2)}ms`);
+        }
+      }
+
       if (result.success) {
-        // 統計情報を更新
-        inputStatsRef.current.correctKeyPresses++;
+        // 統計情報の更新を遅延処理に移動（レスポンス優先）
+        queueMicrotask(() => {
+          inputStatsRef.current.correctKeyPresses++;
+        });
 
-        // 正解時の処理
-        // 効果音再生（セーフティチェック付き）
-        if (playSound && soundSystem && typeof soundSystem.playSound === 'function') {
-          soundSystem.playSound('success');
-        }        // 表示情報の取得とセーフティチェック
-        let colorInfo;
-        try {
-          colorInfo = typeof session.getColoringInfo === 'function' ? session.getColoringInfo() : null;
-
-          // 返り値の有効性を確認
-          if (!colorInfo || typeof colorInfo !== 'object') {
-            debugLog('無効な表示情報が返されました', colorInfo);
-            colorInfo = {}; // フォールバック
-          }
-        } catch (e) {
-          console.error('[useTypingInput] 表示情報取得エラー:', e);
-          colorInfo = {}; // エラー時のフォールバック
+        // 効果音再生の高速化
+        const canPlaySound = playSound && soundSystem && typeof soundSystem.playSound === 'function';
+        if (canPlaySound) {
+          queueMicrotask(() => {
+            try {
+              soundSystem.playSound('success');
+            } catch (e) {
+              // エラー発生時も処理を継続
+            }
+          });
         }
 
-        // 安全な表示情報を構築（全てのフィールドを適切にチェック）
+        // 表示情報と進捗情報を取得
+        let colorInfo = {};
+        let progress = 0;
+
+        try {
+          // 高速アクセス - 最小限のチェック
+          colorInfo = session.getColoringInfo?.() || {};
+          progress = session.getCompletionPercentage?.() || 0;
+        } catch (e) {
+          console.error('[useTypingInput] 情報取得エラー:', e);
+        }
+
+        // 安全な表示情報を構築
         const displayInfo = {
-          romaji: typeof colorInfo.romaji === 'string' ? colorInfo.romaji : '',
-          typedLength: typeof colorInfo.typedLength === 'number' ? colorInfo.typedLength : 0,
-          currentInputLength: typeof colorInfo.currentInputLength === 'number' ? colorInfo.currentInputLength : 0,
-          currentCharIndex: typeof colorInfo.currentCharIndex === 'number' ? colorInfo.currentCharIndex : 0,
-          currentInput: typeof colorInfo.currentInput === 'string' ? colorInfo.currentInput : '',
-          expectedNextChar: typeof colorInfo.expectedNextChar === 'string' ? colorInfo.expectedNextChar : '',
-          currentCharRomaji: typeof colorInfo.currentCharRomaji === 'string' ? colorInfo.currentCharRomaji : '',
-          updated: Date.now() // 更新時刻を追加
+          romaji: colorInfo.romaji || '',
+          typedLength: colorInfo.typedLength || 0,
+          currentInputLength: colorInfo.currentInputLength || 0,
+          currentCharIndex: colorInfo.currentCharIndex || 0,
+          currentInput: colorInfo.currentInput || '',
+          expectedNextChar: colorInfo.expectedNextChar || '',
+          currentCharRomaji: colorInfo.currentCharRomaji || '',
+          updated: Date.now()
         };
 
-        // ローマ字が有効かチェック（トラブルシューティング用）
-        if (!displayInfo.romaji && result.success) {
-          console.warn('[useTypingInput] 正解判定なのにローマ字が空です', { key, result });
-        }
+        // コールバック呼び出しと完了チェック
+        onCorrectInput({ key, displayInfo, progress, result });
 
-        // 進捗を取得（セーフティチェック付き）
-        let progress = 0;
-        try {
-          progress = typeof session.getCompletionPercentage === 'function' ?
-            session.getCompletionPercentage() : 0;
-
-          // 数値型チェック
-          progress = typeof progress === 'number' ? progress : 0;
-        } catch (e) {
-          console.error('[useTypingInput] 進捗取得エラー:', e);
-        }
-
-        // コールバック呼び出し
-        onCorrectInput({ key, displayInfo, progress, result });        // 完了チェック - 即時処理
         if (result.status === 'all_completed') {
           // 統計情報を含めて完了通知
           onComplete({ result, displayInfo, progress });
         }
 
         return { success: true, displayInfo, progress };
-      } else {        // 不正解時の処理
-        // 効果音再生
+      } else {
+        // 不正解時の処理 - 効率化
         if (playSound && soundSystem) {
           soundSystem.playSound('error');
         }
@@ -192,17 +188,18 @@ export function useTypingInput(options = {}) {
         // エラーアニメーション表示
         showErrorAnimation();
 
-        // 期待されるキーを取得
-        const expectedKey = session.getCurrentExpectedKey() || '';
+        // 期待されるキー
+        const expectedKey = session.getCurrentExpectedKey?.() || '';
 
-        // ログ出力 - ミスの詳細を記録
-        console.log('[useTypingInput] 不正解入力:', {
-          入力キー: key,
-          期待キー: expectedKey,
-          一致: key === expectedKey
-        });
+        // デバッグ情報（条件付き）
+        if (DEBUG_MODE) {
+          debugLog('不正解入力:', {
+            入力キー: key,
+            期待キー: expectedKey
+          });
+        }
 
-        // コールバック呼び出し - 詳細情報を追加
+        // コールバック呼び出し
         onIncorrectInput({
           key,
           expectedKey,

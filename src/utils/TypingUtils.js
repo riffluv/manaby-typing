@@ -5,8 +5,14 @@ const DEBUG_TYPING_UTILS = process.env.NODE_ENV === 'development' && false;
 
 /**
  * ログユーティリティ - コンソールログを条件付きにする
+ * パフォーマンス最適化：本番環境では完全にnoop関数に置き換え
  */
-const logUtil = {
+const logUtil = process.env.NODE_ENV === 'production' ? {
+  // 本番環境では空関数を使用（JITで最適化される）
+  debug: () => { },
+  warn: () => { },
+  error: () => { }
+} : {
   debug: (message, ...args) => {
     if (DEBUG_TYPING_UTILS) console.log(message, ...args);
   },
