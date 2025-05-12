@@ -178,9 +178,9 @@ const TransitionManager = () => {
     // コンテキストから設定を取得
     const { settings } = useGameContext();
 
-    switch (currentScreen) {      case SCREENS.GAME:
+    switch (currentScreen) {
+      case SCREENS.GAME:
         // GameScreenのリファクタリング版は標準版に統合済みのため、常に標準版を使用
-        console.log(`[TransitionManager] ゲームスクリーンを表示（リファクタリング統合済み）`);
         return <GameScreen />;
       case SCREENS.SETTINGS:
         // 設定画面はメインメニューでモーダル表示するため、メインメニューを表示
@@ -252,8 +252,7 @@ export const usePageTransition = () => {
    * @param {string} options.from - 遷移元の画面（履歴管理に使用）
    * @param {boolean} options.immediate - 即時遷移を実行するかどうか（デフォルト：false）
    * @param {object} options.gameState - ゲームの状態データ（ランキング画面などに渡すデータ）
-   */
-  const goToScreen = (
+   */  const goToScreen = (
     screen,
     options = {
       playSound: true,
@@ -261,19 +260,9 @@ export const usePageTransition = () => {
       immediate: false,
       gameState: null,
     }
-  ) => {
-    // デバッグログ - 遷移リクエストを記録
-    console.log(
-      `goToScreen: 画面遷移リクエスト - 宛先: ${screen}, オプション:`,
-      JSON.stringify({
-        ...options,
-        gameState: options.gameState ? 'データあり' : 'なし',
-      })
-    );
-
-    // 遷移中は新たな遷移をブロック（ただしimmediate=trueの場合は例外）
+  ) => {    // 遷移中は新たな遷移をブロック（ただしimmediate=trueの場合は例外）
     if (isTransitioning && !options.immediate) {
-      console.log('goToScreen: 現在遷移中のため、リクエストをスキップします');
+      // 遷移スキップのログを削除
       return;
     }
 

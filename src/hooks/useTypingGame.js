@@ -45,7 +45,7 @@ export function useTypingGame(options = {}) {
 
   /**
    * 問題状態変更時の処理
-   */  
+   */
   const handleProblemStateChange = useCallback(({ type, progress }) => {
     if (type === 'completed') {
       const statsData = typingStats.recordProblemCompletion();
@@ -57,10 +57,7 @@ export function useTypingGame(options = {}) {
         problemKPM: statsData.problemKPM,
         updatedProblemKPMs: [], // statsDataから正しく取得できない場合はからの配列を設定
         problemStats: [] // statsDataから正しく取得できない場合はからの配列を設定
-      });
-
-      // デバッグログ出力
-      console.log('[handleProblemStateChange] 問題完了時の統計:', statsData);
+      });      // デバッグログを削除
     }
   }, [onProblemComplete]);
 
@@ -95,7 +92,7 @@ export function useTypingGame(options = {}) {
 
   /**
    * 入力処理
-   */  
+   */
   const typingInput = useTypingInput({
     sessionRef: typingCore.sessionRef,
     isCompleted: typingCore.isCompleted,
@@ -123,20 +120,13 @@ export function useTypingGame(options = {}) {
         displayStats: typingStats.displayStats,
         // 累計ミス数を直接取得
         totalMistakes: mistakeCount
-      };
-
-      console.log('[useTypingGame] 問題完了 - 統計情報:', {
-        ...typingStatsData,
-        直接取得したミス数: mistakeCount,
-        表示用ミス数: typingStats.displayStats.mistakeCount
-      });
+      };      // 問題完了のログ出力を削除
 
       // 上位レイヤーに完了を通知
       if (typeof options.onComplete === 'function') {
         options.onComplete(typingStatsData);
-      } else {
-        console.log('[useTypingGame] 注意: onCompleteコールバックが定義されていません');
       }
+      // onCompleteコールバック未定義のログを削除
     },
     onCorrectInput: ({ key, displayInfo, progress }) => {
       // 表示情報の更新
@@ -160,7 +150,7 @@ export function useTypingGame(options = {}) {
         };
         onDebugInfoUpdate(debugInfoRef.current);
       }
-    }, 
+    },
     onIncorrectInput: ({ key }) => {
       // 統計情報を更新
       typingStats.countMistake();
@@ -179,7 +169,7 @@ export function useTypingGame(options = {}) {
           ...debugInfoRef.current,
           lastErrorKey: key,
           mistakeCount: mistakeCount
-        }; 
+        };
         onDebugInfoUpdate(debugInfoRef.current);
       }
     },
@@ -193,13 +183,13 @@ export function useTypingGame(options = {}) {
       displayText: problem?.displayText?.substring(0, 20) + '...',
       kanaText: problem?.kanaText?.substring(0, 20) + '...'
     });
-    
+
     // 前のセッションの統計をリセット
     typingStats.resetStats();
-    
+
     // 新しい問題でセッションを初期化
     const result = typingCore.initializeSession(problem);
-    
+
     // 強制的に表示情報を更新（初期化直後に確実に更新）
     if (result && typingCore.sessionRef.current) {
       const colorInfo = typingCore.sessionRef.current.getColoringInfo();
@@ -213,7 +203,7 @@ export function useTypingGame(options = {}) {
         currentCharRomaji: colorInfo.currentCharRomaji || '',
       });
     }
-    
+
     return result;
   }, [typingCore, typingStats]);
 
@@ -226,7 +216,7 @@ export function useTypingGame(options = {}) {
 
   /**
    * 公開API
-   */  
+   */
   return {
     // 状態
     isInitialized: typingCore.isInitialized,

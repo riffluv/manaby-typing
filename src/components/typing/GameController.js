@@ -74,18 +74,18 @@ export function useGameController(options = {}) {
 
     // 次の問題数を計算
     const newSolvedCount = gameState.solvedCount + 1;
-    console.log('[GameController] 問題完了 - 解答数更新:', newSolvedCount);
+    // 問題完了のログは削除
 
     // ゲームクリア判定
     const isGameClear = newSolvedCount >= gameState.requiredProblemCount;
 
     // すべてのスコア計算は削除 - リファクタリングのための準備
 
-    console.log('[GameController] スコア計算は削除されました');
+    // スコア計算削除のログを削除
 
     if (isGameClear) {
       // ゲームクリア時の処理
-      console.log('[GameController] 全問題完了 - リザルト画面に遷移します');
+      // 全問題完了のログを削除
 
       // 終了時間を記録
       const endTime = Date.now();
@@ -121,20 +121,7 @@ export function useGameController(options = {}) {
       const accuracy = totalKeystrokes > 0 ? Math.round((totalCorrectKeyCount / totalKeystrokes) * 100) : 100;
 
       // 問題数は「解いた問題数」を表示
-      const correctProblemCount = newSolvedCount;
-
-      // より詳細なデバッグログ
-      console.log('[GameController] 統計情報の詳細:', {
-        累積キー正解数: totalCorrectKeyCount,
-        累積キーミス数: totalMissCount,
-        最後の問題キー正解数: lastProblemCorrectKeys,
-        最後の問題キーミス数: lastProblemMissKeys,
-        問題正解数: correctProblemCount,
-        累積打鍵総数: totalKeystrokes,
-        正確率: accuracy,
-        KPM: averageKPM,
-        問題別KPM: allProblemKPMs
-      });
+      const correctProblemCount = newSolvedCount;      // 詳細なデバッグログを削除
 
       // スコアデータをGameContextに保存
       setGameState(prev => ({
@@ -378,23 +365,13 @@ export function useGameController(options = {}) {
           typing.setProblem(initialProblem);
 
           // 問題設定後の状態を確認
-          console.log('[GameController] 初期問題設定後の状態:', {
-            displayText: initialProblem?.displayText,
-            typing_problem: typing.typingSession?.problem?.displayText,
-            time: new Date().toTimeString()
-          });
+          // 初期問題設定後の状態ログを削除
         }, 20); // 遅延を若干増やして確実に設定されるようにする
       }
     }
   }, [gameState.difficulty, gameState.category, currentProblem, typing]);
 
-  // 返す前に問題状態のログ出力
-  console.log('[GameController] 現在の状態:', {
-    'currentProblem': currentProblem?.displayText,
-    'typing.displayInfo': typing?.displayInfo ? 'あり' : 'なし',
-    'typingRefあり?': typingRef.current ? 'あり' : 'なし',
-    'gameState.currentProblem': gameState.currentProblem?.displayText,
-  });
+  // 返す前の問題状態のログ出力を削除
 
   return {
     // 状態
@@ -428,7 +405,7 @@ export function useGameCompleteHandler(gameState, goToScreen, typingRef) {
   useEffect(() => {
     // 明示的なゲームクリアの場合のみ処理
     if (gameState.isGameClear === true) {
-      console.log('[GameCompleteHandler] ゲーム完了を検出しました - スコア計算は行いません');
+      // ゲーム完了検出のログを削除
 
       // スコア計算をすべて削除
 
@@ -441,16 +418,15 @@ export function useGameCompleteHandler(gameState, goToScreen, typingRef) {
 
         // handleProblemCompleteとの衝突を回避するため少し余裕を持たせる
         setTimeout(() => {
-          console.log('[GameCompleteHandler] リザルト画面に遷移します - スコアなし');
+          // リザルト画面遷移のログを削除
           goToScreen(SCREENS.RESULT, {
             playSound: true,
             // スコア情報は渡さない
             gameState: {}
           });
         }, 250);
-      } else {
-        console.log(`[GameCompleteHandler] ${now - lastTransitionTime}ms以内に遷移したため、重複遷移をスキップします`);
       }
+      // 重複遷移スキップのログを削除
     }
   }, [gameState, goToScreen, typingRef]);
 }

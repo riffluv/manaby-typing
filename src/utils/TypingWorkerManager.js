@@ -176,9 +176,8 @@ class TypingWorkerManager {
    * 処理モードを設定する
    * @param {Object} modes 各処理のモード設定
    * @returns {Object} 現在の設定
-   */
-  setProcessingModes(modes) {
-    console.log('[TypingWorkerManager] 処理モード設定:', modes);
+   */  setProcessingModes(modes) {
+    // 処理モード設定のログを削除
 
     // 必要なプロパティのみ更新
     if (modes.typing) {

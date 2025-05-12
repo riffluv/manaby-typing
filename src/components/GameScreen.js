@@ -27,8 +27,7 @@ const DEBUG_GAME_SCREEN = process.env.NODE_ENV === 'development' && false;
 const GameScreen = () => {
   const { gameState } = useGameContext();
   const { goToScreen } = usePageTransition();
-  // リファクタリング完了のログ
-  console.log('[GameScreen] リファクタリングが完了しました。2025年5月11日更新');
+  // リファクタリング完了のログは開発が終わったため削除
 
   // パフォーマンスメトリクス表示用の状態
   const [debugInfo, setDebugInfo] = useState({});

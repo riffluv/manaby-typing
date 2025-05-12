@@ -170,7 +170,7 @@ const fallbackImpl = {
       const accuracy = (statData.correctKeyCount / statData.totalKeyCount) * 100;
       return Math.min(Math.max(0, Math.round(accuracy * 10) / 10), 100);
     };
-    
+
     return {
       kpm,
       rank,
@@ -266,29 +266,22 @@ export default {
    * 初期化
    */  initialize() {
     if (isInitialized) return;
-    
+
     try {
       // Worker作成
       scoreCalculationWorker = createInlineWorker(
         scoreCalcFunction,
         fallbackImpl
       );
-      
+
       isInitialized = true;
-      
+
       // Worker動作状況を確認してフォールバックを設定
-      const isWorkerActive = isWorkerAvailable() && 
-                             scoreCalculationWorker && 
-                             scoreCalculationWorker.instance && 
-                             scoreCalculationWorker.instance.active;
-                             
-      const workerStatus = isWorkerActive ? 'Worker対応（バックグラウンドスレッドで実行）' : 'Worker非対応（メインスレッドでフォールバック）';
-      
-      console.log('=====================================');
-      console.log(`[ScoreCalculationWorker] 初期化完了:`);
-      console.log(`実行環境: ${workerStatus}`);
-      console.log(`Worker API利用可能性: ${isWorkerAvailable() ? '利用可能' : '利用不可'}`);
-      console.log('=====================================');
+      const isWorkerActive = isWorkerAvailable() &&
+        scoreCalculationWorker &&
+        scoreCalculationWorker.instance &&
+        scoreCalculationWorker.instance.active;
+      // 初期化完了のログを削除
     } catch (error) {
       console.error('[ScoreCalculationWorker] 初期化エラー:', error);
     }

@@ -131,7 +131,7 @@ export function useTypingStats(options = {}) {
       mistakeCount: missCount
     };
 
-  // Workerでの計算を実行
+    // Workerでの計算を実行
     let scoreResult;
     let isUsingWorker = false;
     try {
@@ -145,18 +145,7 @@ export function useTypingStats(options = {}) {
       const kpm = (elapsedMinutes > 0) ? Math.max(1, Math.floor(correctCount / elapsedMinutes)) : 0;
       const rank = TypingUtils.getRank(kpm);
       scoreResult = { kpm, rank };
-    }
-
-    // 詳細ログ出力（実行環境確認用）
-    console.log('[useTypingStats] スコア計算実行環境確認:', {
-      実行場所: isUsingWorker ? 'WebWorker（バックグラウンドスレッド）' : 'メインスレッド（フォールバック）',
-      WebWorker利用可能性: isWorkerAvailable() ? 'あり' : 'なし',
-      correctCount,
-      elapsedTimeMs,
-      kpm: scoreResult.kpm,
-      rank: scoreResult.rank,
-      isWorker: scoreResult.isWorker
-    });
+    }    // 詳細ログ出力は開発完了のため削除
 
     // 表示用統計情報の更新
     const newDisplayStats = {
@@ -186,14 +175,7 @@ export function useTypingStats(options = {}) {
       ? timestamp - stats.currentProblemStartTime
       : 0;
     const problemKeyCount = stats.correctKeyCount || 0;
-    const problemMistakeCount = stats.mistakeCount || 0;
-
-    // 現在のミス数を詳細にログ出力
-    console.log('[useTypingStats] 問題完了時のミス数:', {
-      mistakeCount: stats.mistakeCount,
-      currentProblemStartTime: stats.currentProblemStartTime,
-      elapsedMs: problemElapsedMs
-    });    // Worker初期化確認
+    const problemMistakeCount = stats.mistakeCount || 0;    // 問題完了時のミス数ログは削除// Worker初期化確認
     if (!stats.workerInitialized) {
       ScoreCalculationWorker.initialize();
       stats.workerInitialized = true;
@@ -255,17 +237,7 @@ export function useTypingStats(options = {}) {
     }
 
     // 表示用統計情報を更新
-    updateDisplayStats();
-
-    // 問題完了のログ出力
-    console.log('[useTypingStats] 問題完了 - 統計情報:', {
-      正解キー数: problemData.problemKeyCount,
-      ミス数: problemData.problemMistakeCount,
-      経過時間: problemData.problemElapsedMs,
-      KPM: problemData.problemKPM,
-      平均KPM: averageKPM,
-      ランク: rank
-    });
+    updateDisplayStats();    // 問題完了のログ出力を削除
 
     // 拡張した統計情報を返す
     return {
@@ -290,7 +262,7 @@ export function useTypingStats(options = {}) {
     // 初期化処理
     ScoreCalculationWorker.initialize();
     statsRef.current.workerInitialized = true;
-    
+
     // 実装状態の確認とログ出力
     console.log('=====================================');
     console.log('【実装確認】タイピングゲーム実行環境:');
