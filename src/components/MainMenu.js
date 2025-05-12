@@ -506,6 +506,11 @@ const MainMenu = () => {
       {/* 宇宙船UI装飾コンポーネント */}
       <SpaceshipDecoration />
 
+      {/* Early Access バッジ */}
+      <div className={styles.earlyAccessBadge} aria-label="アーリーアクセスバージョン">
+        Early Access v0.9
+      </div>
+
       {/* 宇宙船ID表示 - 新しい要素 */}
       <div className={styles.shipIdBadge}>
         <div className={styles.shipIdLabel}>MANABY SPACE CREW</div>

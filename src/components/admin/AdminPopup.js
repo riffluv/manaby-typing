@@ -24,6 +24,14 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
   const { gameState, setGameState, currentScreen } = useGameContext();
   const [problemCount, setProblemCount] = useState(5); // デフォルト値は5問
   const [activeTab, setActiveTab] = useState('settings'); // 'settings'、'background'、'gallery'、または 'rankings'
+  
+  // ポップアップが開かれた際にgameStateから現在の必要問題数を読み込む
+  useEffect(() => {
+    if (isOpen && gameState && gameState.requiredProblemCount) {
+      setProblemCount(gameState.requiredProblemCount);
+      logDebug('[管理者設定] 現在のお題数を読み込みました:', gameState.requiredProblemCount);
+    }
+  }, [isOpen, gameState]);
   const [isSavingBackground, setIsSavingBackground] = useState(false); // 保存中状態
   const [showSaveSuccess, setShowSaveSuccess] = useState(false); // 保存成功メッセージ表示状態
   const [playerName, setPlayerName] = useState(''); // プレイヤー名入力用
@@ -378,7 +386,6 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
       onClose();
     }
   };
-
   // 保存ボタンがクリックされたときの処理
   const handleSave = () => {
     logDebug('[管理者設定] お題数を変更:', problemCount);
@@ -391,6 +398,24 @@ const AdminPopup = ({ isOpen, onClose, backgroundRef }) => {
 
     // 更新
     setGameState(updatedGameState);
+    
+    // StorageUtilsを使って設定を永続化
+    try {
+      const StorageUtils = require('../../utils/StorageUtils').default;
+      if (StorageUtils && typeof StorageUtils.saveGameSettings === 'function') {
+        // 現在の設定を取得し、問題数を更新して保存
+        const currentSettings = StorageUtils.getGameSettings();
+        const updatedSettings = {
+          ...currentSettings,
+          requiredProblemCount: problemCount
+        };
+        StorageUtils.saveGameSettings(updatedSettings);
+        logDebug('[管理者設定] 設定を永続化しました', updatedSettings);
+      }
+    } catch (err) {
+      logError('設定の永続化中にエラーが発生しました:', err);
+    }
+    
     onClose();
   };
 

@@ -16,6 +16,52 @@
   border-radius: 4px;
 }
 
+/* Early Access バッジのスタイル */
+.earlyAccessBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(10, 13, 20, 0.7);
+  border: 1px solid #ff8c00;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #ff8c00;
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(255, 140, 0, 0.4);
+  display: flex;
+  align-items: center;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.earlyAccessBadge::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #ff8c00;
+  margin-right: 6px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(255, 140, 0, 0.7);
+  }
+  70% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 6px rgba(255, 140, 0, 0);
+  }
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(255, 140, 0, 0);
+  }
+}
+
 .mainContainer::before {
   content: '';
   position: absolute;
