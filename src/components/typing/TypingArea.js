@@ -184,7 +184,7 @@ const TypingArea = ({
   };
 
   // エラー状態の検出
-  const hasErrors = displayData.hasError || typing?.errorAnimation;  return (
+  const hasErrors = displayData.hasError || typing?.errorAnimation; return (
     <div className={`${styles.typing_area} ${className || ''}`}>
       {/* 問題表示エリア */}
       <div

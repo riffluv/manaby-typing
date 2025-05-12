@@ -17,17 +17,58 @@
   z-index: 10;
 }
 
-/* 空のステータスバー - 高さを確保したバージョン */
+/* 空のステータスバー - ロゴを配置するバージョン */
 .empty_bar {
-  padding: 0.5rem 1rem;
-  min-height: 40px; /* 元のヘッダーより少し小さめの高さを設定 */
-  background: rgba(0, 0, 0, 0.15); /* より薄い背景色 */
-  border-bottom: 1px solid rgba(0, 180, 255, 0.1); /* より薄いボーダー */
-  border-top: none;
-  box-shadow: none;
+  padding: 0.25rem 0.8rem;
+  /* 上下のパディングを少し小さく */
+  min-height: 42px;
+  /* 高さを少し増やす */
+  background: rgba(0, 0, 0, 0.2);
+  /* 背景色を少し濃くする */
+  background-image: linear-gradient(to bottom, rgba(0, 30, 60, 0.2), rgba(0, 0, 0, 0.1));
+  border-bottom: 1px solid rgba(0, 180, 255, 0.2);
+  /* ボーダーを少し強調 */
+  border-top: 1px solid rgba(0, 0, 0, 0.3);
+  /* 上部にも薄いボーダーを追加 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), inset 0 1px rgba(255, 255, 255, 0.05);
+  /* より洗練された影を追加 */
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  /* 左寄せに変更 */
+}
+
+/* manabyロゴのコンテナ */
+.logo_container {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+  /* 右側の余白を自動調整 */
+  padding-left: 15px;
+  /* 左側の余白を少し増やす */
+}
+
+/* manabyロゴ画像 */
+.manaby_logo {
+  height: 35px;
+  /* 少し大きめのサイズに調整 */
+  width: auto;
+  /* アスペクト比を保持 */
+  margin-right: 20px;
+  /* 右側の余白 */
+  filter: drop-shadow(0 0 4px rgba(255, 140, 0, 0.6)), drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
+  /* 二重の光彩効果 */
+  transition: all 0.3s ease;
+  /* エフェクトのスムーズな遷移 */
+}
+
+/* ホバー時の効果 */
+.manaby_logo:hover {
+  filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.8)), drop-shadow(0 0 12px rgba(0, 180, 255, 0.4));
+  /* 光彩効果を強める */
+  transform: scale(1.03);
+  /* わずかに大きくする */
 }
 
 .status_info {

@@ -57,10 +57,10 @@ const RetroKeyboard = ({
   const [ctx, setCtx] = useState(null);
   // 現在アニメーションしているキー
   const [animatingKey, setAnimatingKey] = useState(null);
-  
+
   // キーのアニメーション状態
   const [keyStates, setKeyStates] = useState({});
-  
+
   // ドットパーティクルのエフェクト管理
   const [particles, setParticles] = useState([]);
 
@@ -193,7 +193,7 @@ const RetroKeyboard = ({
       const isPressed = key.toLowerCase() === lastPressedKey.toLowerCase();
       const keyState = keyStates[key] || { glow: 0, press: 0 };      // グロー効果のオフセット計算
       const glowOffset = keyState.glow * GLOW_SIZE;
-      
+
       // キー押下エフェクトの計算 (最大4px、最小0pxに制限)
       const pressOffset = Math.min(4, Math.max(0, keyState.press * 4));      // キーの背景 - 複数の層を重ねて立体感を強調
       // キーの影 - より自然なシャドウ効果
@@ -222,7 +222,7 @@ const RetroKeyboard = ({
       keyGradient.addColorStop(0, '#3a3a3a');
       keyGradient.addColorStop(0.9, '#2d2d2d');
       keyGradient.addColorStop(1, '#252525');
-      
+
       ctx.fillStyle = keyGradient;
       ctx.beginPath();
       ctx.roundRect(
@@ -233,7 +233,7 @@ const RetroKeyboard = ({
         KEY_RADIUS
       );
       ctx.fill();
-      
+
       // キートップのハイライト - かすかな光沢
       ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
       ctx.beginPath();
@@ -300,7 +300,7 @@ const RetroKeyboard = ({
         );
         pressGradient.addColorStop(0, 'rgba(70, 75, 90, 0.6)');
         pressGradient.addColorStop(1, 'rgba(50, 55, 65, 0.4)');
-        
+
         ctx.fillStyle = pressGradient;
         ctx.beginPath();
         ctx.roundRect(
@@ -311,7 +311,7 @@ const RetroKeyboard = ({
           KEY_RADIUS
         );
         ctx.fill();
-        
+
         // 押されたキーにかすかな青いハイライトを追加
         ctx.strokeStyle = 'rgba(0, 150, 255, 0.15)';
         ctx.lineWidth = 1;
@@ -359,7 +359,7 @@ const RetroKeyboard = ({
           lineGradient.addColorStop(0, 'rgba(255, 136, 0, 0.3)');
           lineGradient.addColorStop(0.5, 'rgba(255, 136, 0, 0.7)');
           lineGradient.addColorStop(1, 'rgba(255, 136, 0, 0.3)');
-          
+
           ctx.fillStyle = lineGradient;
           ctx.fillRect(position.x + 30, lineY, position.width - 60, 1.5);
         }
@@ -376,7 +376,7 @@ const RetroKeyboard = ({
       if (isNextKey) {
         ctx.save();
         const lineGradient = ctx.createLinearGradient(
-          position.x, position.y + position.height - 1 + pressOffset, 
+          position.x, position.y + position.height - 1 + pressOffset,
           position.x + position.width, position.y + position.height - 1 + pressOffset
         );
         lineGradient.addColorStop(0, 'rgba(255, 136, 0, 0.3)');
@@ -394,7 +394,7 @@ const RetroKeyboard = ({
       if (pressOffset > 0) {
         // 最大押下量を制限（4pxを超えないようにする）
         const limitedPressOffset = Math.min(4, pressOffset);
-        
+
         // 側面の影
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.beginPath();
@@ -403,7 +403,7 @@ const RetroKeyboard = ({
         ctx.lineTo(position.x + position.width, position.y + position.height - limitedPressOffset);
         ctx.lineTo(position.x, position.y + position.height - limitedPressOffset);
         ctx.fill();
-        
+
         // 右側面の影
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.beginPath();
@@ -415,10 +415,10 @@ const RetroKeyboard = ({
         if (keyState.press > 0.7) {
           // 負の半径を防止するため、0.1を最小値とする
           const shockwaveProgress = Math.max(0.1, (1 - (keyState.press - 0.7) / 0.3) * 12);
-          
+
           // 二重の衝撃波エフェクト
           ctx.save();
-          
+
           // 外側の波 - 白色
           ctx.strokeStyle = `rgba(255, 255, 255, ${(1 - keyState.press) * 0.4})`;
           ctx.lineWidth = 1.5;
@@ -431,7 +431,7 @@ const RetroKeyboard = ({
             Math.PI * 2
           );
           ctx.stroke();
-          
+
           // 内側の波 - オレンジ色
           ctx.strokeStyle = `rgba(255, 160, 70, ${(1 - keyState.press) * 0.3})`;
           ctx.lineWidth = 1;
@@ -444,7 +444,7 @@ const RetroKeyboard = ({
             Math.PI * 2
           );
           ctx.stroke();
-          
+
           ctx.restore();
         }
       }
@@ -477,7 +477,7 @@ const RetroKeyboard = ({
       particles.forEach(particle => {
         ctx.fillStyle = `rgba(${particle.color.r}, ${particle.color.g}, ${particle.color.b}, ${particle.alpha})`;
         ctx.strokeStyle = `rgba(${particle.color.r}, ${particle.color.g}, ${particle.color.b}, ${particle.alpha})`;
-        
+
         // パーティクルタイプによって描画方法を変える
         if (particle.type === 'square') {
           // 正方形パーティクル - 少し回転させる
@@ -514,7 +514,7 @@ const RetroKeyboard = ({
             Math.PI * 2
           );
           ctx.fill();
-          
+
           // 輝き効果 (20%の確率)
           if (Math.random() > 0.8) {
             ctx.save();
@@ -549,21 +549,21 @@ const RetroKeyboard = ({
   // キーアニメーションの更新
   const updateKeyAnimation = useCallback(() => {
     if (!ctx) return;
-    
+
     setKeyStates(prevStates => {
       const newStates = { ...prevStates };
       let hasActiveAnimations = false;
       const activeKeys = new Set(); // 現在アクティブなキーを追跡
-      
+
       // 現在のアクティブキーを追加
       if (nextKey) activeKeys.add(nextKey.toLowerCase());
       if (lastPressedKey) activeKeys.add(lastPressedKey.toLowerCase());
-      
+
       // 各キーのアニメーション状態を更新
       Object.keys(newStates).forEach(key => {
         const state = newStates[key];
         const keyLower = key.toLowerCase();
-        
+
         // グロー効果のアニメーション
         if (state.glow !== undefined) {
           if (keyLower === nextKey.toLowerCase()) {
@@ -582,7 +582,7 @@ const RetroKeyboard = ({
             hasActiveAnimations = true;
           }
         }
-        
+
         // 押下効果のアニメーション
         if (state.press !== undefined) {
           if (keyLower === lastPressedKey.toLowerCase() && state.press < 1) {
@@ -605,73 +605,73 @@ const RetroKeyboard = ({
             delete newStates[key];
           }
         }
-          // パーティクルエフェクトは別の状態で管理するため、
+        // パーティクルエフェクトは別の状態で管理するため、
         // ここではリップルに関する処理を削除
-          // キーの状態が不要になったら削除（メモリリーク防止）
+        // キーの状態が不要になったら削除（メモリリーク防止）
         const currentState = newStates[key];
-        if (currentState && 
-            (!activeKeys.has(keyLower)) && 
-            (currentState.glow === 0 || currentState.glow === undefined) && 
-            (currentState.press === 0 || currentState.press === undefined)) {
+        if (currentState &&
+          (!activeKeys.has(keyLower)) &&
+          (currentState.glow === 0 || currentState.glow === undefined) &&
+          (currentState.press === 0 || currentState.press === undefined)) {
           delete newStates[key];
         }
       });
-        // 次のキーの状態を初期化（まだ存在しない場合）
+      // 次のキーの状態を初期化（まだ存在しない場合）
       if (nextKey && !newStates[nextKey]) {
         newStates[nextKey] = { glow: 0, press: 0 };
         hasActiveAnimations = true;
       }
-      
+
       // 最後に押されたキーの状態を初期化（まだ存在しない場合）
       if (lastPressedKey && !newStates[lastPressedKey]) {
         newStates[lastPressedKey] = { glow: 0, press: 1 };
         hasActiveAnimations = true;
       }
-      
+
       return newStates;
     });    // キー押下時のドットパーティクルエフェクト
     if (lastPressedKey && lastPressedKey !== animatingKey) {
       setAnimatingKey(lastPressedKey);
-      
+
       // キー位置を取得
       const keyPos = keyPositions[lastPressedKey];
       if (keyPos) {
         // キーの中心を計算
         const centerX = keyPos.x + keyPos.width / 2;
         const centerY = keyPos.y + keyPos.height / 2;
-          // パーティクル生成（25〜35個のドット - より多く）
+        // パーティクル生成（25〜35個のドット - より多く）
         const newParticles = [];
         const particleCount = 25 + Math.floor(Math.random() * 10);
-        
+
         for (let i = 0; i < particleCount; i++) {
           // ランダム角度と速度 - 速度を上げて派手に
           const angle = Math.random() * Math.PI * 2;
           const speed = 2 + Math.random() * 5; // 速度範囲を広げる
-          
+
           // オレンジ系のより鮮やかな色
-          const colorSet = Math.random() > 0.3 ? 
+          const colorSet = Math.random() > 0.3 ?
             {
               // メインカラー: オレンジ (70%)
               r: 220 + Math.floor(Math.random() * 35), // 220-255
               g: 100 + Math.floor(Math.random() * 60), // 100-160
               b: Math.floor(Math.random() * 50)        // 0-50
-            } : 
+            } :
             {
               // アクセントカラー: 明るい黄色 (30%)
               r: 240 + Math.floor(Math.random() * 15), // 240-255
               g: 200 + Math.floor(Math.random() * 55), // 200-255
               b: Math.floor(Math.random() * 80)        // 0-80
             };
-          
+
           // ドットの形状（円形、正方形、線）
           const typeRandom = Math.random();
           const type = typeRandom > 0.7 ? 'square' : (typeRandom > 0.3 ? 'circle' : 'line');
-          
+
           // 線の場合は角度に沿った長さを持たせる
-          const size = type === 'line' ? 
+          const size = type === 'line' ?
             2 + Math.random() * 6 : // 線は長め
             1 + Math.random() * 3;  // 通常のサイズ
-          
+
           // より多様なパーティクル効果
           newParticles.push({
             x: centerX + (Math.random() - 0.5) * 10, // 少し開始位置を散らす
@@ -687,16 +687,16 @@ const RetroKeyboard = ({
             angle: angle // 線の場合の角度
           });
         }
-        
+
         setParticles(prev => [...prev, ...newParticles]);
       }
     }
-    
+
     // キーボードを描画
     drawKeyboard();    // パーティクルの更新 - よりダイナミックな動き
     setParticles(prevParticles => {
       if (prevParticles.length === 0) return prevParticles;
-      
+
       return prevParticles
         .map(particle => {
           // 線タイプの場合は少し違う動きをする
@@ -716,7 +716,7 @@ const RetroKeyboard = ({
               life: particle.life - particle.decay
             };
           }
-          
+
           // 円と正方形のパーティクル
           return {
             ...particle,
@@ -727,7 +727,7 @@ const RetroKeyboard = ({
             vx: particle.vx * 0.98,
             vy: particle.vy * 0.98 + 0.07, // 重力効果
             // サイズ変化 (ランダム要素を加える)
-            size: particle.type === 'square' ? 
+            size: particle.type === 'square' ?
               particle.size * (1 - particle.decay * 2) : // 正方形は縮小
               particle.size * (particle.life > 0.5 ? 1.01 : 0.98), // 円は最初膨張して後で縮小
             // 透明度を減少
@@ -737,35 +737,35 @@ const RetroKeyboard = ({
           };
         })
         // ライフタイムが尽きたか、画面外に出たパーティクルを削除
-        .filter(particle => 
+        .filter(particle =>
           particle.life > 0 &&
           particle.x > -50 && particle.x < ctx.canvas.width + 50 &&
           particle.y > -50 && particle.y < ctx.canvas.height + 50
         );
     });
-    
+
     // 定期的に古いキー状態をクリーンアップ（メモリリーク防止）
     const now = Date.now();
     if (now % 5000 < 16) { // 約5秒ごとに実行（フレームレートを考慮）
       setKeyStates(prevStates => {
         const cleanedStates = { ...prevStates };
-        
+
         // アクティブなキー以外の状態をクリア
         Object.keys(cleanedStates).forEach(key => {
           const keyLower = key.toLowerCase();
           if (keyLower !== nextKey.toLowerCase() && keyLower !== lastPressedKey.toLowerCase()) {
             const state = cleanedStates[key];
-            if ((state.press === 0 || state.press === undefined) && 
-                (state.glow === 0 || state.glow === undefined)) {
+            if ((state.press === 0 || state.press === undefined) &&
+              (state.glow === 0 || state.glow === undefined)) {
               delete cleanedStates[key];
             }
           }
         });
-        
+
         return cleanedStates;
       });
     }
-    
+
     // アニメーションループを継続
     animationFrameRef.current = requestAnimationFrame(updateKeyAnimation);
   }, [ctx, drawKeyboard, nextKey, lastPressedKey, animatingKey]);
@@ -789,25 +789,25 @@ const RetroKeyboard = ({
   }, []);  // コンテナサイズの測定
   useEffect(() => {
     if (!containerRef.current) return;
-    
+
     const updateSize = () => {
       // containerRef.currentが存在することを確認
       if (!containerRef.current) return;
-      
+
       const rect = containerRef.current.getBoundingClientRect();
       setContainerSize({
         width: rect.width,
         height: rect.height
       });
     };
-    
+
     // 初期サイズ更新（少し遅延させて、DOM要素が確実に利用可能になるのを待つ）
     const initTimer = setTimeout(updateSize, 10);
-    
+
     // リサイズイベント監視
     const resizeObserver = new ResizeObserver(updateSize);
     resizeObserver.observe(containerRef.current);
-    
+
     return () => {
       clearTimeout(initTimer);
       if (containerRef.current) {
