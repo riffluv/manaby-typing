@@ -22,6 +22,18 @@ const SimpleTypingDisplay = memo(({
   currentCharRomaji = '', // 現在入力中の文字の完全なローマ字表現
   visiblePortion = { start: 0, end: 0 } // 表示領域の範囲（長いローマ字時）
 }) => {
+  // 安全チェック機能強化のため追加
+  const isValidRomaji = typeof romaji === 'string';
+  const isValidNextChar = typeof nextChar === 'string';
+  const isValidCurrentInput = typeof currentInput === 'string';
+
+  if (DEBUG_TYPING_DISPLAY && (!isValidRomaji || !isValidNextChar || !isValidCurrentInput)) {
+    console.warn('SimpleTypingDisplay - 無効なデータ:', {
+      romaji: isValidRomaji ? romaji.substring(0, 10) + '...' : `${typeof romaji} (無効)`,
+      nextChar: isValidNextChar ? nextChar : `${typeof nextChar} (無効)`,
+      currentInput: isValidCurrentInput ? currentInput : `${typeof currentInput} (無効)`
+    });
+  }
   // スクロール処理用のref
   const containerRef = useRef(null);
   const nextCharRef = useRef(null);
@@ -35,32 +47,51 @@ const SimpleTypingDisplay = memo(({
       nextChar: nextChar || '<なし>'
     }));
   }
+  // romajiがない場合のセーフティチェック - 改善強化版
+  const safeRomaji = typeof romaji === 'string' ? romaji : '';
 
-  // romajiがない場合のセーフティチェック
-  const safeRomaji = romaji || '';
+  if (DEBUG_TYPING_DISPLAY && !romaji && romaji !== '') {
+    console.warn('SimpleTypingDisplay - romaji が undefined または null です:', romaji);
+  }
 
-  // 入力済み部分（typedLength文字まで）
-  const typed = safeRomaji.substring(0, typedLength) || '';
+  // 入力済み部分（typedLength文字まで） - セーフティチェック付き
+  const validTypedLength = Number.isInteger(typedLength) && typedLength >= 0 ? typedLength : 0;
+  const typed = safeRomaji.substring(0, validTypedLength) || '';
 
-  // 表示用の変数を準備
-  let displayCurrentInput = '';
-  let displayNextChar = nextChar || '';
+  // 表示用の変数を準備 - 型チェック強化
+  let displayCurrentInput = typeof currentInput === 'string' ? currentInput : '';
+  let displayNextChar = typeof nextChar === 'string' ? nextChar : '';
   let displayRemaining = '';
 
-  // 表示範囲を決定（長いローマ字の場合は表示範囲を制限）
-  const showFullText = !visiblePortion || visiblePortion.start === 0 && visiblePortion.end === 0;
+  // 表示範囲を決定（長いローマ字の場合は表示範囲を制限） - 全体的に強化
+  const showFullText = !visiblePortion ||
+    (visiblePortion.start === 0 && visiblePortion.end === 0) ||
+    !Number.isInteger(visiblePortion.start) ||
+    !Number.isInteger(visiblePortion.end);
 
-  // 実際に表示するテキスト部分を決定
-  // セーフティチェック: visiblePortionがnullまたは範囲が不正な場合はフルテキストを表示
+  // セーフティチェック強化: visiblePortionの有効性をより厳密に検証
   const hasValidRange = visiblePortion &&
-    typeof visiblePortion.start === 'number' &&
-    typeof visiblePortion.end === 'number' &&
+    typeof visiblePortion === 'object' &&
+    Number.isInteger(visiblePortion.start) &&
+    Number.isInteger(visiblePortion.end) &&
     visiblePortion.start >= 0 &&
-    visiblePortion.end > visiblePortion.start;
+    visiblePortion.end > visiblePortion.start &&
+    visiblePortion.end <= safeRomaji.length;
 
+  // 有効範囲に基づいて表示テキストを決定
   const effectiveRomaji = !hasValidRange || showFullText
     ? safeRomaji
     : safeRomaji.substring(visiblePortion.start, visiblePortion.end);
+
+  // デバッグ情報（条件付き）
+  if (DEBUG_TYPING_DISPLAY) {
+    console.log('SimpleTypingDisplay - 表示テキスト決定:', {
+      表示モード: showFullText ? 'フルテキスト' : '部分テキスト',
+      有効範囲: hasValidRange,
+      表示範囲: !showFullText && hasValidRange ? `${visiblePortion.start}-${visiblePortion.end}` : 'フル',
+      実際の表示テキスト: effectiveRomaji?.substring(0, 20) + (effectiveRomaji?.length > 20 ? '...' : '')
+    });
+  }
 
   // 表示範囲内での相対的な入力位置を計算
   const relativeTypedLength = Math.max(0, typedLength - (showFullText ? 0 : (visiblePortion?.start || 0)));
@@ -165,36 +196,52 @@ const SimpleTypingDisplay = memo(({
   // 部分表示の場合に前後に表示する省略記号
   const prefixEllipsis = !showFullText && hasValidRange && visiblePortion.start > 0 ? '...' : '';
   const suffixEllipsis = !showFullText && hasValidRange && visiblePortion.end < safeRomaji.length ? '...' : '';
+  // デバッグ情報（本番では無効化）
+  if (DEBUG_TYPING_DISPLAY) {
+    console.log('SimpleTypingDisplay - レンダリング内容検証:', {
+      romaji: safeRomaji.substring(0, 20) + (safeRomaji.length > 20 ? '...' : ''),
+      typedLength,
+      nextChar: displayNextChar,
+      currentInput: displayCurrentInput,
+      currentCharRomaji,
+      showingFullText: showFullText,
+      timestamp: new Date().toLocaleTimeString()
+    });
+  }
 
   return (
     <div className={containerClass} ref={containerRef}>
-      <div className={styles.typingTextContent} ref={contentRef}>        {/* 前の部分が省略されている場合の省略記号 */}
+      <div className={styles.typingTextContent} ref={contentRef}>
+        {/* 前の部分が省略されている場合の省略記号 */}
         {prefixEllipsis && (<span className={styles.ellipsis}>{prefixEllipsis}</span>)}
-        {/* 入力済み部分 */}
+
+        {/* 入力済み部分（セーフティチェック付き） */}
         {typed && (
           <span className={styles.typed}>
             {showFullText
               ? typed
-              : effectiveRomaji.substring(0, relativeTypedLength)}
+              : effectiveRomaji.substring(0, Math.min(relativeTypedLength, effectiveRomaji.length))}
           </span>
         )}
 
-        {/* 子音入力中の場合は、子音も表示 */}
+        {/* 子音入力中の場合は、子音も表示（セーフティチェック付き） */}
         {inputMode === 'consonant' && displayCurrentInput && (
           <span className={styles.consonant}>{displayCurrentInput}</span>
         )}
 
-        {/* 次に入力すべき文字（ハイライト表示） */}
+        {/* 次に入力すべき文字（ハイライト表示）（セーフティチェック付き） */}
         {displayNextChar && (
           <span className={styles.nextChar} ref={nextCharRef}>{displayNextChar}</span>
-        )}
+        )}        {/* 子音入力中の場合は、現在の仮名の残りを表示（セーフティチェック強化） */}
+        {inputMode === 'consonant' &&
+          typeof currentCharRomaji === 'string' &&
+          currentCharRomaji.length > (currentInput?.length || 0) + 1 && (
+            <span className={styles.currentCharRemaining}>
+              {currentCharRomaji.substring((currentInput?.length || 0) + 1)}
+            </span>
+          )}
 
-        {/* 子音入力中の場合は、現在の仮名の残りを表示 */}
-        {inputMode === 'consonant' && currentCharRomaji && currentCharRomaji.length > (currentInput?.length || 0) + 1 && (
-          <span className={styles.currentCharRemaining}>
-            {currentCharRomaji.substring((currentInput?.length || 0) + 1)}
-          </span>
-        )}        {/* 残りの未入力部分 */}
+        {/* 残りの未入力部分（セーフティチェック強化） */}
         {displayRemaining && <span className={styles.remaining}>{displayRemaining}</span>}
 
         {/* 後の部分が省略されている場合の省略記号 */}

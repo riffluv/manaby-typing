@@ -253,11 +253,11 @@ export default class TypingUtils {
   static isDirectMatch(kana, input) {
     const patterns = romajiMap[kana];
     if (!patterns) return false;
-    
+
     for (const pattern of patterns) {
       if (pattern[0] === input) return true;
     }
-    
+
     return false;
   }
 
@@ -295,44 +295,60 @@ export default class TypingUtils {
           i += 2;
           continue;
         }
-      }
-
-      // 促音(っ)の処理
+      }      // 促音(っ)の処理（安定化・改善版）
       if (char === 'っ' && nextChar) {
-        // 次の文字が拗音を含む場合
-        const afterNextChar = i + 2 < hiragana.length ? hiragana[i + 2] : null;
-        const isNextSmall = afterNextChar && ['ゃ', 'ゅ', 'ょ'].includes(afterNextChar);
+        try {
+          // 次の文字が拗音を含む場合
+          const afterNextChar = i + 2 < hiragana.length ? hiragana[i + 2] : null;
+          const isNextSmall = afterNextChar && ['ゃ', 'ゅ', 'ょ'].includes(afterNextChar);
 
-        if (isNextSmall) {
-          // 「っきゃ」のようなパターン
-          const nextTwoChars = nextChar + afterNextChar;
-          const nextRomaji = romajiMap[nextTwoChars] || [wanakana.toRomaji(nextTwoChars)];
-          const firstChar = nextRomaji[0][0];
+          if (isNextSmall) {
+            // 「っきゃ」のようなパターン
+            const nextTwoChars = nextChar + afterNextChar;
+            // セーフティチェック強化
+            const nextRomaji = romajiMap[nextTwoChars] ||
+              (wanakana.toRomaji(nextTwoChars) ? [wanakana.toRomaji(nextTwoChars)] : ['']);
 
-          if (consonants[firstChar]) {
-            patterns.push([firstChar]);
-            i++;
-            continue;
+            // 最初の文字が存在するか確認
+            if (nextRomaji[0] && nextRomaji[0].length > 0) {
+              const firstChar = nextRomaji[0][0];
+
+              logUtil.debug(`[TypingUtils] 促音+拗音処理: "${char}${nextChar}${afterNextChar}" -> 最初の文字: "${firstChar}"`);
+
+              if (consonants[firstChar]) {
+                patterns.push([firstChar]);
+                i++;
+                continue;
+              }
+            }
+          } else {
+            // 通常の促音（「った」など）
+            // セーフティチェック強化
+            const nextRomaji = romajiMap[nextChar] ||
+              (wanakana.toRomaji(nextChar) ? [wanakana.toRomaji(nextChar)] : ['']);
+
+            // 最初の文字が存在するか確認
+            if (nextRomaji[0] && nextRomaji[0].length > 0) {
+              const firstChar = nextRomaji[0][0];
+
+              logUtil.debug(`[TypingUtils] 通常促音処理: "${char}${nextChar}" -> 最初の文字: "${firstChar}"`);
+
+              if (consonants[firstChar]) {
+                patterns.push([firstChar]);
+                i++;
+                continue;
+              }
+            }
           }
-        } else {
-          // 通常の促音（「った」など）
-          const nextRomaji = romajiMap[nextChar] || [wanakana.toRomaji(nextChar)];
-          const firstChar = nextRomaji[0][0];
-
-          if (consonants[firstChar]) {
-            patterns.push([firstChar]);
-            i++;
-            continue;
-          }
+        } catch (error) {
+          console.error(`[TypingUtils] 促音処理エラー: "${char}${nextChar}"`, error);
         }
 
         // 子音ではない場合の促音
         patterns.push(['xtu', 'ltu']);
         i++;
         continue;
-      }
-
-      // 「ん」の特殊処理（改善版）
+      }      // 「ん」の特殊処理（最適化・安定化版）
       if (char === 'ん') {
         const isLastChar = i === hiragana.length - 1;
         const nextFirstChar = nextChar ? nextChar[0] : '';
@@ -341,12 +357,15 @@ export default class TypingUtils {
         if (isLastChar) {
           // 単語の最後では n だけでも受け付ける
           patterns.push(['nn', 'n', 'xn']);
+          logUtil.debug('[TypingUtils] 「ん」処理: 文末位置 - パターン:', ['nn', 'n', 'xn']);
         } else if (vowelsAndY[nextFirstChar]) {
-          // 母音やyの前では nn または xn のみ
+          // 母音やyの前では nn または xn のみ (n'a などと区別するため)
           patterns.push(['nn', 'xn']);
+          logUtil.debug('[TypingUtils] 「ん」処理: 母音/y前 - パターン:', ['nn', 'xn'], '次の文字:', nextFirstChar);
         } else {
           // それ以外の場所では nn, n, xn すべて受け付ける
           patterns.push(['nn', 'n', 'xn']);
+          logUtil.debug('[TypingUtils] 「ん」処理: その他位置 - パターン:', ['nn', 'n', 'xn'], '次の文字:', nextFirstChar);
         }
         i++;
         continue;
@@ -365,59 +384,104 @@ export default class TypingUtils {
       }
 
       i++;
-    }
-
-    // パターンをキャッシュ
+    }    // パターンをキャッシュ（安定化改善版）
     this._patternCache = {
       text: hiragana,
-      patterns: patterns.map(p => [...p]) // ディープコピー
+      patterns: patterns.map(p => [...p]), // ディープコピー
+      timestamp: Date.now(),    // キャッシュ作成時刻（デバッグ用）
+      info: {                   // メタ情報（デバッグ用）
+        patternCount: patterns.length,
+        textLength: hiragana.length
+      }
     };
+
+    // パターン生成結果をデバッグ出力（最初の10個だけ表示）
+    logUtil.debug('[TypingUtils] ローマ字パターン生成結果:',
+      patterns.slice(0, 10).map((p, i) => ({
+        kana: hiragana[i] || '',
+        patterns: p
+      }))
+    );
 
     return patterns;
   }
-
   /**
-   * タイピングセッションを作成する（高速化バージョン）
+   * タイピングセッションを作成する（最適化・安定化バージョン）
    * @param {Object} problem - 問題オブジェクト
    * @returns {Object} タイピングセッションオブジェクト
    */
   static createTypingSession(problem) {
     if (!problem || !problem.kanaText) {
-      console.error('有効な問題データが必要です');
+      logUtil.error('[TypingUtils] 有効な問題データが必要です');
       return null;
     }
 
     try {
-      // かな文字列を正規化
-      const kana = wanakana.toHiragana(problem.kanaText.trim());
+      // かな文字列を正規化（空白も保持）
+      const kana = wanakana.toHiragana(String(problem.kanaText || '').trim());
+
+      if (!kana) {
+        logUtil.warn('[TypingUtils] 問題のかなテキストが空です');
+        return null;
+      }
+
+      logUtil.debug('[TypingUtils] セッション作成:', {
+        問題: problem.displayText,
+        かな: kana,
+        長さ: kana.length
+      });
 
       // ローマ字パターンに変換
       const patterns = this.parseTextToRomajiPatterns(kana);
+
+      // パターンの有効性確認
+      if (!patterns || !patterns.length) {
+        logUtil.error('[TypingUtils] 有効なパターンを生成できませんでした');
+        return null;
+      }
 
       // 表示用情報と最適化データを事前計算
       const displayIndices = new Array(patterns.length);
       const patternLengths = new Array(patterns.length);
       const expectedChars = new Array(patterns.length);
       const firstChars = new Array(patterns.length); // 最初の文字を事前計算
-      let currentIndex = 0;
+      let currentIndex = 0;      // 表示用ローマ字文字列を構築（安全性と安定性強化版）
+      let displayRomaji = '';
+      try {
+        displayRomaji = patterns.map((pattern, i) => {
+          // 各パターンのセーフティチェック
+          if (!Array.isArray(pattern) || pattern.length === 0) {
+            logUtil.warn(`[TypingUtils] 無効なパターンが見つかりました: index=${i}`);
+            pattern = ['']; // 安全な初期値
+          }
 
-      // 表示用ローマ字文字列を構築
-      const displayRomaji = patterns.map((pattern, i) => {
-        displayIndices[i] = currentIndex;
+          displayIndices[i] = currentIndex;
 
-        // 最も一般的なパターンを表示に使用
-        const romajiPattern = pattern[0];
-        patternLengths[i] = romajiPattern.length;
-        
-        // 最初の文字を事前計算
-        firstChars[i] = romajiPattern[0];
+          // 最も一般的なパターンを表示に使用（セーフティチェック付き）
+          const romajiPattern = pattern[0] || '';
 
-        // 次の期待入力文字セットを事前計算
-        expectedChars[i] = new Set(pattern.map(p => p[0]));
+          // パターン長を事前計算
+          patternLengths[i] = romajiPattern.length;
 
-        currentIndex += romajiPattern.length;
-        return romajiPattern;
-      }).join('');
+          // 最初の文字を事前計算（安全性チェック付き）
+          firstChars[i] = romajiPattern.length > 0 ? romajiPattern[0] : '';
+
+          // 次の期待入力文字セットを事前計算（安全性チェック付き）
+          expectedChars[i] = new Set(pattern.map(p => p && p.length > 0 ? p[0] : '').filter(Boolean));
+
+          // インデックスを更新
+          currentIndex += romajiPattern.length;
+          return romajiPattern;
+        }).join('');
+
+        // 生成されたローマ字の検証（デバッグ用）
+        logUtil.debug(`[TypingUtils] 生成されたローマ字 (長さ: ${displayRomaji.length}):`,
+          displayRomaji.length > 50 ? displayRomaji.substring(0, 50) + '...' : displayRomaji);
+      } catch (error) {
+        // エラー発生時はログと安全な値を設定
+        console.error('[TypingUtils] ローマ字生成エラー:', error);
+        displayRomaji = '';
+      }
 
       // シンプル化されたタイピングセッション
       const typingSession = {
@@ -433,8 +497,8 @@ export default class TypingUtils {
 
         // 高速化データ - 参照コピーを避けるために直接コピー
         displayIndices,
-        patternLengths,  
-        expectedChars,   
+        patternLengths,
+        expectedChars,
         firstChars,      // 追加：最初の文字の高速アクセス配列
 
         // 状態
@@ -447,7 +511,7 @@ export default class TypingUtils {
         getCurrentExpectedKey() {
           if (this.completed) return null;
           if (this.currentCharIndex >= this.patterns.length) return null;
-          
+
           // 現在入力なしの場合は、事前計算した最初の文字をすぐに返す
           if (!this.currentInput) {
             return this.firstChars[this.currentCharIndex];
@@ -481,7 +545,7 @@ export default class TypingUtils {
 
           // 現在のパターン配列
           const currentPatterns = this.patterns[this.currentCharIndex];
-          
+
           // 新しい入力
           const newInput = this.currentInput + char;
 
@@ -492,12 +556,12 @@ export default class TypingUtils {
           // 高速マッチング
           for (let i = 0; i < currentPatterns.length; i++) {
             const pattern = currentPatterns[i];
-            
+
             // 完全に一致する
             if (pattern === newInput) {
               exactMatch = true;
               break;
-            } 
+            }
             // 前方一致する
             else if (pattern.startsWith(newInput)) {
               prefixMatch = true;
@@ -604,7 +668,7 @@ export default class TypingUtils {
           }
 
           const idx = this.currentCharIndex;
-          
+
           // 高速アクセス - 事前計算値を使用
           const typedLength = idx > 0 ?
             this.displayIndices[idx - 1] + this.patternLengths[idx - 1] : 0;
