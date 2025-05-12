@@ -4,10 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import styles from '../../styles/typing/OffscreenEffects.module.css';
 
 /**
- * Offscreen Canvas を使用したエフェクト描画コンポーネント
- * 
- * UIスレッドからバックグラウンドスレッドに描画処理を移動することで
- * パフォーマンスを向上させるコンポーネント
+ * キャンバスエフェクト描画コンポーネント
+ * WebWorker機能を削除し、メインスレッド描画に修正
  */
 const OffscreenEffects = ({
   enabled = true,
@@ -16,26 +14,13 @@ const OffscreenEffects = ({
   fps = 60,
 }) => {
   const canvasRef = useRef(null);
-  const workerRef = useRef(null);
-  const [isSupported, setIsSupported] = useState(true);
+  const contextRef = useRef(null);
   const [isActive, setIsActive] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
-
-  // Offscreen Canvasのサポート確認
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Offscreen Canvasのサポートチェック
-      const supported =
-        'OffscreenCanvas' in window &&
-        'transferControlToOffscreen' in document.createElement('canvas');
-
-      setIsSupported(supported);
-
-      if (!supported) {
-        console.warn('[OffscreenEffects] お使いのブラウザはOffscreen Canvasに対応していません');
-      }
-    }
-  }, []);
+  const frameRequestRef = useRef(null);
+  const effectsRef = useRef([]);
+  const lastFrameTimeRef = useRef(0);
+  const frameIntervalRef = useRef(1000 / fps);
 
   // キャンバスサイズの設定
   useEffect(() => {
@@ -45,10 +30,14 @@ const OffscreenEffects = ({
       if (!canvasRef.current) return;
 
       const rect = canvasRef.current.getBoundingClientRect();
-      setCanvasSize({
-        width: rect.width,
-        height: rect.height
-      });
+      const width = rect.width;
+      const height = rect.height;
+
+      // キャンバスサイズを設定
+      canvasRef.current.width = width;
+      canvasRef.current.height = height;
+
+      setCanvasSize({ width, height });
     };
 
     // 初期サイズ設定
@@ -62,139 +51,173 @@ const OffscreenEffects = ({
     };
   }, []);
 
-  // Workerの初期化とOffscreen Canvasのセットアップ
+  // メインスレッドでのキャンバス描画処理
   useEffect(() => {
-    if (!isSupported || !enabled || !canvasRef.current || canvasSize.width === 0) return;
+    if (!enabled || !canvasRef.current || canvasSize.width === 0) return;
 
-    // Workerの作成
-    const worker = new Worker(new URL('../../workers/canvas-worker.js', import.meta.url));
-    workerRef.current = worker;
+    // コンテキストを取得
+    const context = canvasRef.current.getContext('2d');
+    contextRef.current = context;
 
-    // Canvasの転送
-    const canvas = canvasRef.current;
-    const offscreen = canvas.transferControlToOffscreen();
+    // アニメーションフレームレンダリング
+    const renderFrame = (timestamp) => {
+      if (!contextRef.current || !canvasRef.current) return;
 
-    // Workerにキャンバスを渡す
-    worker.postMessage({
-      type: 'init',
-      data: { canvas: offscreen }
-    }, [offscreen]);
+      const elapsed = timestamp - lastFrameTimeRef.current;
 
-    // メッセージハンドラ
-    worker.onmessage = (event) => {
-      const { type } = event.data;
+      // フレームレート制御
+      if (elapsed >= frameIntervalRef.current) {
+        lastFrameTimeRef.current = timestamp;
 
-      switch (type) {
-        case 'initialized':
-          // 初期化完了後にアニメーション開始
-          worker.postMessage({ type: 'start' });
-          setIsActive(true);
-          break;
+        // キャンバスクリア
+        contextRef.current.clearRect(0, 0, canvasSize.width, canvasSize.height);
 
-        case 'started':
-          setIsActive(true);
-          break;
+        // エフェクト描画
+        effectsRef.current = effectsRef.current.filter(effect => {
+          // 期限切れのエフェクトを除去
+          const lifetime = effect.lifetime || 1000;
+          const age = timestamp - effect.createdAt;
+          if (age > lifetime) return false;
 
-        case 'stopped':
-          setIsActive(false);
-          break;
-
-        case 'spawned':
-          if (onEffectSpawned) {
-            onEffectSpawned();
-          }
-          break;
+          // エフェクト描画
+          drawEffect(contextRef.current, effect, age / lifetime, canvasSize);
+          return true;
+        });
       }
+
+      // 次のフレームをリクエスト
+      frameRequestRef.current = requestAnimationFrame(renderFrame);
     };
 
-    // FPSの設定
-    worker.postMessage({
-      type: 'fps',
-      data: { fps }
-    });    return () => {
-      // クリーンアップ - メッセージチャネルが閉じられたエラーを防ぐための改善
-      if (workerRef.current) {
-        try {
-          // 最後のメッセージ送信を試みる前にエラーハンドラーを追加
-          const errorHandler = () => {
-            console.warn('[OffscreenEffects] Worker通信エラー - 既に終了している可能性があります');
-          };
-          workerRef.current.onerror = errorHandler;
-          
-          // 安全にメッセージ送信を試みる
-          try {
-            workerRef.current.postMessage({ type: 'stop' });
-          } catch (err) {
-            console.warn('[OffscreenEffects] 終了メッセージの送信に失敗しました:', err);
-          }
-          
-          // 最終的にWorkerを終了
-          workerRef.current.terminate();
-          workerRef.current = null;
-        } catch (err) {
-          console.error('[OffscreenEffects] Workerのクリーンアップ中にエラーが発生しました:', err);
-        }
+    // アニメーション開始
+    lastFrameTimeRef.current = performance.now();
+    frameRequestRef.current = requestAnimationFrame(renderFrame);
+    setIsActive(true);
+
+    return () => {
+      if (frameRequestRef.current) {
+        cancelAnimationFrame(frameRequestRef.current);
+        frameRequestRef.current = null;
       }
+      setIsActive(false);
     };
-  }, [isSupported, enabled, canvasSize, fps, onEffectSpawned]);
+  }, [enabled, canvasSize]);
 
-  // キャンバスサイズの変更通知
-  useEffect(() => {
-    if (!workerRef.current || canvasSize.width === 0) return;
+  /**
+   * エフェクト追加メソッド
+   * @param {Object} effectData エフェクトデータ
+   */
+  const addEffect = (effectData) => {
+    const newEffect = {
+      ...effectData,
+      createdAt: performance.now(),
+      id: `effect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    };
 
-    workerRef.current.postMessage({
-      type: 'resize',
-      data: {
-        width: canvasSize.width,
-        height: canvasSize.height
-      }
-    });
-  }, [canvasSize]);
+    effectsRef.current = [...effectsRef.current, newEffect];
 
-  // エフェクト発生API（外部から呼び出し可能）
-  const spawnEffect = (x, y) => {
-    if (!workerRef.current || !isActive) return;
-
-    workerRef.current.postMessage({
-      type: 'spawn',
-      data: { x, y }
-    });
-
-    return true;
+    if (onEffectSpawned) {
+      onEffectSpawned(newEffect);
+    }
   };
 
-  // Offscreenをサポートしていない場合のフォールバック
-  if (!isSupported && enabled) {
-    return (
-      <div className={`${styles.fallback} ${className}`}>
-        <p>お使いのブラウザはOffscreen Canvasに対応していません。</p>
-      </div>
-    );
-  }
+  /**
+   * エフェクト描画関数（内部実装）
+   * @param {CanvasRenderingContext2D} ctx キャンバスコンテキスト
+   * @param {Object} effect エフェクト
+   * @param {number} progress 進行度（0～1）
+   * @param {Object} size キャンバスサイズ
+   */
+  const drawEffect = (ctx, effect, progress, size) => {
+    const { type, x, y, color = '#4a90e2', size: effectSize = 20 } = effect;
+
+    // x, yが相対座標の場合は絶対座標に変換
+    const absoluteX = typeof x === 'string' && x.endsWith('%')
+      ? (parseFloat(x) / 100) * size.width
+      : parseFloat(x);
+
+    const absoluteY = typeof y === 'string' && y.endsWith('%')
+      ? (parseFloat(y) / 100) * size.height
+      : parseFloat(y);
+
+    // エフェクトタイプに応じた描画
+    ctx.save();
+
+    // アルファ設定（フェードアウト）
+    ctx.globalAlpha = 1 - progress;
+
+    switch (type) {
+      case 'ripple':
+        // 波紋エフェクト
+        const radius = effectSize * (0.2 + progress * 2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2 * (1 - progress);
+        ctx.beginPath();
+        ctx.arc(absoluteX, absoluteY, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+
+      case 'particle':
+        // パーティクルエフェクト
+        const pSize = effectSize * (1 - progress * 0.5);
+        ctx.fillStyle = color;
+
+        // 複数のパーティクル
+        for (let i = 0; i < 5; i++) {
+          const angle = Math.PI * 2 * (i / 5);
+          const distance = effectSize * progress * 2;
+          const px = absoluteX + Math.cos(angle) * distance;
+          const py = absoluteY + Math.sin(angle) * distance;
+
+          ctx.beginPath();
+          ctx.arc(px, py, pSize / 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+
+      case 'text':
+        // テキストエフェクト
+        const { text = '✓' } = effect;
+        const fontSize = effectSize * (1 + progress * 0.5);
+
+        ctx.font = `bold ${fontSize}px Arial`;
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Y位置を上に移動させる（上昇アニメーション）
+        const offsetY = -progress * effectSize;
+        ctx.fillText(text, absoluteX, absoluteY + offsetY);
+        break;
+
+      default:
+        // デフォルトのエフェクト（単純な円）
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(absoluteX, absoluteY, effectSize * (1 - progress * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+  };
+
+  // Public APIを公開
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      addEffect,
+      isActive: () => isActive
+    }),
+    [isActive]
+  );
 
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        className={`${styles.canvas} ${className}`}
-        width={canvasSize.width || 300}
-        height={canvasSize.height || 150}
-        data-active={isActive}
-      />
-      {React.Children.map(React.Children.toArray(React.createElement('div', {
-        className: styles.effectsAPI,
-        onClick: (e) => {
-          // クリック位置でエフェクト発生
-          const rect = canvasRef.current.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          spawnEffect(x, y);
-        }
-      })), child =>
-        React.cloneElement(child, { spawnEffect })
-      )}
-    </>
+    <canvas
+      ref={canvasRef}
+      className={`${styles.effectsCanvas} ${className}`}
+      data-active={isActive}
+    />
   );
 };
 
-export default OffscreenEffects;
+export default React.forwardRef(OffscreenEffects);

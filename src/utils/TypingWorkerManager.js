@@ -1,12 +1,9 @@
 /**
  * TypingWorkerManager.js
- * タイピング処理用WebワーカーとMCPシステムを統合的に管理するクラス
- * タイピングゲームのパフォーマンス最適化のための中枢システム
- * 2025年5月9日: タイピング即時応答のためにメインスレッド処理を追加
- * 2025年5月11日: Next.js環境でのWorker読み込みを強化
+ * タイピング処理を管理するクラス
+ * WebWorker機能を削除し、メインスレッド処理のみに簡略化
  */
 
-import mcpUtils from './MCPUtils';
 import {
   processTypingInputOnMainThread,
   getColoringInfoOnMainThread,
@@ -15,26 +12,22 @@ import {
 } from './TypingProcessorMain';
 
 /**
- * WebワーカーとMCPシステムを統合的に管理するシングルトンクラス
+ * タイピング処理を統合的に管理するシングルトンクラス
+ * WebWorker機能を削除し、メインスレッド処理のみを行う簡略化バージョン
  */
 class TypingWorkerManager {
   constructor() {
-    // Worker参照
-    this.worker = null;
-    // ワーカーの初期化状態
-    this.initialized = false;
     // コールバック管理
     this.callbacks = new Map();
     // 次のコールバックID
-    this.nextCallbackId = 1;
-    // 接続試行回数
-    this.connectionAttempts = 0;
-    // マイクロタスクキュー
+    this.nextCallbackId = 1;    // マイクロタスクキュー
     this.queue = [];
-    // メッセージバッファ（ワーカー起動前のメッセージを保存）
-    this.messageBuffer = [];
-    // WebWorkerサポート状態 - 修正：Next.jsでのWindow環境も確認
-    this.isSupported = typeof Worker !== 'undefined' && typeof window !== 'undefined';
+    // 処理モード設定
+    this.processingMode = {
+      typing: 'main-thread', // 'worker' または 'main-thread'
+      effects: 'main-thread', // 'worker' または 'main-thread' 
+      statistics: 'main-thread' // 'worker' または 'main-thread'
+    };
     // パフォーマンスメトリクス
     this.metrics = {
       processCalls: 0,
@@ -42,17 +35,6 @@ class TypingWorkerManager {
       cacheHits: 0,
       processingTime: 0,
       lastSync: Date.now(),
-      // 拡張メトリクス
-      batchOperations: 0,
-      totalMessagesSent: 0,
-      totalMessagesReceived: 0,
-      lastErrorTime: null,
-      lastErrorMessage: null,
-      activeCallbacks: 0,
-      averageResponseTime: 0,
-      lastPerformanceReport: null,
-      highPriorityOperations: 0,
-      // メインスレッド処理メトリクス
       mainThreadProcessCalls: 0,
       mainThreadProcessingTime: 0,
     };
@@ -60,16 +42,6 @@ class TypingWorkerManager {
     this.cache = {
       inputResults: new Map(), // 入力結果のキャッシュ
       coloringInfo: new Map(), // 色分け情報のキャッシュ
-    };
-
-    // フォールバックモード（Workerが使えない場合）
-    this.fallbackMode = false;
-
-    // 処理モード設定
-    this.processingMode = {
-      typing: 'main-thread', // 'worker' または 'main-thread'
-      effects: 'worker',     // 'worker' または 'main-thread' 
-      statistics: 'worker'   // 'worker' または 'main-thread'
     };
 
     // 高速アクセス用に共有オブジェクト
@@ -84,750 +56,157 @@ class TypingWorkerManager {
       window.typingWorkerManager = this;
     }
 
-    // 初期化
-    this._initOnNextTick();
+    console.log('[TypingWorkerManager] メインスレッドモードで初期化しました');
   }
 
   /**
-   * 次のマイクロタスクでワーカーを初期化
-   * プリエンプティブでない（他の処理をブロックしない）
+   * 初期化済みかどうかを確認
+   * @returns {boolean} 常にtrue（WebWorker機能なし）
    */
-  _initOnNextTick() {
-    queueMicrotask(() => {
-      this._initWorker();
-    });
+  isInitialized() {
+    return true;
   }
 
   /**
-   * 内部メソッド: ワーカーの初期化
-   * @private
-   */  _initWorker() {
-    // WebWorkerサポートチェック
-    if (!this.isSupported) {
-      console.warn(
-        '[TypingWorkerManager] WebWorkerがサポートされていません。フォールバックモードを使用します。'
-      );
-      this.fallbackMode = true;
-      this.initialized = true; // フォールバックモードでも初期化完了とする
-      return;
-    }
-
-    try {
-      // ワーカーがすでに存在する場合は終了させる
-      if (this.worker) {
-        this.worker.terminate();
-        this.worker = null;
-      }
-
-      // Next.js環境でのWorker読み込みを試みる（3種類の方法を順に試行）
-      this._tryLoadWorker()
-        .then(success => {
-          if (!success) {
-            // フォールバックに移行
-            this._fallbackToTraditionalWorker();
-          }
-        })
-        .catch(error => {
-          console.error('[TypingWorkerManager] ワーカーロードエラー:', error);
-          this._fallbackToTraditionalWorker();
-        });
-    } catch (error) {
-      console.error('[TypingWorkerManager] 初期化エラー:', error);
-      this._enableFallbackMode(error);
-    }
-  }
-
-  /**
-   * Next.js環境でのワーカー読み込みを様々な方法で試行
-   * @returns {Promise<boolean>} 成功したかどうか
-   * @private
-   */
-  async _tryLoadWorker() {
-    // 方法1: Webpackの動的インポート
-    try {
-      const workerModule = await import('../workers/typing-worker.worker.js');
-      if (workerModule.default && typeof workerModule.default === 'function') {
-        this.worker = new workerModule.default();
-        console.log('[TypingWorkerManager] 方法1: Webpackモジュールとして初期化しました');
-        this._setupWorker();
-        return true;
-      }
-    } catch (error) {
-      console.warn('[TypingWorkerManager] 方法1: Webpackインポートに失敗:', error);
-    }
-
-    // 方法2: Web Worker URL Import
-    try {
-      const workerUrl = new URL('../workers/typing-worker.worker.js', import.meta.url);
-      this.worker = new Worker(workerUrl, { type: 'module' });
-      console.log('[TypingWorkerManager] 方法2: URL Import Workerとして初期化しました');
-      this._setupWorker();
-      return true;
-    } catch (error) {
-      console.warn('[TypingWorkerManager] 方法2: URL Importに失敗:', error);
-    }
-
-    // 方法3: Blob Worker
-    try {
-      // 最小限のWeb Workerコード
-      const workerCode = `
-        self.onmessage = function(e) {
-          if (e.data.type === 'ping') {
-            self.postMessage({
-              type: 'pong',
-              callbackId: e.data.callbackId,
-              received: true,
-              timestamp: Date.now()
-            });
-          }
-        };
-      `;
-
-      const blob = new Blob([workerCode], { type: 'application/javascript' });
-      const workerBlobUrl = URL.createObjectURL(blob);
-      this.worker = new Worker(workerBlobUrl);
-      console.log('[TypingWorkerManager] 方法3: Blobワーカーとして初期化しました');
-      this._setupWorker();
-      return true;
-    } catch (error) {
-      console.warn('[TypingWorkerManager] 方法3: Blobワーカーに失敗:', error);
-    }
-
-    return false;
-  }
-  /**
-   * 従来のWorker作成方法にフォールバック
-   * @private
-   */
-  _fallbackToTraditionalWorker() {
-    try {
-      // Next.js環境向けに絶対URLを使用
-      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-      const possiblePaths = [
-        // Next.jsアプリでのパス
-        `${baseUrl}/_next/static/chunks/workers/typing-worker.js`,
-        // 通常の静的ファイル配置パス
-        `${baseUrl}/workers/typing-worker.js`,
-        '/workers/typing-worker.js',
-        './workers/typing-worker.js',
-        '../public/workers/typing-worker.js',
-      ];
-
-      let workerCreated = false;
-
-      // 順番に試す
-      for (const workerPath of possiblePaths) {
-        try {
-          this.worker = new Worker(workerPath);
-          console.log(
-            `[TypingWorkerManager] 従来のWorkerを初期化しました: ${workerPath}`
-          );
-          workerCreated = true;
-          this._setupWorker();
-          break;
-        } catch (pathError) {
-          console.warn(
-            `[TypingWorkerManager] パス ${workerPath} でWorker作成失敗: ${pathError.message}`
-          );
-        }
-      }
-
-      if (!workerCreated) {
-        // 最終手段: インラインワーカーを試す
-        try {
-          const workerCode = `
-            self.onmessage = function(e) {
-              if (e.data.type === 'ping') {
-                self.postMessage({
-                  type: 'pong',
-                  callbackId: e.data.callbackId,
-                  received: true,
-                  timestamp: Date.now()
-                });
-              } else if (e.data.type === 'setProcessingModes') {
-                self.postMessage({
-                  type: 'setProcessingModes',
-                  callbackId: e.data.callbackId,
-                  success: true
-                });
-              }
-            };
-          `;
-          const blob = new Blob([workerCode], { type: 'application/javascript' });
-          const blobUrl = URL.createObjectURL(blob);
-          this.worker = new Worker(blobUrl);
-          console.log('[TypingWorkerManager] インラインワーカーを初期化しました');
-          this._setupWorker();
-        } catch (inlineError) {
-          console.error('[TypingWorkerManager] インラインワーカー作成に失敗:', inlineError);
-          this._enableFallbackMode(new Error('すべてのWorker作成方法が失敗しました'));
-        }
-      }
-    } catch (error) {
-      console.error('[TypingWorkerManager] 従来のWorker作成に失敗:', error);
-      this._enableFallbackMode(error);
-    }
-  }
-
-  /**
-   * ワーカーのセットアップ
-   * @private
-   */
-  _setupWorker() {
-    if (!this.worker) {
-      this._enableFallbackMode(new Error('ワーカーが正しく作成されませんでした'));
-      return;
-    }
-
-    // ワーカーからのメッセージを処理
-    this.worker.onmessage = (e) => this._handleWorkerMessage(e);
-
-    // エラーハンドリング
-    this.worker.onerror = (error) => {
-      console.error('[TypingWorkerManager] WorkerError:', error);
-      this._reportError('worker_error', error.message || '不明なエラー');
-
-      // エラーメトリクスを記録
-      this.metrics.lastErrorTime = Date.now();
-      this.metrics.lastErrorMessage = error.message || '不明なエラー';
-
-      // 再初期化（リカバリーロジック）
-      if (this.connectionAttempts < 3) {
-        this.connectionAttempts++;
-        console.log(
-          `[TypingWorkerManager] ワーカー再初期化を試行... (${this.connectionAttempts}回目)`
-        );
-        setTimeout(() => {
-          this._initWorker();
-        }, 1000);
-      } else {
-        // 接続試行回数が上限を超えた場合はフォールバックモードに
-        this._enableFallbackMode(new Error('接続試行回数が上限を超えました'));
-      }
-    };
-
-    // 初期化メッセージを送信してみる（接続確認）
-    this._postToWorker('ping', { time: Date.now() }, 'high', (result) => {
-      if (result && result.received) {
-        this.initialized = true;
-        console.log('[TypingWorkerManager] ワーカー初期化完了');
-
-        // 画面のリフレッシュレートを検出してワーカーに通知
-        this._detectAndSetDisplayCapabilities();
-
-        // バッファリングされたメッセージを処理
-        this._processMessageBuffer();
-      } else {
-        this._enableFallbackMode(new Error('ワーカーからの応答がありません'));
-      }
-    });
-  }
-
-  /**
-   * フォールバックモードを有効化
-   * @param {Error} error エラーオブジェクト 
-   * @private
-   */
-  _enableFallbackMode(error) {
-    console.warn(
-      `[TypingWorkerManager] フォールバックモードに切り替えます: ${error.message}`
-    );
-    this.fallbackMode = true;
-    this.worker = null;
-    this.initialized = true; // フォールバックモードでも初期化完了とする
-  }
-
-  /**
-   * 画面のリフレッシュレートとシステム能力を検出してワーカーに通知
-   * @private
-   */
-  _detectAndSetDisplayCapabilities() {
-    if (!this.worker || !window) return;
-
-    try {
-      let refreshRate = 60; // デフォルト値
-
-      // ブラウザでのリフレッシュレート検出
-      if (window.screen && window.screen.displayInfo && window.screen.displayInfo.refreshRate) {
-        refreshRate = window.screen.displayInfo.refreshRate || 60;
-      } else if (navigator.requestVideoFrameCallback) {
-        // VideoFrameCallbackを使用したリフレッシュレート検出
-        let lastTimestamp = 0;
-        const deltas = [];
-
-        const frameCallback = (now, metadata) => {
-          if (lastTimestamp) {
-            const delta = now - lastTimestamp;
-            deltas.push(delta);
-
-            // 10フレーム以上のサンプルを収集したらレートを計算
-            if (deltas.length >= 10) {
-              const avgDelta = deltas.reduce((sum, d) => sum + d, 0) / deltas.length;
-              refreshRate = Math.round(1000 / avgDelta);
-
-              // ワーカーに通知
-              this._postToWorker('setDisplayCapabilities', { refreshRate }, 'high');
-              return; // 検出完了
-            }
-          }
-
-          lastTimestamp = now;
-          requestAnimationFrame(frameCallback);
-        };
-
-        requestAnimationFrame(frameCallback);
-        return; // 非同期検出を開始したのでここで終了
-      }
-
-      // 検出した値をワーカーに通知
-      this._postToWorker('setDisplayCapabilities', { refreshRate }, 'high');
-    } catch (error) {
-      console.warn('[TypingWorkerManager] ディスプレイ機能の検出エラー:', error);
-    }
-  }
-
-  /**
-   * エラーを報告
-   * @param {string} errorType エラータイプ
-   * @param {string} message エラーメッセージ
-   * @private
-   */
-  _reportError(errorType, message) {
-    console.error(`[TypingWorkerManager] ${errorType}: ${message}`);
-  }
-
-  /**
-   * バッファリングされたメッセージを処理
-   * @private
-   */
-  _processMessageBuffer() {
-    if (this.messageBuffer.length > 0) {
-      console.log(
-        `[TypingWorkerManager] ${this.messageBuffer.length}件のバッファメッセージを処理します`
-      );
-
-      // メッセージバッファを処理
-      const processedMessages = [...this.messageBuffer];
-      this.messageBuffer = [];
-
-      // バッファ内のメッセージを処理
-      processedMessages.forEach((msg) => {
-        this._postToWorker(
-          msg.type,
-          msg.data,
-          msg.priority,
-          msg.callback
-        );
-      });
-    }
-  }
-
-  /**
-   * ワーカーからのメッセージを処理
-   * @param {MessageEvent} e メッセージイベント
-   * @private
-   */
-  _handleWorkerMessage(e) {
-    const message = e.data;
-
-    if (!message) {
-      this._reportError('invalid_message', 'メッセージが空です');
-      return;
-    }
-
-    // メトリクスを更新
-    this.metrics.totalMessagesReceived++;
-
-    // コールバックを処理
-    if (message.callbackId && this.callbacks.has(message.callbackId)) {
-      const callback = this.callbacks.get(message.callbackId);
-      this.callbacks.delete(message.callbackId);
-      this.metrics.activeCallbacks--;
-
-      // コールバックを実行
-      try {
-        callback(message);
-      } catch (error) {
-        console.error('[TypingWorkerManager] コールバック実行エラー:', error);
-      }
-      return;
-    }
-
-    // システムメッセージを処理
-    if (message.type === 'system') {
-      console.log('[TypingWorkerManager] システムメッセージ受信:', message.data);
-      return;
-    }
-
-    // 他のメッセージタイプも処理可能
-  }
-
-  /**
-   * ワーカーにメッセージを送信
-   * @param {string} type メッセージタイプ
-   * @param {Object} data データオブジェクト
-   * @param {string} priority 'high'または'normal'の優先度
+   * 次に期待されるキーを取得
+   * @param {Object} data 現在のテキストデータ
    * @param {Function} callback コールバック関数
-   * @private
    */
-  _postToWorker(type, data, priority = 'normal', callback = null) {
-    // 初期化前はメッセージをバッファリング
-    if (!this.initialized || !this.worker) {
-      if (!this.fallbackMode) {
-        // フォールバックモードでなければバッファリング
-        this.messageBuffer.push({ type, data, priority, callback });
-        return;
-      }
-    }
-
-    // フォールバックモードではメインスレッドで処理
-    if (this.fallbackMode) {
-      this._processOnMainThread(type, data, callback);
-      return;
-    }
-
-    const callbackId = callback ? this.nextCallbackId++ : null;
-    if (callback) {
-      this.callbacks.set(callbackId, callback);
-      this.metrics.activeCallbacks++;
-    }
-
-    try {
-      const startTime = performance.now();
-
-      // 優先度に基づいてメッセージを送信
-      if (priority === 'high') {
-        this.metrics.highPriorityOperations++;
-        // 高優先度メッセージは即座に送信
-        this.worker.postMessage({
-          type,
-          data,
-          callbackId,
-          timestamp: Date.now(),
-        });
-      } else {
-        // 通常優先度はマイクロタスクキューを使用
-        queueMicrotask(() => {
-          if (this.worker) {
-            this.worker.postMessage({
-              type,
-              data,
-              callbackId,
-              timestamp: Date.now(),
-            });
-          }
-        });
-      }
-
-      this.metrics.totalMessagesSent++;
-      this.metrics.processingTime += performance.now() - startTime;
-    } catch (error) {
-      console.error(
-        '[TypingWorkerManager] メッセージ送信エラー:',
-        error
-      );
-
-      if (callback) {
-        // エラーをコールバック
-        callback({ error: error.message });
-        this.callbacks.delete(callbackId);
-        this.metrics.activeCallbacks--;
-      }
-    }
-  }
-
-  /**
-   * メインスレッドで処理を実行（フォールバックモード）
-   * @param {string} type メッセージタイプ
-   * @param {Object} data データオブジェクト
-   * @param {Function} callback コールバック関数
-   * @private
-   */
-  _processOnMainThread(type, data, callback) {
+  getNextExpectedKey(data, callback) {
     const startTime = performance.now();
-    this.metrics.mainThreadProcessCalls++;
-
     try {
-      // メッセージタイプに基づいて異なる処理を実行
-      switch (type) {
-        case 'processTypingInput':
-          // タイピング入力を処理
-          const inputResult = processTypingInputOnMainThread(
-            data.session,
-            data.input,
-            data.options
-          );
-          if (callback) callback(inputResult);
-          break;
+      const result = getNextExpectedKeyOnMainThread(data);
 
-        case 'getColoringInfo':
-          // カラーリング情報を取得
-          const coloringInfo = getColoringInfoOnMainThread(
-            data.session,
-            data.options
-          );
-          if (callback) callback(coloringInfo);
-          break;
-
-        case 'getNextExpectedKey':
-          // 次に期待されるキーを取得
-          const keyInfo = getNextExpectedKeyOnMainThread(
-            data.session
-          );
-          if (callback) callback(keyInfo);
-          break;
-
-        case 'ping':
-          // Ping
-          if (callback) callback({ received: true, timestamp: Date.now() });
-          break;
-
-        default:
-          console.warn(`[TypingWorkerManager] 未対応のメッセージタイプ: ${type}`);
-          if (callback) callback({ error: '未対応のメッセージタイプ' });
-          break;
+      // 即時実行
+      if (callback) {
+        callback(result);
       }
-    } catch (error) {
-      console.error('[TypingWorkerManager] メインスレッド処理エラー:', error);
-      if (callback) callback({ error: error.message || '不明なエラー' });
-    }
 
-    // 処理時間を記録
-    this.metrics.mainThreadProcessingTime += performance.now() - startTime;
+      // キャッシュを更新
+      this.sharedState.nextExpectedKey = result.nextKey;
+      this.sharedState.lastUpdateTimestamp = Date.now();
+
+      this.metrics.mainThreadProcessCalls++;
+      this.metrics.mainThreadProcessingTime += performance.now() - startTime;
+    } catch (error) {
+      console.error('[TypingWorkerManager] getNextExpectedKey エラー:', error);
+      if (callback) {
+        callback({ error: error.message, nextKey: '' });
+      }
+    }
   }
 
   /**
-   * 次に予測されるキーを取得
-   * @param {Object} session セッションデータ 
-   * @returns {Promise<Object>} 次のキー情報
+   * タイピング入力を処理
+   * @param {Object} data 入力データ
+   * @param {Function} callback コールバック関数
    */
-  getNextExpectedKey(session) {
-    return new Promise((resolve, reject) => {
-      // セッションとキャラクターの簡易チェック
-      if (!session) {
-        reject(new Error('セッションデータがありません'));
-        return;
+  processTypingInput(data, callback) {
+    const startTime = performance.now();
+    try {
+      const result = processTypingInputOnMainThread(data);
+
+      // 即時実行
+      if (callback) {
+        callback(result);
       }
 
-      if (this.fallbackMode) {
-        // フォールバックモードではメインスレッドで処理
-        try {
-          const result = getNextExpectedKeyOnMainThread(session);
-          resolve(result);
-        } catch (error) {
-          reject(error);
-        }
-      } else {
-        // ワーカーに処理を依頼
-        this._postToWorker('getNextExpectedKey', { session }, 'high', (result) => {
-          if (result.error) {
-            reject(new Error(result.error));
-          } else {
-            if (result && result.key !== undefined) {
-              // 共有状態に結果を保存（高速アクセス用）
-              this.sharedState.nextExpectedKey = result.key;
-              this.sharedState.inputMode = result.inputMode || 'normal';
-              this.sharedState.lastUpdateTimestamp = Date.now();
-            }
-            resolve(result);
-          }
-        });
+      this.metrics.mainThreadProcessCalls++;
+      this.metrics.mainThreadProcessingTime += performance.now() - startTime;
+    } catch (error) {
+      console.error('[TypingWorkerManager] processTypingInput エラー:', error);
+      if (callback) {
+        callback({ error: error.message });
       }
-    });
+    }
+  }
+
+  /**
+   * 色分け情報を取得
+   * @param {Object} data テキストデータ
+   * @param {Function} callback コールバック関数
+   */
+  getColoringInfo(data, callback) {
+    const startTime = performance.now();
+    try {
+      const result = getColoringInfoOnMainThread(data);
+
+      // 即時実行
+      if (callback) {
+        callback(result);
+      }
+
+      this.metrics.mainThreadProcessCalls++;
+      this.metrics.mainThreadProcessingTime += performance.now() - startTime;
+    } catch (error) {
+      console.error('[TypingWorkerManager] getColoringInfo エラー:', error);
+      if (callback) {
+        callback({ error: error.message });
+      }
+    }
   }
 
   /**
    * キャッシュをクリア
    */
   clearCache() {
-    // キャッシュをクリア
     this.cache.inputResults.clear();
     this.cache.coloringInfo.clear();
-
-    // メインスレッド処理のキャッシュもクリア
     clearMainThreadCache();
-
-    // ワーカーにもキャッシュクリアを通知
-    if (this.worker && !this.fallbackMode) {
-      this._postToWorker('clearCache', {}, 'high');
-    }
-
     console.log('[TypingWorkerManager] キャッシュをクリアしました');
-  }
-  /**
-   * ワーカーの処理モードを設定
-   * @param {Object} modes 処理モード設定
-   * @returns {Promise<Object>} 処理結果のPromise
-   */
-  setProcessingModes(modes) {
-    return new Promise((resolve, reject) => {
-      if (!modes || typeof modes !== 'object') {
-        console.warn('[TypingWorkerManager] 無効な処理モード設定です');
-        reject(new Error('無効な処理モード設定'));
-        return;
-      }
-
-      try {
-        // モード変更ログ
-        console.log('[TypingWorkerManager] 処理モードを更新:', modes);
-
-        // モードを更新
-        this.processingMode = {
-          ...this.processingMode,
-          ...modes
-        };
-
-        // ワーカーに通知
-        if (this.worker && !this.fallbackMode) {
-          this._postToWorker('setProcessingModes', { modes: this.processingMode }, 'high', (result) => {
-            // ワーカー応答のハンドリング
-            const success = !result.error;
-
-            if (success) {
-              // 入力関連のキャッシュをクリア
-              this.clearCache();
-
-              resolve({
-                success: true,
-                currentModes: this.processingMode
-              });
-            } else {
-              console.error('[TypingWorkerManager] 処理モード更新エラー:', result.error);
-              resolve({
-                success: false,
-                currentModes: this.processingMode,
-                error: result.error
-              });
-            }
-          });
-        } else {
-          // ワーカーがない場合は同期的に処理
-          this.clearCache();
-
-          resolve({
-            success: true,
-            currentModes: this.processingMode
-          });
-        }
-      } catch (error) {
-        console.error('[TypingWorkerManager] 処理モード設定エラー:', error);
-        reject(error);
-      }
-    });
-  }
-
-  /**
-   * パフォーマンス設定を更新
-   * @param {Object} options パフォーマンスオプション
-   */
-  updatePerformanceSettings(options) {
-    if (!options || typeof options !== 'object') {
-      console.warn('[TypingWorkerManager] 無効なパフォーマンス設定です');
-      return;
-    }
-
-    console.log('[TypingWorkerManager] パフォーマンス設定を更新:', options);
-
-    // ワーカーに通知
-    if (this.worker && !this.fallbackMode) {
-      this._postToWorker('updatePerformanceSettings', { options }, 'normal');
-    }
   }
 
   /**
    * パフォーマンスメトリクスを取得
-   * @returns {Object} メトリクス情報
+   * @returns {Object} メトリクス
    */
   getMetrics() {
-    // 現在のメトリクスのコピーを作成
-    const metrics = {
-      ...this.metrics,
-      fallbackMode: this.fallbackMode,
-      initialized: this.initialized,
-      bufferedMessages: this.messageBuffer.length,
-      activeCallbacks: this.callbacks.size,
-      uptime: Date.now() - (this.metrics.lastSync || Date.now()),
-      workerActive: !this.fallbackMode && !!this.worker,
-    };
-
-    return metrics;
+    return { ...this.metrics };
+  }
+  /**
+   * キュー内のタスク数を取得
+   * @returns {number} タスク数
+   */
+  getQueueLength() {
+    return this.queue.length;
   }
 
   /**
-   * バッチ処理
-   * @param {Array} operations 処理操作の配列
-   * @returns {Promise<Array>} 結果配列
+   * 処理モードを設定する
+   * @param {Object} modes 各処理のモード設定
+   * @returns {Object} 現在の設定
    */
-  processBatch(operations) {
-    if (!operations || !Array.isArray(operations)) {
-      return Promise.reject(new Error('無効な操作配列'));
+  setProcessingModes(modes) {
+    console.log('[TypingWorkerManager] 処理モード設定:', modes);
+
+    // 必要なプロパティのみ更新
+    if (modes.typing) {
+      this.processingMode.typing = 'main-thread'; // WebWorker削除のため常にmain-thread
+    }
+    if (modes.effects) {
+      this.processingMode.effects = 'main-thread'; // WebWorker削除のため常にmain-thread
+    }
+    if (modes.statistics) {
+      this.processingMode.statistics = 'main-thread'; // WebWorker削除のため常にmain-thread
     }
 
-    // バッチ処理のメトリクスを記録
-    this.metrics.batchOperations++;
-
-    return new Promise((resolve, reject) => {
-      if (this.fallbackMode) {
-        // フォールバックモードでは操作を順次処理
-        const results = [];
-
-        for (const op of operations) {
-          try {
-            let result;
-            switch (op.type) {
-              case 'processTypingInput':
-                result = processTypingInputOnMainThread(op.session, op.input, op.options);
-                break;
-              case 'getColoringInfo':
-                result = getColoringInfoOnMainThread(op.session, op.options);
-                break;
-              default:
-                result = { error: '未対応の操作タイプ' };
-                break;
-            }
-            results.push(result);
-          } catch (error) {
-            results.push({ error: error.message || '不明なエラー' });
-          }
-        }
-
-        resolve(results);
-      } else {
-        // ワーカーにバッチ処理を依頼
-        this._postToWorker('processBatch', { operations }, 'high', (result) => {
-          if (result.error) {
-            reject(new Error(result.error));
-          } else {
-            resolve(result.results || []);
-          }
-        });
-      }
-    });
+    return {
+      success: true,
+      currentModes: { ...this.processingMode }
+    };
   }
 
   /**
-   * MCPシステムを使用してレスポンスを取得
-   * @param {string} query クエリ文字列
-   * @returns {Promise<Object>} レスポンスオブジェクト
+   * シングルトンインスタンスを取得
+   * @returns {TypingWorkerManager} シングルトンインスタンス
    */
-  getMCPResponse(query) {
-    return new Promise((resolve, reject) => {
-      try {
-        // MCPUtilsを使用して処理
-        mcpUtils.sendQuery(query, (response) => {
-          resolve(response);
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
+  static getInstance() {
+    if (!this.instance) {
+      this.instance = new TypingWorkerManager();
+    }
+    return this.instance;
   }
 }
 
-// シングルトンインスタンス
-const typingWorkerManager =
-  typeof global !== 'undefined' && global.typingWorkerManager
-    ? global.typingWorkerManager
-    : new TypingWorkerManager();
-
-export default typingWorkerManager;
+// シングルトンインスタンスをエクスポート
+export default TypingWorkerManager.getInstance();

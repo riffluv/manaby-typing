@@ -1,230 +1,171 @@
 // src/utils/worker-manager.js
 /**
- * Next.js環境でWeb Workerを扱うためのユーティリティクラス
+ * WorkerManagerのフェイクバージョン
  * 
- * This class handles Web Worker creation and communication in Next.js environment.
- * It provides a consistent interface for worker interaction regardless of whether
- * the code is running on the client or during SSR.
+ * WebWorker機能を削除し、すべての処理をメインスレッドで実行するように変更
+ * インターフェースは保持して、既存コードの互換性を確保
  */
 export default class WorkerManager {
   constructor(workerPath, options = {}) {
     this.workerPath = workerPath;
-    this.options = {
-      shared: false,
-      ...options
-    };
-    this.worker = null;
+    this.options = options;
     this.callbacks = {};
-    this.isReady = false;
-    this.messageQueue = [];
-    this.uniqueId = 0;
+    this.isReady = true;
+    this.eventListeners = {};
+
+    // コンソールに通知
+    console.log(`[WorkerManager] メインスレッドモードで初期化: ${workerPath}`);
   }
 
   /**
-   * ワーカーを初期化する
-   * ブラウザ環境でのみ実行される
+   * 初期化（無操作、互換性のために残す）
    */
   initialize() {
-    // サーバーサイドレンダリング時は何もしない
-    if (typeof window === 'undefined') return;
+    // 何もしない（すでに準備完了状態）
+    this.isReady = true;
 
-    try {
-      // Worker作成
-      this.worker = this.options.shared
-        ? new SharedWorker(this.workerPath)
-        : new Worker(new URL(this.workerPath, import.meta.url));
-
-      // メッセージハンドラの設定
-      if (this.options.shared) {
-        this.worker.port.onmessage = this.handleMessage.bind(this);
-        this.worker.port.start();
-      } else {
-        this.worker.onmessage = this.handleMessage.bind(this);
-      }
-
-      // エラーハンドラ
-      if (!this.options.shared) {
-        this.worker.onerror = this.handleError.bind(this);
-      }
-
-      console.log(`Worker initialized: ${this.workerPath}`);
-
-      // WORKER_READYメッセージを受け取ったらキューに溜まったメッセージを送信
-      this.addEventListener('WORKER_READY', () => {
-        this.isReady = true;
-        this.processQueue();
-      });
-    } catch (error) {
-      console.error(`Failed to initialize worker (${this.workerPath}):`, error);
-    }
+    // 準備完了イベントを発行
+    this._triggerEvent('WORKER_READY', {});
   }
 
   /**
-   * ワーカー終了時の処理
+   * メッセージを送信（メインスレッドで直接処理）
+   * @param {string} type メッセージタイプ
+   * @param {Object} data データ
+   * @param {Function} callback 完了コールバック
    */
-  terminate() {
-    if (!this.worker) return;
+  sendMessage(type, data, callback) {
+    // 即時実行するためのマイクロタスクをキュー
+    queueMicrotask(() => {
+      try {
+        // タイプに応じた処理
+        const response = this._processMessage(type, data);
 
-    if (this.options.shared) {
-      this.worker.port.close();
-    } else {
-      this.worker.terminate();
-    }
-
-    this.worker = null;
-    this.isReady = false;
-    this.callbacks = {};
-    this.messageQueue = [];
-
-    console.log(`Worker terminated: ${this.workerPath}`);
-  }
-
-  /**
-   * ワーカーにメッセージを送信する
-   */
-  postMessage(message) {
-    // ブラウザ環境でない場合は何もしない
-    if (typeof window === 'undefined') return;
-
-    if (!this.worker) {
-      this.initialize();
-    }
-
-    // ワーカーの準備ができていなければキューに追加
-    if (!this.isReady) {
-      this.messageQueue.push(message);
-      return;
-    }
-
-    try {
-      if (this.options.shared) {
-        this.worker.port.postMessage(message);
-      } else {
-        this.worker.postMessage(message);
-      }
-    } catch (error) {
-      console.error('Error posting message to worker:', error);
-    }
-  }
-
-  /**
-   * キューに溜まったメッセージを処理する
-   */
-  processQueue() {
-    if (!this.messageQueue.length) return;
-
-    console.log(`Processing ${this.messageQueue.length} queued messages`);
-
-    while (this.messageQueue.length > 0) {
-      const message = this.messageQueue.shift();
-      this.postMessage(message);
-    }
-  }
-
-  /**
-   * 特定のメッセージタイプに対するイベントリスナーを追加
-   */
-  addEventListener(type, callback) {
-    if (!this.callbacks[type]) {
-      this.callbacks[type] = [];
-    }
-    this.callbacks[type].push(callback);
-
-    return () => this.removeEventListener(type, callback);
-  }
-
-  /**
-   * イベントリスナーを削除
-   */
-  removeEventListener(type, callback) {
-    if (!this.callbacks[type]) return;
-
-    const index = this.callbacks[type].indexOf(callback);
-    if (index !== -1) {
-      this.callbacks[type].splice(index, 1);
-    }
-  }
-
-  /**
-   * コマンドを送信して応答を待つ（Promise形式）
-   */
-  async sendCommand(type, data = {}) {
-    return new Promise((resolve, reject) => {
-      const commandId = `cmd_${Date.now()}_${this.uniqueId++}`;
-
-      // 応答ハンドラを一時的に登録
-      const responseHandler = (response) => {
-        if (response.commandId === commandId) {
-          this.removeEventListener('COMMAND_RESPONSE', responseHandler);
-          if (response.error) {
-            reject(response.error);
-          } else {
-            resolve(response.data);
-          }
+        // コールバックがあれば実行
+        if (callback) {
+          callback(response);
         }
-      };
-
-      this.addEventListener('COMMAND_RESPONSE', responseHandler);
-
-      // コマンドを送信
-      this.postMessage({
-        type: 'COMMAND',
-        commandType: type,
-        commandId: commandId,
-        data: data
-      });
-
-      // タイムアウト設定（5秒）
-      setTimeout(() => {
-        this.removeEventListener('COMMAND_RESPONSE', responseHandler);
-        reject(new Error(`Command timeout: ${type}`));
-      }, 5000);
+      } catch (error) {
+        console.error(`[WorkerManager] メッセージ処理エラー(${type}):`, error);
+        if (callback) {
+          callback({ error: error.message });
+        }
+      }
     });
   }
 
   /**
-   * ワーカーからのメッセージを処理
+   * イベントリスナーを追加
+   * @param {string} eventName イベント名
+   * @param {Function} callback コールバック関数
+   * @returns {Function} リスナー削除用関数
    */
-  handleMessage(e) {
-    const data = e.data;
-
-    // コールバック実行
-    if (data && data.type && this.callbacks[data.type]) {
-      this.callbacks[data.type].forEach(callback => {
-        try {
-          callback(data);
-        } catch (error) {
-          console.error(`Error in worker callback for type ${data.type}:`, error);
-        }
-      });
+  addEventListener(eventName, callback) {
+    if (!this.eventListeners[eventName]) {
+      this.eventListeners[eventName] = [];
     }
 
-    // 汎用コールバック
-    if (this.callbacks['*']) {
-      this.callbacks['*'].forEach(callback => {
-        try {
-          callback(data);
-        } catch (error) {
-          console.error('Error in wildcard worker callback:', error);
-        }
-      });
-    }
+    this.eventListeners[eventName].push(callback);
+
+    // リスナー削除用の関数を返す
+    return () => {
+      this.removeEventListener(eventName, callback);
+    };
   }
 
   /**
-   * エラー処理
+   * イベントリスナーを削除
+   * @param {string} eventName イベント名
+   * @param {Function} callback コールバック関数
    */
-  handleError(error) {
-    console.error('Worker error:', error);
+  removeEventListener(eventName, callback) {
+    if (!this.eventListeners[eventName]) return;
 
-    if (this.callbacks['error']) {
-      this.callbacks['error'].forEach(callback => {
-        try {
-          callback(error);
-        } catch (callbackError) {
-          console.error('Error in error handler callback:', callbackError);
-        }
-      });
+    this.eventListeners[eventName] = this.eventListeners[eventName].filter(
+      listener => listener !== callback
+    );
+  }
+
+  /**
+   * イベントを発火
+   * @param {string} eventName イベント名
+   * @param {Object} data イベントデータ
+   * @private
+   */
+  _triggerEvent(eventName, data) {
+    if (!this.eventListeners[eventName]) return;
+
+    const timestamp = Date.now();
+    const eventData = { ...data, timestamp };
+
+    this.eventListeners[eventName].forEach(callback => {
+      try {
+        callback(eventData);
+      } catch (error) {
+        console.error(`[WorkerManager] イベントハンドラエラー(${eventName}):`, error);
+      }
+    });
+  }
+  /**
+   * メッセージを処理（ワーカー内処理の代替）
+   * @param {string} type メッセージタイプ
+   * @param {Object} data データ
+   * @returns {Object} 処理結果
+   * @private
+   */
+  _processMessage(type, data) {
+    switch (type) {
+      case 'PING':
+        return { type: 'PONG', timestamp: Date.now() };
+
+      case 'START_ANIMATION':
+        // アニメーション開始イベントを発火
+        this._triggerEvent('ANIMATION_FRAME', {
+          keyStates: {},
+          effects: [],
+          animationProgress: []
+        });
+        return { success: true };
+
+      case 'PROCESS_EFFECTS':
+        // エフェクト処理イベントを発火
+        this._triggerEvent('EFFECTS_UPDATE', {
+          effects: []
+        });
+        return { success: true };
+
+      // 他のメッセージタイプに応じた処理を追加
+      default:
+        return { error: `未知のメッセージタイプ: ${type}` };
     }
+  }
+  /**
+   * 処理モードを設定する
+   * @param {Object} modes 各処理のモード設定
+   * @returns {Object} 現在の設定
+   */
+  setProcessingModes(modes) {
+    console.log('[WorkerManager] 処理モード設定:', modes);
+
+    // WorkerManagerでは常にメインスレッドモード
+    const currentModes = {
+      typing: 'main-thread',
+      effects: 'main-thread',
+      statistics: 'main-thread'
+    };
+
+    return {
+      success: true,
+      currentModes
+    };
+  }
+
+  /**
+   * 終了処理（無操作、互換性のために残す）
+   */
+  terminate() {
+    // イベントリスナーをクリア
+    this.eventListeners = {};
+    console.log(`[WorkerManager] 終了: ${this.workerPath}`);
   }
 }

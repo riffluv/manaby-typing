@@ -3,12 +3,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import WorkerManager from '../utils/worker-manager';
 
 /**
- * アニメーションワーカーを扱うカスタムフック
+ * アニメーションを扱うカスタムフック
+ * WebWorker機能を削除し、メインスレッド処理に変更
  * 
- * @returns {Object} アニメーションワーカーとの通信用のメソッド群
+ * @returns {Object} アニメーション関連のメソッド群
  */
 export default function useAnimationWorker() {
-  // ワーカーマネージャー参照
+  // ワーカーマネージャー参照（メインスレッド処理用に変更）
   const workerRef = useRef(null);
   // アニメーション状態
   const [animationState, setAnimationState] = useState({
@@ -20,148 +21,149 @@ export default function useAnimationWorker() {
     lastUpdate: 0
   });
 
+  // アニメーション用のRAF ID
+  const animFrameRef = useRef(null);
   // クリーンアップ用のリスナー削除関数を保持
   const cleanupCallbacks = useRef([]);
 
-  // ワーカー初期化
+  // メインスレッド処理の初期化
   useEffect(() => {
     // サーバーサイドでは実行しない
     if (typeof window === 'undefined') return;
 
-    // ワーカーマネージャーを作成
+    // ワーカーマネージャー（フェイクバージョン）を作成
     const manager = new WorkerManager('../workers/animation-worker.js');
     workerRef.current = manager;
 
-    // ワーカー初期化
+    // 初期化（メインスレッド処理のみ）
     manager.initialize();
 
-    // アニメーションフレームイベントのリスナー
-    const removeFrameListener = manager.addEventListener('ANIMATION_FRAME', (data) => {
-      setAnimationState(prev => ({
-        ...prev,
-        keyStates: data.keyStates || {},
-        effects: data.effects || [],
-        animationProgress: data.animationProgress || [],
-        lastUpdate: data.timestamp
-      }));
-    });
-
-    // ワーカー起動イベントのリスナー
-    const removeStartListener = manager.addEventListener('WORKER_STARTED', () => {
-      setAnimationState(prev => ({ ...prev, isRunning: true }));
-    });
-
-    // ワーカー停止イベントのリスナー
-    const removeStopListener = manager.addEventListener('WORKER_STOPPED', () => {
-      setAnimationState(prev => ({ ...prev, isRunning: false }));
-    });
-
-    // クリーンアップ関数を保存
-    cleanupCallbacks.current = [
-      removeFrameListener,
-      removeStartListener,
-      removeStopListener
-    ];
-
-    // 初期設定を送信
-    manager.postMessage({
-      type: 'INIT',
-      data: {
-        frameRate: 30,
-        isRunning: false
-      }
-    });
-
-    // クリーンアップ
     return () => {
-      cleanupCallbacks.current.forEach(cleanup => cleanup());
-      if (workerRef.current) {
-        workerRef.current.terminate();
+      // アニメーションフレームをキャンセル
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
       }
+      // リスナーをクリーンアップ
+      cleanupCallbacks.current.forEach(cleanup => cleanup());
+      cleanupCallbacks.current = [];
     };
   }, []);
 
   /**
-   * アニメーション開始
+   * アニメーションを開始
    */
   const startAnimation = useCallback(() => {
-    if (!workerRef.current) return;
-    workerRef.current.postMessage({ type: 'START' });
-  }, []);
+    if (!workerRef.current || animationState.isRunning) return;
+
+    workerRef.current.sendMessage('START_ANIMATION', {}, response => {
+      if (response.success) {
+        setAnimationState(prev => ({ ...prev, isRunning: true }));
+
+        // メインスレッドでアニメーションフレームを実行
+        const runAnimationFrame = () => {
+          // 現在の状態を元に新しいフレームデータを作成
+          const frameData = {
+            keyStates: { ...animationState.keyStates },
+            effects: [...animationState.effects],
+            animationProgress: [...animationState.animationProgress],
+            timestamp: Date.now()
+          };
+
+          // 状態を更新
+          setAnimationState(prev => ({
+            ...prev,
+            ...frameData
+          }));
+
+          // 次のフレームを予約
+          animFrameRef.current = requestAnimationFrame(runAnimationFrame);
+        };
+
+        // 初回フレーム実行
+        animFrameRef.current = requestAnimationFrame(runAnimationFrame);
+      }
+    });
+  }, [animationState.isRunning]);
 
   /**
-   * アニメーション停止
+   * アニメーションを停止
    */
   const stopAnimation = useCallback(() => {
-    if (!workerRef.current) return;
-    workerRef.current.postMessage({ type: 'STOP' });
-  }, []);
+    if (!workerRef.current || !animationState.isRunning) return;
+
+    // アニメーションフレームをキャンセル
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+
+    workerRef.current.sendMessage('STOP_ANIMATION', {}, () => {
+      setAnimationState(prev => ({ ...prev, isRunning: false }));
+    });
+  }, [animationState.isRunning]);
 
   /**
-   * キー押下イベント
+   * キー入力イベントを処理
+   * @param {Object} keyEventData キーイベントデータ
    */
-  const handleKeyPress = useCallback((key, isError = false) => {
+  const processKeyEvent = useCallback((keyEventData) => {
     if (!workerRef.current) return;
-    workerRef.current.postMessage({
-      type: 'KEY_PRESS',
-      data: { key, isError }
-    });
-  }, []);
 
-  /**
-   * 次に入力するキーを設定
-   */
-  const setNextKey = useCallback((key) => {
-    if (!workerRef.current) return;
-    workerRef.current.postMessage({
-      type: 'SET_NEXT_KEY',
-      data: { key }
+    workerRef.current.sendMessage('PROCESS_KEY_EVENT', keyEventData);
+
+    // メインスレッドで即時更新
+    setAnimationState(prev => {
+      const newKeyStates = { ...prev.keyStates };
+      const { key, isDown } = keyEventData;
+
+      if (isDown) {
+        newKeyStates[key] = {
+          pressed: true,
+          timestamp: Date.now()
+        };
+      } else if (newKeyStates[key]) {
+        newKeyStates[key].pressed = false;
+      }
+
+      return {
+        ...prev,
+        keyStates: newKeyStates
+      };
     });
-    setAnimationState(prev => ({ ...prev, nextKey: key }));
   }, []);
 
   /**
    * エフェクトを追加
+   * @param {Object} effectData エフェクトデータ
    */
   const addEffect = useCallback((effectData) => {
     if (!workerRef.current) return;
-    workerRef.current.postMessage({
-      type: 'ADD_EFFECT',
-      data: effectData
+
+    workerRef.current.sendMessage('ADD_EFFECT', effectData);
+
+    // メインスレッドで即時更新
+    setAnimationState(prev => {
+      const newEffects = [...prev.effects, {
+        ...effectData,
+        id: `effect_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: Date.now()
+      }];
+
+      return {
+        ...prev,
+        effects: newEffects
+      };
     });
   }, []);
 
-  /**
-   * アニメーションを追加
-   */
-  const addAnimation = useCallback((animationData) => {
-    if (!workerRef.current) return;
-    workerRef.current.postMessage({
-      type: 'ADD_ANIMATION',
-      data: animationData
-    });
-  }, []);
-
-  /**
-   * フレームレートを設定
-   */
-  const setFrameRate = useCallback((frameRate) => {
-    if (!workerRef.current) return;
-    workerRef.current.postMessage({
-      type: 'SET_FRAME_RATE',
-      data: { frameRate }
-    });
-  }, []);
-
+  // メソッドと状態を返す
   return {
     animationState,
     startAnimation,
     stopAnimation,
-    handleKeyPress,
-    setNextKey,
+    processKeyEvent,
     addEffect,
-    addAnimation,
-    setFrameRate,
-    isReady: !!workerRef.current
+    isRunning: animationState.isRunning
   };
 }
