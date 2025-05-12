@@ -15,6 +15,7 @@
     "dev:nodemon:mcp": "concurrently \"npx -y @modelcontextprotocol/server-github\" \"nodemon --exec \\\"npx next dev\\\"\""
   },
   "dependencies": {
+    "comlink": "^4.4.2",
     "css-doodle": "^0.42.3",
     "firebase": "^11.6.1",
     "framer-motion": "^12.9.2",

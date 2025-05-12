@@ -10,6 +10,7 @@ import {
   getNextExpectedKeyOnMainThread,
   clearMainThreadCache
 } from './TypingProcessorMain';
+import ScoreCalculationWorker from './ScoreCalculationWorker';
 
 /**
  * タイピング処理を統合的に管理するシングルトンクラス
@@ -194,6 +195,31 @@ class TypingWorkerManager {
       success: true,
       currentModes: { ...this.processingMode }
     };
+  }
+  /**
+   * すべてのリソースをクリーンアップ
+   * @returns {Promise<void>}
+   */
+  async cleanup() {
+    try {
+      console.log('[TypingWorkerManager] リソースクリーンアップ開始');
+
+      // キャッシュをクリア
+      this.cache.inputResults.clear();
+      this.cache.coloringInfo.clear();
+
+      // メインスレッドのキャッシュをクリア
+      clearMainThreadCache();
+
+      // ScoreCalculationWorkerをクリーンアップ
+      ScoreCalculationWorker.cleanup();
+
+      console.log('[TypingWorkerManager] リソースクリーンアップ完了');
+      return { success: true };
+    } catch (error) {
+      console.error('[TypingWorkerManager] クリーンアップエラー:', error);
+      return { success: false, error };
+    }
   }
 
   /**
