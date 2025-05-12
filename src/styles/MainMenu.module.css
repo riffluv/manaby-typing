@@ -19,8 +19,8 @@
 /* Early Access バッジのスタイル */
 .earlyAccessBadge {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  bottom: 15px; /* creditButtonと同じ高さに調整 */
+  right: 55px; /* creditButtonの左側に配置、間隔を少し広げる */
   background-color: rgba(10, 13, 20, 0.7);
   border: 1px solid #ff8c00;
   padding: 4px 8px;
@@ -32,6 +32,7 @@
   box-shadow: 0 0 8px rgba(255, 140, 0, 0.4);
   display: flex;
   align-items: center;
+  height: 24px; /* 高さを固定して揃える */
   letter-spacing: 1px;
   text-transform: uppercase;
 }
