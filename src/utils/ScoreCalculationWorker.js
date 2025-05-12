@@ -32,15 +32,23 @@ const scoreCalcFunction = () => {
         else if (kpm >= 200) rank = 'B';
         else if (kpm >= 150) rank = 'C';
         else if (kpm >= 100) rank = 'D';
-        else if (kpm >= 50) rank = 'E';
+        else if (kpm >= 50) rank = 'E';        // 精度計算用の内部関数
+        const calcAccuracy = (statData) => {
+          if (!statData || !statData.correctKeyCount || !statData.totalKeyCount) {
+            return 0;
+          }
+          const accuracy = (statData.correctKeyCount / statData.totalKeyCount) * 100;
+          return Math.min(Math.max(0, Math.round(accuracy * 10) / 10), 100);
+        };
 
         // 追加の計算（実行環境が許せばここで重い処理も可能）
         return {
           kpm,
           rank,
           normalized: Math.min(kpm, 600),
-          accuracy: stats.accuracy || calculateAccuracy(stats),
-          timeStamp: new Date().toISOString()
+          accuracy: stats.accuracy || calcAccuracy(stats),
+          timeStamp: new Date().toISOString(),
+          isWorker: true
         };
       } catch (error) {
         console.error('Worker内でのKPM計算エラー:', error);
@@ -154,13 +162,20 @@ const fallbackImpl = {
     else if (kpm >= 200) rank = 'B';
     else if (kpm >= 150) rank = 'C';
     else if (kpm >= 100) rank = 'D';
-    else if (kpm >= 50) rank = 'E';
-
+    else if (kpm >= 50) rank = 'E';    // 内部精度計算関数
+    const calculateAccuracy = (statData) => {
+      if (!statData || !statData.correctKeyCount || !statData.totalKeyCount) {
+        return 0;
+      }
+      const accuracy = (statData.correctKeyCount / statData.totalKeyCount) * 100;
+      return Math.min(Math.max(0, Math.round(accuracy * 10) / 10), 100);
+    };
+    
     return {
       kpm,
       rank,
       normalized: Math.min(kpm, 600),
-      accuracy: stats.accuracy || this.calculateAccuracy(stats),
+      accuracy: stats.accuracy || calculateAccuracy(stats),
       timeStamp: new Date().toISOString(),
       isWorker: false
     };

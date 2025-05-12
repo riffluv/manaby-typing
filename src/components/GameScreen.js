@@ -8,7 +8,6 @@ import { usePageTransition } from './TransitionManager';
 import Button from './common/Button';
 import ErrorBoundary from './common/ErrorBoundary';
 import { PerformanceDebugDisplay } from './common/PerformanceMonitor';
-import ProcessingModeSelector from './common/ProcessingModeSelector';
 import TypingArea from './typing/TypingArea';
 import GameStatusBar from './typing/GameStatusBar';
 import {
@@ -122,7 +121,6 @@ const GameScreen = () => {
             )}
           </main>          {/* 設定バー */}
           <div className={styles.typing_game__settings}>
-            <ProcessingModeSelector />
             <Button
               onClick={handleMenuButtonClick}
               variant="secondary"
