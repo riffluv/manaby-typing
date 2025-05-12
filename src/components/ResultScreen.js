@@ -288,25 +288,8 @@ const ResultScreen = ({
       className={styles.resultContainer}
       initial="hidden"
       animate="visible"
-      variants={containerVariants}
-    >
-      {/* SF風のコーナー装飾を四隅に追加 */}
-      <div className={styles.cornerDecoration} style={{ top: 10, left: 10 }}>
-        <div className={styles.cornerTech} />
-      </div>
-      <div className={styles.cornerDecoration} style={{ top: 10, right: 10, transform: 'scaleX(-1)' }}>
-        <div className={styles.cornerTech} />
-      </div>
-      <div className={styles.cornerDecoration} style={{ bottom: 10, left: 10, transform: 'scaleY(-1)' }}>
-        <div className={styles.cornerTech} />
-      </div>
-      <div className={styles.cornerDecoration} style={{ bottom: 10, right: 10, transform: 'scale(-1)' }}>
-        <div className={styles.cornerTech} />
-      </div>
-
-      {/* スキャンラインとドットパターンを追加 */}
-      <div className={styles.scanlines}></div>
-      <div className={styles.dotPattern}></div>
+      variants={containerVariants}    >
+      {/* コーナー装飾、スキャンライン、ドットパターンを削除 */}
 
       <motion.div className={styles.resultHeader} variants={itemVariants}>
         <h1 className={`screen-title ${styles.resultTitle}`}>RESULT</h1>

@@ -62,76 +62,47 @@ const GameScreen = () => {
     return null;
   }
 
-  return (
-    <ErrorBoundary>
-      <div className={styles.typing_game__wrapper}>
-        <div className={styles.typing_game}>
-          {/* SF風のコーナー装飾 */}
-          <div
-            className={styles.typing_game__corner}
-            style={{ top: 10, left: 10 }}
-          >
-            <div className={styles.typing_game__corner_tech} />
-          </div>
-          <div
-            className={styles.typing_game__corner}
-            style={{ top: 10, right: 10, transform: 'scaleX(-1)' }}
-          >
-            <div className={styles.typing_game__corner_tech} />
-          </div>
-          <div
-            className={styles.typing_game__corner}
-            style={{ bottom: 10, left: 10, transform: 'scaleY(-1)' }}
-          >
-            <div className={styles.typing_game__corner_tech} />
-          </div>
-          <div
-            className={styles.typing_game__corner}
-            style={{ bottom: 10, right: 10, transform: 'scale(-1)' }}
-          >
-            <div className={styles.typing_game__corner_tech} />
-          </div>
+  return (<ErrorBoundary>
+    <div className={styles.typing_game__wrapper}>
+      <div className={styles.typing_game}>
+        {/* コーナー装飾、スキャンライン、ドットパターンを削除 */}
 
-          {/* スキャンラインとドットパターン */}
-          <div className={styles.typing_game__scanlines}></div>
-          <div className={styles.typing_game__dot_pattern}></div>
+        {/* ステータスバー */}
+        <GameStatusBar
+          solvedCount={gameState.solvedCount}
+          requiredCount={gameState.requiredProblemCount || 5}
+          typingStats={typing?.stats || {}}
+        />          {/* メイン画面 */}          <main className={styles.typing_game__main}>            {/* タイピングエリア */}            <TypingArea
+          typing={typing}
+          currentProblem={typing?.typingSession?.problem || currentGameState?.currentProblem || gameState.currentProblem}
+          lastPressedKey={lastPressedKey}
+          className={styles.typing_game__typing_area}
+        />
 
-          {/* ステータスバー */}
-          <GameStatusBar
-            solvedCount={gameState.solvedCount}
-            requiredCount={gameState.requiredProblemCount || 5}
-            typingStats={typing?.stats || {}}
-          />          {/* メイン画面 */}          <main className={styles.typing_game__main}>            {/* タイピングエリア */}            <TypingArea
-            typing={typing}
-            currentProblem={typing?.typingSession?.problem || currentGameState?.currentProblem || gameState.currentProblem}
-            lastPressedKey={lastPressedKey}
-            className={styles.typing_game__typing_area}
-          />
-
-            {/* デバッグ情報 */}
-            {DEBUG_GAME_SCREEN && (
-              <PerformanceDebugDisplay
-                inputLatency={performanceMetrics?.inputLatency || 0}
-                fps={debugInfo?.fps}
-                stats={typing?.displayStats}
-                nextKey={getNextKey()}
-                className={styles.typing_game__debug}
-              />
-            )}
-          </main>          {/* 設定バー */}
-          <div className={styles.typing_game__settings}>
-            <Button
-              onClick={handleMenuButtonClick}
-              variant="secondary"
-              size="small"
-              className={styles.typing_game__menu_button}
-            >
-              メニュー
-            </Button>
-          </div>
+          {/* デバッグ情報 */}
+          {DEBUG_GAME_SCREEN && (
+            <PerformanceDebugDisplay
+              inputLatency={performanceMetrics?.inputLatency || 0}
+              fps={debugInfo?.fps}
+              stats={typing?.displayStats}
+              nextKey={getNextKey()}
+              className={styles.typing_game__debug}
+            />
+          )}
+        </main>          {/* 設定バー */}
+        <div className={styles.typing_game__settings}>
+          <Button
+            onClick={handleMenuButtonClick}
+            variant="secondary"
+            size="small"
+            className={styles.typing_game__menu_button}
+          >
+            メニュー
+          </Button>
         </div>
       </div>
-    </ErrorBoundary>
+    </div>
+  </ErrorBoundary>
   );
 };
 

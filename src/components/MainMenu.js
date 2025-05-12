@@ -119,7 +119,7 @@ const MainMenu = () => {
           timestamp: Date.now(),
           duration: Date.now() - performance.now() // コンポーネントの表示時間を記録
         });
-      }      clearInterval(interval);
+      } clearInterval(interval);
 
       // Workerをリセット
       if (typingWorkerManager && typeof typingWorkerManager.reset === 'function') {
@@ -310,49 +310,10 @@ const MainMenu = () => {
     hidden: { y: 20, opacity: 0 },
     show: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300 } },
   };
-
-  // カスタム宇宙船風の装飾コンポーネント
+  // カスタム宇宙船風の装飾コンポーネント（全ての装飾を削除）
   const SpaceshipDecoration = () => (
     <>
-      {/* 左上コーナー装飾 */}
-      <div className={styles.cornerDecoration} style={{ top: 0, left: 0 }}>
-        <div className={styles.cornerTech}></div>
-        <div className={styles.cornerLine}></div>
-      </div>
-
-      {/* 右上コーナー装飾 */}
-      <div className={styles.cornerDecoration} style={{ top: 0, right: 0 }}>
-        <div className={styles.cornerTech}></div>
-        <div className={styles.cornerLine}></div>
-      </div>
-
-      {/* 左下コーナー装飾 */}
-      <div className={styles.cornerDecoration} style={{ bottom: 0, left: 0 }}>
-        <div className={styles.cornerTech}></div>
-        <div className={styles.cornerLine}></div>
-      </div>
-
-      {/* 右下コーナー装飾 */}
-      <div className={styles.cornerDecoration} style={{ bottom: 0, right: 0 }}>
-        <div className={styles.cornerTech}></div>
-        <div className={styles.cornerLine}></div>
-      </div>
-
-      {/* トップボーダー装飾 */}
-      <div className={styles.techBorder} style={{ top: '5px', left: '50%', transform: 'translateX(-50%)' }}>
-        <div className={styles.techLights}></div>
-      </div>
-
-      {/* ボトムボーダー装飾 */}
-      <div className={styles.techBorder} style={{ bottom: '5px', left: '50%', transform: 'translateX(-50%)' }}>
-        <div className={styles.techLights}></div>
-      </div>
-
-      {/* スキャンライン効果 */}
-      <div className={styles.scanlines}></div>
-
-      {/* ドット模様背景 */}
-      <div className={styles.dotPattern}></div>
+      {/* コーナー装飾、スキャンライン、ドットパターンなどを全て削除 */}
     </>
   );
 
@@ -672,11 +633,11 @@ const MainMenu = () => {
       {/* 設定モーダルと他のモーダル - 既存コード */}
       <Modal isOpen={showSettingsModal} onClose={handleCloseModal} title="設定">
         {renderSettingsContent()}
-      </Modal>      <Modal 
-        isOpen={showCredits} 
+      </Modal>      <Modal
+        isOpen={showCredits}
         onClose={handleCloseModal}
         title="クレジット"
-        disableEscKey={false}  
+        disableEscKey={false}
         disableOverlayClick={false}
       >
         {renderCreditsContent()}
