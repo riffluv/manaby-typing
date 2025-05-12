@@ -10,6 +10,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import ProblemDisplay from './ProblemDisplay';
 import SimpleTypingDisplay from './SimpleTypingDisplay';
+import RetroKeyboard from './RetroKeyboard';
 import styles from '../../styles/typing/TypingArea.module.css';
 
 /**
@@ -183,9 +184,7 @@ const TypingArea = ({
   };
 
   // エラー状態の検出
-  const hasErrors = displayData.hasError || typing?.errorAnimation;
-
-  return (
+  const hasErrors = displayData.hasError || typing?.errorAnimation;  return (
     <div className={`${styles.typing_area} ${className || ''}`}>
       {/* 問題表示エリア */}
       <div
@@ -210,7 +209,13 @@ const TypingArea = ({
           inputMode={displayData.currentInput ? 'consonant' : 'normal'}
         />      </div>
 
-      {/* キーボード表示部分を削除 */}
+      {/* レトロなSF風キーボード */}
+      <div className={styles.typing_area__keyboard_container}>
+        <RetroKeyboard
+          nextKey={safeDisplayData.expectedNextChar || nextKey}
+          lastPressedKey={lastPressedKey}
+        />
+      </div>
     </div>
   );
 };
