@@ -259,3 +259,62 @@ export function readFromWasmMemory(ptr, length) {
   const bytes = mem.slice(ptr, ptr + length);
   return decoder.decode(bytes);
 }
+
+/**
+ * WebAssemblyのprocessInput関数を呼び出す
+ * 文字列同士の比較を行い、一致度を計算する
+ * @param {string} input ユーザーが入力した文字列
+ * @param {string} expected 期待される文字列
+ * @returns {Object} 比較結果オブジェクト {correctCount, missCount, errorPosition}
+ */
+export function processInputWasm(input, expected) {
+  if (!initialized) {
+    console.warn('[WebAssembly] モジュールが初期化されていません');
+    // フォールバック：JavaScript実装を使用
+    let correctCount = 0;
+    let missCount = 0;
+    let errorPosition = -1;
+    
+    const minLength = Math.min(input.length, expected.length);
+    
+    for (let i = 0; i < minLength; i++) {
+      if (input[i] === expected[i]) {
+        correctCount++;
+      } else {
+        missCount++;
+        if (errorPosition === -1) errorPosition = i;
+      }
+    }
+    
+    // 入力と期待値の長さの差分をミスとしてカウント
+    if (input.length > expected.length) {
+      missCount += input.length - expected.length;
+    }
+    
+    return { correctCount, missCount, errorPosition };
+  }
+
+  // 本来はここでWASM関数を呼び出す
+  // 現在のデモでは未実装のため、常にJavaScriptフォールバックを使用
+  let correctCount = 0;
+  let missCount = 0;
+  let errorPosition = -1;
+  
+  const minLength = Math.min(input.length, expected.length);
+  
+  for (let i = 0; i < minLength; i++) {
+    if (input[i] === expected[i]) {
+      correctCount++;
+    } else {
+      missCount++;
+      if (errorPosition === -1) errorPosition = i;
+    }
+  }
+  
+  // 入力と期待値の長さの差分をミスとしてカウント
+  if (input.length > expected.length) {
+    missCount += input.length - expected.length;
+  }
+  
+  return { correctCount, missCount, errorPosition };
+}
