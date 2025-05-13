@@ -1,0 +1,442 @@
+.adminPopup__overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+.adminPopup {
+  background-color: #121212;
+  border: 3px solid #ff8c00;
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.6);
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 20px;
+  color: white;
+  position: relative;
+  animation: popIn 0.3s forwards;
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.adminPopup__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.adminPopup__title {
+  font-family: 'Press Start 2P', monospace, system-ui;
+  color: #ff8c00;
+  font-size: 18px;
+  margin: 0;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+.adminPopup__closeButton {
+  background: none;
+  border: none;
+  color: #ff8c00;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0 5px;
+  line-height: 1;
+}
+
+.adminPopup__closeButton:hover {
+  color: #ffaa33;
+}
+
+.adminPopup__content {
+  margin-bottom: 20px;
+}
+
+.adminPopup__formGroup {
+  margin-bottom: 15px;
+}
+
+.adminPopup__label {
+  display: block;
+  margin-bottom: 8px;
+  font-family: 'Press Start 2P', monospace, system-ui;
+  color: #ff8c00;
+  font-size: 14px;
+}
+
+.adminPopup__input {
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 2px solid #ff8c00;
+  border-radius: 5px;
+  color: white;
+  font-size: 16px;
+  padding: 8px;
+  width: 100%;
+}
+
+.adminPopup__input:focus {
+  outline: none;
+  border-color: #ffaa33;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
+}
+
+.adminPopup__info {
+  font-size: 14px;
+  color: #ccc;
+  margin-top: 5px;
+  font-family: 'Geist', sans-serif;
+  line-height: 1.4;
+}
+
+.adminPopup__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.adminPopup__button {
+  font-family: 'Press Start 2P', monospace, system-ui;
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid;
+}
+
+.adminPopup__button--primary {
+  background-color: rgba(255, 140, 0, 0.8);
+  border-color: #ff8c00;
+  color: #fff;
+}
+
+.adminPopup__button--primary:hover {
+  background-color: rgba(255, 160, 20, 0.9);
+  border-color: #ffaa33;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.6);
+}
+
+.adminPopup__button--secondary {
+  background-color: rgba(0, 0, 0, 0.6);
+  border-color: #ff8c00;
+  color: #fff;
+}
+
+.adminPopup__button--secondary:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.4);
+}
+
+/* タブ関連のスタイル */
+.adminPopup__tabs {
+  display: flex;
+  border-bottom: 2px solid rgba(255, 140, 0, 0.5);
+  margin-bottom: 20px;
+}
+
+.adminPopup__tab {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  margin-right: 5px;
+  color: white;
+  font-size: 14px;
+  font-family: 'Press Start 2P', monospace, system-ui;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.2s;
+  background-color: rgba(0, 0, 0, 0.4);
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+}
+
+.adminPopup__tab:hover {
+  opacity: 0.9;
+  background-color: rgba(255, 140, 0, 0.1);
+}
+
+.adminPopup__tab--active {
+  opacity: 1;
+  background-color: rgba(255, 140, 0, 0.3);
+  border-top: 2px solid #ff8c00;
+  border-left: 2px solid #ff8c00;
+  border-right: 2px solid #ff8c00;
+  border-bottom: 2px solid rgba(255, 140, 0, 0.3);
+  margin-bottom: -2px;
+}
+
+/* 背景保存関連のスタイル */
+.adminPopup__backgroundSave {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.adminPopup__button--special {
+  background-color: rgba(0, 128, 255, 0.7);
+  border-color: #0080ff;
+  color: #fff;
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.adminPopup__button--special:hover {
+  background-color: rgba(0, 128, 255, 0.9);
+  box-shadow: 0 0 15px rgba(0, 128, 255, 0.6);
+}
+
+.adminPopup__button--special:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background-color: rgba(128, 128, 128, 0.7);
+  border-color: #888;
+}
+
+.adminPopup__successMessage {
+  background-color: rgba(40, 167, 69, 0.9);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 5px;
+  margin-top: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: fadeIn 0.3s forwards;
+}
+
+.adminPopup__successIcon {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 背景ギャラリー関連のスタイル */
+.adminPopup__backgroundGallery {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.adminPopup__subTitle {
+  font-family: 'Press Start 2P', monospace, system-ui;
+  color: #ff8c00;
+  font-size: 16px;
+  margin: 0 0 15px 0;
+}
+
+.adminPopup__loading {
+  text-align: center;
+  padding: 20px;
+  color: #ccc;
+  font-style: italic;
+}
+
+.adminPopup__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.adminPopup__backgroundItem {
+  border: 2px solid rgba(255, 140, 0, 0.5);
+  border-radius: 5px;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.adminPopup__backgroundImageContainer {
+  height: 120px;
+  overflow: hidden;
+  position: relative;
+  background-color: #000;
+}
+
+.adminPopup__backgroundImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+  cursor: pointer;
+}
+
+.adminPopup__backgroundImage:hover {
+  transform: scale(1.05);
+}
+
+.adminPopup__backgroundInfo {
+  padding: 10px;
+}
+
+.adminPopup__backgroundTitle {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 0 0 5px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adminPopup__backgroundMeta {
+  font-size: 12px;
+  color: #ccc;
+  margin: 0 0 10px 0;
+}
+
+.adminPopup__button--apply {
+  background-color: rgba(0, 200, 83, 0.7);
+  border-color: #00c853;
+  color: white;
+  font-size: 12px;
+  width: 100%;
+  margin-top: 5px;
+}
+
+.adminPopup__button--apply:hover {
+  background-color: rgba(0, 200, 83, 0.9);
+  box-shadow: 0 0 10px rgba(0, 200, 83, 0.6);
+}
+
+.adminPopup__refreshContainer {
+  text-align: center;
+  margin-top: 15px;
+}
+
+.adminPopup__button--refresh {
+  background-color: rgba(255, 140, 0, 0.3);
+  border-color: #ff8c00;
+  font-size: 12px;
+}
+
+.adminPopup__button--refresh:hover {
+  background-color: rgba(255, 140, 0, 0.5);
+}
+
+/* 背景リセット関連のスタイル */
+.adminPopup__resetContainer {
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.adminPopup__button--reset {
+  background-color: rgba(220, 53, 69, 0.7);
+  border-color: #dc3545;
+  color: white;
+  width: 100%;
+  max-width: 200px;
+  padding: 10px;
+  margin: 0 auto;
+  margin-bottom: 10px;
+}
+
+.adminPopup__button--reset:hover {
+  background-color: rgba(220, 53, 69, 0.9);
+  box-shadow: 0 0 10px rgba(220, 53, 69, 0.6);
+}
+
+.adminPopup__button--delete {
+  background-color: rgba(220, 53, 69, 0.7);
+  border-color: #dc3545;
+  color: white;
+  font-size: 12px;
+  width: 100%;
+  margin-top: 5px;
+}
+
+.adminPopup__button--delete:hover {
+  background-color: rgba(220, 53, 69, 0.9);
+  box-shadow: 0 0 10px rgba(220, 53, 69, 0.6);
+}
+
+/* ラジオボタングループのスタイル */
+.adminPopup__radioGroup {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.adminPopup__radioLabel {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.adminPopup__radio {
+  margin-right: 8px;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ff8c00;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  position: relative;
+}
+
+.adminPopup__radio:checked {
+  background-color: rgba(255, 140, 0, 0.3);
+}
+
+.adminPopup__radio:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ff8c00;
+}
+
+.adminPopup__radio:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.4);
+}
+
+/* レスポンシブ対応 */
+@media (min-width: 768px) {
+  .adminPopup__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

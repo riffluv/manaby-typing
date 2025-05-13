@@ -1,0 +1,219 @@
+/* 入力フィールドのスタイル - BEM記法完全準拠 */
+
+/* コンテナ要素 */
+.input__container {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--spacing-md, 1rem);
+  width: 100%;
+}
+
+/* ラベル要素 */
+.input__label {
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-medium, 500);
+  margin-bottom: var(--spacing-xs, 0.25rem);
+  color: var(--color-text-secondary, #e1e1e1);
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 必須マーク要素 */
+.input__required {
+  color: var(--color-error, #ff6b6b);
+  margin-left: var(--spacing-xs, 0.25rem);
+}
+
+/* フィールドラッパー要素 */
+.input__field_wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* 入力フィールド（ブロック） */
+.input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.5;
+  color: var(--color-text-primary, #ffffff);
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius-md, 8px);
+  transition: all 0.2s ease-in-out;
+  outline: none;
+  font-family: var(--font-normal);
+}
+
+.input:focus {
+  border-color: var(--color-primary, #ff8c00);
+  box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.2);
+}
+
+.input::placeholder {
+  color: var(--color-text-muted, #757575);
+  opacity: 0.7;
+}
+
+/* アイコン要素 */
+.input__icon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 2.5rem;
+  color: var(--color-text-secondary, #e1e1e1);
+  pointer-events: none;
+}
+
+/* プレフィックス要素 */
+.input__prefix {
+  margin-right: var(--spacing-xs, 0.25rem);
+  color: var(--color-text-secondary, #e1e1e1);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* サフィックス要素 */
+.input__suffix {
+  margin-left: var(--spacing-xs, 0.25rem);
+  color: var(--color-text-secondary, #e1e1e1);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* フィードバックコンテナ要素 */
+.input__feedback {
+  min-height: 1.5rem;
+  margin-top: var(--spacing-xs, 0.25rem);
+}
+
+/* ヘルパーテキスト要素 */
+.input__helper_text {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, #757575);
+  margin: 0;
+}
+
+/* エラーテキスト要素 */
+.input__error_text {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-error, #ff6b6b);
+  margin: 0;
+}
+
+/* サイズ修飾子：小 */
+.input--small {
+  padding: 0.375rem 0.5rem;
+  font-size: var(--font-size-xs, 0.75rem);
+  height: 32px;
+}
+
+/* サイズ修飾子：大 */
+.input--large {
+  padding: 0.75rem 1rem;
+  font-size: var(--font-size-md, 1rem);
+  height: 48px;
+}
+
+/* バリアント修飾子：アウトライン */
+.input--outlined {
+  background-color: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.input--outlined:focus {
+  border-color: var(--color-primary, #ff8c00);
+}
+
+/* バリアント修飾子：塗りつぶし */
+.input--filled {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-radius: var(--border-radius-sm, 4px) var(--border-radius-sm, 4px) 0 0;
+}
+
+.input--filled:focus {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-bottom-color: var(--color-primary, #ff8c00);
+}
+
+/* 状態修飾子：アイコン付き */
+.input--with-icon {
+  padding-left: 2.5rem;
+}
+
+/* 状態修飾子：右側アイコン */
+.input--icon-right {
+  padding-right: 2.5rem;
+  padding-left: 0.75rem;
+}
+
+/* 状態修飾子：アイコン位置が右の場合 */
+.input--icon-right+.input__icon {
+  right: 0;
+  left: auto;
+}
+
+/* 状態修飾子：プレフィックス付き */
+.input--with-prefix {
+  padding-left: 0.5rem;
+}
+
+/* 状態修飾子：サフィックス付き */
+.input--with-suffix {
+  padding-right: 0.5rem;
+}
+
+/* 状態修飾子：無効 */
+.input--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: rgba(30, 30, 30, 0.3);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 状態修飾子：読み取り専用 */
+.input--readonly {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+  cursor: default;
+}
+
+/* 状態修飾子：エラー */
+.input--error {
+  border-color: var(--color-error, #ff6b6b);
+}
+
+.input--error:focus {
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
+  border-color: var(--color-error, #ff6b6b);
+}
+
+.input__container--error .input__label {
+  color: var(--color-error, #ff6b6b);
+}
+
+/* ダークテーマ対応 */
+@media (prefers-color-scheme: dark) {
+  .input {
+    background-color: rgba(0, 0, 0, 0.4);
+  }
+
+  .input--filled {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .input--filled:focus {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* フォーカス時のアクセシビリティスタイル */
+.input:focus-visible {
+  outline: 2px solid var(--color-primary, #ff8c00);
+  outline-offset: 1px;
+}

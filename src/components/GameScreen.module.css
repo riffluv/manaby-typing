@@ -1,0 +1,115 @@
+.typingRomaji {
+  position: relative;
+  padding-bottom: 24px; /* 進行状況バーのスペースを確保 */
+}
+
+.completed {
+  color: #85c7f2;
+  text-shadow: 0 0 5px rgba(133, 199, 242, 0.7);
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.current {
+  position: relative;
+  color: #ffdd57;
+  text-shadow: 0 0 8px rgba(255, 221, 87, 0.8);
+  animation: pulseText 1s infinite;
+}
+
+.nextChars {
+  color: #aaa;
+  opacity: 0.7;
+}
+
+.activeChar {
+  position: relative;
+}
+
+.activeChar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(to right, #ffdd57, #4cd137);
+  animation: shimmerUnderline 1.5s infinite;
+  border-radius: 2px;
+}
+
+.error {
+  color: #ff6b6b;
+  text-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
+  animation: errorShake 0.3s;
+}
+
+/* 進行状況バー */
+.progressBarContainer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(to right, #4cd137, #85c7f2);
+  transition: width 0.3s ease;
+  position: relative;
+  box-shadow: 0 0 10px rgba(76, 209, 55, 0.6);
+}
+
+.progressBar::after {
+  content: attr(data-progress);
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: white;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+  font-weight: bold;
+}
+
+@keyframes pulseText {
+  0% {
+    text-shadow: 0 0 8px rgba(255, 221, 87, 0.8);
+  }
+  50% {
+    text-shadow: 0 0 15px rgba(255, 221, 87, 1);
+  }
+  100% {
+    text-shadow: 0 0 8px rgba(255, 221, 87, 0.8);
+  }
+}
+
+@keyframes shimmerUnderline {
+  0% {
+    background-position: -100px;
+  }
+  100% {
+    background-position: 100px;
+  }
+}
+
+@keyframes errorShake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-3px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}

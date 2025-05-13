@@ -1,0 +1,225 @@
+/**
+ * TypingDisplay.module.css
+ * タイピング表示コンポーネントのスタイル
+ * リファクタリング済み（2025年5月7日）
+ */
+
+/* メインコンテナ */
+.typingTextContainer {
+  font-family: 'Noto Sans JP', 'M PLUS 1p', sans-serif;
+  margin: 1rem 0;
+  padding: 1.5rem;
+  background-color: rgba(20, 20, 28, 0.7);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  position: relative;
+  transition: transform 0.1s ease-in-out;
+}
+
+/* タイピングテキスト */
+.typingText {
+  font-size: 2rem;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+  text-align: left;
+  overflow-wrap: break-word;
+  position: relative;
+  min-height: 3rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* 読み仮名テキスト */
+.readingText {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 0.5rem;
+  font-weight: 400;
+}
+
+/* 入力済みテキスト */
+.typedText {
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+/* 現在入力中の文字コンテナ */
+.currentCharContainer {
+  position: relative;
+  display: inline-block;
+}
+
+/* 入力中の部分 */
+.currentInputText {
+  color: #42A5F5;
+  font-weight: 500;
+}
+
+/* 次に入力すべき文字（ハイライト） */
+.nextCharHighlight {
+  color: #FFA726;
+  font-weight: 700;
+  position: relative;
+  animation: pulse 1.2s infinite;
+  text-shadow: 0 0 8px rgba(255, 167, 38, 0.4);
+}
+
+/* 現在の文字の残り（未入力部分） */
+.currentCharRemaining {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 残りの未入力テキスト */
+.remainingText {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* 完了したテキスト */
+.completedText {
+  color: #4CAF50;
+  font-weight: 500;
+}
+
+/* カーソル */
+.cursor {
+  display: inline-block;
+  width: 0.1rem;
+  height: 2.2rem;
+  background: transparent;
+  position: relative;
+  margin-left: 0.1rem;
+  color: transparent;
+  vertical-align: middle;
+  opacity: 0;
+  transition: opacity 0.05s ease-in-out;
+}
+
+/* カーソル表示時 */
+.cursorVisible {
+  opacity: 1;
+  border-left: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+/* エラーアニメーション */
+.errorShake {
+  animation: shake 0.2s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  transform: translate3d(0, 0, 0);
+  background-color: rgba(244, 67, 54, 0.2);
+}
+
+/* パルスアニメーション */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* シェイクアニメーション */
+@keyframes shake {
+
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-3px, 0, 0);
+  }
+
+  40%,
+  60% {
+    transform: translate3d(3px, 0, 0);
+  }
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .typingText {
+    font-size: 1.5rem;
+  }
+
+  .readingText {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .typingTextContainer {
+    padding: 1rem;
+  }
+
+  .typingText {
+    font-size: 1.25rem;
+    min-height: 2.5rem;
+  }
+
+  .cursor {
+    height: 1.8rem;
+  }
+}
+
+/* ハイコントラストモード対応 */
+@media (forced-colors: active) {
+  .typedText {
+    color: Highlight;
+  }
+
+  .nextCharHighlight {
+    color: LinkText;
+    border-bottom: 1px solid currentColor;
+  }
+
+  .completedText {
+    color: Highlight;
+  }
+}
+
+/* 印刷対応 */
+@media print {
+  .typingTextContainer {
+    background-color: white;
+    color: black;
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+
+  .typedText,
+  .completedText {
+    color: #006400;
+  }
+
+  .currentInputText {
+    color: #000080;
+  }
+
+  .nextCharHighlight {
+    color: #8B4513;
+    animation: none;
+    text-shadow: none;
+  }
+
+  .currentCharRemaining,
+  .remainingText {
+    color: #666;
+  }
+
+  .cursor {
+    display: none;
+  }
+}

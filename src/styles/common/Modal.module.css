@@ -1,0 +1,301 @@
+/* モーダルコンポーネントのスタイル - 宇宙船コックピット風 */
+
+/* モーダル（ブロック） */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* モーダルオーバーレイ（要素） */
+.modal__overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+  padding: 20px;
+  overflow: hidden;
+}
+
+/* モーダルコンテンツ（要素） - 宇宙船インターフェース風 */
+.modal__content {
+  width: 500px;
+  max-width: 90%;
+  /* SPA画面(800x600px)に最適化：最大高さを制限 */
+  max-height: 520px;
+  /* 600pxより小さく設定し、余白を確保 */
+  background-color: #0a0d14;
+  border: 4px solid #ff8c00;
+  border-radius: 4px;
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.7),
+    inset 0 0 30px rgba(255, 140, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* 宇宙船コックピットの装飾パターン */
+.modal__content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 50% 50%, rgba(10, 13, 20, 0.3) 0%, rgba(10, 13, 20, 0.7) 70%),
+    linear-gradient(rgba(255, 140, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 140, 0, 0.05) 1px, transparent 1px);
+  background-size: 100%, 20px 20px, 20px 20px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* コーナー装飾 */
+.modal__content::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  border: 1px dashed rgba(255, 140, 0, 0.2);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* モーダルヘッダー（要素） - テクニカルな印象に */
+.modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(10, 13, 20, 0.9) 100%);
+  border-bottom: 2px solid rgba(255, 140, 0, 0.5);
+  position: relative;
+  flex-shrink: 0;
+  z-index: 2;
+  min-height: 60px;
+}
+
+/* テクニカルなヘッダー装飾 */
+.modal__header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to right, 
+    transparent, 
+    rgba(255, 140, 0, 0.8), 
+    transparent
+  );
+}
+
+/* モーダル本文（要素） */
+.modal__body {
+  padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-grow: 1;
+  max-height: calc(520px - 60px - 40px);
+  scrollbar-width: thin;
+  scrollbar-color: #ff8c00 rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* スキャンライン効果 */
+.modal__body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 1px,
+    rgba(255, 140, 0, 0.02) 1px,
+    rgba(255, 140, 0, 0.02) 2px
+  );
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.7;
+}
+
+/* スクロールバースタイル（Webkit系ブラウザ用） */
+.modal__body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal__body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.modal__body::-webkit-scrollbar-thumb {
+  background-color: #ff8c00;
+  border-radius: 4px;
+  border: 2px solid rgba(0, 0, 0, 0.3);
+}
+
+/* モーダルタイトル（要素） - SF風タイポグラフィ */
+.modal__title {
+  font-family: var(--font-heading, 'Press Start 2P, cursive, system-ui');
+  color: #ff8c00;
+  font-size: 22px;
+  margin: 0;
+  line-height: 1.2;
+  position: relative;
+  padding-left: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* タイトル装飾 */
+.modal__title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 80%;
+  background-color: #ff8c00;
+  border-radius: 3px;
+}
+
+/* 閉じるボタン（要素） - テクニカルな仕様に */
+.modal__close_button {
+  background: none;
+  border: 2px solid rgba(255, 140, 0, 0.6);
+  color: #ff8c00;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+  background-color: rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 閉じるボタン効果 */
+.modal__close_button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(255, 140, 0, 0.2), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modal__close_button:hover {
+  background-color: rgba(255, 140, 0, 0.15);
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
+}
+
+.modal__close_button:hover::before {
+  opacity: 1;
+}
+
+.modal__close_button:active {
+  transform: scale(0.95);
+}
+
+/* モーダルサイズバリエーション（修飾子） */
+.modal--small .modal__content {
+  max-width: 400px;
+  max-height: 450px;
+}
+
+.modal--small .modal__body {
+  max-height: calc(450px - 60px - 40px);
+}
+
+.modal--large .modal__content {
+  max-width: 800px;
+  max-height: 520px;
+}
+
+.modal--large .modal__body {
+  max-height: calc(520px - 60px - 40px);
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 850px) {
+  .modal__content {
+    max-width: 95%;
+    max-height: calc(100vh - 60px);
+  }
+
+  .modal__title {
+    font-size: 20px;
+  }
+
+  .modal__header {
+    padding: 12px 16px;
+    min-height: 50px;
+  }
+
+  .modal__body {
+    padding: 16px;
+    max-height: calc(100vh - 110px);
+  }
+
+  .modal__close_button {
+    font-size: 20px;
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* モバイル対応 */
+@media (max-width: 480px) {
+  .modal__title {
+    font-size: 18px;
+  }
+
+  .modal__header {
+    padding: 10px 14px;
+    min-height: 46px;
+  }
+
+  .modal__body {
+    padding: 14px;
+  }
+
+  .modal__close_button {
+    font-size: 18px;
+    width: 26px;
+    height: 26px;
+  }
+}

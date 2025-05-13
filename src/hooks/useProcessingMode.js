@@ -1,0 +1,103 @@
+/**
+ * useProcessingMode.js
+ * 処理モードを管理するためのカスタムフック
+ * 2025年5月9日
+ */
+
+import { useState, useEffect } from 'react';
+import typingWorkerManager from '../utils/TypingWorkerManager';
+
+/**
+ * 処理モードを管理するカスタムフック
+ * @param {Object} defaultModes デフォルトの処理モード設定
+ */
+export default function useProcessingMode(defaultModes = {
+  typing: 'main-thread', // タイピングはメインスレッド推奨
+  effects: 'worker',     // 派手な演出はWebWorker推奨
+  statistics: 'worker'   // 統計処理はWebWorker推奨
+}) {
+  const [modes, setModes] = useState(defaultModes);
+  const [isInitialized, setIsInitialized] = useState(false);
+  // 初期化時に一度だけモードを設定
+  useEffect(() => {
+    if (!isInitialized && typeof typingWorkerManager !== 'undefined') {
+      // 現在の設定を取得
+      const currentModes = {
+        typing: typingWorkerManager.processingMode?.typing || defaultModes.typing,
+        effects: typingWorkerManager.processingMode?.effects || defaultModes.effects,
+        statistics: typingWorkerManager.processingMode?.statistics || defaultModes.statistics
+      };
+
+      try {
+        // typingWorkerManagerのメソッド存在チェック
+        if (typeof typingWorkerManager.setProcessingModes !== 'function') {
+          console.error('[処理モード] setProcessingModesメソッドが存在しません');
+          // ローカル状態のみを更新
+          setModes(currentModes);
+          setIsInitialized(true);
+          return;
+        }
+
+        // マネージャーに設定を適用
+        const result = typingWorkerManager.setProcessingModes(currentModes);
+
+        // Promiseを返す場合
+        if (result instanceof Promise) {
+          result.then(result => {
+            console.log('[処理モード] 初期設定完了:', result);
+            setModes(result.currentModes || currentModes);
+            setIsInitialized(true);
+          })
+            .catch(error => {
+              console.error('[処理モード] 初期設定エラー:', error);
+              // エラー時でもローカル状態を更新
+              setModes(currentModes);
+              setIsInitialized(true);
+            });
+        } else {
+          // Promiseを返さない場合は同期的に処理
+          console.log('[処理モード] 同期的に初期設定完了');
+          setModes(currentModes);
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error('[処理モード] 初期設定例外:', error);
+        // 例外発生時もローカル状態を更新
+        setModes(currentModes);
+        setIsInitialized(true);
+      }
+    }
+  }, [isInitialized, defaultModes]);
+
+  /**
+   * 処理モードを変更する
+   * @param {string} key モードのキー ('typing', 'effects', 'statistics')
+   * @param {string} value 設定する値 ('worker', 'main-thread')
+   * @returns {Promise} 設定結果のPromise
+   */
+  const changeMode = (key, value) => {
+    if (key === 'typing') {
+      console.warn('[処理モード] タイピング処理モードは変更できません。');
+      return Promise.resolve({ success: false, message: 'タイピング処理モードは変更できません。', currentModes: modes });
+    }
+
+    if (!['effects', 'statistics'].includes(key) ||
+      !['worker', 'main-thread'].includes(value)) {
+      return Promise.reject(new Error('無効なモード設定'));
+    }
+
+    const newModes = { ...modes, [key]: value };
+
+    return typingWorkerManager.setProcessingModes(newModes)
+      .then(result => {
+        setModes(result.currentModes || newModes);
+        return result;
+      });
+  };
+
+  return {
+    modes,
+    changeMode,
+    isInitialized
+  };
+}

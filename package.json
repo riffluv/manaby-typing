@@ -1,0 +1,41 @@
+{
+  "name": "typing-game",
+  "version": "0.1.0",
+  "private": true,  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "export": "next build",
+    "deploy": "npm run build && touch out/.nojekyll",
+    "lint": "next lint",
+    "dev:nodemon": "nodemon",
+    "dev:watch": "nodemon --config nodemon.json",
+    "dev:bash": "npx nodemon",
+    "dev:mcp": "next dev -p 3000 & npx -y @modelcontextprotocol/server-github",
+    "start:mcp": "next start -p 3000 & npx -y @modelcontextprotocol/server-github",
+    "dev:nodemon:mcp": "concurrently \"npx -y @modelcontextprotocol/server-github\" \"nodemon --exec \\\"npx next dev\\\"\""
+  },
+  "dependencies": {
+    "comlink": "^4.4.2",
+    "css-doodle": "^0.42.3",
+    "firebase": "^11.6.1",
+    "framer-motion": "^12.9.2",
+    "html2canvas": "^1.4.1",
+    "next": "15.3.1",
+    "pixi.js": "^8.9.1",
+    "prop-types": "^15.8.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-sketch-canvas": "^6.2.0",
+    "roughjs": "^4.6.6",
+    "uuid": "^11.1.0",
+    "wanakana": "^5.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.2",
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.10",
+    "typescript": "5.8.3",
+    "worker-loader": "^3.0.8"
+  }
+}
