@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import styles from '../../styles/typing/GameStatusBar.module.css';
+import { getStaticPath } from '../../utils/StaticPathUtils'; // 静的アセットパス用のユーティリティ
 
 /**
  * ゲームステータスバーコンポーネント
@@ -33,11 +34,10 @@ const GameStatusBar = ({
       initial={animationVariants.header.initial}
       animate={animationVariants.header.animate}
       transition={animationVariants.header.transition}
-    >
-      {/* manabyロゴを左上に配置 */}
+    >      {/* manabyロゴを左上に配置 */}
       <div className={styles.logo_container}>
         <motion.img 
-          src="/images/manaby01_.png" 
+          src={getStaticPath('/images/manaby01_.png')} 
           alt="manaby ロゴ" 
           className={styles.manaby_logo}
           whileHover={{ scale: 1.05 }}

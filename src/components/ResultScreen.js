@@ -6,6 +6,7 @@ import { useGameContext, SCREENS } from '@/contexts/GameContext';
 import { usePageTransition } from './TransitionManager';
 import soundSystem from '../utils/SoundUtils'; // サウンドシステムを直接インポート
 import { saveGameRecord } from '../utils/RecordUtils'; // ローカルランキング保存用に追加
+import { getStaticPath } from '../utils/StaticPathUtils'; // 静的アセットパス用のユーティリティを追加
 
 /**
  * リザルト画面コンポーネント
@@ -110,7 +111,7 @@ const ResultScreen = ({
         } else {
           // 効果音がロードされていない場合はロードしてから再生
           soundSystem
-            .loadSound('complete', '/sounds/resultsound.mp3')
+            .loadSound('complete', getStaticPath('/sounds/resultsound.mp3'))
             .then(() => soundSystem.play('complete'))
             .catch((error) =>
               console.error('効果音のロードに失敗しました:', error)

@@ -6,7 +6,7 @@ import useAnimationWorker from '../../hooks/useAnimationWorker';
 /**
  * Web Worker対応の最適化版レトロSFキーボード
  * アニメーション処理はWorkerで実行され、メインスレッドはレンダリングのみを担当
- * 
+ *
  * @param {Object} props - コンポーネントのプロパティ
  * @param {string} props.nextKey - 次に入力すべきキー
  * @param {string} props.lastPressedKey - 最後に押されたキー
@@ -18,7 +18,7 @@ const WorkerCanvasKeyboard = ({
   nextKey = '',
   lastPressedKey = '',
   isError = false,
-  className = ''
+  className = '',
 }) => {
   // キャンバス要素への参照
   const canvasRef = useRef(null);
@@ -30,40 +30,98 @@ const WorkerCanvasKeyboard = ({
     stopAnimation,
     handleKeyPress,
     setNextKey,
-    isReady
+    isReady,
   } = useAnimationWorker();
 
   // 日本語キーボードレイアウト - useMemoで最適化
-  const keyboardLayout = useMemo(() => [
-    [['1', '!'], ['2', '"'], ['3', '#'], ['4', '$'], ['5', '%'], ['6', '&'], ['7', "'"], ['8', '('], ['9', ')'], ['0', ''], ['-', '='], ['^', '~'], ['\\', '|']],
-    [['q', 'Q'], ['w', 'W'], ['e', 'E'], ['r', 'R'], ['t', 'T'], ['y', 'Y'], ['u', 'U'], ['i', 'I'], ['o', 'O'], ['p', 'P'], ['@', '`'], ['[', '{']],
-    [['a', 'A'], ['s', 'S'], ['d', 'D'], ['f', 'F'], ['g', 'G'], ['h', 'H'], ['j', 'J'], ['k', 'K'], ['l', 'L'], [';', '+'], [':', '*'], [']', '}']],
-    [['z', 'Z'], ['x', 'X'], ['c', 'C'], ['v', 'V'], ['b', 'B'], ['n', 'N'], ['m', 'M'], [',', '<'], ['.', '>'], ['/', '?'], ['\\', '_']],
-    [['space', 'space']]
-  ], []);
+  const keyboardLayout = useMemo(
+    () => [
+      [
+        ['1', '!'],
+        ['2', '"'],
+        ['3', '#'],
+        ['4', '$'],
+        ['5', '%'],
+        ['6', '&'],
+        ['7', "'"],
+        ['8', '('],
+        ['9', ')'],
+        ['0', ''],
+        ['-', '='],
+        ['^', '~'],
+        ['\\', '|'],
+      ],
+      [
+        ['q', 'Q'],
+        ['w', 'W'],
+        ['e', 'E'],
+        ['r', 'R'],
+        ['t', 'T'],
+        ['y', 'Y'],
+        ['u', 'U'],
+        ['i', 'I'],
+        ['o', 'O'],
+        ['p', 'P'],
+        ['@', '`'],
+        ['[', '{'],
+      ],
+      [
+        ['a', 'A'],
+        ['s', 'S'],
+        ['d', 'D'],
+        ['f', 'F'],
+        ['g', 'G'],
+        ['h', 'H'],
+        ['j', 'J'],
+        ['k', 'K'],
+        ['l', 'L'],
+        [';', '+'],
+        [':', '*'],
+        [']', '}'],
+      ],
+      [
+        ['z', 'Z'],
+        ['x', 'X'],
+        ['c', 'C'],
+        ['v', 'V'],
+        ['b', 'B'],
+        ['n', 'N'],
+        ['m', 'M'],
+        [',', '<'],
+        ['.', '>'],
+        ['/', '?'],
+        ['\\', '_'],
+      ],
+      [['space', 'space']],
+    ],
+    []
+  );
 
   // カラーパレット（レトロ風）- useMemoで最適化
-  const colors = useMemo(() => ({
-    // メインカラーはオレンジ
-    primary: '#FF8C00', // オレンジ（rgba形式からHEX形式に変更・高速化）
-    primaryLight: '#FFB41E',
-    primaryDark: '#C86400',
-    primaryGlow: 'rgba(255, 140, 0, 0.5)',
+  const colors = useMemo(
+    () => ({
+      // メインカラーはオレンジ
+      primary: '#FF8C00', // オレンジ（rgba形式からHEX形式に変更・高速化）
+      primaryLight: '#FFB41E',
+      primaryDark: '#C86400',
+      primaryGlow: 'rgba(255, 140, 0, 0.5)',
 
-    // 背景色（暗めの青系）
-    bgDark: '#0A0D14',
-    bgMid: '#0F141E',
-    bgLight: '#191E2D',
+      // 背景色（暗めの青系）
+      bgDark: '#0A0D14',
+      bgMid: '#0F141E',
+      bgLight: '#191E2D',
 
-    // エラー色
-    error: '#FF3C3C',
-    errorGlow: 'rgba(255, 60, 60, 0.6)',
+      // エラー色
+      error: '#FF3C3C',
+      errorGlow: 'rgba(255, 60, 60, 0.6)',
 
-    // テキスト色
-    textLight: '#F0F0F0',
-    textMid: '#C8C8C8',
-    textDim: '#B4B4B4'
-  }), []);
+      // テキスト色
+      textLight: '#F0F0F0',
+      textMid: '#C8C8C8',
+      textDim: '#B4B4B4',
+    }),
+    []
+  );
 
   // プロパティ変更を監視して、Workerに通知
   useEffect(() => {
@@ -78,7 +136,15 @@ const WorkerCanvasKeyboard = ({
     if (lastPressedKey) {
       handleKeyPress(lastPressedKey, isError);
     }
-  }, [nextKey, lastPressedKey, isError, isReady, animationState.nextKey, setNextKey, handleKeyPress]);
+  }, [
+    nextKey,
+    lastPressedKey,
+    isError,
+    isReady,
+    animationState.nextKey,
+    setNextKey,
+    handleKeyPress,
+  ]);
 
   // キャンバスの描画処理
   useEffect(() => {
@@ -170,13 +236,33 @@ const WorkerCanvasKeyboard = ({
       ctx.fillStyle = colors.primary;
 
       // 左上
-      ctx.fillRect(width / 2 - 384 - cornerDotSize / 2, 36 - cornerDotSize / 2, cornerDotSize, cornerDotSize);
+      ctx.fillRect(
+        width / 2 - 384 - cornerDotSize / 2,
+        36 - cornerDotSize / 2,
+        cornerDotSize,
+        cornerDotSize
+      );
       // 右上
-      ctx.fillRect(width / 2 + 384 - cornerDotSize / 2, 36 - cornerDotSize / 2, cornerDotSize, cornerDotSize);
+      ctx.fillRect(
+        width / 2 + 384 - cornerDotSize / 2,
+        36 - cornerDotSize / 2,
+        cornerDotSize,
+        cornerDotSize
+      );
       // 左下
-      ctx.fillRect(width / 2 - 384 - cornerDotSize / 2, 36 + 228 - cornerDotSize / 2, cornerDotSize, cornerDotSize);
+      ctx.fillRect(
+        width / 2 - 384 - cornerDotSize / 2,
+        36 + 228 - cornerDotSize / 2,
+        cornerDotSize,
+        cornerDotSize
+      );
       // 右下
-      ctx.fillRect(width / 2 + 384 - cornerDotSize / 2, 36 + 228 - cornerDotSize / 2, cornerDotSize, cornerDotSize);
+      ctx.fillRect(
+        width / 2 + 384 - cornerDotSize / 2,
+        36 + 228 - cornerDotSize / 2,
+        cornerDotSize,
+        cornerDotSize
+      );
 
       // 動く装飾線
       const now = Date.now();
@@ -198,10 +284,18 @@ const WorkerCanvasKeyboard = ({
       const keyGap = 5;
 
       // キーボードの全体幅を計算
-      const totalWidth = keyboardLayout.reduce((max, row) =>
-        Math.max(max, row.reduce((sum, key) =>
-          sum + (key[0] === 'space' ? keyWidth * 5 : keyWidth) + keyGap, 0)
-        ), 0);
+      const totalWidth = keyboardLayout.reduce(
+        (max, row) =>
+          Math.max(
+            max,
+            row.reduce(
+              (sum, key) =>
+                sum + (key[0] === 'space' ? keyWidth * 5 : keyWidth) + keyGap,
+              0
+            )
+          ),
+        0
+      );
 
       // キーボードの開始位置（中央揃え）
       const startX = (width - totalWidth) / 2;
@@ -210,8 +304,11 @@ const WorkerCanvasKeyboard = ({
       // 行ごとに描画
       keyboardLayout.forEach((row, rowIndex) => {
         // この行の全キーの幅を計算
-        let rowWidth = row.reduce((sum, key) =>
-          sum + (key[0] === 'space' ? keyWidth * 5 : keyWidth) + keyGap, 0);
+        let rowWidth = row.reduce(
+          (sum, key) =>
+            sum + (key[0] === 'space' ? keyWidth * 5 : keyWidth) + keyGap,
+          0
+        );
 
         let x = startX + (totalWidth - rowWidth) / 2;
         const y = startY + rowIndex * (keyHeight + keyGap);
@@ -223,7 +320,8 @@ const WorkerCanvasKeyboard = ({
           const lowerChar = keyChar.toLowerCase();
 
           // 次のキーかどうかの判定
-          const isNextKey = lowerChar === nextKey?.toLowerCase() && nextKey !== '';
+          const isNextKey =
+            lowerChar === nextKey?.toLowerCase() && nextKey !== '';
 
           // キーの状態を取得（Workerから）
           const keyState = keyStates[lowerChar];
@@ -241,7 +339,10 @@ const WorkerCanvasKeyboard = ({
             // 点滅エフェクト
             const pulse = Math.sin(Date.now() / 400) * 0.5 + 0.5;
             if (pulse > 0.4) {
-              ctx.fillStyle = `rgba(255, 140, 0, ${Math.min(0.15, pulse * 0.2)})`;
+              ctx.fillStyle = `rgba(255, 140, 0, ${Math.min(
+                0.15,
+                pulse * 0.2
+              )})`;
               ctx.fillRect(x - 2, y - 2, keyW + 4, keyHeight + 4);
             }
           } else if (isPressed) {
@@ -278,8 +379,8 @@ const WorkerCanvasKeyboard = ({
           ctx.fillStyle = isNextKey
             ? colors.textLight
             : isPressed
-              ? colors.textLight
-              : colors.textMid;
+            ? colors.textLight
+            : colors.textMid;
 
           ctx.font = `bold ${isSpace ? 14 : 13}px monospace`;
           ctx.textAlign = 'center';
@@ -298,7 +399,11 @@ const WorkerCanvasKeyboard = ({
             }
           } else {
             // 通常のキー
-            ctx.fillText(keyChar.toUpperCase(), x + keyW / 2, y + keyHeight / 2);
+            ctx.fillText(
+              keyChar.toUpperCase(),
+              x + keyW / 2,
+              y + keyHeight / 2
+            );
 
             // シフト文字（次のキーのみ）
             if (isNextKey && shiftChar && shiftChar !== keyChar.toUpperCase()) {
@@ -346,7 +451,15 @@ const WorkerCanvasKeyboard = ({
       window.removeEventListener('resize', handleResize);
       clearInterval(renderInterval);
     };
-  }, [colors, keyboardLayout, nextKey, animationState.keyStates, isReady, startAnimation, stopAnimation]);
+  }, [
+    colors,
+    keyboardLayout,
+    nextKey,
+    animationState.keyStates,
+    isReady,
+    startAnimation,
+    stopAnimation,
+  ]);
 
   // コンテナのスタイル
   const containerStyle = {
@@ -357,7 +470,7 @@ const WorkerCanvasKeyboard = ({
     margin: '10px auto 30px',
     padding: 0,
     position: 'relative',
-    overflow: 'visible' // はみ出し表示を許可
+    overflow: 'visible', // はみ出し表示を許可
   };
 
   // キャンバスのスタイル
@@ -365,7 +478,7 @@ const WorkerCanvasKeyboard = ({
     display: 'block',
     width: '800px',
     height: '280px',
-    imageRendering: 'pixelated'
+    imageRendering: 'pixelated',
   };
 
   return (

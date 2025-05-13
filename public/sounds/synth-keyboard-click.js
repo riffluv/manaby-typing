@@ -160,7 +160,11 @@ document.body.innerHTML = `
     <pre style="background: #f5f5f5; padding: 15px; overflow-x: auto;">
 // ファイルからサウンドをロードする例
 static async loadSounds() {
-  const clickSound = await fetch('/sounds/synth-keyboard-click.wav')
+  // GitHub Pagesデプロイに対応するためのパス設定
+  const basePath = document.currentScript && 
+    document.currentScript.getAttribute('data-base-path') || '';
+  
+  const clickSound = await fetch(`${basePath}/sounds/synth-keyboard-click.wav`)
     .then(response => response.arrayBuffer())
     .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer));
   

@@ -15,22 +15,15 @@ const WorkerTypingGame = () => {
     nextKey: 'a',
     lastPressedKey: '',
     isError: false,
-    score: 0
+    score: 0,
   });
 
   // アニメーションWorker
-  const {
-    animationState,
-    startAnimation
-  } = useAnimationWorker();
+  const { animationState, startAnimation } = useAnimationWorker();
 
   // エフェクトWorker
-  const {
-    effectsState,
-    startEffects,
-    addKeyEffect,
-    playSound
-  } = useEffectsWorker();
+  const { effectsState, startEffects, addKeyEffect, playSound } =
+    useEffectsWorker();
 
   // コンポーネントがマウントされたらWorker処理を開始
   useEffect(() => {
@@ -45,13 +38,13 @@ const WorkerTypingGame = () => {
       const isCorrect = key === typingState.nextKey.toLowerCase();
 
       // キー状態更新
-      setTypingState(prev => ({
+      setTypingState((prev) => ({
         ...prev,
         lastPressedKey: key,
         isError: !isCorrect,
         score: isCorrect ? prev.score + 1 : prev.score,
         // 簡易デモのため、正解時は次のキーをランダムに設定
-        nextKey: isCorrect ? getRandomKey() : prev.nextKey
+        nextKey: isCorrect ? getRandomKey() : prev.nextKey,
       }));
 
       // エフェクトWorkerにキー入力を通知
@@ -97,7 +90,9 @@ const WorkerTypingGame = () => {
       <div className="debug-info">
         <details>
           <summary>デバッグ情報</summary>
-          <p>アニメーションWorker: {animationState.isRunning ? '実行中' : '停止'}</p>
+          <p>
+            アニメーションWorker: {animationState.isRunning ? '実行中' : '停止'}
+          </p>
           <p>エフェクトWorker: {effectsState.isRunning ? '実行中' : '停止'}</p>
           <p>アクティブエフェクト数: {effectsState.effects.length}</p>
         </details>
@@ -112,7 +107,7 @@ const WorkerTypingGame = () => {
           margin: 0 auto;
           padding: 20px;
         }
-        
+
         .typing-stats {
           margin-bottom: 20px;
           padding: 15px;
@@ -120,11 +115,11 @@ const WorkerTypingGame = () => {
           border-radius: 4px;
           width: 100%;
         }
-        
+
         .typing-stats p {
           margin: 5px 0;
         }
-        
+
         .debug-info {
           margin-top: 20px;
           width: 100%;

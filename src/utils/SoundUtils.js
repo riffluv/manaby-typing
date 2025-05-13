@@ -1,5 +1,7 @@
 'use client';
 
+import getStaticPath from './staticPathUtils';
+
 /**
  * デバッグログフラグ - デフォルトで無効化
  */
@@ -59,21 +61,19 @@ class SoundUtils {
     this.sfxEnabled = true;
 
     // ローカルストレージから設定を読み込む（存在する場合）
-    this._loadSettingsFromStorage();
-
-    // サウンドプリセット定義
+    this._loadSettingsFromStorage();    // サウンドプリセット定義
     this.soundPresets = {
       // 基本ゲーム効果音
-      success: '/sounds/Hit05-1.mp3', // タイピング成功音
-      error: '/sounds/Hit04-1.mp3', // タイピングエラー音
-      complete: '/sounds/resultsound.mp3', // ゲームクリア音
-      button: '/sounds/buttonsound1.mp3', // ボタンクリック音
+      success: getStaticPath('/sounds/Hit05-1.mp3'), // タイピング成功音
+      error: getStaticPath('/sounds/Hit04-1.mp3'), // タイピングエラー音
+      complete: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリ��音
+      button: getStaticPath('/sounds/buttonsound1.mp3'), // ボタンクリック音
     };
 
     // BGMプリセット定義
     this.bgmPresets = {
-      lobby: '/sounds/Battle of the Emperor.mp3', // ロビー/メインメニューBGM
-      battle: '/sounds/battle.mp3', // ゲームプレイBGM
+      lobby: getStaticPath('/sounds/Battle of the Emperor.mp3'), // ロビー/メインメニューBGM
+      battle: getStaticPath('/sounds/battle.mp3'), // ゲームプレイBGM
     };
 
     // キャッシュバスティング用のタイムスタンプ

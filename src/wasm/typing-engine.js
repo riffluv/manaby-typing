@@ -27,51 +27,77 @@ export async function initWasm() {
     // シンプルな add 関数を含んだ完全なWASMモジュール
     // 注：このバイナリは実際に動作確認済みのものです
     const wasmBytes = new Uint8Array([
-      0x00, 0x61, 0x73, 0x6d,  // マジックバイト (WASM_BINARY_MAGIC)
-      0x01, 0x00, 0x00, 0x00,  // バージョン: 1
+      0x00,
+      0x61,
+      0x73,
+      0x6d, // マジックバイト (WASM_BINARY_MAGIC)
+      0x01,
+      0x00,
+      0x00,
+      0x00, // バージョン: 1
 
       // タイプセクション
-      0x01, 0x07,              // セクションID: 1, ペイロードサイズ: 7
-      0x01,                    // エントリーカウント: 1
-      0x60,                    // タイプ: func
-      0x02, 0x7f, 0x7f,        // パラメータ: 2つの i32
-      0x01, 0x7f,              // 結果: 1つの i32
+      0x01,
+      0x07, // セクションID: 1, ペイロードサイズ: 7
+      0x01, // エントリーカウント: 1
+      0x60, // タイプ: func
+      0x02,
+      0x7f,
+      0x7f, // パラメータ: 2つの i32
+      0x01,
+      0x7f, // 結果: 1つの i32
 
       // 関数セクション
-      0x03, 0x02,              // セクションID: 3, ペイロードサイズ: 2
-      0x01,                    // エントリーカウント: 1
-      0x00,                    // タイプインデックス: 0
+      0x03,
+      0x02, // セクションID: 3, ペイロードサイズ: 2
+      0x01, // エントリーカウント: 1
+      0x00, // タイプインデックス: 0
 
       // メモリセクション
-      0x05, 0x03,              // セクションID: 5, ペイロードサイズ: 3
-      0x01,                    // エントリーカウント: 1
-      0x00, 0x01,              // リミット フラグ: 0, 初期サイズ: 1
+      0x05,
+      0x03, // セクションID: 5, ペイロードサイズ: 3
+      0x01, // エントリーカウント: 1
+      0x00,
+      0x01, // リミット フラグ: 0, 初期サイズ: 1
 
       // エクスポートセクション
-      0x07, 0x10,              // セクションID: 7, ペイロードサイズ: 16
-      0x02,                    // エントリーカウント: 2
+      0x07,
+      0x10, // セクションID: 7, ペイロードサイズ: 16
+      0x02, // エントリーカウント: 2
 
       // エクスポート1: "memory"
-      0x06,                    // 名前の長さ: 6
-      0x6d, 0x65, 0x6d, 0x6f, 0x72, 0x79, // "memory"
-      0x02, 0x00,              // タイプ: メモリ(2), インデックス: 0
+      0x06, // 名前の長さ: 6
+      0x6d,
+      0x65,
+      0x6d,
+      0x6f,
+      0x72,
+      0x79, // "memory"
+      0x02,
+      0x00, // タイプ: メモリ(2), インデックス: 0
 
       // エクスポート2: "add"
-      0x03,                    // 名前の長さ: 3
-      0x61, 0x64, 0x64,        // "add"
-      0x00, 0x00,              // タイプ: 関数(0), インデックス: 0
+      0x03, // 名前の長さ: 3
+      0x61,
+      0x64,
+      0x64, // "add"
+      0x00,
+      0x00, // タイプ: 関数(0), インデックス: 0
 
       // コードセクション
-      0x0a, 0x09,              // セクションID: 10, ペイロードサイズ: 9
-      0x01,                    // エントリーカウント: 1
+      0x0a,
+      0x09, // セクションID: 10, ペイロードサイズ: 9
+      0x01, // エントリーカウント: 1
 
       // 関数本体
-      0x07,                    // 本文のサイズ: 7
-      0x00,                    // ローカル宣言カウント: 0
-      0x20, 0x00,              // local.get 0
-      0x20, 0x01,              // local.get 1
-      0x6a,                    // i32.add
-      0x0b                     // end
+      0x07, // 本文のサイズ: 7
+      0x00, // ローカル宣言カウント: 0
+      0x20,
+      0x00, // local.get 0
+      0x20,
+      0x01, // local.get 1
+      0x6a, // i32.add
+      0x0b, // end
     ]);
 
     // WebAssemblyモジュールをコンパイル
@@ -80,8 +106,8 @@ export async function initWasm() {
     // WebAssemblyインスタンスを作成
     const instance = await WebAssembly.instantiate(module, {
       env: {
-        memory: wasmMemory
-      }
+        memory: wasmMemory,
+      },
     });
 
     wasmInstance = instance;
@@ -110,18 +136,22 @@ export async function initWasm() {
       // スコア計算関数
       calculateTypingScore: (correctCount, missCount, elapsedTimeMs) => {
         const baseScore = correctCount * 100;
-        const accuracy = correctCount + missCount > 0 ?
-          Math.floor((correctCount / (correctCount + missCount)) * 100) : 100;
-        const speedBonus = elapsedTimeMs > 0 ?
-          Math.floor((correctCount * 1000) / elapsedTimeMs) : 0;
+        const accuracy =
+          correctCount + missCount > 0
+            ? Math.floor((correctCount / (correctCount + missCount)) * 100)
+            : 100;
+        const speedBonus =
+          elapsedTimeMs > 0
+            ? Math.floor((correctCount * 1000) / elapsedTimeMs)
+            : 0;
         return baseScore + accuracy + speedBonus;
-      }
+      },
     };
 
     // エクスポート関数を結合したプロキシオブジェクトを作成
     exports = {
       ...instance.exports,
-      ...jsExports
+      ...jsExports,
     };
 
     initialized = true;
@@ -130,9 +160,10 @@ export async function initWasm() {
     // グローバルに公開して他のモジュールからも使えるようにする
     if (typeof window !== 'undefined') {
       window.wasmTypingModule = {
-        validateInput: (input, expected) => exports.processChar(input, expected),
+        validateInput: (input, expected) =>
+          exports.processChar(input, expected),
         calculateScore: (correctCount, missCount, elapsedTimeMs) =>
-          exports.calculateTypingScore(correctCount, missCount, elapsedTimeMs)
+          exports.calculateTypingScore(correctCount, missCount, elapsedTimeMs),
       };
     }
 
@@ -149,12 +180,16 @@ export async function initWasm() {
       processInput: (_, __, len) => len, // すべて一致とみなす
       calculateTypingScore: (correctCount, missCount, elapsedTimeMs) => {
         const baseScore = correctCount * 100;
-        const accuracy = correctCount + missCount > 0 ?
-          Math.floor((correctCount / (correctCount + missCount)) * 100) : 100;
-        const speedBonus = elapsedTimeMs > 0 ?
-          Math.floor((correctCount * 1000) / elapsedTimeMs) : 0;
+        const accuracy =
+          correctCount + missCount > 0
+            ? Math.floor((correctCount / (correctCount + missCount)) * 100)
+            : 100;
+        const speedBonus =
+          elapsedTimeMs > 0
+            ? Math.floor((correctCount * 1000) / elapsedTimeMs)
+            : 0;
         return baseScore + accuracy + speedBonus;
-      }
+      },
     };
 
     console.log('[WebAssembly] フォールバック実装を使用します');
@@ -197,15 +232,21 @@ export function processCharWasm(input, expected) {
  * @param {number} elapsedTimeMs 経過時間（ミリ秒）
  * @returns {number} 計算されたスコア
  */
-export function calculateTypingScoreWasm(correctCount, missCount, elapsedTimeMs) {
+export function calculateTypingScoreWasm(
+  correctCount,
+  missCount,
+  elapsedTimeMs
+) {
   if (!initialized) {
     console.warn('[WebAssembly] モジュールが初期化されていません');
     // フォールバック：JavaScript実装を使用
     const baseScore = correctCount * 100;
-    const accuracy = correctCount + missCount > 0 ?
-      Math.floor((correctCount / (correctCount + missCount)) * 100) : 100;
-    const speedBonus = elapsedTimeMs > 0 ?
-      Math.floor((correctCount * 1000) / elapsedTimeMs) : 0;
+    const accuracy =
+      correctCount + missCount > 0
+        ? Math.floor((correctCount / (correctCount + missCount)) * 100)
+        : 100;
+    const speedBonus =
+      elapsedTimeMs > 0 ? Math.floor((correctCount * 1000) / elapsedTimeMs) : 0;
     return baseScore + accuracy + speedBonus;
   }
 
@@ -274,9 +315,9 @@ export function processInputWasm(input, expected) {
     let correctCount = 0;
     let missCount = 0;
     let errorPosition = -1;
-    
+
     const minLength = Math.min(input.length, expected.length);
-    
+
     for (let i = 0; i < minLength; i++) {
       if (input[i] === expected[i]) {
         correctCount++;
@@ -285,12 +326,12 @@ export function processInputWasm(input, expected) {
         if (errorPosition === -1) errorPosition = i;
       }
     }
-    
+
     // 入力と期待値の長さの差分をミスとしてカウント
     if (input.length > expected.length) {
       missCount += input.length - expected.length;
     }
-    
+
     return { correctCount, missCount, errorPosition };
   }
 
@@ -299,9 +340,9 @@ export function processInputWasm(input, expected) {
   let correctCount = 0;
   let missCount = 0;
   let errorPosition = -1;
-  
+
   const minLength = Math.min(input.length, expected.length);
-  
+
   for (let i = 0; i < minLength; i++) {
     if (input[i] === expected[i]) {
       correctCount++;
@@ -310,11 +351,11 @@ export function processInputWasm(input, expected) {
       if (errorPosition === -1) errorPosition = i;
     }
   }
-  
+
   // 入力と期待値の長さの差分をミスとしてカウント
   if (input.length > expected.length) {
     missCount += input.length - expected.length;
   }
-  
+
   return { correctCount, missCount, errorPosition };
 }
