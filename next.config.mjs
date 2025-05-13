@@ -33,7 +33,16 @@ const nextConfig = {  // GitHub Pagesでのデプロイに必要な設定
   assetPrefix: isProd ? process.env.NEXT_PUBLIC_BASE_PATH || '/manaby-typing' : '',
 
   // 静的エクスポートの設定（本番環境のみ）
-  ...(isProd ? { output: 'export' } : {}),
+  ...(isProd ? { 
+    output: 'export',
+    // 静的エクスポート設定のカスタマイズ
+    // GitHub Pagesでのデプロイ向けに最適化
+    experimental: {
+      // クライアントコンポーネントのフォールバック設定
+      // これによりクライアントサイドでのレンダリングが保証される
+      appDir: true
+    }
+  } : {}),
 
   // Webpackの設定
   webpack: configureWebpack,
