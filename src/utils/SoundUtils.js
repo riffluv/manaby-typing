@@ -1,6 +1,6 @@
 'use client';
 
-import getStaticPath from './staticPathUtils';
+import { getStaticPath } from './StaticPathUtils';
 
 /**
  * デバッグログフラグ - デフォルトで無効化
