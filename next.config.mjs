@@ -28,10 +28,9 @@ const configureWebpack = (config, { isServer }) => {
 };
 
 // 環境に応じた設定
-const nextConfig = {
-  // GitHub Pagesでのデプロイに必要な設定
-  basePath: isProd ? '/typing-game' : '',
-  assetPrefix: isProd ? '/typing-game' : '',
+const nextConfig = {  // GitHub Pagesでのデプロイに必要な設定
+  basePath: isProd ? process.env.NEXT_PUBLIC_BASE_PATH || '/manaby-typing' : '',
+  assetPrefix: isProd ? process.env.NEXT_PUBLIC_BASE_PATH || '/manaby-typing' : '',
 
   // 静的エクスポートの設定（本番環境のみ）
   ...(isProd ? { output: 'export' } : {}),

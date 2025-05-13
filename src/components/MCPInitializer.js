@@ -14,7 +14,9 @@ import { useEffect, useState, useCallback } from 'react';
 import MCPUtils from '@/utils/MCPUtils';
 
 // 環境変数からMCPの有効/無効を取得
-const USE_MCP = process.env.NEXT_PUBLIC_USE_MCP !== 'false';
+// GitHub Pagesや本番環境では常に無効化
+const isProd = process.env.NODE_ENV === 'production';
+const USE_MCP = isProd ? false : process.env.NEXT_PUBLIC_USE_MCP !== 'false';
 
 /**
  * MCPサーバーとの接続状態を管理し、必要に応じて再接続を試みるコンポーネント
