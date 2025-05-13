@@ -51,60 +51,17 @@ CSSの階層構造を理解し、適切な選択子の優先順位を考慮し�
 
 kkkkk
 
-「背景を透過した際に、白い色まで透過されることがないよう注意して、白色部分ははっきりと白色で塗った状態で残してください。」
 
 
 
 
-スーパーファミコン風のドット絵に変換
 
-背景のみ透過（白色は透過しない）
-
-白い部分（お腹、PCマーク）はそのまま白で残す
-
-低解像度でSFC風に（32x32や64x64など）
-
-色数を制限（SFC風、16色くらい）
-
-
-スーパーファミコン風のドット絵に変換してください。
-
-【注意点】
-
-背景のみを透過にしてください。
-
-キャラクターの白色部分（お腹やノートPCのマーク）は絶対に透過せず、はっきりと白色で塗ったまま残してください。
-
-ドットの解像度はスーパーファミコンのグラフィックをイメージし、低解像度で鮮明に仕上げてください。
-
-色数はスーパーファミコン風のパレットを意識し、色数を制限してください。
 
 
 github(API)
 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
 
 
-
-UI 指示
-
-The current UI layout feels visually unbalanced — some elements are too close to each other, while others have too much spacing.
-
-Please review the layout spacing and improve vertical rhythm and visual hierarchy. I want all panels, titles, and buttons to be evenly spaced and aligned in a consistent and visually pleasing way.
-
-Make the spacing feel intentional and professional, like a polished game UI.
-
-
-Use consistent margins and paddings based on a design system, and ensure alignment across all screen components. Avoid awkward gaps or overlaps.
-
-
-doodle以外のゴミコードを削除してもらいたい場合は、以下のように伝えると良いでしょう：
-
-「CSS Doodleまたはdoodle関連の機能は維持したまま、背景アニメーション関連のゴミコードを削除してほしい。特に、createAnimatedBackgroundを使った実装や、canvas関連のコードなど、現在競合している古いコードを特定して削除してください。HTMLやCSSの構造は最小限の変更にとどめて、純粋にdoodleだけで動作するようにクリーンアップしてください。」
-
-これで、現在のdoodle機能は維持しながら、余分なコードが削除された状態になるはずです。
-
-
-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
 
 
 
