@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import styles from '../../styles/typing/GameStatusBar.module.css';
+import { getStaticPath } from '../../utils/StaticPathUtils'; // 静的アセットパス用のユーティリティ
 
 /**
  * ゲームステータスバーコンポーネント
@@ -21,7 +22,7 @@ const GameStatusBar = ({
         initial: { y: -20, opacity: 0 },
         animate: { y: 0, opacity: 1 },
         transition: { duration: 0.3 },
-      }
+      },
     }),
     []
   );
@@ -34,26 +35,27 @@ const GameStatusBar = ({
       animate={animationVariants.header.animate}
       transition={animationVariants.header.transition}
     >
-      {/* manabyロゴを左上に配置 */}
-      <div className={styles.logo_container}>        <motion.img
-        src="/images/manaby01_.png"
-        alt="manaby ロゴ"
-        className={styles.manaby_logo}
-        initial={{ opacity: 0.7 }}
-        animate={{ opacity: 1 }}
-        whileHover={{
-          scale: 1.05,
-          y: -1
-        }}
-        transition={{
-          type: "spring",
-          stiffness: 300,
-          damping: 10
-        }}
-        title="manaby - 就労支援"
-      />
+      {/* manabyロゴを左上に配置 */}{' '}
+      <div className={styles.logo_container}>
+        {' '}
+        <motion.img
+          src={getStaticPath('/images/manaby01_.png')}
+          alt="manaby ロゴ"
+          className={styles.manaby_logo}
+          initial={{ opacity: 0.7 }}
+          animate={{ opacity: 1 }}
+          whileHover={{
+            scale: 1.05,
+            y: -1,
+          }}
+          transition={{
+            type: 'spring',
+            stiffness: 300,
+            damping: 10,
+          }}
+          title="manaby - 就労支援"
+        />
       </div>
-
       {/* 残りのスペース */}
       <div style={{ height: '100%', width: '100%' }}></div>
     </motion.header>

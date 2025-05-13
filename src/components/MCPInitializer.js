@@ -4,10 +4,17 @@
  * MCPInitializer
  * MCPサーバーとの接続を管理し、接続状態を監視・表示するコンポーネント
  * リファクタリング済み（2025年5月7日）
+ *
+ * 環境変数 NEXT_PUBLIC_USE_MCP によって制御可能:
+ * - 開発環境: true - MCPサーバーに接続
+ * - 本番環境: false - MCPサーバー無効化
  */
 
 import { useEffect, useState, useCallback } from 'react';
 import MCPUtils from '@/utils/MCPUtils';
+
+// 環境変数からMCPの有効/無効を取得
+const USE_MCP = process.env.NEXT_PUBLIC_USE_MCP !== 'false';
 
 /**
  * MCPサーバーとの接続状態を管理し、必要に応じて再接続を試みるコンポーネント
@@ -16,7 +23,11 @@ const MCPInitializer = ({ children }) => {
   // 状態管理
   const [initialized, setInitialized] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('connecting');
-  const [retryInfo, setRetryInfo] = useState({ count: 0, maxRetries: 5, nextRetryAt: null });
+  const [retryInfo, setRetryInfo] = useState({
+    count: 0,
+    maxRetries: 5,
+    nextRetryAt: null,
+  });
   const [isDebugMode, setIsDebugMode] = useState(false); // 詳細ステータス表示切り替え用
 
   /**
@@ -37,7 +48,7 @@ const MCPInitializer = ({ children }) => {
         startConnectionMonitoring();
 
         // 再試行情報をリセット
-        setRetryInfo(prev => ({ ...prev, count: 0, nextRetryAt: null }));
+        setRetryInfo((prev) => ({ ...prev, count: 0, nextRetryAt: null }));
       } else {
         // 接続失敗
         setConnectionStatus('disconnected');
@@ -98,7 +109,10 @@ const MCPInitializer = ({ children }) => {
                 // 応答したということはとりあえず生きている
                 alive = true;
               } catch (pingError) {
-                console.warn('[MCPInitializer] MCP接続テストエラー:', pingError);
+                console.warn(
+                  '[MCPInitializer] MCP接続テストエラー:',
+                  pingError
+                );
                 alive = false;
               }
             }
@@ -130,10 +144,12 @@ const MCPInitializer = ({ children }) => {
    * 再接続をスケジュール
    */
   const scheduleReconnect = useCallback(() => {
-    setRetryInfo(prev => {
+    setRetryInfo((prev) => {
       // 最大再試行回数を超えた場合は中止
       if (prev.count >= prev.maxRetries) {
-        console.log(`[MCPInitializer] 最大再試行回数(${prev.maxRetries}回)に達しました。接続をあきらめます。`);
+        console.log(
+          `[MCPInitializer] 最大再試行回数(${prev.maxRetries}回)に達しました。接続をあきらめます。`
+        );
         return { ...prev, nextRetryAt: null };
       }
 
@@ -142,7 +158,9 @@ const MCPInitializer = ({ children }) => {
       const delay = Math.min(1000 * Math.pow(2, prev.count), 30000); // 最大30秒
       const nextRetryAt = Date.now() + delay;
 
-      console.log(`[MCPInitializer] ${delay}ms後に再接続を試みます(${nextRetryCount}/${prev.maxRetries})`);
+      console.log(
+        `[MCPInitializer] ${delay}ms後に再接続を試みます(${nextRetryCount}/${prev.maxRetries})`
+      );
 
       // 再接続タイマーをセット
       setTimeout(() => {
@@ -152,16 +170,28 @@ const MCPInitializer = ({ children }) => {
       return {
         ...prev,
         count: nextRetryCount,
-        nextRetryAt
+        nextRetryAt,
       };
     });
   }, [initializeMCP]);
-
   /**
    * 初期化処理（マウント時に一度だけ実行）
    */
   useEffect(() => {
-    initializeMCP();
+    // 環境変数に基づいてMCPの初期化を条件付きで行う
+    if (USE_MCP) {
+      console.log(
+        '[MCPInitializer] MCP機能が有効です。MCPサーバー初期化を開始します。'
+      );
+      initializeMCP();
+    } else {
+      console.log(
+        '[MCPInitializer] MCP機能は無効化されています（本番環境モード）'
+      );
+      // 本番環境ではMCPなしでも動作するように初期化完了とする
+      setInitialized(true);
+      setConnectionStatus('disabled');
+    }
 
     // クリーンアップ関数
     return () => {
@@ -173,7 +203,7 @@ const MCPInitializer = ({ children }) => {
    * デバッグモード切り替え
    */
   const toggleDebugMode = useCallback(() => {
-    setIsDebugMode(prev => !prev);
+    setIsDebugMode((prev) => !prev);
   }, []);
 
   /**
@@ -181,7 +211,7 @@ const MCPInitializer = ({ children }) => {
    */
   const handleManualReconnect = useCallback(() => {
     // 再試行カウントをリセットして再接続
-    setRetryInfo(prev => ({ ...prev, count: 0 }));
+    setRetryInfo((prev) => ({ ...prev, count: 0 }));
     setConnectionStatus('connecting');
     initializeMCP();
   }, [initializeMCP]);
@@ -215,9 +245,18 @@ const MCPInitializer = ({ children }) => {
         statusColor = '#FF9800'; // オレンジ
         statusText = 'MCP応答なし';
         break;
+      case 'disabled':
+        statusColor = '#9E9E9E'; // グレー
+        statusText = 'MCP無効（本番環境）';
+        break;
       default:
         statusColor = '#9E9E9E'; // グレー
         statusText = 'MCP状態不明';
+    }
+
+    // 環境変数でMCPが無効化されている場合は表示しない
+    if (!USE_MCP) {
+      return null;
     }
 
     // 基本的なスタイル（インラインスタイルは例外的に使用）
@@ -234,7 +273,7 @@ const MCPInitializer = ({ children }) => {
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
-      flexDirection: 'column'
+      flexDirection: 'column',
     };
 
     // インジケーターのスタイル
@@ -244,13 +283,16 @@ const MCPInitializer = ({ children }) => {
       borderRadius: '50%',
       backgroundColor: statusColor,
       display: 'inline-block',
-      marginRight: '5px'
+      marginRight: '5px',
     };
 
     // 再試行情報の表示
     const renderRetryInfo = () => {
       if (retryInfo.nextRetryAt && connectionStatus !== 'connected') {
-        const secondsRemaining = Math.max(0, Math.floor((retryInfo.nextRetryAt - Date.now()) / 1000));
+        const secondsRemaining = Math.max(
+          0,
+          Math.floor((retryInfo.nextRetryAt - Date.now()) / 1000)
+        );
         return (
           <div style={{ fontSize: '10px', marginTop: '5px' }}>
             再試行: {retryInfo.count}/{retryInfo.maxRetries}
@@ -266,24 +308,31 @@ const MCPInitializer = ({ children }) => {
       if (!isDebugMode) return null;
 
       return (
-        <div style={{
-          marginTop: '10px',
-          fontSize: '10px',
-          textAlign: 'left',
-          borderTop: '1px solid rgba(255,255,255,0.2)',
-          paddingTop: '5px'
-        }}>
+        <div
+          style={{
+            marginTop: '10px',
+            fontSize: '10px',
+            textAlign: 'left',
+            borderTop: '1px solid rgba(255,255,255,0.2)',
+            paddingTop: '5px',
+          }}
+        >
           <div>状態: {connectionStatus}</div>
           <div>初期化: {initialized ? '完了' : '未完了'}</div>
-          <div>再試行: {retryInfo.count}/{retryInfo.maxRetries}</div>
-          <div style={{
-            marginTop: '5px',
-            padding: '2px 5px',
-            backgroundColor: 'rgba(33,150,243,0.3)',
-            borderRadius: '2px',
-            textAlign: 'center',
-            cursor: 'pointer'
-          }} onClick={handleManualReconnect}>
+          <div>
+            再試行: {retryInfo.count}/{retryInfo.maxRetries}
+          </div>
+          <div
+            style={{
+              marginTop: '5px',
+              padding: '2px 5px',
+              backgroundColor: 'rgba(33,150,243,0.3)',
+              borderRadius: '2px',
+              textAlign: 'center',
+              cursor: 'pointer',
+            }}
+            onClick={handleManualReconnect}
+          >
             再接続
           </div>
         </div>
@@ -301,33 +350,66 @@ const MCPInitializer = ({ children }) => {
       </div>
     );
   };
-
   // 初期化が完了するまでローディング表示
   if (!initialized) {
+    // MCPが無効な場合は単純なローディング表示
+    if (!USE_MCP) {
+      return (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            height: '100vh',
+            color: '#fff',
+          }}
+        >
+          <div>アプリケーションを読み込み中...</div>
+        </div>
+      );
+    }
+
+    // MCP有効時のローディング表示
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#fff' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          color: '#fff',
+        }}
+      >
         <div>
           <div>MCPシステムロード中...</div>
-          <div style={{
-            width: '150px',
-            height: '4px',
-            backgroundColor: 'rgba(255,255,255,0.2)',
-            borderRadius: '2px',
-            marginTop: '10px',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              width: '50%',
-              height: '100%',
-              backgroundColor: '#4CAF50',
+          <div
+            style={{
+              width: '150px',
+              height: '4px',
+              backgroundColor: 'rgba(255,255,255,0.2)',
               borderRadius: '2px',
-              animation: 'mcpLoading 1.5s infinite ease-in-out'
-            }} />
+              marginTop: '10px',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: '50%',
+                height: '100%',
+                backgroundColor: '#4CAF50',
+                borderRadius: '2px',
+                animation: 'mcpLoading 1.5s infinite ease-in-out',
+              }}
+            />
           </div>
           <style jsx>{`
             @keyframes mcpLoading {
-              0% { transform: translateX(-100%); }
-              100% { transform: translateX(200%); }
+              0% {
+                transform: translateX(-100%);
+              }
+              100% {
+                transform: translateX(200%);
+              }
             }
           `}</style>
         </div>
@@ -339,7 +421,8 @@ const MCPInitializer = ({ children }) => {
   return (
     <>
       {children}
-      <MCPStatusDisplay />
+      {/* 本番環境（MCP無効）の場合はステータス表示を省略 */}
+      {USE_MCP && <MCPStatusDisplay />}
     </>
   );
 };

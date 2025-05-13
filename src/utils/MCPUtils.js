@@ -10,11 +10,16 @@ import { useState, useEffect } from 'react';
 // デバッグ設定
 const DEBUG_MCP = process.env.NODE_ENV === 'development' && false; // 開発環境でもデフォルトでログを無効化
 
+// 環境変数からMCPの有効/無効を取得
+const USE_MCP = process.env.NEXT_PUBLIC_USE_MCP !== 'false';
+
 // プロジェクト識別用のメタデータ
 const PROJECT_METADATA = {
   name: 'Manaby Typing Game',
   version: '1.0.0', // バージョン更新
-  repositoryUrl: process.env.NEXT_PUBLIC_GITHUB_REPO || 'https://github.com/riffluv/manaby-typing',
+  repositoryUrl:
+    process.env.NEXT_PUBLIC_GITHUB_REPO ||
+    'https://github.com/riffluv/manaby-typing',
 };
 
 /**
@@ -32,7 +37,7 @@ const logUtil = {
   },
   error: (message, ...args) => {
     console.error(message, ...args);
-  }
+  },
 };
 
 /**
@@ -43,16 +48,27 @@ const logUtil = {
 class MCPUtils {
   /**
    * MCPシステムを初期化する
+   * 環境変数 NEXT_PUBLIC_USE_MCP によって動作が制御されます
    * @returns {Promise<void>}
    */
   initialize() {
     return new Promise((resolve, reject) => {
       try {
+        // 環境変数でMCPが無効化されている場合は初期化をスキップ
+        if (!USE_MCP) {
+          logUtil.info(
+            '[MCPUtils] 環境変数でMCPが無効化されています（本番環境モード）'
+          );
+          return resolve({ status: 'disabled', reason: 'production_mode' });
+        }
+
         logUtil.debug('[MCPUtils] MCP初期化を開始します');
 
         // MCP接続の確認と早期リターン最適化
         if (typeof window === 'undefined' || !window._mcp) {
-          logUtil.warn('[MCPUtils] MCP接続が利用できません。フォールバックモードで動作します。');
+          logUtil.warn(
+            '[MCPUtils] MCP接続が利用できません。フォールバックモードで動作します。'
+          );
           return resolve({ status: 'fallback', reason: 'mcp_not_available' });
         }
 
@@ -66,10 +82,12 @@ class MCPUtils {
           // 他のMCPモジュールの初期化
         ])
           .then((results) => {
-            const failures = results.filter(r => r.status === 'rejected');
+            const failures = results.filter((r) => r.status === 'rejected');
             if (failures.length > 0) {
-              logUtil.warn(`[MCPUtils] ${failures.length}個のモジュールで初期化エラーが発生しました:`,
-                failures.map(f => f.reason?.message || '不明なエラー'));
+              logUtil.warn(
+                `[MCPUtils] ${failures.length}個のモジュールで初期化エラーが発生しました:`,
+                failures.map((f) => f.reason?.message || '不明なエラー')
+              );
             }
 
             logUtil.debug('[MCPUtils] MCPの初期化が完了しました');
@@ -87,12 +105,14 @@ class MCPUtils {
       }
     });
   }
-
   /**
    * MCPシステムを拡張する
    * @private
    */
   _extendMCP() {
+    // 環境変数でMCPが無効化されている場合は処理をスキップ
+    if (!USE_MCP) return;
+
     if (typeof window === 'undefined' || !window._mcp) return;
 
     const mcp = window._mcp;
@@ -188,7 +208,7 @@ class MCPUtils {
 
         // リスナーに通知
         const listeners = this.eventListeners.get(channel) || [];
-        listeners.forEach(listener => {
+        listeners.forEach((listener) => {
           try {
             listener(data);
           } catch (error) {
@@ -205,29 +225,40 @@ class MCPUtils {
    * タイピングゲーム用のMCPを初期化する
    * @returns {Promise<void>}
    * @private
-   */
-  _initializeTypingMCP() {
+   */ _initializeTypingMCP() {
     return new Promise((resolve, reject) => {
       try {
+        // 環境変数でMCPが無効化されている場合は初期化をスキップ
+        if (!USE_MCP) {
+          logUtil.info(
+            '[MCPUtils] 環境変数によりMCPタイピングモデルの初期化をスキップします（本番環境モード）'
+          );
+          return resolve({ status: 'disabled', reason: 'production_mode' });
+        }
+
         // 動的インポートでコード分割を改善
-        import('./mcp/TypingModelMCP').then(({ getTypingModelInstance }) => {
-          const model = getTypingModelInstance();
-          if (!model) {
-            throw new Error('タイピングモデルの初期化に失敗しました');
-          }
-          logUtil.debug('[MCPUtils] タイピングゲームのMCPを初期化しました');
-          resolve({ model });
-        }).catch((error) => {
-          logUtil.error('[MCPUtils] タイピングゲームのMCP初期化エラー:', error);
-          reject(error);
-        });
+        import('./mcp/TypingModelMCP')
+          .then(({ getTypingModelInstance }) => {
+            const model = getTypingModelInstance();
+            if (!model) {
+              throw new Error('タイピングモデルの初期化に失敗しました');
+            }
+            logUtil.debug('[MCPUtils] タイピングゲームのMCPを初期化しました');
+            resolve({ model });
+          })
+          .catch((error) => {
+            logUtil.error(
+              '[MCPUtils] タイピングゲームのMCP初期化エラー:',
+              error
+            );
+            reject(error);
+          });
       } catch (error) {
         logUtil.error('[MCPUtils] タイピングゲームのMCP初期化の例外:', error);
         reject(error);
       }
     });
   }
-
   /**
    * オーディオ処理用のMCPを初期化する（新規追加）
    * @returns {Promise<void>}
@@ -235,17 +266,29 @@ class MCPUtils {
    */
   _initializeAudioMCP() {
     return new Promise((resolve) => {
+      // 環境変数でMCPが無効化されている場合は初期化をスキップ
+      if (!USE_MCP) {
+        logUtil.info(
+          '[MCPUtils] 環境変数によりMCPオーディオモジュールの初期化をスキップします（本番環境モード）'
+        );
+        return resolve({ status: 'disabled', reason: 'production_mode' });
+      }
+
       // 将来的な拡張ポイント
       // サウンドシステムとの連携をMCP経由で行えるようにする
       resolve({ status: 'pending_implementation' });
     });
   }
-
   /**
    * MCPが利用可能かどうかを確認する
+   * 環境変数やブラウザ環境の両方を考慮
    * @returns {boolean} MCPが利用可能な場合はtrue
    */
   get isAvailable() {
+    // 環境変数でMCPが無効化されている場合は常にfalse
+    if (!USE_MCP) {
+      return false;
+    }
     return this.isMCPAvailable();
   }
 
@@ -254,6 +297,18 @@ class MCPUtils {
    * @returns {boolean} MCPが利用可能な場合はtrue
    */
   isMCPAvailable(detailed = false) {
+    // 環境変数でMCPが無効化されている場合は常にfalse
+    if (!USE_MCP) {
+      if (detailed) {
+        return {
+          available: false,
+          status: 'disabled',
+          reason: 'production_mode',
+          time: Date.now(),
+        };
+      }
+      return false;
+    }
     try {
       const basicCheck = typeof window !== 'undefined' && !!window._mcp;
 
@@ -267,16 +322,18 @@ class MCPUtils {
           available: false,
           status: 'not_available',
           reason: 'MCP object not found in window',
-          time: Date.now()
+          time: Date.now(),
         };
       }
 
       // MCP APIの状態チェック
-      const apiCheck = typeof window._mcp.send === 'function' &&
+      const apiCheck =
+        typeof window._mcp.send === 'function' &&
         typeof window._mcp.on === 'function';
 
       // コンテキスト状態の確認
-      const contextCheck = contextManagerInstance &&
+      const contextCheck =
+        contextManagerInstance &&
         contextManagerInstance.context &&
         contextManagerInstance.context.id;
 
@@ -297,10 +354,10 @@ class MCPUtils {
           send: typeof window._mcp.send === 'function',
           on: typeof window._mcp.on === 'function',
           off: typeof window._mcp.off === 'function',
-          setContext: typeof window._mcp.setContext === 'function'
+          setContext: typeof window._mcp.setContext === 'function',
         },
         hasContext: !!contextCheck,
-        time: Date.now()
+        time: Date.now(),
       };
     } catch (err) {
       if (detailed) {
@@ -308,7 +365,7 @@ class MCPUtils {
           available: false,
           status: 'error',
           error: err.message,
-          time: Date.now()
+          time: Date.now(),
         };
       }
       return false;
@@ -382,11 +439,11 @@ class MCPContextManager {
 
     // MCPのコンテキスト情報
     this.context = {
-      id: null,           // セッションID
-      type: null,         // コンテキストタイプ
-      modelName: null,    // モデル名
+      id: null, // セッションID
+      type: null, // コンテキストタイプ
+      modelName: null, // モデル名
       modelVersion: null, // モデルバージョン
-      metadata: {}        // メタデータ
+      metadata: {}, // メタデータ
     };
 
     // メトリクスバッファ（一括送信のため）
@@ -398,7 +455,7 @@ class MCPContextManager {
       totalEvents: 0,
       lastBatchTime: null,
       batchCount: 0,
-      eventTypes: {}
+      eventTypes: {},
     };
 
     // バックグラウンド処理フラグ
@@ -408,7 +465,11 @@ class MCPContextManager {
     this.workerSupported = typeof Worker !== 'undefined';
     this.worker = null;
 
-    logUtil.debug(`[MCP] 初期化完了 (有効: ${this.mcpEnabled}, Worker: ${this.workerSupported ? 'サポート' : '未サポート'})`);
+    logUtil.debug(
+      `[MCP] 初期化完了 (有効: ${this.mcpEnabled}, Worker: ${
+        this.workerSupported ? 'サポート' : '未サポート'
+      })`
+    );
   }
 
   /**
@@ -431,7 +492,7 @@ class MCPContextManager {
       this.context = {
         ...this.context,
         ...contextData,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
       // MCP側にコンテキストを通知（分析専用）
@@ -465,7 +526,7 @@ class MCPContextManager {
         ...typingData,
         contextType: 'typing-event',
         source: typingData.fromWorker ? 'worker' : 'main-thread',
-        isAnalyticsOnly: typingData.isAnalyticsOnly || false
+        isAnalyticsOnly: typingData.isAnalyticsOnly || false,
       };
 
       // バッファリングして一度に送信
@@ -474,14 +535,18 @@ class MCPContextManager {
       // 分析データを更新
       this.analyticsData.totalEvents++;
       const eventType = typingData.isBackspace ? 'backspace' : 'char';
-      this.analyticsData.eventTypes[eventType] = (this.analyticsData.eventTypes[eventType] || 0) + 1;
+      this.analyticsData.eventTypes[eventType] =
+        (this.analyticsData.eventTypes[eventType] || 0) + 1;
 
       // 分析目的の場合は大きめのバッチサイズでフラッシュ
       const batchThreshold = typingData.isHighFrequency ? 50 : 100;
 
       // バッファが一定量たまったらまとめて送信
       // ただし、バックグラウンド処理中は重複処理を避ける
-      if (this.metricsBuffer.length >= batchThreshold && !this.isBackgroundProcessing) {
+      if (
+        this.metricsBuffer.length >= batchThreshold &&
+        !this.isBackgroundProcessing
+      ) {
         this._scheduleBackgroundFlush();
       }
     } catch (err) {
@@ -501,7 +566,7 @@ class MCPContextManager {
         timestamp: Date.now(),
         ...eventData,
         contextType: 'game-event',
-        isAnalyticsOnly: true
+        isAnalyticsOnly: true,
       };
 
       this.metricsBuffer.push(gameEventMetric);
@@ -528,7 +593,7 @@ class MCPContextManager {
         timestamp: Date.now(),
         ...perfData,
         contextType: 'performance-metric',
-        isAnalyticsOnly: true
+        isAnalyticsOnly: true,
       };
 
       this.metricsBuffer.push(perfMetric);
@@ -555,7 +620,7 @@ class MCPContextManager {
         timestamp: Date.now(),
         ...uxData,
         contextType: 'ux-element',
-        isAnalyticsOnly: true
+        isAnalyticsOnly: true,
       };
 
       this.metricsBuffer.push(uxMetric);
@@ -581,7 +646,7 @@ class MCPContextManager {
       this.recordUXElement({
         type: 'component-render',
         componentName,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     } catch (err) {
       // エラーを無視（非クリティカル）
@@ -623,7 +688,9 @@ class MCPContextManager {
       // バッファサイズのチェックとトリミング（メモリ制限）
       if (this.metricsBuffer.length > 1000) {
         // バッファが非常に大きい場合、古いエントリを破棄して最新の1000件のみ保持
-        console.warn(`[MCP] メトリクスバッファが肥大化しています (${this.metricsBuffer.length}件)。古いエントリを破棄します。`);
+        console.warn(
+          `[MCP] メトリクスバッファが肥大化しています (${this.metricsBuffer.length}件)。古いエントリを破棄します。`
+        );
         this.metricsBuffer = this.metricsBuffer.slice(-1000);
       }
 
@@ -717,12 +784,15 @@ export const useMCPContext = () => {
 
   useEffect(() => {
     // コンポーネントマウント時にMCPマネージャーを初期化
-    mcpUtilsInstance.initialize().then((result) => {
-      setIsActive(contextManagerInstance.mcpEnabled);
-      setStatus(result.status);
-    }).catch(() => {
-      setStatus('error');
-    });
+    mcpUtilsInstance
+      .initialize()
+      .then((result) => {
+        setIsActive(contextManagerInstance.mcpEnabled);
+        setStatus(result.status);
+      })
+      .catch(() => {
+        setStatus('error');
+      });
 
     // クリーンアップ関数
     return () => {
@@ -735,8 +805,11 @@ export const useMCPContext = () => {
     try {
       // Reactコンポーネント名を取得（開発モードのみ）
       const componentStack = new Error().stack;
-      const componentNameMatch = componentStack && componentStack.match(/at ([A-Z][A-Za-z0-9$_]+) /);
-      const componentName = componentNameMatch ? componentNameMatch[1] : 'UnknownComponent';
+      const componentNameMatch =
+        componentStack && componentStack.match(/at ([A-Z][A-Za-z0-9$_]+) /);
+      const componentName = componentNameMatch
+        ? componentNameMatch[1]
+        : 'UnknownComponent';
 
       // コンポーネントのレンダリングを登録
       contextManagerInstance.registerComponentRender(componentName);
@@ -748,10 +821,19 @@ export const useMCPContext = () => {
   return {
     isActive,
     status,
-    recordTypingInput: contextManagerInstance.recordTypingInput.bind(contextManagerInstance),
-    recordGameEvent: contextManagerInstance.recordGameEvent.bind(contextManagerInstance),
-    recordPerformanceMetric: contextManagerInstance.recordPerformanceMetric.bind(contextManagerInstance),
-    recordUXElement: contextManagerInstance.recordUXElement.bind(contextManagerInstance)
+    recordTypingInput: contextManagerInstance.recordTypingInput.bind(
+      contextManagerInstance
+    ),
+    recordGameEvent: contextManagerInstance.recordGameEvent.bind(
+      contextManagerInstance
+    ),
+    recordPerformanceMetric:
+      contextManagerInstance.recordPerformanceMetric.bind(
+        contextManagerInstance
+      ),
+    recordUXElement: contextManagerInstance.recordUXElement.bind(
+      contextManagerInstance
+    ),
   };
 };
 
@@ -764,7 +846,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
   const [status, setStatus] = useState({
     connected: contextManagerInstance.mcpEnabled,
     metricsCount: 0,
-    lastUpdate: Date.now()
+    lastUpdate: Date.now(),
   });
 
   // ステータス更新
@@ -775,7 +857,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
       setStatus({
         connected: contextManagerInstance.mcpEnabled,
         metricsCount: contextManagerInstance.metricsBuffer.length,
-        lastUpdate: Date.now()
+        lastUpdate: Date.now(),
       });
     }, 2000);
 
@@ -788,26 +870,26 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
       position: 'fixed',
       bottom: '10px',
       right: '10px',
-      zIndex: 9999
+      zIndex: 9999,
     },
     'bottom-left': {
       position: 'fixed',
       bottom: '10px',
       left: '10px',
-      zIndex: 9999
+      zIndex: 9999,
     },
     'top-right': {
       position: 'fixed',
       top: '10px',
       right: '10px',
-      zIndex: 9999
+      zIndex: 9999,
     },
     'top-left': {
       position: 'fixed',
       top: '10px',
       left: '10px',
-      zIndex: 9999
-    }
+      zIndex: 9999,
+    },
   };
 
   // インジケーターのスタイル定義
@@ -817,7 +899,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
     borderRadius: '50%',
     backgroundColor: status.connected ? '#4CAF50' : '#F44336',
     display: 'inline-block',
-    marginRight: '8px'
+    marginRight: '8px',
   };
 
   // 最小化表示のスタイル
@@ -830,7 +912,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
     cursor: 'pointer',
     fontSize: '12px',
     display: 'flex',
-    alignItems: 'center'
+    alignItems: 'center',
   };
 
   // 展開表示のスタイル
@@ -841,7 +923,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
     padding: '10px',
     borderRadius: '4px',
     width: '250px',
-    fontSize: '12px'
+    fontSize: '12px',
   };
 
   if (typeof window === 'undefined') {
@@ -861,15 +943,18 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
   // 展開表示の場合
   return (
     <div style={expandedStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          marginBottom: '10px',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div style={indicatorStyle}></div>
           <span style={{ fontWeight: 'bold' }}>MCP Status</span>
         </div>
-        <div
-          style={{ cursor: 'pointer' }}
-          onClick={() => setIsExpanded(false)}
-        >
+        <div style={{ cursor: 'pointer' }} onClick={() => setIsExpanded(false)}>
           ×
         </div>
       </div>
@@ -887,7 +972,7 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
           padding: '5px',
           backgroundColor: '#2196F3',
           borderRadius: '4px',
-          cursor: 'pointer'
+          cursor: 'pointer',
         }}
         onClick={() => contextManagerInstance.flushMetricsBuffer()}
       >
@@ -900,13 +985,23 @@ export const MCPStatusDisplay = ({ position = 'bottom-right' }) => {
 // MCPユーティリティの公開メソッド
 const mcpUtils = {
   initialize: mcpUtilsInstance.initialize.bind(mcpUtilsInstance),
-  recordTypingInput: contextManagerInstance.recordTypingInput.bind(contextManagerInstance),
-  recordGameEvent: contextManagerInstance.recordGameEvent.bind(contextManagerInstance),
-  recordPerformanceMetric: contextManagerInstance.recordPerformanceMetric.bind(contextManagerInstance),
-  recordUXElement: contextManagerInstance.recordUXElement.bind(contextManagerInstance),
-  flushMetricsBuffer: contextManagerInstance.flushMetricsBuffer.bind(contextManagerInstance),
+  recordTypingInput: contextManagerInstance.recordTypingInput.bind(
+    contextManagerInstance
+  ),
+  recordGameEvent: contextManagerInstance.recordGameEvent.bind(
+    contextManagerInstance
+  ),
+  recordPerformanceMetric: contextManagerInstance.recordPerformanceMetric.bind(
+    contextManagerInstance
+  ),
+  recordUXElement: contextManagerInstance.recordUXElement.bind(
+    contextManagerInstance
+  ),
+  flushMetricsBuffer: contextManagerInstance.flushMetricsBuffer.bind(
+    contextManagerInstance
+  ),
   useMCPContext,
-  MCPStatusDisplay
+  MCPStatusDisplay,
 };
 
 export default mcpUtils;

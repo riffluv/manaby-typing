@@ -1,11 +1,12 @@
 {
   "name": "typing-game",
   "version": "0.1.0",
-  "private": true,
-  "scripts": {
+  "private": true,  "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "export": "next build",
+    "deploy": "npm run build && touch out/.nojekyll",
     "lint": "next lint",
     "dev:nodemon": "nodemon",
     "dev:watch": "nodemon --config nodemon.json",

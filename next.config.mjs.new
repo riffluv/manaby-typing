@@ -32,13 +32,13 @@ const nextConfig = {
   // GitHub Pagesでのデプロイに必要な設定
   basePath: isProd ? '/typing-game' : '',
   assetPrefix: isProd ? '/typing-game' : '',
-
+  
   // 静的エクスポートの設定（本番環境のみ）
   ...(isProd ? { output: 'export' } : {}),
-
+  
   // Webpackの設定
   webpack: configureWebpack,
-
+  
   // ヘッダー設定（静的エクスポート時は自動的に無視されるため削除）
   // 注: Web Workerを使う場合は、可能であれば別のサーバー設定でヘッダーを設定してください
 };
