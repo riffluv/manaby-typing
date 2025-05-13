@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import WorkerCanvasKeyboard from '../components/typing/WorkerCanvasKeyboard';
-import useAnimationWorker from '../hooks/useAnimationWorker';
-import useEffectsWorker from '../hooks/useEffectsWorker';
+import WorkerCanvasKeyboard from './WorkerCanvasKeyboard';
+import useAnimationWorker from '../../hooks/useAnimationWorker';
+import useEffectsWorker from '../../hooks/useEffectsWorker';
 
 /**
  * Worker対応のタイピングゲーム画面
