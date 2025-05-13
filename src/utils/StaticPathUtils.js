@@ -11,9 +11,18 @@ export const getStaticPath = (path) => {
   // 先頭のスラッシュを確保
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
+  // パスの各部分を分割
+  const pathParts = normalizedPath.split('/');
+  // ファイル名部分をURLエンコードする（スペースなどの特殊文字を処理）
+  const lastPart = pathParts[pathParts.length - 1];
+  pathParts[pathParts.length - 1] = encodeURIComponent(lastPart);
+  
+  // 分割した部分を再結合
+  const encodedPath = pathParts.join('/');
+
   // basePath設定に合わせて、本番環境ではリポジトリ名を含める
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-  return `${basePath}${normalizedPath}`;
+  return `${basePath}${encodedPath}`;
 };
 
 export default getStaticPath;

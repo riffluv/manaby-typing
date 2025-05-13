@@ -64,15 +64,13 @@ class SoundUtils {
     this._loadSettingsFromStorage();    // サウンドプリセット定義
     this.soundPresets = {
       // 基本ゲーム効果音
-      success: getStaticPath('/sounds/Hit05-1.mp3'), // タイピング成功音
-      error: getStaticPath('/sounds/Hit04-1.mp3'), // タイピングエラー音
-      complete: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリ��音
+      success: getStaticPath('/sounds/hit05-1.mp3'), // タイピング成功音
+      error: getStaticPath('/sounds/hit04-1.mp3'), // タイピングエラー音
+      complete: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音
       button: getStaticPath('/sounds/buttonsound1.mp3'), // ボタンクリック音
-    };
-
-    // BGMプリセット定義
+    };    // BGMプリセット定義
     this.bgmPresets = {
-      lobby: getStaticPath('/sounds/Battle of the Emperor.mp3'), // ロビー/メインメニューBGM
+      lobby: getStaticPath('/sounds/battle_of_the_emperor.mp3'), // ロビー/メインメニューBGM
       battle: getStaticPath('/sounds/battle.mp3'), // ゲームプレイBGM
     };
 
@@ -572,9 +570,8 @@ class SoundUtils {
       const bgmPath = this.bgmPresets[name];
       if (!bgmPath) {
         throw new Error(`BGM「${name}」はプリセットに存在しません`);
-      }
-
-      // HTML Audio要素を使用してBGMを再生（長時間再生に最適）
+      }      // HTML Audio要素を使用してBGMを再生（長時間再生に最適）
+      // bgmPathはすでにgetStaticPath()を通して取得しているので、そのまま使用可能
       const audio = new Audio(bgmPath);
       audio.loop = loop;
       audio.volume = this.bgmVolume;

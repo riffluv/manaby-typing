@@ -108,8 +108,7 @@ const ResultScreen = ({
         // またはロードしてから再生する
         if (soundSystem.sfxBuffers['complete']) {
           soundSystem.play('complete');
-        } else {
-          // 効果音がロードされていない場合はロードしてから再生
+        } else {          // 効果音がロードされていない場合はロードしてから再生
           soundSystem
             .loadSound('complete', getStaticPath('/sounds/resultsound.mp3'))
             .then(() => soundSystem.play('complete'))

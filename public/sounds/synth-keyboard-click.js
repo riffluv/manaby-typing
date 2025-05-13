@@ -171,7 +171,7 @@ static async loadSounds() {
   soundCache.click = clickSound;
   
   // 同様にエラーと成功音もロード
-}
+};
 
 // 再生する例
 static playClickSound() {
