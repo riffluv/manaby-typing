@@ -112,7 +112,6 @@ export const SoundProvider = ({ children }) => {
       return false;
     }
   }, []);
-
   // 初期化処理
   useEffect(() => {
     // ローカルストレージから設定を読み込む
@@ -126,6 +125,28 @@ export const SoundProvider = ({ children }) => {
     soundSystem.setBgmVolume(savedSettings.bgmVolume);
 
     console.log('[SoundContext] SoundUtilsに設定を適用しました');
+
+    // GitHub Pages対応 - 基本音声ファイルを事前ロード
+    soundSystem.initializeAllSounds()
+      .then(success => {
+        if (success) {
+          console.log('[SoundContext] 基本効果音のプリロードに成功しました');
+        } else {
+          console.warn('[SoundContext] 一部の効果音のロードに失敗しました');
+          
+          // GitHub Pages向け - 個別再試行（特に重要な音声）
+          setTimeout(() => {
+            // 特にタイピング音声は重要なので個別に再試行
+            Promise.all([
+              soundSystem.loadSound('success', soundSystem.soundPresets.success),
+              soundSystem.loadSound('error', soundSystem.soundPresets.error)
+            ]).catch(e => console.warn('[SoundContext] タイピング音声の再ロードも失敗:', e));
+          }, 2000); // 2秒後に再試行
+        }
+      })
+      .catch(err => {
+        console.error('[SoundContext] 効果音の初期化中にエラーが発生しました:', err);
+      });
   }, [loadSoundSettings]);
 
   // サウンド設定を更新する関数
