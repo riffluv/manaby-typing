@@ -1,6 +1,6 @@
 # タイピングゲーム制作プロジェクト
 
-このプロジェクトは Next.js を使用したタイピングゲームの開発リポジトリです。
+このプロジェクトは Next.js を使用したタイピングゲームの開発リポジトリです。高速なタイピング体験と最適化されたパフォーマンスを提供するWeb上のタイピングゲームです。
 
 ## 開発ルール
 
@@ -83,8 +83,8 @@ src/
 1. リポジトリをクローンします
 
 ```bash
-git clone https://github.com/ユーザー名/typing-game.git
-cd typing-game
+git clone https://github.com/riffluv/manaby-typing.git
+cd manaby-typing
 ```
 
 2. 依存パッケージをインストールします
@@ -170,9 +170,26 @@ yarn deploy
 
 5. リポジトリの Settings > Pages からデプロイの設定を行います
 
+## Vercelへのデプロイ手順
+
+このプロジェクトはVercelでホスティングされています。自分でデプロイする場合は以下の手順に従ってください：
+
+1. Vercelアカウントを持っていることを確認します（GitHubアカウントでログイン可能）
+
+2. Vercelダッシュボードで「New Project」をクリックします
+
+3. Import GitリポジトリでGitHubから「riffluv/manaby-typing」を選択します
+
+4. 環境変数は特に設定せずにデプロイできます
+
+5. デプロイが完了したらVercelによって提供されたURLでアクセスできます
+
+ライブデモ: [https://manaby-typing.vercel.app](https://manaby-typing.vercel.app)
+
 ## 参考リソース
 
 - [Next.js ドキュメント](https://nextjs.org/docs)
 - [BEM 命名規則の公式サイト](https://getbem.com/)
 - [タイピングゲーム実装のヒント](https://developer.mozilla.org/ja/docs/Web/API/KeyboardEvent)
 - [GitHub Pages デプロイガイド](https://docs.github.com/ja/pages/getting-started-with-github-pages)
+- [Vercelデプロイガイド](https://vercel.com/docs/deployments/overview)
