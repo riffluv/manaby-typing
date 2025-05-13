@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useMemo } from 'react';
-import useAnimationWorker from '../hooks/useAnimationWorker';
+import useAnimationWorker from '../../hooks/useAnimationWorker';
 
 /**
  * Web Worker対応の最適化版レトロSFキーボード
