@@ -3,6 +3,27 @@
 // 本番ビルド用の設定か開発用の設定かを環境変数で判断
 const isProd = process.env.NODE_ENV === 'production';
 
+// 環境に基づいてベースパスを決定する関数
+function getBasePath() {
+  // Vercel環境では空のベースパスを使用
+  if (process.env.VERCEL) {
+    console.log('Vercel環境を検出: ベースパス=""を使用');
+    return '';
+  }
+  
+  // GitHub Pages環境またはGitHub環境変数が設定されている場合
+  if (process.env.NEXT_PUBLIC_BASE_PATH || 
+      (process.env.GITHUB_REPOSITORY && process.env.GITHUB_REPOSITORY.includes('manaby-typing'))) {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/manaby-typing';
+    console.log(`GitHub Pages環境を検出: ベースパス="${basePath}"を使用`);
+    return basePath;
+  }
+  
+  // デフォルトは空のベースパス
+  console.log('デフォルト環境: ベースパス=""を使用');
+  return '';
+}
+
 // 共通のWebpack設定
 const configureWebpack = (config, { isServer }) => {
   // Web Workerをサポートするための設定
@@ -28,19 +49,16 @@ const configureWebpack = (config, { isServer }) => {
 };
 
 // 環境に応じた設定
-const nextConfig = {  // GitHub Pagesでのデプロイに必要な設定
-  basePath: isProd ? process.env.NEXT_PUBLIC_BASE_PATH || '/manaby-typing' : '',
-  assetPrefix: isProd ? process.env.NEXT_PUBLIC_BASE_PATH || '/manaby-typing' : '',
-
+const nextConfig = {  // GitHub PagesとVercelどちらにも対応する設定
+  basePath: getBasePath(),
+  assetPrefix: getBasePath(),
   // 静的エクスポートの設定（本番環境のみ）
   ...(isProd ? { 
     output: 'export',
     // 静的エクスポート設定のカスタマイズ
-    // GitHub Pagesでのデプロイ向けに最適化
-    experimental: {
-      // クライアントコンポーネントのフォールバック設定
-      // これによりクライアントサイドでのレンダリングが保証される
-      appDir: true
+    trailingSlash: true,
+    images: {
+      unoptimized: true,
     }
   } : {}),
 
