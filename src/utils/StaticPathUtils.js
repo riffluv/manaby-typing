@@ -1,6 +1,14 @@
 /**
- * GitHub Pagesでデプロイ時にpublicフォルダ内のアセットを正しく参照するためのユーティリティ
+ * GitHub PagesおよびVercelでデプロイ時にpublicフォルダ内のアセットを正しく参照するためのユーティリティ
  */
+
+/**
+ * 現在の環境がVercelかどうかを検出
+ * @returns {boolean} Vercel環境かどうか
+ */
+export const isVercelEnv = () => {
+  return typeof process !== 'undefined' && process.env && process.env.VERCEL === '1';
+};
 
 /**
  * publicディレクトリ内のアセットへの正しいパスを返す
@@ -10,7 +18,7 @@
 export const getStaticPath = (path) => {
   // 無効な入力チェック
   if (!path) return '';
-  
+
   // 先頭のスラッシュを確保
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
@@ -19,20 +27,23 @@ export const getStaticPath = (path) => {
   // ファイル名部分をURLエンコードする（スペースなどの特殊文字を処理）
   const lastPart = pathParts[pathParts.length - 1];
   pathParts[pathParts.length - 1] = encodeURIComponent(lastPart);
-  
+
   // 分割した部分を再結合
   const encodedPath = pathParts.join('/');
-  
+
   // デバッグ用
   if (typeof window !== 'undefined' && path.includes('.mp3')) {
-    console.log(`処理前のパス: ${path}, 正規化後: ${normalizedPath}, エンコード後: ${encodedPath}`);
+    console.log(
+      `処理前のパス: ${path}, 正規化後: ${normalizedPath}, エンコード後: ${encodedPath}`
+    );
   }
   // GitHub Pages環境確認 - より堅牢な検出
   const isProduction = process.env.NODE_ENV === 'production';
-  const isGitHubPages = typeof window !== 'undefined' && 
-    (window.location && window.location.hostname.includes('github.io') || 
-     window.location.href.includes('github.io'));
-    
+  const isGitHubPages =
+    typeof window !== 'undefined' &&
+    ((window.location && window.location.hostname.includes('github.io')) ||
+      window.location.href.includes('github.io'));
+
   // デバッグ情報
   if (typeof window !== 'undefined') {
     console.log('環境情報:', {
@@ -40,28 +51,55 @@ export const getStaticPath = (path) => {
       isGitHubPages,
       hostname: window.location ? window.location.hostname : '不明',
       href: window.location ? window.location.href : '不明',
-      basePath: process.env.NEXT_PUBLIC_BASE_PATH || '未設定'
+      basePath: process.env.NEXT_PUBLIC_BASE_PATH || '未設定',
     });
   }
-    
+
   // basePath設定に合わせて、本番環境ではリポジトリ名を含める
   // 明示的に設定されたbasePath、または自動検出された値を使用
   let basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-  
+
   // GitHub Pages環境または本番環境でbasePathが設定されていない場合、デフォルト値を使用
   if ((isProduction || isGitHubPages) && !basePath) {
     basePath = '/manaby-typing'; // デフォルトのリポジトリ名
     console.warn('NEXT_PUBLIC_BASE_PATH未設定、デフォルト値を使用:', basePath);
+  }  // 最終パスを生成（デバッグログを追加）
+  let finalPath = `${basePath}${encodedPath}`;
+
+  // Vercel環境またはブラウザ実行時のみの処理
+  if (typeof window !== 'undefined') {
+    // サウンドファイルの場合、大文字小文字の自動検出を試みる
+    if (path.includes('.mp3')) {
+      // ファイルパスが存在するかどうかのテスト（ローカルでは常に失敗するが、Vercelではキャッシュが効く可能性）
+      const testImage = new Image();
+      testImage.onerror = () => {
+        // ファイルが見つからなかった場合、大文字小文字を変更して再試行
+        if (path.includes('Hit') || path.includes('hit')) {
+          // 'Hit' を 'hit' に、または 'hit' を 'Hit' に変更
+          const newPath = path.includes('Hit') 
+            ? path.replace('Hit', 'hit')
+            : path.replace('hit', 'Hit');
+          
+          console.log(`ファイルが見つからないため代替パスを試行: ${newPath}`);
+          // 新しいパスに変更
+          finalPath = `${basePath}${newPath.startsWith('/') ? newPath : `/${newPath}`}`;
+        }
+      };
+      // テスト開始
+      testImage.src = finalPath;
+    }
   }
-    // 最終パスを生成（デバッグログを追加）
-  const finalPath = `${basePath}${encodedPath}`;
-  
+
   // サウンドファイルのデバッグログを常に表示（問題調査のため）
-  if (typeof window !== 'undefined' && (
-      path.includes('.mp3') || path.includes('sound'))) {
-    console.log(`StaticPath - 入力: ${path}, 出力: ${finalPath}, 環境: ${process.env.NODE_ENV}, GitHub Pages: ${isGitHubPages}`);
+  if (
+    typeof window !== 'undefined' &&
+    (path.includes('.mp3') || path.includes('sound'))
+  ) {
+    console.log(
+      `StaticPath - 入力: ${path}, 出力: ${finalPath}, 環境: ${process.env.NODE_ENV}, GitHub Pages: ${isGitHubPages}`
+    );
   }
-  
+
   return finalPath;
 };
 

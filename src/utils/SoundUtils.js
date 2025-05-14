@@ -10,9 +10,10 @@ let DEBUG_SOUND_UTILS = process.env.NODE_ENV === 'development' && false;
 // GitHub Pages環境では強制的にデバッグを有効化
 if (typeof window !== 'undefined') {
   window.__DEBUG_STATIC_PATH = false; // スタティックパスのデバッグ
-  
+
   // GitHub Pages環境かどうかをチェック
-  const isGitHubPages = window.location && window.location.hostname.includes('github.io');
+  const isGitHubPages =
+    window.location && window.location.hostname.includes('github.io');
   if (isGitHubPages) {
     DEBUG_SOUND_UTILS = true;
     window.__DEBUG_STATIC_PATH = true;
@@ -32,7 +33,7 @@ const logUtil = {
   },
   error: (message, ...args) => {
     console.error('[Sound]', message, ...args);
-  }
+  },
 };
 
 /**
@@ -73,23 +74,21 @@ class SoundUtils {
     // 効果音のオン/オフ設定
     this.sfxEnabled = true;
 
-    // ローカルストレージから設定を読み込む（存在する場合）    this._loadSettingsFromStorage();
-    
-    // サウンドプリセット定義
+    // ローカルストレージから設定を読み込む（存在する場合）    this._loadSettingsFromStorage();    // サウンドプリセット定義
     this.soundPresets = {
       // 基本ゲーム効果音
-      success: getStaticPath('/sounds/Hit05-1.mp3'), // タイピング成功音 - 大文字に修正
-      error: getStaticPath('/sounds/Hit04-1.mp3'), // タイピングエラー音 - 大文字に修正
+      success: getStaticPath('/sounds/hit05-1.mp3'), // タイピング成功音 - Vercel環境のために小文字に変更
+      error: getStaticPath('/sounds/hit04-1.mp3'), // タイピングエラー音 - Vercel環境のために小文字に変更
       complete: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音
       button: getStaticPath('/sounds/buttonsound1.mp3'), // ボタンクリック音
     };
-    
+
     // GitHub Pages向けに追加デバッグ情報（デプロイ環境）
     console.log('環境情報:', {
       NODE_ENV: process.env.NODE_ENV,
       basePath: process.env.NEXT_PUBLIC_BASE_PATH || '未設定',
-      例示パス: getStaticPath('/sounds/test.mp3')
-    });// BGMプリセット定義
+      例示パス: getStaticPath('/sounds/test.mp3'),
+    }); // BGMプリセット定義
     this.bgmPresets = {
       lobby: getStaticPath('/sounds/battle_of_the_emperor.mp3'), // ロビー/メインメニューBGM
       battle: getStaticPath('/sounds/battle.mp3'), // ゲームプレイBGM
@@ -101,8 +100,12 @@ class SoundUtils {
     // ユーザーインタラクションイベントを監視
     if (typeof window !== 'undefined') {
       const interactionEvents = ['mousedown', 'keydown', 'touchstart', 'click'];
-      interactionEvents.forEach(eventType => {
-        window.addEventListener(eventType, this._handleUserInteraction.bind(this), { once: false, passive: true });
+      interactionEvents.forEach((eventType) => {
+        window.addEventListener(
+          eventType,
+          this._handleUserInteraction.bind(this),
+          { once: false, passive: true }
+        );
       });
     }
 
@@ -147,7 +150,7 @@ class SoundUtils {
         bgmEnabled: this.bgmEnabled,
         bgmVolume: this.bgmVolume,
         sfxEnabled: this.sfxEnabled,
-        sfxVolume: this.volume
+        sfxVolume: this.volume,
       });
     } catch (err) {
       console.error('設定の読み込みに失敗しました:', err);
@@ -177,7 +180,7 @@ class SoundUtils {
 
       // AudioContextを再開
       if (this.context && this.context.state === 'suspended') {
-        this.context.resume().catch(err => {
+        this.context.resume().catch((err) => {
           console.error('AudioContextの再開に失敗:', err);
         });
       }
@@ -211,7 +214,7 @@ class SoundUtils {
         success: this.soundPresets.success,
         error: this.soundPresets.error,
         button: this.soundPresets.button,
-        complete: this.soundPresets.complete
+        complete: this.soundPresets.complete,
       });
 
       for (const name of basicSounds) {
@@ -219,7 +222,9 @@ class SoundUtils {
           loadPromises.push(
             this.loadSound(name, this.soundPresets[name])
               .then(() => console.log(`${name}音声のロードに成功しました`))
-              .catch(err => console.error(`${name}音声のロードに失敗しました:`, err))
+              .catch((err) =>
+                console.error(`${name}音声のロードに失敗しました:`, err)
+              )
           );
         }
       }
@@ -238,7 +243,7 @@ class SoundUtils {
    * @param {string} name - 効果音の名前
    * @param {string} url - 効果音ファイルのURL
    * @returns {Promise} - ロード完了時に解決されるPromise
-   */  async loadSound(name, url) {
+   */ async loadSound(name, url) {
     // サーバーサイドレンダリング時は何もしない
     if (typeof window === 'undefined') {
       return Promise.resolve();
@@ -254,18 +259,20 @@ class SoundUtils {
 
       // GitHub Pages対策：フェッチリクエストで詳細なエラーログ
       console.log(`${name}の読み込み開始: ${cacheBustedUrl}`);
-      
+
       // 最初に通常のURLで試行
       let response = await fetch(cacheBustedUrl);
-      
+
       // 大文字小文字の問題を検出して対処する試み
       if (!response.ok) {
-        console.warn(`${name}のロードに失敗 (${response.status})。代替URLで再試行...`);
-        
+        console.warn(
+          `${name}のロードに失敗 (${response.status})。代替URLで再試行...`
+        );
+
         // 代替URL試行 - URLに含まれるファイル名部分の最初の文字を大文字に変更
         const urlParts = url.split('/');
         const fileName = urlParts[urlParts.length - 1];
-        
+
         // 代替ファイル名で再試行
         let capitalizedFileName;
         if (fileName.startsWith('hit') && fileName.endsWith('.mp3')) {
@@ -273,19 +280,29 @@ class SoundUtils {
           urlParts[urlParts.length - 1] = capitalizedFileName;
           const alternateUrl = urlParts.join('/') + `?t=${this.timestamp}`;
           console.log(`代替URL試行: ${alternateUrl}`);
-          
+
           response = await fetch(alternateUrl);
         }
       }
-      
+
       if (!response.ok) {
-        console.error(`${name}のHTTPエラー:`, response.status, response.statusText);
-        throw new Error(`HTTP error! status: ${response.status}, url: ${cacheBustedUrl}`);
+        console.error(
+          `${name}のHTTPエラー:`,
+          response.status,
+          response.statusText
+        );
+        throw new Error(
+          `HTTP error! status: ${response.status}, url: ${cacheBustedUrl}`
+        );
       }
-      
+
       console.log(`${name}のレスポンス取得成功`);
       const arrayBuffer = await response.arrayBuffer();
-      console.log(`${name}のバッファ取得成功:`, arrayBuffer.byteLength, 'bytes');
+      console.log(
+        `${name}のバッファ取得成功:`,
+        arrayBuffer.byteLength,
+        'bytes'
+      );
 
       // 音声データをデコード
       return new Promise((resolve, reject) => {
@@ -329,7 +346,10 @@ class SoundUtils {
 
     try {
       // タイピング関連音の処理を最適化
-      const isTypingSound = lowerName === 'success' || lowerName === 'error' || lowerName === 'miss';
+      const isTypingSound =
+        lowerName === 'success' ||
+        lowerName === 'error' ||
+        lowerName === 'miss';
 
       if (isTypingSound) {
         // タイピング音は特別処理（より高速かつ低レイテンシー）
@@ -379,7 +399,9 @@ class SoundUtils {
 
       // AudioContextの状態確認と再開（特にiOS/Safari対策）
       if (this.context && this.context.state === 'suspended') {
-        this.context.resume().catch(e => console.warn('AudioContext再開失敗:', e));
+        this.context
+          .resume()
+          .catch((e) => console.warn('AudioContext再開失敗:', e));
       }
 
       // バッファにない場合は読み込みを試みる
@@ -480,10 +502,10 @@ class SoundUtils {
         const resumePromise = this.context.resume().catch((err) => {
           console.warn('AudioContext再開に失敗(1回目):', err);
           // 再度試行
-          return this.context.resume().catch(err2 => {
+          return this.context.resume().catch((err2) => {
             console.warn('AudioContext再開に失敗(2回目):', err2);
             // 3回目の試行
-            return this.context.resume().catch(err3 => {
+            return this.context.resume().catch((err3) => {
               console.error('AudioContext再開に失敗(最終):', err3);
             });
           });
@@ -514,7 +536,7 @@ class SoundUtils {
         error: error.toString(),
         contextState: this.context ? this.context.state : 'unknown',
         bufferSize: buffer ? buffer.length : 'null',
-        stack: error.stack
+        stack: error.stack,
       });
       return false;
     }
@@ -627,7 +649,11 @@ class SoundUtils {
     }
 
     // すでに同じBGMが再生中なら何もしない
-    if (this.currentBgm === name && this.bgmElement && !this.bgmElement.paused) {
+    if (
+      this.currentBgm === name &&
+      this.bgmElement &&
+      !this.bgmElement.paused
+    ) {
       return;
     }
 
@@ -643,7 +669,9 @@ class SoundUtils {
 
     // ユーザーインタラクションがまだない場合は保留状態にする
     if (!this.userInteracted) {
-      logUtil.debug(`BGM「${name}」は保留状態にセットされました。ユーザーインタラクション後に再生されます`);
+      logUtil.debug(
+        `BGM「${name}」は保留状態にセットされました。ユーザーインタラクション後に再生されます`
+      );
       this.pendingBgm = { name, loop };
       return;
     }
@@ -663,7 +691,7 @@ class SoundUtils {
       const bgmPath = this.bgmPresets[name];
       if (!bgmPath) {
         throw new Error(`BGM「${name}」はプリセットに存在しません`);
-      }      // HTML Audio要素を使用してBGMを再生（長時間再生に最適）
+      } // HTML Audio要素を使用してBGMを再生（長時間再生に最適）
       // bgmPathはすでにgetStaticPath()を通して取得しているので、そのまま使用可能
       const audio = new Audio(bgmPath);
       audio.loop = loop;
@@ -673,7 +701,7 @@ class SoundUtils {
       if (this.context) {
         // AudioContextが停止状態なら再開
         if (this.context.state === 'suspended') {
-          this.context.resume().catch(err => {
+          this.context.resume().catch((err) => {
             console.error('AudioContextの再開に失敗:', err);
           });
         }
@@ -682,13 +710,15 @@ class SoundUtils {
       // 再生開始
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(error => {
+        playPromise.catch((error) => {
           console.error(`BGM「${name}」の再生開始に失敗:`, error);
 
           // 自動再生ポリシーによるブロックの場合、保留状態にする
           if (!this.pendingBgm) {
             this.pendingBgm = { name, loop };
-            logUtil.debug(`BGM「${name}」が自動再生ポリシーでブロックされました。保留状態に設定しました`);
+            logUtil.debug(
+              `BGM「${name}」が自動再生ポリシーでブロックされました。保留状態に設定しました`
+            );
           }
         });
       }
@@ -720,7 +750,7 @@ class SoundUtils {
     if (this.bgmElement && this.bgmElement.paused && this.bgmEnabled) {
       const playPromise = this.bgmElement.play();
       if (playPromise !== undefined) {
-        playPromise.catch(error => {
+        playPromise.catch((error) => {
           console.error(`BGM「${this.currentBgm}」の再開に失敗:`, error);
         });
       }
@@ -811,10 +841,12 @@ class SoundUtils {
       environment: process.env.NODE_ENV,
       basePath: process.env.NEXT_PUBLIC_BASE_PATH || 'なし',
       useMCP: process.env.NEXT_PUBLIC_USE_MCP === 'true',
-      audioContext: this.context ? {
-        state: this.context.state,
-        sampleRate: this.context.sampleRate
-      } : 'なし'
+      audioContext: this.context
+        ? {
+            state: this.context.state,
+            sampleRate: this.context.sampleRate,
+          }
+        : 'なし',
     };
   }
 
@@ -834,20 +866,18 @@ class SoundUtils {
       sfxEnabled: this.sfxEnabled,
       gainValue: this.gainNode ? this.gainNode.gain.value : 'none',
       loadedBuffers: Object.keys(this.sfxBuffers),
-      fileChecks: {}
+      fileChecks: {},
     };
 
     // 重要な音声ファイルの存在チェック
-    const filesToCheck = [
-      'success', 'error', 'button', 'complete'
-    ];
+    const filesToCheck = ['success', 'error', 'button', 'complete'];
 
     for (const name of filesToCheck) {
       const url = this.soundPresets[name];
       if (url) {
         results.fileChecks[name] = {
           url,
-          exists: await this.checkSoundFileExists(url)
+          exists: await this.checkSoundFileExists(url),
         };
       }
     }
