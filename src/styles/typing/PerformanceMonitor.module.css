@@ -1,0 +1,171 @@
+.monitor {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 1px solid #00aaff;
+  border-radius: 5px;
+  padding: 10px;
+  color: #ffffff;
+  font-family: monospace;
+  font-size: 12px;
+  max-width: 320px;
+  min-width: 200px;
+  z-index: 1000;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px rgba(0, 170, 255, 0.5);
+}
+
+.monitor.expanded {
+  width: 320px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #00aaff;
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #00aaff;
+}
+
+.toggle {
+  color: #00aaff;
+  font-weight: bold;
+}
+
+.basicMetrics {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+}
+
+.label {
+  margin-right: 10px;
+}
+
+.value {
+  font-weight: bold;
+}
+
+.alert {
+  color: #ff5555;
+}
+
+.good {
+  color: #00aa00;
+}
+
+.detailedMetrics {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.graph {
+  margin-top: 15px;
+  position: relative;
+  height: 120px;
+}
+
+.graphTitle {
+  text-align: center;
+  margin-bottom: 5px;
+  color: #00aaff;
+  font-size: 12px;
+}
+
+.graphContainer {
+  display: flex;
+  align-items: flex-end;
+  height: 100px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid #333;
+  border-bottom: none;
+  position: relative;
+}
+
+.graphBar {
+  flex: 1;
+  margin: 0 1px;
+  transition: height 0.2s ease;
+  min-height: 1px;
+}
+
+.graphBaseline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #666;
+}
+
+.targetLine {
+  position: absolute;
+  bottom: 5%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #00aa00;
+  border-top: 1px dashed #00aa00;
+  color: #00aa00;
+  font-size: 10px;
+  text-align: right;
+  padding-right: 5px;
+}
+
+.analysis {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+.analysis h4 {
+  margin: 0 0 10px 0;
+  color: #00aaff;
+  font-size: 13px;
+}
+
+.analysis ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.recommendation {
+  color: #ffaa00;
+  margin-bottom: 5px;
+}
+
+/* デバッグ表示用（小型のフロート表示） */
+.debugDisplay {
+  position: fixed;
+  top: 5px;
+  right: 5px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border: 1px solid #00aa00;
+  border-radius: 3px;
+  padding: 4px 8px;
+  color: #00ff00;
+  font-family: monospace;
+  font-size: 10px;
+  z-index: 1000;
+  pointer-events: none;
+}
