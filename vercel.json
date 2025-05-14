@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "out",
+  "framework": "nextjs",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "gh-pages": false
+    }
+  },
+  "github": {
+    "enabled": true,
+    "silent": true
+  }
+}
