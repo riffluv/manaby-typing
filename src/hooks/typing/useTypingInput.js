@@ -258,30 +258,14 @@ export function useTypingInput(options = {}) {
           // 統計情報の更新を遅延処理に移動（レスポンス優先）
           queueMicrotask(() => {
             inputStatsRef.current.correctKeyPresses++;
-          });
-
-          // 効果音再生の高速化と安定性の改善（GitHub Pages対応）
-          const canPlaySound =
-            playSound &&
-            soundSystem &&
-            typeof soundSystem.playSound === 'function';
-          if (canPlaySound) {
-            // 即時呼び出しで確実に再生を試みる
-            try {
+          }); // 効果音再生の超高速化対応（レイテンシーを最小化）
+          if (playSound && soundSystem) {
+            // ウルトラ高速タイピング音再生メソッドを使用（エラーハンドリングを省略）
+            if (typeof soundSystem.ultraFastPlayTypingSound === 'function') {
+              soundSystem.ultraFastPlayTypingSound('success');
+            } else if (typeof soundSystem.playSound === 'function') {
+              // フォールバック：通常の再生メソッド
               soundSystem.playSound('success');
-            } catch (e) {
-              // エラー発生時のフォールバック - キュー追加で再試行
-              queueMicrotask(() => {
-                try {
-                  soundSystem.playSound('success');
-                } catch (fallbackError) {
-                  // エラー発生時も処理を継続
-                  console.warn(
-                    '効果音再生のフォールバックでも失敗',
-                    fallbackError
-                  );
-                }
-              });
             }
           }
 
@@ -335,21 +319,14 @@ export function useTypingInput(options = {}) {
 
           return { success: true, displayInfo, progress };
         } else {
-          // 不正解時の処理 - 効率化とGitHub Pages対応
+          // 不正解時の処理 - 超高速化対応
           if (playSound && soundSystem) {
-            try {
-              // 即時実行を試行
+            // ウルトラ高速タイピング音再生メソッドを使用（エラーハンドリングを省略）
+            if (typeof soundSystem.ultraFastPlayTypingSound === 'function') {
+              soundSystem.ultraFastPlayTypingSound('error');
+            } else if (typeof soundSystem.playSound === 'function') {
+              // フォールバック：通常の再生メソッド
               soundSystem.playSound('error');
-            } catch (e) {
-              console.warn('エラー音の再生に失敗、再試行します:', e);
-              // フォールバック - キューに追加して再試行
-              queueMicrotask(() => {
-                try {
-                  soundSystem.playSound('error');
-                } catch (fallbackError) {
-                  // 無視 - ユーザー体験維持のため処理継続
-                }
-              });
             }
           }
 

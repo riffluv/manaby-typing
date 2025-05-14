@@ -413,21 +413,10 @@ class SoundUtils {
 
       if (isTypingSound) {
         // タイピング音は特別処理（より高速かつ低レイテンシー）
-        // 多数の連続したリクエストを防ぎつつ、レスポンシブさは維持
-        const now = Date.now();
-        if (!this._lastPlayTimes) this._lastPlayTimes = {};
-        const lastPlayTime = this._lastPlayTimes[lowerName] || 0;
+        // 多数の連続したリクエストを許可し、レスポンシブさを最大化
 
-        // タイピング音の最小再生間隔を調整（さらに短く）
-        const minInterval = 3; // 3ミリ秒まで短縮
-
-        if (now - lastPlayTime < minInterval) {
-          // 間隔が短すぎる場合はスキップ（パフォーマンス向上）
-          return;
-        }
-
-        // 最終再生時間を記録
-        this._lastPlayTimes[lowerName] = now;
+        // タイピング音は間隔制限を撤廃（0ms）- 即時再生を実現
+        // 最終再生時間の記録も省略してオーバーヘッドを削減
 
         // バッファにあればすぐに再生（最適化パス）
         if (this.sfxBuffers[lowerName]) {
@@ -500,7 +489,106 @@ class SoundUtils {
   }
 
   /**
-   * バッファから効果音を高速再生する（タイピング音用の最適化版）
+   * タイピング音を事前にロードしてバッファにキャッシュ
+   * この関数を初期化時に呼び出すことで、初回のタイピング時の遅延をなくす
+   * @return {Promise} ロード完了を示すPromise
+   */
+  preloadTypingSounds() {
+    if (typeof window === 'undefined' || !this.context) {
+      return Promise.resolve();
+    }
+
+    // タイピング音のリスト
+    const typingSounds = ['success', 'error', 'miss'];
+
+    // バッファが既に存在しているサウンドをフィルタリング
+    const soundsToLoad = typingSounds.filter(
+      (sound) => !this.sfxBuffers[sound.toLowerCase()]
+    );
+
+    if (soundsToLoad.length === 0) {
+      return Promise.resolve(); // 全て既にロード済み
+    }
+
+    // サウンドをロードするPromiseの配列を作成
+    const loadPromises = soundsToLoad.map((sound) => {
+      const presetKey = Object.keys(this.soundPresets).find(
+        (key) => key.toLowerCase() === sound.toLowerCase()
+      );
+      if (presetKey) {
+        return this.loadSound(
+          sound.toLowerCase(),
+          this.soundPresets[presetKey]
+        );
+      }
+      return Promise.resolve();
+    });
+
+    return Promise.all(loadPromises)
+      .then(() => {
+        console.log('タイピング音の事前ロードが完了しました');
+      })
+      .catch((error) => {
+        console.warn('タイピング音の事前ロード中にエラーが発生しました', error);
+      });
+  }
+
+  /**
+   * タイピング音専用の超高速再生メソッド
+   * チェックや遅延を最小限にして即時再生を実現
+   * @param {string} soundName - 'success'または'error'のみ対応
+   * @return {boolean} 再生が開始されたかどうか
+   */ ultraFastPlayTypingSound(soundName) {
+    // 最小限のチェック - soundNameが無効な場合は即時リターン
+    if (
+      !this.sfxEnabled ||
+      !soundName ||
+      typeof window === 'undefined' ||
+      !this.context
+    ) {
+      return false;
+    }
+
+    // タイピング音のみ対応（success/error/miss）
+    const lowerName = soundName.toLowerCase();
+    if (
+      lowerName !== 'success' &&
+      lowerName !== 'error' &&
+      lowerName !== 'miss'
+    ) {
+      return false;
+    }
+
+    try {
+      // バッファが準備済みかチェック
+      const buffer = this.sfxBuffers[lowerName];
+      if (!buffer) {
+        // バッファがなければ通常の再生メソッドで対応
+        this.playSound(soundName);
+        return false;
+      }
+
+      // 直接AudioBufferSourceNodeを作成して再生
+      const sourceNode = this.context.createBufferSource();
+      sourceNode.buffer = buffer;
+      sourceNode.connect(this.gainNode);
+      sourceNode.start(0);
+
+      // クリーンアップは自動的に行われるのでコールバック設定を省略
+      // これによりパフォーマンスが向上
+
+      return true;
+    } catch (error) {
+      // エラーをスローせず静かに失敗（パフォーマンス最優先）
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('タイピング音超高速再生エラー:', soundName);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * 高速バッファ再生（タイピング音向け最適化版）
    * @param {AudioBuffer} buffer - 再生するオーディオバッファ
    * @private
    */
@@ -537,8 +625,14 @@ class SoundUtils {
   /**
    * 効果音を再生する (playSound のエイリアス - 互換性のため)
    * @param {string} name - 再生する効果音の名前
-   */
-  play(name) {
+   */ play(name) {
+    // タイピング音の場合は超高速再生を試みる
+    if (name === 'success' || name === 'error' || name === 'miss') {
+      if (typeof this.ultraFastPlayTypingSound === 'function') {
+        return this.ultraFastPlayTypingSound(name);
+      }
+    }
+    // それ以外は通常の再生
     return this.playSound(name);
   }
   /**

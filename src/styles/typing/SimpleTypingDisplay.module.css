@@ -9,7 +9,8 @@
   position: relative;
   border: none;
   box-sizing: border-box;
-  font-family: 'Cascadia Code', 'Source Code Pro', 'Fira Code', 'Consolas', monospace;
+  font-family: 'Cascadia Code', 'Source Code Pro', 'Fira Code', 'Consolas',
+    monospace;
   font-size: 1.5rem;
   line-height: 1.3;
   letter-spacing: normal;
@@ -124,19 +125,19 @@
 .optimizedFocus {
   /* 古いアニメーションを無効化 */
   animation: none;
-  
+
   /* より軽量な代替アニメーションを使用 */
   animation: optimized-pulse 1.2s infinite alternate;
-  
+
   /* GPUアクセラレーションを有効化 */
   will-change: opacity;
-  
+
   /* フォーカス要素のスクロール位置の調整 */
   scroll-margin-block: 1.5rem;
-  
+
   /* transformではなくopacityベースのアニメーションに切り替え */
   text-shadow: 0 0 6px rgba(255, 154, 40, 0.6);
-  
+
   /* テキスト選択を無効化してレンダリングを最適化 */
   user-select: none;
 }

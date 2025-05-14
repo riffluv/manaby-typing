@@ -87,7 +87,7 @@ export class TypingSession {
    * @private
    */
   _generateDisplayRomaji() {
-    return this.patterns.map(pattern => pattern[0]).join('');
+    return this.patterns.map((pattern) => pattern[0]).join('');
   }
 
   /**
@@ -102,18 +102,22 @@ export class TypingSession {
     // 現在のパフォーマンスを測定
     const now = performance.now();
     this._perfData.lastUpdateTime = now;
-    
+
     // 時間経過による行の完了・切り替え処理（時間ベースで自動進行）
-    if (this.endTime > 0 && currentTime > this.endTime && !this.completionStatus.completed) {
+    if (
+      this.endTime > 0 &&
+      currentTime > this.endTime &&
+      !this.completionStatus.completed
+    ) {
       // 残りの未入力文字をカウント
       leftover = this.getLeftoverCharCount();
-      
+
       // 行を強制的に完了状態に設定
       this.completionStatus.completed = true;
       this.completionStatus.totalProgress = 100;
       changed = true;
     }
-    
+
     return [changed, leftover];
   }
 
@@ -135,21 +139,21 @@ export class TypingSession {
   getLeftoverCharCount() {
     // 完了している場合は0を返す
     if (this.completionStatus.completed) return 0;
-    
+
     // 残りのパターンの文字数をカウント
     let leftover = 0;
-    
+
     // 現在のパターンの残り
     if (this.patternIndex < this.patterns.length) {
       const currentPatternLength = this.patternLengths[this.patternIndex];
       leftover += currentPatternLength - this.currentInput.length;
     }
-    
+
     // 残りのパターン
     for (let i = this.patternIndex + 1; i < this.patterns.length; i++) {
       leftover += this.patternLengths[i];
     }
-    
+
     return leftover;
   }
 
@@ -170,25 +174,27 @@ export class TypingSession {
     if (this.completionStatus.completed) {
       return -1;
     }
-    
+
     // 入力キャッシュをチェック
     const cacheKey = `${this.patternIndex}-${this.currentInput.length}-${character}`;
     if (this._inputResultCache.has(cacheKey)) {
       const cachedResult = this._inputResultCache.get(cacheKey);
-      
+
       if (cachedResult) {
         // キャッシュヒット時はキャッシュされた結果を利用
         if (cachedResult.success) {
           this.currentInput = cachedResult.newInput || this.currentInput;
           this.typedString = cachedResult.newTyped || this.typedString;
           this.patternIndex = cachedResult.newPatternIndex || this.patternIndex;
-          this.currentCharIndex = cachedResult.newCharIndex || this.currentCharIndex;
-          this.completionStatus = cachedResult.newCompletionStatus || this.completionStatus;
-          
+          this.currentCharIndex =
+            cachedResult.newCharIndex || this.currentCharIndex;
+          this.completionStatus =
+            cachedResult.newCompletionStatus || this.completionStatus;
+
           // コンボ更新
           this.combo += 1;
           this.maxCombo = Math.max(this.combo, this.maxCombo);
-          
+
           return 1;
         } else {
           // ミス入力はコンボリセット
@@ -197,10 +203,10 @@ export class TypingSession {
         }
       }
     }
-    
+
     // キャッシュミス時は通常処理
     const result = this.processInput(character);
-    
+
     // 処理結果をキャッシュ
     if (result.success) {
       this._inputResultCache.set(cacheKey, {
@@ -209,17 +215,17 @@ export class TypingSession {
         newTyped: this.typedString,
         newPatternIndex: this.patternIndex,
         newCharIndex: this.currentCharIndex,
-        newCompletionStatus: this.completionStatus
+        newCompletionStatus: this.completionStatus,
       });
-      
+
       // コンボ更新
       this.combo += 1;
       this.maxCombo = Math.max(this.combo, this.maxCombo);
-      
+
       return 1;
     } else {
       this._inputResultCache.set(cacheKey, { success: false });
-      
+
       // ミス入力はコンボリセット
       this.combo = 0;
       return -1;
@@ -283,9 +289,9 @@ export class TypingSession {
               status: 'all_completed',
             };
           }
-        }        // 進捗状況の更新
+        } // 進捗状況の更新
         this._updateProgress();
-        
+
         // 進捗が100%に達した場合も完了と判定する（強化）
         if (this.completionStatus.totalProgress >= 99.9) {
           this.completionStatus.completed = true;
@@ -319,7 +325,8 @@ export class TypingSession {
       this._perfData.lastProcessTime = processTime;
       this._perfData.processCount++;
       this._perfData.averageProcessTime =
-        (this._perfData.averageProcessTime * (this._perfData.processCount - 1) + processTime) /
+        (this._perfData.averageProcessTime * (this._perfData.processCount - 1) +
+          processTime) /
         this._perfData.processCount;
     }
   }
@@ -331,7 +338,9 @@ export class TypingSession {
   _updateProgress() {
     // パターン内の進捗
     const currentPatternLength = this.patternLengths[this.patternIndex] || 1;
-    const patternProgress = Math.floor((this.currentInput.length / currentPatternLength) * 100);
+    const patternProgress = Math.floor(
+      (this.currentInput.length / currentPatternLength) * 100
+    );
 
     // 全体の進捗
     let totalTyped = 0;
@@ -412,46 +421,49 @@ export class TypingSession {
       currentCharRomaji,
     };
   }
-  
+
   /**
    * 現在の入力中の表示テキストを取得
    * @returns {string} 残りの入力テキスト
    */
   getRemainingText() {
     if (this.completionStatus.completed) return '';
-    
+
     // 残りの入力テキストを構築
     let remainingText = '';
-    
+
     // 現在のパターンの残り
     if (this.patternIndex < this.patterns.length) {
       const currentPattern = this.patterns[this.patternIndex][0] || '';
       remainingText = currentPattern.substring(this.currentInput.length);
     }
-    
+
     // 残りのパターン
     for (let i = this.patternIndex + 1; i < this.patterns.length; i++) {
       remainingText += this.patterns[i][0] || '';
     }
-    
+
     return remainingText.toUpperCase();
   }
-  
+
   /**
    * 完了状態かどうかを確認
    * @returns {boolean} 完了状態の場合true
-   */  isCompleted() {
+   */ isCompleted() {
     // デバッグログ追加
-    if (this.completionStatus.totalProgress >= 99 && !this.completionStatus.completed) {
+    if (
+      this.completionStatus.totalProgress >= 99 &&
+      !this.completionStatus.completed
+    ) {
       // 進捗は99%以上だが完了フラグがfalseの場合は、エラー状態の可能性があるため
       // デバッグが必要な場合のみログを表示
-      
+
       // 進捗が99%以上ならcompletedも強制的にtrueにする
       this.completionStatus.completed = true;
     }
     return this.completionStatus.completed;
   }
-  
+
   /**
    * 現在のコンボ数を取得
    * @returns {number} コンボ数
@@ -459,7 +471,7 @@ export class TypingSession {
   getCombo() {
     return this.combo;
   }
-  
+
   /**
    * 最大コンボ数を取得
    * @returns {number} 最大コンボ数
