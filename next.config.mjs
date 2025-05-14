@@ -1,7 +1,7 @@
-/** @type {import('next').NextConfig} */
-
-// 本番ビルド用の設定か開発用の設定かを環境変数で判断
+/** @type {import('next').NextConfig} */  // 本番ビルド用の設定か開発用の設定かを環境変数で判断
 const isProd = process.env.NODE_ENV === 'production';
+// Vercel環境かどうか
+const isVercel = process.env.VERCEL === '1';
 
 // 環境に基づいてベースパスを決定する関数
 function getBasePath() {
@@ -52,8 +52,8 @@ const configureWebpack = (config, { isServer }) => {
 const nextConfig = {  // GitHub PagesとVercelどちらにも対応する設定
   basePath: getBasePath(),
   assetPrefix: getBasePath(),
-  // 静的エクスポートの設定（本番環境のみ）
-  ...(isProd ? { 
+  // 静的エクスポートの設定（本番環境かつVercel以外の環境のみ）
+  ...((isProd && !isVercel) ? { 
     output: 'export',
     // 静的エクスポート設定のカスタマイズ
     trailingSlash: true,

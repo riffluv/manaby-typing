@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "out",
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
   "framework": "nextjs",
   "git": {
     "deploymentEnabled": {
