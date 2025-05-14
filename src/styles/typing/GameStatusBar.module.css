@@ -4,6 +4,37 @@
  * タイプマニア風のスタイル要素を追加
  */
 
+/* フェードインのアニメーション (framer-motionの代わり) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade_in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* ロゴアニメーション (framer-motionの代わり) */
+@keyframes logoFadeIn {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+.logo_animation {
+  animation: logoFadeIn 0.3s ease-out forwards;
+  transition: transform 0.2s ease;
+}
+
+.logo_animation:hover {
+  transform: scale(1.05) translateY(-1px);
+}
+
 .status_bar {
   display: flex;
   justify-content: space-between;
@@ -65,6 +96,8 @@
   /* 二重の光彩効果 */
   transition: all 0.3s ease;
   /* エフェクトのスムーズな遷移 */
+  will-change: transform;
+  /* GPU支援処理への移行 */
 }
 
 /* ホバー時の効果 */
