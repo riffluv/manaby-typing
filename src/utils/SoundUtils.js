@@ -76,9 +76,9 @@ class SoundUtils {
 
     // ローカルストレージから設定を読み込む（存在する場合）    this._loadSettingsFromStorage();    // サウンドプリセット定義
     this.soundPresets = {
-      // 基本ゲーム効果音
-      success: getStaticPath('/sounds/hit05-1.mp3'), // タイピング成功音 - Vercel環境のために小文字に変更
-      error: getStaticPath('/sounds/hit04-1.mp3'), // タイピングエラー音 - Vercel環境のために小文字に変更
+      // 基本ゲーム効果音 - ファイル名大文字小文字に対応
+      success: this._getSoundPathWithFallback('Hit05-1.mp3', 'hit05-1.mp3'), // タイピング成功音
+      error: this._getSoundPathWithFallback('Hit04-1.mp3', 'hit04-1.mp3'), // タイピングエラー音
       complete: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音
       button: getStaticPath('/sounds/buttonsound1.mp3'), // ボタンクリック音
     };
@@ -110,6 +110,32 @@ class SoundUtils {
     }
 
     logUtil.debug('サウンドシステム初期化完了');
+  }
+
+  /**
+   * ファイル名の大文字小文字に対応するパス取得ヘルパー
+   * @param {string} primaryName - 優先するファイル名（大文字）
+   * @param {string} fallbackName - フォールバックファイル名（小文字）
+   * @returns {string} 適切なファイルパス
+   * @private
+   */
+  _getSoundPathWithFallback(primaryName, fallbackName) {
+    // プライマリとフォールバックの両方のパスを生成
+    const primaryPath = getStaticPath(`/sounds/${primaryName}`);
+    const fallbackPath = getStaticPath(`/sounds/${fallbackName}`);
+    
+    // Vercel環境では小文字のパスを優先
+    const isVercel = typeof process !== 'undefined' && 
+                    process.env && process.env.VERCEL === '1';
+    
+    if (isVercel) {
+      console.log(`Vercel環境検出: ${fallbackPath} を使用`);
+      return fallbackPath;
+    }
+    
+    // GitHub Pages環境では大文字のパスを優先
+    console.log(`非Vercel環境: ${primaryPath} を使用`);
+    return primaryPath;
   }
 
   /**
