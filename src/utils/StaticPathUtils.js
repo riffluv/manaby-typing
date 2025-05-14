@@ -7,7 +7,19 @@
  * @returns {boolean} Vercel環境かどうか
  */
 export const isVercelEnv = () => {
-  return typeof process !== 'undefined' && process.env && process.env.VERCEL === '1';
+  // process.envがクライアントサイドでも利用可能なpublic環境変数を確認
+  const isVercel = typeof process !== 'undefined' && 
+                  process.env && 
+                  (process.env.VERCEL === '1' || 
+                   process.env.NEXT_PUBLIC_VERCEL_ENV === 'production');
+  
+  // URLからの検出（デプロイメント後に利用可能）
+  const isVercelUrl = typeof window !== 'undefined' && 
+                      window.location && 
+                      (window.location.hostname.includes('vercel.app') || 
+                       window.location.hostname === 'manaby-typing.vercel.app');
+                       
+  return isVercel || isVercelUrl;
 };
 
 /**
