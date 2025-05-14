@@ -1,6 +1,7 @@
 /* 
  * GameStatusBar.module.css
  * ゲームステータスバー用のスタイル
+ * タイプマニア風のスタイル要素を追加
  */
 
 .status_bar {
@@ -34,8 +35,7 @@
   /* より洗練された影を追加 */
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  /* 左寄せに変更 */
+  justify-content: space-between; /* スペースを均等に分配 */
 }
 
 /* manabyロゴのコンテナ */
@@ -43,10 +43,9 @@
   height: 100%;
   display: flex;
   align-items: center;
-  margin-right: auto;
-  /* 右側の余白を自動調整 */
   padding-left: 15px;
   /* 左側の余白を少し増やす */
+  flex: 0 0 auto; /* 固定サイズ */
 }
 
 /* manabyロゴ画像 */
@@ -135,6 +134,155 @@
   box-shadow: 0 0 8px rgba(0, 200, 255, 0.7);
   border-radius: 3px;
   transition: width 0.3s ease;
+}
+
+/* コンボ表示用のスタイル */
+.combo_container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 200, 0, 0.8);
+}
+
+.combo_value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #ffcc00;
+  line-height: 1;
+  text-shadow: 
+    0 0 5px rgba(255, 140, 0, 0.8),
+    0 0 15px rgba(255, 100, 0, 0.6);
+}
+
+.combo_label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #ff8800;
+  text-transform: uppercase;
+  margin-top: -5px;
+}
+
+/* スコア情報表示用のスタイル */
+.stats_container {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-left: auto;
+  padding-right: 15px;
+  flex: 0 0 auto; /* 固定サイズ */
+}
+
+.score_display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.score_label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.score_value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #00eeff;
+  text-shadow: 0 0 8px rgba(0, 210, 255, 0.7);
+}
+
+/* ランク表示用のスタイル */
+.rank_display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rank_label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.rank_value {
+  font-size: 1.7rem;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* 各ランクの色 */
+.rank_s {
+  color: #ffcc00;
+  text-shadow: 0 0 10px rgba(255, 200, 0, 0.8);
+}
+
+.rank_a {
+  color: #ff9900;
+  text-shadow: 0 0 8px rgba(255, 153, 0, 0.7);
+}
+
+.rank_b {
+  color: #33ccff;
+  text-shadow: 0 0 8px rgba(51, 204, 255, 0.7);
+}
+
+.rank_c {
+  color: #33ff99;
+  text-shadow: 0 0 8px rgba(51, 255, 153, 0.7);
+}
+
+.rank_d {
+  color: #cc99ff;
+  text-shadow: 0 0 8px rgba(204, 153, 255, 0.7);
+}
+
+.rank_f {
+  color: #ff6666;
+  text-shadow: 0 0 8px rgba(255, 102, 102, 0.7);
+}
+
+/* タイピング統計情報用のスタイル */
+.typing_stats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+  flex: 0 0 auto; /* 固定サイズ */
+}
+
+.kpm_display {
+  display: flex;
+  gap: 0.3rem;
+  align-items: baseline;
+}
+
+.kpm_label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.kpm_value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #33ffcc;
+}
+
+.completion {
+  display: flex;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ffffff;
 }
 
 /* レスポンシブ対応 */

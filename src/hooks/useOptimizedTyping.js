@@ -8,6 +8,7 @@
  * 2025年5月改修:
  * - タイピング処理をメインスレッドで実行し、レスポンス性能を向上
  * - スコア計算のみWorkerに委譲し、CPUリソースを効率活用
+ * - TypingManiaのリアルタイム更新と最適スコアリングシステムを実装
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -31,6 +32,7 @@ export function useOptimizedTyping(options = {}) {
     playSound = true,
     soundSystem = DEFAULT_SOUND_SYSTEM,
     onProblemComplete = () => { },
+    onScoreUpdate = () => { },
     onDebugInfoUpdate = null,
   } = options;
 
@@ -51,6 +53,20 @@ export function useOptimizedTyping(options = {}) {
     currentInput: '',
     expectedNextChar: '',
     currentCharRomaji: '',
+  });
+
+  // スコア情報 - TypingMania風のスコアシステム
+  const [scoreData, setScoreData] = useState({
+    score: 0,
+    baseScore: 0,
+    combo: 0,
+    maxCombo: 0,
+    lastTimestamp: 0,
+    typingTime: 0,
+    correct: 0,
+    missed: 0,
+    skipped: 0,
+    rank: 'F',
   });
 
   // 進捗表示
@@ -80,6 +96,7 @@ export function useOptimizedTyping(options = {}) {
   // タイマー参照
   const errorTimerRef = useRef(null);
   const statsUpdateTimerRef = useRef(null);
+  const scoreUpdateTimerRef = useRef(null);
 
   // デバッグ情報
   const debugInfoRef = useRef({});
@@ -87,11 +104,170 @@ export function useOptimizedTyping(options = {}) {
   // 最適化定数
   const PROGRESS_UPDATE_THRESHOLD = 5; // 進捗更新の閾値
   const STATS_UPDATE_INTERVAL = 100;   // 統計更新間隔(ms)
+  const SCORE_UPDATE_INTERVAL = 50;    // スコア更新間隔(ms)
+
+  /**
+   * スコア更新処理 - TypingManiaスタイル
+   * @param {Object} data 更新データ
+   */
+  const updateScore = useCallback((data = {}) => {
+    const {
+      timestamp = Date.now(),
+      scoreFactor = 1,
+      isCorrect = true,
+      isSkipped = false,
+      skippedChars = 0,
+      lineCompleted = false,
+      lineCompleteNoMiss = false,
+      combo = null,
+      maxCombo = null,
+    } = data;
+
+    setScoreData(prevScore => {
+      // スコア計算用の基本データ
+      let newScore = prevScore.score;
+      let newCombo = combo !== null ? combo : prevScore.combo;
+      let newMaxCombo = maxCombo !== null ? maxCombo : prevScore.maxCombo;
+      let newCorrect = prevScore.correct;
+      let newMissed = prevScore.missed;
+      let newSkipped = prevScore.skipped;
+      let newTypingTime = prevScore.typingTime;
+
+      // タイピング時間の更新
+      if (prevScore.lastTimestamp > 0) {
+        newTypingTime += timestamp - prevScore.lastTimestamp;
+      }
+
+      // 入力結果に応じたスコア計算
+      if (isCorrect) {
+        // 正解の場合
+        newCorrect++;
+        
+        // TypingManiaのスコア計算方式を適用
+        const cpmScore = calculateCPM(newTypingTime, newCorrect) * 0.25;
+        const comboScore = newCombo;
+        const baseScore = 1000; // 基本点
+        
+        // スコア = 基本点(1000) + CPMボーナス(*0.25) + コンボボーナス
+        const pointsEarned = Math.ceil(baseScore + cpmScore + comboScore) * scoreFactor;
+        newScore += pointsEarned;
+      } else if (isSkipped) {
+        // スキップの場合
+        newSkipped += skippedChars;
+      } else {
+        // ミスの場合
+        newMissed++;
+        newScore = Math.max(0, newScore - 500); // ペナルティ
+      }
+
+      // 行完了ボーナス
+      if (lineCompleted) {
+        newScore += Math.ceil(newScore * 0.1); // 行完了で10%ボーナス
+        
+        if (lineCompleteNoMiss) {
+          newScore += Math.ceil(newScore * 0.15); // ミスなしでさらに15%ボーナス
+        }
+      }
+
+      // ランク計算
+      const baseScoreValue = sessionRef.current ? 
+        (sessionRef.current.getCharacterCount() * 1250) : 
+        prevScore.baseScore;
+      
+      const rank = calculateRank(newScore, baseScoreValue);
+
+      return {
+        score: newScore,
+        baseScore: baseScoreValue,
+        combo: newCombo,
+        maxCombo: newMaxCombo,
+        lastTimestamp: timestamp,
+        typingTime: newTypingTime,
+        correct: newCorrect,
+        missed: newMissed,
+        skipped: newSkipped,
+        rank
+      };
+    });
+  }, []);
+
+  /**
+   * CPM（Characters Per Minute）計算
+   * @param {number} typingTime タイピング時間（ミリ秒）
+   * @param {number} correctCount 正解数
+   * @returns {number} CPM値
+   */
+  const calculateCPM = useCallback((typingTime, correctCount) => {
+    if (typingTime <= 0) return 0;
+    return Math.round(60 * 1000 * correctCount / typingTime);
+  }, []);
+
+  /**
+   * ランク計算（TypingManiaスタイル）
+   * @param {number} score 現在のスコア
+   * @param {number} baseScore 基準スコア
+   * @returns {string} ランク（SSS～F）
+   */
+  const calculateRank = useCallback((score, baseScore) => {
+    if (score >= baseScore * 1.25) return 'SSS';
+    if (score >= baseScore * 1.10) return 'SS';
+    if (score >= baseScore * 1.05) return 'S+';
+    if (score >= baseScore * 1.00) return 'S';
+    if (score >= baseScore * 0.95) return 'A+';
+    if (score >= baseScore * 0.90) return 'A';
+    if (score >= baseScore * 0.85) return 'B+';
+    if (score >= baseScore * 0.80) return 'B';
+    if (score >= baseScore * 0.75) return 'C+';
+    if (score >= baseScore * 0.70) return 'C';
+    if (score >= baseScore * 0.60) return 'D+';
+    if (score >= baseScore * 0.50) return 'D';
+    if (score >= baseScore * 0.40) return 'E+';
+    if (score >= baseScore * 0.30) return 'E';
+    if (score >= baseScore * 0.20) return 'F+';
+    return 'F';
+  }, []);
+
+  /**
+   * タイプ入力が正解だった時の処理
+   */
+  const handleCorrectInput = useCallback(({ key, displayInfo, progress }) => {
+    // 表示情報を更新
+    setDisplayData(displayInfo);
+
+    // 進捗が大きく変わった場合のみ更新（最適化）
+    if (Math.abs(progress - progressPercentage) > PROGRESS_UPDATE_THRESHOLD) {
+      setProgressPercentage(progress);
+    }
+
+    // 正解入力をカウント
+    countCorrectKey();
+    
+    // スコア更新
+    updateScore({
+      timestamp: Date.now(),
+      isCorrect: true,
+      scoreFactor: 1,
+    });
+  }, [progressPercentage, updateScore]);
+
+  /**
+   * タイプ入力が不正解だった時の処理
+   */
+  const handleIncorrectInput = useCallback(() => {
+    // ミス入力をカウント
+    countMistake();
+    
+    // スコア更新（ミスペナルティ）
+    updateScore({
+      timestamp: Date.now(),
+      isCorrect: false
+    });
+  }, [updateScore]);
 
   /**
    * 問題完了時の処理
    */
-  const handleProblemComplete = useCallback(() => {
+  const handleProblemComplete = useCallback(({ combo = 0, maxCombo = 0 }) => {
     // 既に完了済みなら何もしない
     if (completedRef.current) return;
 
@@ -99,6 +275,15 @@ export function useOptimizedTyping(options = {}) {
     completedRef.current = true;
     setIsCompleted(true);
     
+    // スコアを最終更新
+    updateScore({
+      timestamp: Date.now(),
+      combo,
+      maxCombo,
+      lineCompleted: true,
+      lineCompleteNoMiss: statsRef.current.mistakeCount === 0
+    });
+
     // 最終的な表示進捗を100%に
     setProgressPercentage(100);
 
@@ -129,6 +314,9 @@ export function useOptimizedTyping(options = {}) {
     // 表示用統計を更新
     updateDisplayStats();
 
+    // スコアコールバック呼び出し
+    onScoreUpdate(scoreData);
+
     // コールバック呼び出し
     onProblemComplete({
       problemKeyCount,
@@ -136,9 +324,29 @@ export function useOptimizedTyping(options = {}) {
       problemKPM: problemData.problemKPM,
       problemMistakeCount,
       updatedProblemKPMs: updatedProblemStats.map(p => p.problemKPM || 0),
-      problemStats: updatedProblemStats
+      problemStats: updatedProblemStats,
+      score: scoreData
     });
-  }, [onProblemComplete]);
+  }, [onProblemComplete, onScoreUpdate, scoreData, updateScore]);
+
+  /**
+   * 行終了時の処理（タイムベースのスキップ）
+   */
+  const handleLineEnd = useCallback(({ leftover = 0, completed = false, combo = 0, maxCombo = 0 }) => {
+    // スキップされた文字数をスコアに反映
+    updateScore({
+      timestamp: Date.now(),
+      isSkipped: true,
+      skippedChars: leftover,
+      combo,
+      maxCombo
+    });
+    
+    // 行の完了を記録
+    if (completed) {
+      handleProblemComplete({ combo, maxCombo });
+    }
+  }, [updateScore, handleProblemComplete]);
 
   /**
    * 表示用統計情報更新
@@ -362,36 +570,20 @@ export function useOptimizedTyping(options = {}) {
           soundSystem.playSound('success');
         }
         
-        // 正解カウント
-        countCorrectKey(Date.now());
-        
-        // 表示情報更新
-        const colorInfo = session.getColoringInfo();
-        const newDisplayData = {
-          romaji: colorInfo.romaji || '',
-          typedLength: colorInfo.typedLength || 0,
-          currentInputLength: colorInfo.currentInputLength || 0,
-          currentCharIndex: colorInfo.currentCharIndex || 0,
-          currentInput: colorInfo.currentInput || '',
-          expectedNextChar: colorInfo.expectedNextChar || '',
-          currentCharRomaji: colorInfo.currentCharRomaji || '',
-        };
-        
-        setDisplayData(newDisplayData);
-        
-        // 進捗更新 (変化が大きい場合のみ更新)
-        const newProgress = session.getCompletionPercentage();
-        if (Math.abs(newProgress - progressPercentage) >= PROGRESS_UPDATE_THRESHOLD) {
-          setProgressPercentage(newProgress);
-        }
+        // 正解の場合の処理
+        handleCorrectInput({
+          key,
+          displayInfo: session.getColoringInfo(),
+          progress: session.getCompletionPercentage(),
+        });
         
         // デバッグ情報の更新
         if (onDebugInfoUpdate) {
           debugInfoRef.current = {
             ...debugInfoRef.current,
             lastKey: key,
-            displayInfo: newDisplayData,
-            progress: newProgress,
+            displayInfo: session.getColoringInfo(),
+            progress: session.getCompletionPercentage(),
           };
           onDebugInfoUpdate(debugInfoRef.current);
         }

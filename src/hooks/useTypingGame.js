@@ -99,81 +99,182 @@ export function useTypingGame(options = {}) {
     completedRef: typingCore.completedRef,
     playSound,
     soundSystem,
-    // 問題完了時に呼び出されるコールバック
-    onComplete: (inputData) => {
-      // 状態を完了に設定
-      typingCore.markAsCompleted();
-
-      // 問題統計情報を記録し、上位コールバックに渡す
-      const stats = typingStats.recordProblemCompletion();
-
-      // 現在のミス数を明示的に取得
-      const rawTypingStats = typingStats.statsRef.current || {};
-      const mistakeCount = rawTypingStats.mistakeCount || 0;
-
-      // パラメータ準備（シンプルにする）
-      const typingStatsData = {
-        problemKeyCount: stats.problemKeyCount || 0,
-        problemElapsedMs: stats.problemElapsedMs || 0,
-        problemKPM: stats.problemKPM || 0,
-        problemMistakeCount: stats.problemMistakeCount || 0,
-        displayStats: typingStats.displayStats,
-        // 累計ミス数を直接取得
-        totalMistakes: mistakeCount
-      };      // 問題完了のログ出力を削除
-
-      // 上位レイヤーに完了を通知
-      if (typeof options.onComplete === 'function') {
-        options.onComplete(typingStatsData);
-      }
-      // onCompleteコールバック未定義のログを削除
-    },
     onCorrectInput: ({ key, displayInfo, progress }) => {
-      // 表示情報の更新
-      typingCore.setDisplayInfo(displayInfo);
-
-      // 大きな進捗変化があるときのみ更新
-      if (Math.abs(progress - typingCore.progressPercentage) >= PROGRESS_UPDATE_THRESHOLD) {
+      // 進捗が十分変化した場合のみ更新（最適化）
+      if (Math.abs(progress - typingCore.progressPercentage) > PROGRESS_UPDATE_THRESHOLD) {
         typingCore.setProgressPercentage(progress);
       }
 
-      // 統計情報を更新
-      typingStats.countCorrectKey(Date.now());
+      // 表示情報を更新
+      typingCore.setDisplayData(displayInfo);
 
-      // デバッグ情報の更新
-      if (onDebugInfoUpdate) {
-        debugInfoRef.current = {
-          ...debugInfoRef.current,
-          lastKey: key,
-          displayInfo,
-          progress,
-        };
-        onDebugInfoUpdate(debugInfoRef.current);
-      }
+      // 統計情報を更新
+      typingStats.recordCorrectKey();
     },
-    onIncorrectInput: ({ key }) => {
-      // 統計情報を更新
-      typingStats.countMistake();
+    onIncorrectInput: () => {
+      // ミス入力を記録
+      typingStats.recordMistake();
+    },    onComplete: ({ result, displayInfo, progress, combo, maxCombo }) => {
+      try {
+        // 完了フラグを設定（エラーハンドリング強化）
+        if (typingCore && typeof typingCore.setCompleted === 'function') {
+          console.log('[useTypingGame] 完了フラグを設定します');
+          typingCore.setCompleted(true);
+          
+          // 安全対策として直接参照も更新
+          if (typingCore.completedRef) {
+            typingCore.completedRef.current = true;
+          }
+        } else {
+          console.warn('[useTypingGame] typingCore.setCompletedが未定義です');
+        }
 
-      // ミスカウント後の情報をログ出力
-      const mistakeCount = typingStats.statsRef.current?.mistakeCount || 0;
-      console.log('[useTypingGame] ミス入力を検出:', {
-        key,
-        現在のミス数: mistakeCount,
-        表示用ミス数: typingStats.displayStats.mistakeCount
+        // 最終進捗を100%に
+        if (typingCore && typeof typingCore.setProgressPercentage === 'function') {
+          typingCore.setProgressPercentage(100);
+        }
+
+        // 最終的な表示情報を設定
+        if (typingCore && typeof typingCore.setDisplayData === 'function') {
+          typingCore.setDisplayData(displayInfo);
+        }
+      } catch (error) {
+        console.error('[useTypingGame] 完了処理中にエラーが発生しました:', error);
+      }
+
+      // 問題完了イベント通知
+      handleProblemStateChange({
+        type: 'completed',
+        progress: 100,
+        combo,
+        maxCombo
       });
-
-      // デバッグ情報の更新
-      if (onDebugInfoUpdate) {
-        debugInfoRef.current = {
-          ...debugInfoRef.current,
-          lastErrorKey: key,
-          mistakeCount: mistakeCount
-        };
-        onDebugInfoUpdate(debugInfoRef.current);
-      }
     },
+    onLineEnd: ({ leftover, completed, combo, maxCombo }) => {
+      // 残りの未入力文字をスキップとして記録
+      if (leftover > 0) {
+        typingStats.recordSkip(leftover);
+      }
+
+      // 完了時は完了イベントを発生
+      if (completed) {
+        handleProblemStateChange({ 
+          type: 'completed', 
+          progress: 100,
+          combo,
+          maxCombo
+        });
+      }
+    }
   });
+
+  /**
+   * タイムベースの更新を実行（アクティブに実行)
+   * @param {number} currentTime 現在時刻（ミリ秒）
+   */
+  const updateTimeBased = useCallback((currentTime) => {
+    // セッションが有効でタイピング中の場合のみ更新
+    if (
+      typingCore.sessionRef.current && 
+      !typingCore.isCompleted && 
+      typingInput.updateSession
+    ) {
+      typingInput.updateSession(currentTime);
+    }
+  }, [typingCore.sessionRef, typingCore.isCompleted, typingInput]);
+
+  /**
+   * スコア情報を取得
+   * @returns {Object} スコア情報
+   */  const getScoreInfo = useCallback(() => {
+    try {
+      // セッションのスコア情報を取得（エラーハンドリング追加）
+      const session = typingCore?.sessionRef?.current;
+      if (!session) return { combo: 0, maxCombo: 0, score: 0, rank: 'F' };
+
+      // 基本スコア情報
+      const baseInfo = {
+        combo: session.getCombo?.() || 0,
+        maxCombo: session.getMaxCombo?.() || 0,
+      };
+      
+      // 表示統計とスコア情報を合わせて返却
+      if (typingStats && typeof typingStats.getLatestStats === 'function') {
+        const latestStats = typingStats.getLatestStats() || {};
+        return {
+          ...baseInfo,
+          ...latestStats,
+          score: latestStats.kpm ? Math.floor(latestStats.kpm * (baseInfo.maxCombo || 1)) : 0,
+          rank: latestStats.rank || 'F'
+        };
+      } else {
+        return { ...baseInfo, score: 0, rank: 'F' };
+      }
+    } catch (error) {
+      console.error('[useTypingGame] スコア情報の取得中にエラーが発生しました:', error);
+      return { combo: 0, maxCombo: 0, score: 0, rank: 'F' };
+    }
+  }, [typingCore?.sessionRef, typingStats]);
+
+  /**
+   * アニメーションフレームごとの処理
+   * リアルタイムな更新とアニメーション同期
+   */
+  useEffect(() => {
+    if (!typingCore.sessionRef.current) return;
+
+    // 更新用のRAF
+    let rafId = null;
+    const updateFrame = (timestamp) => {
+      // タイピングセッションのタイムベース更新
+      updateTimeBased(timestamp);
+      
+      // 更新を継続
+      rafId = requestAnimationFrame(updateFrame);
+    };
+
+    // 更新開始
+    rafId = requestAnimationFrame(updateFrame);
+
+    // クリーンアップ
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, [typingCore.sessionRef, updateTimeBased]);
+
+  // デバッグ情報更新
+  useEffect(() => {
+    if (!onDebugInfoUpdate) return;
+
+    // 最新の情報を収集
+    const debugInfo = {
+      session: typingCore.sessionRef.current ? {
+        completed: typingCore.isCompleted,
+        progress: typingCore.progressPercentage,
+        displayData: typingCore.displayData,
+      } : null,
+      stats: typingStats.getLatestStats(),
+      input: {
+        lastKey: typingInput.lastPressedKey,
+        errorState: typingInput.errorAnimation,
+      },
+      score: getScoreInfo(),
+    };
+
+    debugInfoRef.current = debugInfo;
+    onDebugInfoUpdate(debugInfo);
+  }, [
+    typingCore.isCompleted,
+    typingCore.progressPercentage,
+    typingCore.displayData,
+    typingInput.lastPressedKey,
+    typingInput.errorAnimation,
+    onDebugInfoUpdate,
+    typingStats,
+    getScoreInfo
+  ]);
 
   /**
    * 問題設定メソッド

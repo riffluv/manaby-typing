@@ -8,17 +8,19 @@
  */
 export const isVercelEnv = () => {
   // process.envがクライアントサイドでも利用可能なpublic環境変数を確認
-  const isVercel = typeof process !== 'undefined' && 
-                  process.env && 
-                  (process.env.VERCEL === '1' || 
-                   process.env.NEXT_PUBLIC_VERCEL_ENV === 'production');
-  
+  const isVercel =
+    typeof process !== 'undefined' &&
+    process.env &&
+    (process.env.VERCEL === '1' ||
+      process.env.NEXT_PUBLIC_VERCEL_ENV === 'production');
+
   // URLからの検出（デプロイメント後に利用可能）
-  const isVercelUrl = typeof window !== 'undefined' && 
-                      window.location && 
-                      (window.location.hostname.includes('vercel.app') || 
-                       window.location.hostname === 'manaby-typing.vercel.app');
-                       
+  const isVercelUrl =
+    typeof window !== 'undefined' &&
+    window.location &&
+    (window.location.hostname.includes('vercel.app') ||
+      window.location.hostname === 'manaby-typing.vercel.app');
+
   return isVercel || isVercelUrl;
 };
 
@@ -57,7 +59,7 @@ export const getStaticPath = (path) => {
     basePath = ''; // Vercel環境では空のベースパス
   } else if ((isProduction || isGitHubPages) && !basePath) {
     basePath = '/manaby-typing'; // デフォルトのリポジトリ名
-  }// 最終パスを生成（デバッグログを追加）
+  } // 最終パスを生成（デバッグログを追加）
   let finalPath = `${basePath}${encodedPath}`;
 
   // Vercel環境またはブラウザ実行時のみの処理
@@ -68,13 +70,16 @@ export const getStaticPath = (path) => {
       const testImage = new Image();
       testImage.onerror = () => {
         // ファイルが見つからなかった場合、大文字小文字を変更して再試行
-        if (path.includes('Hit') || path.includes('hit')) {          // 'Hit' を 'hit' に、または 'hit' を 'Hit' に変更
-          const newPath = path.includes('Hit') 
+        if (path.includes('Hit') || path.includes('hit')) {
+          // 'Hit' を 'hit' に、または 'hit' を 'Hit' に変更
+          const newPath = path.includes('Hit')
             ? path.replace('Hit', 'hit')
             : path.replace('hit', 'Hit');
-          
+
           // 新しいパスに変更
-          finalPath = `${basePath}${newPath.startsWith('/') ? newPath : `/${newPath}`}`;
+          finalPath = `${basePath}${
+            newPath.startsWith('/') ? newPath : `/${newPath}`
+          }`;
         }
       };
       // テスト開始

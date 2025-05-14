@@ -32,7 +32,6 @@ const GameScreen = () => {
   // パフォーマンスメトリクス表示用の状態
   const [debugInfo, setDebugInfo] = useState({});
   const [lastPressedKey, setLastPressedKey] = useState('');
-
   // ゲームコントローラーフック
   const {
     typing,
@@ -40,6 +39,7 @@ const GameScreen = () => {
     performanceMetrics,
     getNextKey,
     gameState: currentGameState,
+    scoreInfo, // スコア情報を取得
   } = useGameController({
     onDebugInfoUpdate: DEBUG_GAME_SCREEN ? setDebugInfo : null,
     onLastPressedKeyChange: setLastPressedKey,
@@ -81,14 +81,13 @@ const GameScreen = () => {
   return (<ErrorBoundary>
     <div className={styles.typing_game__wrapper}>
       <div className={styles.typing_game}>
-        {/* コーナー装飾、スキャンライン、ドットパターンを削除 */}
-
-        {/* ステータスバー */}
+        {/* コーナー装飾、スキャンライン、ドットパターンを削除 */}        {/* ステータスバー */}
         <GameStatusBar
           solvedCount={gameState.solvedCount}
           requiredCount={gameState.requiredProblemCount || 5}
           typingStats={typing?.stats || {}}
-        />          {/* メイン画面 */}          <main className={styles.typing_game__main}>            {/* タイピングエリア */}            <TypingArea
+          scoreInfo={scoreInfo} // スコア情報を渡す
+        />{/* メイン画面 */}          <main className={styles.typing_game__main}>            {/* タイピングエリア */}            <TypingArea
           typing={typing}
           currentProblem={typing?.typingSession?.problem || currentGameState?.currentProblem || gameState.currentProblem}
           lastPressedKey={lastPressedKey}

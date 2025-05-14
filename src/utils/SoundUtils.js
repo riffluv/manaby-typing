@@ -80,13 +80,11 @@ class SoundUtils {
       complete: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音
       clear: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音（別名）
       button: getStaticPath('/sounds/buttonsound1.mp3'), // ボタンクリック音
-    };
-
-    // GitHub Pages向けに追加デバッグ情報（デプロイ環境）
+    };    // GitHub Pages向けに追加デバッグ情報（デプロイ環境）
     console.log('環境情報:', {
       NODE_ENV: process.env.NODE_ENV,
       basePath: process.env.NEXT_PUBLIC_BASE_PATH || '未設定',
-      例示パス: getStaticPath('/sounds/test.mp3'),
+      例示パス: getStaticPath('/sounds/buttonsound1.mp3'), // 存在するファイルを参照
     }); // BGMプリセット定義
     this.bgmPresets = {
       lobby: getStaticPath('/sounds/battle_of_the_emperor.mp3'), // ロビー/メインメニューBGM

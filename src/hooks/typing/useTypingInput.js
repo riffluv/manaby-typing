@@ -23,8 +23,10 @@ export function useTypingInput(options = {}) {
     onCorrectInput = () => { },
     onIncorrectInput = () => { },
     onComplete = () => { },
+    onLineEnd = () => { },  // 行の終了時コールバック（タイムベース更新用）
     playSound = true,
     soundSystem = null,
+    updateInterval = 16  // アニメーションフレームレートに合わせて約60fps
   } = options || {};
 
   // デバッグモード設定
@@ -44,13 +46,23 @@ export function useTypingInput(options = {}) {
     averageLatency: 0
   });
 
+  // スコア情報
+  const [score, setScore] = useState({
+    points: 0,
+    combo: 0,
+    maxCombo: 0
+  });
+
   // エラーアニメーション状態
   const [errorAnimation, setErrorAnimation] = useState(false);
   const errorTimerRef = useRef(null);
 
   // 最後に押されたキー
   const [lastPressedKey, setLastPressedKey] = useState('');
-
+  
+  // アップデート用タイマー
+  const updateTimerRef = useRef(null);
+  
   // セッション有効性チェック用
   const isValidSessionRef = useRef(false);
 
@@ -71,7 +83,97 @@ export function useTypingInput(options = {}) {
       setErrorAnimation(false);
       errorTimerRef.current = null;
     }, 150); // 高速応答のため短縮
-  }, []);  /**
+  }, []);
+  
+  /**
+   * リアルタイム更新処理
+   * TypingManiaの update メソッドを参考に実装
+   */
+  const updateSession = useCallback(() => {
+    // 高速パスチェック - セッション存在確認
+    const session = sessionRef?.current;
+    if (!session || completedRef?.current || isCompleted) {
+      return;
+    }
+    
+    // タイムベースの更新をサポートしているか確認
+    if (typeof session.update === 'function') {
+      try {
+        // 現在時刻を取得して更新処理を実行
+        const currentTime = performance.now();
+        const [changed, leftover] = session.update(currentTime);
+        
+        // 行が変わった場合の処理（時間経過で自動進行した場合）
+        if (changed) {
+          debugLog('行の更新:', { leftover });
+          
+          // 残りの文字をスキップしたことを通知
+          onLineEnd({ 
+            timestamp: currentTime, 
+            leftover,
+            completed: session.isCompleted?.() || false,
+            combo: session.getCombo?.() || 0,
+            maxCombo: session.getMaxCombo?.() || 0
+          });
+          
+          // 全体が完了した場合
+          if (session.isCompleted?.()) {
+            // 統計情報を含めて完了通知
+            onComplete({ 
+              result: { status: 'time_completed' },
+              progress: 100,
+              combo: session.getCombo?.() || 0,
+              maxCombo: session.getMaxCombo?.() || 0
+            });
+          }
+          
+          // スコア更新
+          updateScore();
+        }
+      } catch (error) {
+        console.error('[useTypingInput] 更新処理エラー:', error);
+      }
+    }
+  }, [sessionRef, completedRef, isCompleted, onLineEnd, onComplete]);
+  
+  /**
+   * 定期更新を開始する
+   */
+  const startPeriodicUpdate = useCallback(() => {
+    if (updateTimerRef.current) {
+      clearInterval(updateTimerRef.current);
+    }
+    
+    updateTimerRef.current = setInterval(() => {
+      updateSession();
+    }, updateInterval);
+    
+    // 初回更新を即時実行
+    updateSession();
+  }, [updateSession, updateInterval]);
+  
+  /**
+   * スコア情報を更新
+   */
+  const updateScore = useCallback(() => {
+    const session = sessionRef?.current;
+    if (!session) return;
+    
+    // セッションからコンボ情報を取得
+    const combo = session.getCombo?.() || 0;
+    const maxCombo = session.getMaxCombo?.() || 0;
+    
+    // スコア情報を更新
+    setScore(prevScore => {
+      // 不要な更新を避ける
+      if (prevScore.combo === combo && prevScore.maxCombo === maxCombo) {
+        return prevScore;
+      }
+      return { ...prevScore, combo, maxCombo };
+    });
+  }, [sessionRef]);
+
+  /**
    * タイピング入力処理 - 超高速パフォーマンス版（リファクタリング・安定化版 2025年5月12日）
    */
   const handleInput = useCallback((key) => {
@@ -105,19 +207,36 @@ export function useTypingInput(options = {}) {
       setLastPressedKey(prevKey => prevKey !== key ? key : prevKey);
     });
 
-    // 入力処理を高速化（最小限のチェックのみ）
-    if (typeof session.processInput !== 'function') {
-      // 無効なセッションエラー
-      return { success: false, reason: 'invalid_session' };
-    }
-
     try {
-      // 入力処理の高速化
-      const result = session.processInput(key);
-
-      // 処理結果の簡潔なチェック
-      if (!result) {
-        return { success: false, reason: 'invalid_result' };
+      // acceptメソッドとprocessInputメソッドで柔軟に対応
+      let result;
+      const timestamp = Date.now();
+      
+      if (typeof session.accept === 'function') {
+        // TypingManiaスタイルのacceptメソッドを優先使用
+        const acceptResult = session.accept(key);
+        
+        // acceptの戻り値を変換
+        if (acceptResult === 1) {
+          // 正解
+          result = { success: true, status: 'input_accepted' };
+          // 完了チェック
+          if (session.isCompleted?.()) {
+            result.status = 'all_completed';
+          }
+        } else if (acceptResult === -1) {
+          // 不正解
+          result = { success: false, status: 'wrong_input' };
+        } else {
+          // 無効（通常ここには来ないはず）
+          result = { success: false, status: 'invalid_input' };
+        }
+      } else if (typeof session.processInput === 'function') {
+        // 従来のprocessInputメソッドをフォールバックで使用
+        result = session.processInput(key);
+      } else {
+        // 無効なセッションエラー
+        return { success: false, reason: 'invalid_session' };
       }
 
       // パフォーマンスモニタリング（条件付き）
@@ -132,7 +251,9 @@ export function useTypingInput(options = {}) {
         // 統計情報の更新を遅延処理に移動（レスポンス優先）
         queueMicrotask(() => {
           inputStatsRef.current.correctKeyPresses++;
-        });        // 効果音再生の高速化と安定性の改善（GitHub Pages対応）
+        });
+        
+        // 効果音再生の高速化と安定性の改善（GitHub Pages対応）
         const canPlaySound = playSound && soundSystem && typeof soundSystem.playSound === 'function';
         if (canPlaySound) {
           // 即時呼び出しで確実に再生を試みる
@@ -174,16 +295,31 @@ export function useTypingInput(options = {}) {
           currentCharRomaji: colorInfo.currentCharRomaji || '',
           updated: Date.now()
         };
-
-        // コールバック呼び出しと完了チェック
+        
+        // スコア情報を更新
+        updateScore();        // コールバック呼び出しと完了チェック
         onCorrectInput({ key, displayInfo, progress, result });
 
-        if (result.status === 'all_completed') {
+        // 完了判定を強化（result.statusだけでなく、sessionの完了状態も確認）
+        const isCompleted = result.status === 'all_completed' || session.isCompleted?.() === true;
+        
+        if (isCompleted) {
+          console.log('[useTypingInput] 入力完了を検出しました', { 
+            resultStatus: result.status, 
+            sessionCompleted: session.isCompleted?.() 
+          });
           // 統計情報を含めて完了通知
-          onComplete({ result, displayInfo, progress });
+          onComplete({ 
+            result: { status: 'all_completed' }, // 常に完了ステータスを送信
+            displayInfo, 
+            progress: 100, // 完了時は100%を保証
+            combo: session.getCombo?.() || 0, 
+            maxCombo: session.getMaxCombo?.() || 0
+          });
         }
 
-        return { success: true, displayInfo, progress };      } else {
+        return { success: true, displayInfo, progress };
+      } else {
         // 不正解時の処理 - 効率化とGitHub Pages対応
         if (playSound && soundSystem) {
           try {
@@ -204,6 +340,9 @@ export function useTypingInput(options = {}) {
 
         // エラーアニメーション表示
         showErrorAnimation();
+        
+        // スコア情報を更新（コンボがリセットされるため）
+        updateScore();
 
         // 期待されるキー
         const expectedKey = session.getCurrentExpectedKey?.() || '';
@@ -238,25 +377,37 @@ export function useTypingInput(options = {}) {
     showErrorAnimation,
     onCorrectInput,
     onIncorrectInput,
-    onComplete
+    onComplete,
+    updateScore
   ]);
 
   /**
-   * クリーンアップ処理
+   * 初期化処理 - リアルタイム更新の開始
    */
   useEffect(() => {
+    // リアルタイム更新を開始
+    startPeriodicUpdate();
+    
+    // アンマウント時にタイマーをクリア
     return () => {
       if (errorTimerRef.current) {
         clearTimeout(errorTimerRef.current);
         errorTimerRef.current = null;
       }
+      
+      if (updateTimerRef.current) {
+        clearInterval(updateTimerRef.current);
+        updateTimerRef.current = null;
+      }
     };
-  }, []);
+  }, [startPeriodicUpdate]);
 
   return {
     handleInput,
     errorAnimation,
     lastPressedKey,
     setLastPressedKey,
+    score,
+    updateSession,
   };
 }

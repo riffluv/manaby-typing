@@ -256,6 +256,13 @@ export function useTypingStats(options = {}) {
       rank
     };
   }, [updateDisplayStats]);  /**
+   * スキップされた文字を記録
+   */
+  const recordSkip = useCallback((count = 1) => {
+    // スキップ統計情報を更新（必要に応じて）
+    console.log(`[useTypingStats] ${count}文字スキップしました`);
+    // 現時点ではスキップの統計を特に記録しない
+  }, []);  /**
    * クリーンアップ処理
    */
   useEffect(() => {
@@ -287,9 +294,7 @@ export function useTypingStats(options = {}) {
         }
       }
     };
-  }, []);
-
-  return {
+  }, []);  return {
     // 状態
     statsRef,
     displayStats,
@@ -300,5 +305,38 @@ export function useTypingStats(options = {}) {
     countMistake,
     updateDisplayStats,
     recordProblemCompletion,
+
+    /**
+     * タイピングミスを記録 (互換性用メソッド - countMistakeを呼び出す)
+     */
+    recordMistake: useCallback(() => {
+      return countMistake();
+    }, [countMistake]),
+
+    /**
+     * 最新の統計情報を取得
+     */    getLatestStats: useCallback(() => {
+      return {
+        ...displayStats,
+        correctKeyCount: statsRef.current.correctKeyCount,
+        mistakeCount: statsRef.current.mistakeCount
+      };
+    }, [displayStats]),
+
+    /**
+     * スキップされた文字を記録
+     */
+    recordSkip: useCallback((count = 1) => {
+      // スキップ統計情報を更新（必要に応じて）
+      console.log(`[useTypingStats] ${count}文字スキップしました`);
+      // 現時点ではスキップの統計を特に記録しない
+    }, []),
+
+    /**
+     * 正解入力記録（互換性用メソッド - countCorrectKeyを呼び出す）
+     */
+    recordCorrectKey: useCallback((timestamp = Date.now()) => {
+      return countCorrectKey(timestamp);
+    }, [countCorrectKey]),
   };
 }

@@ -168,6 +168,27 @@ export function useTypingCore(options = {}) {
   }, [validateProblem]);
 
   /**
+   * 表示データを設定
+   */
+  const setDisplayData = useCallback((data) => {
+    setDisplayInfo(data);
+  }, []);
+  /**
+   * 完了状態を更新
+   */
+  const setCompleted = useCallback((state) => {
+    try {
+      setIsCompleted(state);
+      if (state === true) {
+        completedRef.current = true;
+      }
+      console.log('[useTypingCore] 完了状態を更新しました:', state);
+    } catch (error) {
+      console.error('[useTypingCore] 完了状態の更新でエラーが発生しました:', error);
+    }
+  }, []);
+  
+  /**
    * 次に入力すべきキーを取得
    */
   const getExpectedNextKey = useCallback(() => {
@@ -212,7 +233,6 @@ export function useTypingCore(options = {}) {
       }
     }
   }, [initialProblem, initializeSession, isInitialized]);
-
   // 公開API
   return {
     // 状態
@@ -230,6 +250,8 @@ export function useTypingCore(options = {}) {
     markAsCompleted,
     getExpectedNextKey,
     getProgress,
+    setDisplayData,
+    setCompleted,
 
     // 状態更新
     setDisplayInfo,

@@ -12,7 +12,7 @@ import { useTypingGame } from '../../hooks/useTypingGame';
 import soundSystem from '../../utils/SoundUtils';
 import { getRandomProblem } from '../../utils/ProblemSelector';
 import TypingUtils from '../../utils/TypingUtils'; // KPM計算用にTypingUtilsをインポート
-import typingWorkerManager from '../../utils/TypingWorkerManager'; // Worker管理のためのインポートを追加
+import typingWorkerManager from '../../utils/TypingWorkerManager'; // Worker管理のためのインポート
 
 /**
  * ゲームコントローラーフック（リファクタリング・安定化版 2025年5月12日）
@@ -40,6 +40,14 @@ export function useGameController(options = {}) {
 
   // Game Contextから状態取得
   const { gameState } = useGameContext();
+
+  // スコア情報の状態管理を追加
+  const [scoreInfo, setScoreInfo] = useState({
+    score: 0,
+    combo: 0,
+    maxCombo: 0,
+    rank: 'F',
+  });
 
   // 問題状態 - 型チェック付き
   const [currentProblem, setCurrentProblem] = useState(null);
@@ -267,6 +275,56 @@ export function useGameController(options = {}) {
 
   // 初期化後にRefに保存
   typingRef.current = typing;
+
+  /**
+   * スコア情報の更新処理
+   * TypingManiaスタイルのスコアリングシステムをGameControllerレベルで反映
+   */
+  useEffect(() => {
+    if (!typing || !typing.typingSession) return;
+    
+    // スコア情報更新のインターバル設定（60fps以下のレートで更新）
+    const scoreUpdateInterval = setInterval(() => {
+      try {        // スコア情報の取得（堅牢性の改善）
+        const session = typing?.typingSession;
+        const combo = session?.getCombo?.() || 0;
+        const maxCombo = session?.getMaxCombo?.() || 0;
+        
+        // スコアデータの取得（安全なアクセス）
+        // typing.scoreDataが未定義の場合の対応
+        const scoreData = typing?.scoreData || {};
+        const score = scoreData?.score || 0;
+        
+        // ランク情報の取得（堅牢に）
+        const rank = typing?.displayStats?.rank || typing?.typingStats?.displayStats?.rank || 'F';
+        
+        // デバッグ用にスコア情報をログ出力（開発環境のみ）
+        if (DEBUG_MODE && (combo > 5 || score > 5000)) {
+          debugLog('現在のスコア情報:', {
+            score,
+            combo,
+            maxCombo,
+            rank
+          });
+        }
+        
+        // スコア情報の状態を更新
+        setScoreInfo({
+          score,
+          combo,
+          maxCombo,
+          rank
+        });
+      } catch (error) {
+        console.error('[GameController] スコア情報更新エラー:', error);
+      }
+    }, 50); // 50ms間隔でスコア情報を更新（約20fps）
+    
+    return () => {
+      clearInterval(scoreUpdateInterval);
+    };
+  }, [typing, DEBUG_MODE, debugLog]);
+
   /**
    * キーイベントハンドラ（超高速パフォーマンス版 2025年5月12日）
    */
@@ -412,7 +470,6 @@ export function useGameController(options = {}) {
   }, [gameState.difficulty, gameState.category, currentProblem, typing]);
 
   // 返す前の問題状態のログ出力を削除
-
   return {
     // 状態
     typing,
@@ -421,6 +478,9 @@ export function useGameController(options = {}) {
     gameState,
     // 現在のゲーム状態を含むオブジェクト
     gameState: { currentProblem }, // 現在の問題をgameStateの一部として明示的に共有
+    
+    // スコア情報
+    scoreInfo,
 
     // メソッド
     getNextKey,
