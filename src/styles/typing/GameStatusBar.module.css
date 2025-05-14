@@ -18,7 +18,7 @@
   z-index: 10;
 }
 
-/* 空のステータスバー - ロゴを配置するバージョン */
+/* 空のステータスバー - ロゴのみを配置するシンプルバージョン */
 .empty_bar {
   padding: 0.25rem 0.8rem;
   /* 上下のパディングを少し小さく */
@@ -40,7 +40,6 @@
   /* より洗練された影を追加 */
   display: flex;
   align-items: center;
-  justify-content: space-between; /* スペースを均等に分配 */
 }
 
 /* manabyロゴのコンテナ */
