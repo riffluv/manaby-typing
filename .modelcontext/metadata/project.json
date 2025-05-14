@@ -1,0 +1,58 @@
+{
+  "name": "Manaby Typing Game",
+  "version": "0.1.0",
+  "description": "Next.jsベースのインタラクティブなタイピングゲーム",
+  "type": "webapp",
+  "framework": "next.js",
+  "language": "javascript",
+  "created": "2025-05-04",
+  "modules": [
+    {
+      "id": "ui",
+      "name": "ユーザーインターフェース",
+      "path": "src/components/",
+      "description": "ゲームの各画面とUI要素"
+    },
+    {
+      "id": "core",
+      "name": "ゲームコア",
+      "path": "src/contexts/",
+      "description": "ゲームの状態管理とコア機能"
+    },
+    {
+      "id": "typing",
+      "name": "タイピング処理",
+      "path": "src/hooks/useTypingGame.js",
+      "description": "タイピング入力と判定の処理"
+    },
+    {
+      "id": "worker",
+      "name": "WebWorker処理",
+      "path": "src/workers/typing-worker.js",
+      "description": "バックグラウンド処理用のWebWorker"
+    },
+    {
+      "id": "firebase",
+      "name": "Firebase連携",
+      "path": "src/utils/FirebaseUtils.js",
+      "description": "オンラインランキングと背景保存機能"
+    },
+    {
+      "id": "sound",
+      "name": "サウンド管理",
+      "path": "src/utils/SoundUtils.js",
+      "description": "ゲーム効果音と背景音楽"
+    },
+    {
+      "id": "storage",
+      "name": "ローカルストレージ",
+      "path": "src/utils/StorageUtils.js",
+      "description": "設定やハイスコアの保存"
+    }
+  ],
+  "dependencyGraph": {
+    "core": ["ui", "typing", "firebase", "sound", "storage"],
+    "typing": ["worker"],
+    "ui": ["typing", "sound", "firebase"]
+  }
+}

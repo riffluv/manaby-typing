@@ -1,0 +1,165 @@
+/* 
+ * パフォーマンスモニターのスタイル
+ * 2025年5月9日作成
+ */
+
+.performance_monitor {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 220px;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: #e0e0e0;
+  border-radius: 6px;
+  padding: 10px;
+  font-family: monospace;
+  font-size: 12px;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+  border: 1px solid rgba(100, 100, 100, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.performance_monitor:hover {
+  opacity: 1;
+  transform: translateY(2px);
+}
+
+.monitor_header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(100, 100, 100, 0.5);
+}
+
+.title {
+  font-weight: bold;
+  color: #1e90ff;
+}
+
+.indicator_light {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #4caf50; /* 緑色 - 正常状態 */
+  box-shadow: 0 0 4px rgba(76, 175, 80, 0.8);
+}
+
+.indicator_light[data-status='warning'] {
+  background-color: #ffa500; /* オレンジ色 - 警告状態 */
+  box-shadow: 0 0 4px rgba(255, 165, 0, 0.8);
+}
+
+.indicator_light[data-status='error'] {
+  background-color: #f44336; /* 赤色 - エラー状態 */
+  box-shadow: 0 0 4px rgba(244, 67, 54, 0.8);
+  animation: pulse 1.5s infinite;
+}
+
+.metrics_table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.metrics_table td {
+  padding: 3px 0;
+}
+
+.metrics_table td:first-child {
+  color: #90caf9;
+  font-weight: 500;
+}
+
+.metrics_table td:last-child {
+  text-align: right;
+}
+
+.normal_value {
+  color: #4caf50;
+}
+
+.warning_value {
+  color: #ffa500;
+}
+
+.error_value {
+  color: #f44336;
+}
+
+.details_section {
+  margin-top: 8px;
+  border-top: 1px solid rgba(100, 100, 100, 0.5);
+  padding-top: 5px;
+}
+
+.details_section summary {
+  cursor: pointer;
+  color: #90caf9;
+  font-weight: 500;
+  user-select: none;
+}
+
+.details_content {
+  margin-top: 5px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 10px;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 5px;
+  border-radius: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* アニメーション定義 */
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0.6;
+    transform: scale(0.9);
+  }
+}
+
+/* レスポンシブ対応 */
+@media screen and (max-width: 768px) {
+  .performance_monitor {
+    width: 180px;
+    font-size: 10px;
+    top: 5px;
+    right: 5px;
+    padding: 8px;
+  }
+}
+
+/* 非表示クラス */
+.hidden {
+  display: none;
+}
+
+/* コンパクトモード */
+.compact {
+  width: 150px;
+}
+
+.compact .metrics_table td {
+  padding: 1px 0;
+}
+
+.compact .details_section {
+  display: none;
+}
+
+/* フルスクリーンモード時の表示位置調整 */
+.fullscreen {
+  position: fixed;
+}

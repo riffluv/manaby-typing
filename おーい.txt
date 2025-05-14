@@ -1,0 +1,181 @@
+github(API)
+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  
+Tavily(API)
+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
+
+
+# GitHub リポジトリ
+https://github.com/riffluv/manaby-typing
+
+npm run dev:nodemon:mcp
+
+npm run dev:nodemon
+npx -y @modelcontextprotocol/server-github
+
+# MCP接続にはリポジトリURLの環境変数設定が必要
+# set NEXT_PUBLIC_GITHUB_REPO=https://github.com/riffluv/manaby-typing
+# (またはWindows PowerShellの場合)
+# $env:NEXT_PUBLIC_GITHUB_REPO="https://github.com/riffluv/manaby-typing"
+
+# 保存
+git add .
+git commit -m "修正したコメント"
+
+
+# 3. GitHub リポジトリに変更をプッシュ
+git push origin main
+
+
+# 確認
+git log --oneline
+
+# 過去に戻る
+git reset --hard コミットID
+
+git rebase -i a55426a
+# → 開いたエディタで不要なコミットをdrop、まとめたいならsquash
+# → 保存して閉じる
+# （リモートpushが必要なら） 
+git push origin master --force
+
+
+
+スタイルの問題を特定し修正するためには「CSSの階層構造と優先順位を確認してスタイル不整合を調査してほしい」と依頼するのがよいでしょう。
+例えば、ボタンの上下パディングが不均等になっているケースを検討してみます。確認したコードから次のような問題点がありました：
+.pixel-button クラスでは上下のパディングが不均等に設定されています：
+Apply to index.html
+ここではトップとボトムのパディングが calc(var(--spacing-xs)) (8px)、左右のパディングが var(--spacing-md) (24px) となっています。
+リザルト画面のボタンはさらに別のスタイルも適用されていて、不均等になっています：
+Apply to index.html
+均等にするには、上下左右同じ値にするか、縦と横はそれぞれ同じ値にするべきです。例えば：
+Apply to index.html
+また、レスポンシブデザインのメディアクエリ内でもパディング調整が行われており、さらに不整合が発生する可能性があります。
+CSSの階層構造を理解し、適切な選択子の優先順位を考慮したスタイリングが重要です。この例のように、スタイルが「どこで、どのように適用されているか」を特定することが、一貫したUI実装には必要です。
+
+
+kkkkk
+
+
+
+
+
+
+
+
+github(API)
+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
+
+
+
+
+
+
+
+
+
+
+
+https://github.com/innocenat/typingmania
+
+タイピングゲームを市販級にするためのPWA対応とGitHub＋Vercel公開方法を、超わかりやすくまとめたよ👇
+
+✅【PWAとは？】Progressive Web App の意味とメリット
+PWAは「Webアプリをネイティブアプリみたいにする技術」
+
+🔥 主なメリット：
+オフラインでも動作（キャッシュされたデータで）
+
+ホーム画面に追加可能（スマホだけでなくPCでも！）
+
+全画面表示＆高速起動
+
+ネイティブアプリに近い体験
+
+✅【GitHub + Vercelでの公開方法】
+📦 必要なもの：
+GitHubアカウント（コードを管理）
+
+Vercelアカウント（デプロイ先）
+→ GitHubアカウントでそのままログインOK！
+
+# 素晴らしい！速度が向上したのは嬉しいですね！👏
+
+はい、typingmania-refの最も重要な最適化テクニックはほぼ吸収できたと思います！実装したポイントをまとめると：
+
+## すでに実装した主要な最適化技術
+
+1. **最適化された入力分割処理**
+   - 「s」「hi」のように柔軟に分割できる高度なアルゴリズム
+   - 特にoptimizeSplitInput関数が効果的に機能しています
+
+2. **事前計算とキャッシュの活用**
+   - パターン認識の事前計算
+   - 色分け情報のキャッシュング
+   - 頻出パターンのプリウォームアップ
+
+3. **メモリ効率の改善**
+   - 最適化されたデータ構造
+   - 不要なオブジェクト生成の削減
+   - Mapを使った効率的なキャッシュ
+
+4. **タイピング処理の高速化**
+   - 最短パターン優先の実装
+   - 複数入力パスの効率的なハンドリング
+   - 完全な分離型の処理アーキテクチャ
+
+
+
+企画・開発
+
+カフェイン中毒
+Google大先生
+
+デザイン・UI
+UIデザイナー名
+
+カフェイン中毒、Google大先生
+
+使用技術
+Next.js & React
+
+Framer Motion
+
+Web Audio API
+
+素材
+アイコン素材: Manaby
+フォント: Noto Sans JP (Google Fonts)
+効果音: freesound.org (CC0)
+BGM: xylophone-mini-dessert by Alex (CC BY 4.0)
+ライセンス
+© 2024 Manaby Typing Game. All Rights Reserved.
+
+タイピングゲームのリザルト画面に、wheather typingのようなKPM（キーストローク/分）を表示してください。
+
+■仕様：
+- 1問ごとに「最初のキー入力」〜「そのお題をすべて入力完了」までの時間を計測してください。
+- その間に入力されたキーの数をカウントし、(キー数 ÷ 時間[秒]) × 60でKPMを計算
+- 各お題ごとのKPMを保存し、ゲーム終了時にその平均KPMをリザルト画面に表示してください
+- 無入力での待機時間（お題が出てるけどまだ打ってない時間）は計算に含めないでください
+- KPMは整数または小数点1桁程度で表示でOKです
+
+参考：https://denasu.com/software/wtfaq.html
+
+
+
+
+# GitHub リポジトリ
+https://github.com/riffluv/manaby-typing
+
+npm run dev:nodemon:mcp
+
+# 任意の場所でプロジェクトをクローン
+git clone https://github.com/riffluv/manaby-typing.git
+cd manaby-typing
+npm install
+npm run dev
+npm run dev:nodemon:mcp
+
+クローン時に履歴を含めたくない場合（＝軽くしたい）
+もし「最新のコードだけでいい！履歴いらない！」という場合は、**浅いクローン（shallow clone）**という方法もあります：
+git clone --depth=1 https://github.com/riffluv/manaby-typing.git
