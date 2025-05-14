@@ -22,28 +22,44 @@ export const getStaticPath = (path) => {
   
   // 分割した部分を再結合
   const encodedPath = pathParts.join('/');
-
+  
+  // デバッグ用
+  if (typeof window !== 'undefined' && path.includes('.mp3')) {
+    console.log(`処理前のパス: ${path}, 正規化後: ${normalizedPath}, エンコード後: ${encodedPath}`);
+  }
   // GitHub Pages環境確認 - より堅牢な検出
   const isProduction = process.env.NODE_ENV === 'production';
   const isGitHubPages = typeof window !== 'undefined' && 
-    window.location && window.location.hostname.includes('github.io');
+    (window.location && window.location.hostname.includes('github.io') || 
+     window.location.href.includes('github.io'));
+    
+  // デバッグ情報
+  if (typeof window !== 'undefined') {
+    console.log('環境情報:', {
+      isProduction,
+      isGitHubPages,
+      hostname: window.location ? window.location.hostname : '不明',
+      href: window.location ? window.location.href : '不明',
+      basePath: process.env.NEXT_PUBLIC_BASE_PATH || '未設定'
+    });
+  }
     
   // basePath設定に合わせて、本番環境ではリポジトリ名を含める
   // 明示的に設定されたbasePath、または自動検出された値を使用
   let basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
   
-  // GitHub Pages環境なのにbasePathが設定されていない場合、デフォルト値を使用
-  if (isProduction && isGitHubPages && !basePath) {
+  // GitHub Pages環境または本番環境でbasePathが設定されていない場合、デフォルト値を使用
+  if ((isProduction || isGitHubPages) && !basePath) {
     basePath = '/manaby-typing'; // デフォルトのリポジトリ名
     console.warn('NEXT_PUBLIC_BASE_PATH未設定、デフォルト値を使用:', basePath);
   }
-  
-  // 最終パスを生成（デバッグログを追加）
+    // 最終パスを生成（デバッグログを追加）
   const finalPath = `${basePath}${encodedPath}`;
-  if (typeof window !== 'undefined' && 
-      window.__DEBUG_STATIC_PATH && 
-      path.includes('hit')) {
-    console.log(`StaticPath - 入力: ${path}, 出力: ${finalPath}, 環境: ${process.env.NODE_ENV}`);
+  
+  // サウンドファイルのデバッグログを常に表示（問題調査のため）
+  if (typeof window !== 'undefined' && (
+      path.includes('.mp3') || path.includes('sound'))) {
+    console.log(`StaticPath - 入力: ${path}, 出力: ${finalPath}, 環境: ${process.env.NODE_ENV}, GitHub Pages: ${isGitHubPages}`);
   }
   
   return finalPath;

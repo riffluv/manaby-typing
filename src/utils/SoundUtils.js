@@ -73,12 +73,13 @@ class SoundUtils {
     // 効果音のオン/オフ設定
     this.sfxEnabled = true;
 
-    // ローカルストレージから設定を読み込む（存在する場合）
-    this._loadSettingsFromStorage();    // サウンドプリセット定義
+    // ローカルストレージから設定を読み込む（存在する場合）    this._loadSettingsFromStorage();
+    
+    // サウンドプリセット定義
     this.soundPresets = {
       // 基本ゲーム効果音
-      success: getStaticPath('/sounds/hit05-1.mp3'), // タイピング成功音
-      error: getStaticPath('/sounds/hit04-1.mp3'), // タイピングエラー音
+      success: getStaticPath('/sounds/Hit05-1.mp3'), // タイピング成功音 - 大文字に修正
+      error: getStaticPath('/sounds/Hit04-1.mp3'), // タイピングエラー音 - 大文字に修正
       complete: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音
       button: getStaticPath('/sounds/buttonsound1.mp3'), // ボタンクリック音
     };
@@ -237,8 +238,7 @@ class SoundUtils {
    * @param {string} name - 効果音の名前
    * @param {string} url - 効果音ファイルのURL
    * @returns {Promise} - ロード完了時に解決されるPromise
-   */
-  async loadSound(name, url) {
+   */  async loadSound(name, url) {
     // サーバーサイドレンダリング時は何もしない
     if (typeof window === 'undefined') {
       return Promise.resolve();
@@ -254,7 +254,29 @@ class SoundUtils {
 
       // GitHub Pages対策：フェッチリクエストで詳細なエラーログ
       console.log(`${name}の読み込み開始: ${cacheBustedUrl}`);
-      const response = await fetch(cacheBustedUrl);
+      
+      // 最初に通常のURLで試行
+      let response = await fetch(cacheBustedUrl);
+      
+      // 大文字小文字の問題を検出して対処する試み
+      if (!response.ok) {
+        console.warn(`${name}のロードに失敗 (${response.status})。代替URLで再試行...`);
+        
+        // 代替URL試行 - URLに含まれるファイル名部分の最初の文字を大文字に変更
+        const urlParts = url.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        
+        // 代替ファイル名で再試行
+        let capitalizedFileName;
+        if (fileName.startsWith('hit') && fileName.endsWith('.mp3')) {
+          capitalizedFileName = 'H' + fileName.substring(1);
+          urlParts[urlParts.length - 1] = capitalizedFileName;
+          const alternateUrl = urlParts.join('/') + `?t=${this.timestamp}`;
+          console.log(`代替URL試行: ${alternateUrl}`);
+          
+          response = await fetch(alternateUrl);
+        }
+      }
       
       if (!response.ok) {
         console.error(`${name}のHTTPエラー:`, response.status, response.statusText);
