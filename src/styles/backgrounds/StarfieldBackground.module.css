@@ -1,0 +1,70 @@
+/* 
+ * StarfieldBackground.module.css
+ * 3Dスターフィールド背景のスタイル定義
+ */
+
+.starfieldBackground {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none; /* クリックイベントを下の要素に透過 */
+  background-color: #070712; /* 深宇宙の暗い色 */
+}
+
+.canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ゲームエリアのマスク - 中央の800x600領域を削除するための疑似要素 */
+.gameMask {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px; /* ゲーム画面の幅 */
+  height: 600px; /* ゲーム画面の高さ */
+  box-shadow: 0 0 50px 10px rgba(0, 120, 255, 0.15); /* 外側に青い光彩 */
+  border: 1px solid rgba(0, 100, 200, 0.3);
+  pointer-events: none; /* マスク要素がクリックイベントを妨げないように */
+}
+
+/* デバッグ情報表示用のスタイル */
+.debugInfo {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #0f0;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 10px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* スマートフォン対応 - ゲームマスクのサイズを調整 */
+@media (max-width: 840px) {
+  .gameMask {
+    width: calc(100% - 40px);
+    max-width: 800px;
+    height: calc(75vw - 30px);
+    max-height: 600px;
+  }
+}
+
+/* さらに小さい画面サイズのための対応 */
+@media (max-width: 480px) {
+  .gameMask {
+    width: calc(100% - 20px);
+    height: calc(75vw - 15px);
+  }
+}

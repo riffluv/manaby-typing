@@ -33,29 +33,32 @@ export function useOptimizedRenderer(callback, minInterval = 16) {
   }, []);
 
   // 最適化された更新関数
-  const scheduleUpdate = useCallback((data) => {
-    const now = performance.now();
-    const timeSinceLastRender = now - lastRenderTimeRef.current;
+  const scheduleUpdate = useCallback(
+    (data) => {
+      const now = performance.now();
+      const timeSinceLastRender = now - lastRenderTimeRef.current;
 
-    // 更新間隔が短すぎる場合はスケジュール
-    if (timeSinceLastRender < minInterval) {
-      if (!pendingUpdateRef.current) {
-        pendingUpdateRef.current = true;
-        
-        // requestAnimationFrameを使用して次のフレームで実行
-        requestAnimationFrame(() => {
-          const currentTime = performance.now();
-          lastRenderTimeRef.current = currentTime;
-          pendingUpdateRef.current = false;
-          callbackRef.current(data);
-        });
+      // 更新間隔が短すぎる場合はスケジュール
+      if (timeSinceLastRender < minInterval) {
+        if (!pendingUpdateRef.current) {
+          pendingUpdateRef.current = true;
+
+          // requestAnimationFrameを使用して次のフレームで実行
+          requestAnimationFrame(() => {
+            const currentTime = performance.now();
+            lastRenderTimeRef.current = currentTime;
+            pendingUpdateRef.current = false;
+            callbackRef.current(data);
+          });
+        }
+      } else {
+        // 十分な時間が経過していれば即時実行
+        lastRenderTimeRef.current = now;
+        callbackRef.current(data);
       }
-    } else {
-      // 十分な時間が経過していれば即時実行
-      lastRenderTimeRef.current = now;
-      callbackRef.current(data);
-    }
-  }, [minInterval]);
+    },
+    [minInterval]
+  );
 
   return scheduleUpdate;
 }
@@ -86,15 +89,18 @@ export function useDebounce(callback, delay = 100) {
   }, []);
 
   // デバウンスされた関数
-  return useCallback((...args) => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    
-    timerRef.current = setTimeout(() => {
-      callbackRef.current(...args);
-    }, delay);
-  }, [delay]);
+  return useCallback(
+    (...args) => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+
+      timerRef.current = setTimeout(() => {
+        callbackRef.current(...args);
+      }, delay);
+    },
+    [delay]
+  );
 }
 
 export default useOptimizedRenderer;

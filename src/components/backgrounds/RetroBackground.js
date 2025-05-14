@@ -1,81 +1,40 @@
 'use client';
 
-import React, { useEffect, useState, forwardRef } from 'react';
-import styles from '../../styles/backgrounds/RetroBackground.module.css';
+import React, { forwardRef, useState, useEffect } from 'react';
+import StarfieldBackground from './StarfieldBackground';
+import RetroBackgroundOriginal from './RetroBackgroundOriginal';
 
-// forwardRefを使用してコンポーネントに参照を渡せるようにする
+/**
+ * RetroBackgroundコンポーネント
+ * 設定に応じて、StarfieldBackgroundかRetroBackgroundOriginalを表示
+ *
+ * @param {Object} props コンポーネントのプロップス
+ * @param {string} props.className 追加のCSSクラス
+ * @param {React.Ref} ref 親から渡される参照
+ */
 const RetroBackground = forwardRef(({ className = '' }, ref) => {
-  const [dots, setDots] = useState([]);
+  // どちらの背景を使うかを設定するフラグ
+  // true: 新しい3Dスターフィールド背景を使用
+  // false: 元のドット背景を使用
+  const USE_STARFIELD = false;
+
   const [isClient, setIsClient] = useState(false);
 
-  // クライアントサイドでのみ実行
   useEffect(() => {
     setIsClient(true);
-
-    // ドットデータを生成
-    const colors = [
-      '#FF8C00', // ダークオレンジ
-      '#FFA500', // オレンジ
-      '#FFD700', // ゴールデン
-      '#FF4500', // 暗い赤オレンジ
-      '#FF7F50', // コーラル
-      '#551800'  // 暗いブラウン (アクセント)
-    ];
-    
-    const dotCount = 150; // ドットの数
-    const newDots = [];
-    
-    for (let i = 0; i < dotCount; i++) {
-      newDots.push({
-        id: i,
-        left: Math.random() * 100,
-        top: Math.random() * 100,
-        size: Math.random() * 3 + 2, // 2px〜5px
-        color: colors[Math.floor(Math.random() * colors.length)],
-        animationDuration: Math.random() * 3 + 2, // 2〜5秒
-        animationDelay: Math.random() * 2, // 0〜2秒
-        isRound: Math.random() > 0.5 // 50%の確率で丸いドット
-      });
-    }
-    
-    setDots(newDots);
+    console.log(
+      `[RetroBackground] 背景タイプ: ${
+        USE_STARFIELD ? 'スターフィールド背景' : 'オリジナルのドット背景'
+      }`
+    );
   }, []);
-  
-  // サーバーレンダリング時は何も表示しない
-  if (!isClient) {
-    return null;
-  }
 
-  return (
-    <div 
-      ref={ref}
-      className={`${styles.retroBackground} ${className}`}
-      aria-hidden="true"
-    >
-      {/* 暗い背景ベース */}
-      <div className={styles.backgroundBase} />
-      
-      {/* ドットパターン */}
-      {dots.map(dot => (
-        <div
-          key={dot.id}
-          style={{
-            position: 'absolute',
-            left: `${dot.left}%`,
-            top: `${dot.top}%`,
-            width: `${dot.size}px`,
-            height: `${dot.size}px`,
-            backgroundColor: dot.color,
-            borderRadius: dot.isRound ? '50%' : '0',
-            boxShadow: '0 0 4px currentColor',
-            animation: `${styles.blink} ${dot.animationDuration}s infinite ${dot.animationDelay}s`
-          }}
-        />
-      ))}
-      
-      {/* グリッドオーバーレイ */}
-      <div className={styles.gridOverlay} />
-    </div>
+  if (!isClient) return null;
+  // フラグに基づいて背景を切り替え
+  return USE_STARFIELD ? (
+    <StarfieldBackground ref={ref} className={className} />
+  ) : (
+    <RetroBackgroundOriginal ref={ref} className={className} />
   );
 });
 

@@ -17,7 +17,7 @@ export function useOptimizedImage(src, placeholderSrc = null, options = {}) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(placeholderSrc || src);
-  
+
   const {
     rootMargin = '0px',
     threshold = 0.1,
@@ -40,18 +40,18 @@ export function useOptimizedImage(src, placeholderSrc = null, options = {}) {
 
     let observer;
     let element = document.createElement('img');
-    
+
     const onLoad = () => {
       setLoaded(true);
       setCurrentSrc(src);
       cleanup();
     };
-    
+
     const onError = () => {
       setError(true);
       cleanup();
     };
-    
+
     const cleanup = () => {
       if (observer) {
         observer.disconnect();
@@ -63,19 +63,22 @@ export function useOptimizedImage(src, placeholderSrc = null, options = {}) {
       }
     };
 
-    observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        element.src = src;
-        element.addEventListener('load', onLoad);
-        element.addEventListener('error', onError);
+    observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          element.src = src;
+          element.addEventListener('load', onLoad);
+          element.addEventListener('error', onError);
+        }
+      },
+      {
+        rootMargin,
+        threshold,
       }
-    }, {
-      rootMargin,
-      threshold
-    });
-    
+    );
+
     observer.observe(element);
-    
+
     return cleanup;
   }, [src, eager, rootMargin, threshold]);
 
