@@ -1,4 +1,4 @@
-/* シンプルなタイピング表示用スタイル - 改良版 */
+/* シンプルなタイピング表示用スタイル - パフォーマンス最適化版 */
 .typingText {
   width: 100%;
   min-height: 2rem;
@@ -29,6 +29,9 @@
   text-align: center;
   display: flex;
   justify-content: center;
+  /* GPUアクセラレーションを有効化 */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* 内部コンテンツラッパー */
@@ -55,6 +58,9 @@
   justify-content: center;
   /* 中央揃え */
   align-items: center;
+  /* GPUアクセラレーションを有効化 */
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* 入力済み部分 */
@@ -93,7 +99,7 @@
   display: inline-block;
 }
 
-/* 次に入力すべき文字 */
+/* 次に入力すべき文字 - 最適化前のスタイル（互換性のため残す） */
 .nextChar {
   color: #ff9a28;
   /* オレンジ色 */
@@ -114,6 +120,27 @@
   scroll-margin-bottom: 1.5rem;
 }
 
+/* 最適化されたフォーカス文字スタイル */
+.optimizedFocus {
+  /* 古いアニメーションを無効化 */
+  animation: none;
+  
+  /* より軽量な代替アニメーションを使用 */
+  animation: optimized-pulse 1.2s infinite alternate;
+  
+  /* GPUアクセラレーションを有効化 */
+  will-change: opacity;
+  
+  /* フォーカス要素のスクロール位置の調整 */
+  scroll-margin-block: 1.5rem;
+  
+  /* transformではなくopacityベースのアニメーションに切り替え */
+  text-shadow: 0 0 6px rgba(255, 154, 40, 0.6);
+  
+  /* テキスト選択を無効化してレンダリングを最適化 */
+  user-select: none;
+}
+
 /* 未入力部分 */
 .remaining {
   color: #d8d8d8;
@@ -123,7 +150,7 @@
   padding-left: 0;
 }
 
-/* フォーカス文字のパルスアニメーション */
+/* フォーカス文字のパルスアニメーション - 元のバージョン（互換性のため残す） */
 @keyframes pulse-focus {
   0% {
     text-shadow: 0 0 4px rgba(255, 154, 40, 0.5);
@@ -137,6 +164,23 @@
   100% {
     text-shadow: 0 0 8px rgba(255, 154, 40, 0.9);
     transform: scale(1.05);
+  }
+}
+
+/* 最適化されたパルスアニメーション - GPUアクセラレーションを活用 */
+@keyframes optimized-pulse {
+  0% {
+    opacity: 0.9;
+    text-shadow: 0 0 4px rgba(255, 154, 40, 0.5);
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.95;
+    text-shadow: 0 0 8px rgba(255, 154, 40, 0.9);
   }
 }
 
@@ -169,7 +213,6 @@
 }
 
 @keyframes cursorBlink {
-
   0%,
   100% {
     opacity: 1;
@@ -188,7 +231,6 @@
 }
 
 @keyframes errorShake {
-
   0%,
   100% {
     transform: translateX(0);

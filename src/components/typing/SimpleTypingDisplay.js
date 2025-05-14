@@ -1,15 +1,16 @@
-import React, { memo, useRef, useEffect } from 'react';
+import React, { memo, useRef, useEffect, useCallback } from 'react';
 import styles from '../../styles/typing/SimpleTypingDisplay.module.css';
 
 // デバッグログフラグ - デフォルトで無効化
 const DEBUG_TYPING_DISPLAY = process.env.NODE_ENV === 'development' && false;
 
 /**
- * シンプルなタイピング表示コンポーネント（完全リファクタリング版）
+ * シンプルなタイピング表示コンポーネント（最適化版）
  * 
  * 長いローマ字でもフォーカス文字が常に適切な位置に表示されるよう最適化
  * スクロールや表示位置の自動調整機能を実装
  * MCPとの連携強化
+ * パフォーマンス最適化済み
  */
 const SimpleTypingDisplay = memo(({
   romaji,            // 表示するローマ字全体
@@ -38,6 +39,12 @@ const SimpleTypingDisplay = memo(({
   const containerRef = useRef(null);
   const nextCharRef = useRef(null);
   const contentRef = useRef(null);
+  
+  // 前回のスクロール位置を記憶するref
+  const lastScrollPositionRef = useRef(null);
+  
+  // 前回のフォーカス文字位置を記憶するref (パフォーマンス向上のため)
+  const lastTypedLengthRef = useRef(typedLength);
 
   // ローマ字が存在するか確認（デバッグ情報も出力）
   if (DEBUG_TYPING_DISPLAY) {
@@ -133,31 +140,39 @@ const SimpleTypingDisplay = memo(({
     }
   }
 
-  // フォーカス文字の可視化を保証するためのスクロール処理
-  useEffect(() => {
-    // フォーカス文字の要素と親コンテナが両方存在する場合
-    if (nextCharRef.current && containerRef.current) {
+  // 最適化：スクロール処理を効率的に行うための関数を分離
+  const updateScrollPosition = useCallback(() => {
+    // フォーカス文字の要素と親コンテナが両方存在し、かつtypedLengthが変更された場合のみスクロール処理を実行
+    if (nextCharRef.current && containerRef.current && lastTypedLengthRef.current !== typedLength) {
       try {
         // フォーカス文字の位置にスクロール
         const nextCharElem = nextCharRef.current;
         const container = containerRef.current;
+        
+        // 位置計算はパフォーマンスに影響するため、必要な時のみ実行
+        // Performance API でパフォーマンスを測定（開発モードのみ）
+        const startMeasure = DEBUG_TYPING_DISPLAY ? performance.now() : 0;
 
-        // フォーカス文字の位置を取得
-        const nextCharRect = nextCharElem.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-
-        // コンテナ内でのフォーカス文字の相対位置を計算
-        const isInView = (
-          nextCharRect.top >= containerRect.top &&
-          nextCharRect.bottom <= containerRect.bottom
-        );
-
-        // フォーカス文字が見えていない場合はスクロール調整
-        if (!isInView) {
+        // 軽量なDOM測定を使用
+        const isVisible = () => {
+          // この方法でのビジビリティ計算は比較的軽量
+          const containerTop = container.scrollTop;
+          const containerBottom = containerTop + container.clientHeight;
+          const elemTop = nextCharElem.offsetTop;
+          const elemBottom = elemTop + nextCharElem.offsetHeight;
+          
+          return elemTop >= containerTop && elemBottom <= containerBottom;
+        };
+        
+        // 要素が見えていない場合のみスクロール調整
+        if (!isVisible()) {
           // スクロール位置を計算
           // フォーカス文字を中央に配置
           const targetScrollTop = nextCharElem.offsetTop -
             (container.clientHeight / 2) + (nextCharElem.offsetHeight / 2);
+            
+          // スクロール位置を記憶
+          lastScrollPositionRef.current = targetScrollTop;
 
           // スムーズスクロール
           container.scrollTo({
@@ -165,11 +180,32 @@ const SimpleTypingDisplay = memo(({
             behavior: 'smooth'
           });
         }
+        
+        if (DEBUG_TYPING_DISPLAY) {
+          const endMeasure = performance.now();
+          console.log(`スクロール処理実行時間: ${endMeasure - startMeasure}ms`);
+        }
       } catch (error) {
         console.error('フォーカス文字のスクロール処理エラー:', error);
       }
+      
+      // typedLengthを更新
+      lastTypedLengthRef.current = typedLength;
     }
-  }, [typedLength, nextChar, displayNextChar, inputMode]);
+  }, [typedLength]);
+
+  // フォーカス文字の可視化を保証するためのスクロール処理
+  // 依存配列を大幅に削減し、必要最小限の変数のみに
+  useEffect(() => {
+    // requestAnimationFrameを使用してレンダリングサイクルと同期
+    const animationFrame = requestAnimationFrame(() => {
+      updateScrollPosition();
+    });
+    
+    return () => {
+      cancelAnimationFrame(animationFrame);
+    };
+  }, [typedLength, updateScrollPosition]);
 
   // マウント時、または表示範囲が変更されたときもスクロール位置を更新
   useEffect(() => {
@@ -179,7 +215,7 @@ const SimpleTypingDisplay = memo(({
         containerRef.current.scrollLeft = 0;
       }
     }
-  }, [visiblePortion, typedLength]);
+  }, [visiblePortion]);
 
   // 外部クラスと内部クラスを結合
   const containerClass = `${styles.typingText} ${className || ''} ${isError ? styles.errorShake : ''}`;
@@ -196,6 +232,7 @@ const SimpleTypingDisplay = memo(({
   // 部分表示の場合に前後に表示する省略記号
   const prefixEllipsis = !showFullText && hasValidRange && visiblePortion.start > 0 ? '...' : '';
   const suffixEllipsis = !showFullText && hasValidRange && visiblePortion.end < safeRomaji.length ? '...' : '';
+
   // デバッグ情報（本番では無効化）
   if (DEBUG_TYPING_DISPLAY) {
     console.log('SimpleTypingDisplay - レンダリング内容検証:', {
@@ -231,7 +268,7 @@ const SimpleTypingDisplay = memo(({
 
         {/* 次に入力すべき文字（ハイライト表示）（セーフティチェック付き） */}
         {displayNextChar && (
-          <span className={styles.nextChar} ref={nextCharRef}>{displayNextChar}</span>
+          <span className={`${styles.nextChar} ${styles.optimizedFocus}`} ref={nextCharRef}>{displayNextChar}</span>
         )}        {/* 子音入力中の場合は、現在の仮名の残りを表示（セーフティチェック強化） */}
         {inputMode === 'consonant' &&
           typeof currentCharRomaji === 'string' &&
