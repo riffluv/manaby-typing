@@ -15,6 +15,9 @@ export const metadata = {
 export default function RootLayout({ children }) {  return (
     <html lang="ja">
       <head>
+        {/* レスポンシブ対応のためのビューポート設定 */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        
         {/* 重要な音声ファイルをプリロード */}
         <link 
           rel="preload" 

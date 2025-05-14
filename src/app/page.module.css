@@ -10,4 +10,18 @@
   overflow: hidden;
   padding: 20px;
   position: relative; /* 子要素の位置関係のため */
+  box-sizing: border-box;
+}
+
+/* レスポンシブ対応 - 小さい画面でのパディング調整 */
+@media (max-width: 650px) {
+  .container {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 5px;
+  }
 }
