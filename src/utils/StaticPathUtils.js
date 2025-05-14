@@ -18,6 +18,11 @@ export const isVercelEnv = () => {
                       window.location && 
                       (window.location.hostname.includes('vercel.app') || 
                        window.location.hostname === 'manaby-typing.vercel.app');
+  
+  // デバッグ用ログ出力                
+  if (typeof window !== 'undefined' && window.location) {
+    console.log('Vercel環境検出:', { isVercel, isVercelUrl, hostname: window.location.hostname });
+  }
                        
   return isVercel || isVercelUrl;
 };
@@ -70,9 +75,12 @@ export const getStaticPath = (path) => {
   // basePath設定に合わせて、本番環境ではリポジトリ名を含める
   // 明示的に設定されたbasePath、または自動検出された値を使用
   let basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-
   // GitHub Pages環境または本番環境でbasePathが設定されていない場合、デフォルト値を使用
-  if ((isProduction || isGitHubPages) && !basePath) {
+  // Vercel環境の場合はbasePathを空にする
+  if (isVercelEnv()) {
+    basePath = ''; // Vercel環境では空のベースパス
+    console.log('Vercel環境を検出: ベースパスを空に設定');
+  } else if ((isProduction || isGitHubPages) && !basePath) {
     basePath = '/manaby-typing'; // デフォルトのリポジトリ名
     console.warn('NEXT_PUBLIC_BASE_PATH未設定、デフォルト値を使用:', basePath);
   }  // 最終パスを生成（デバッグログを追加）

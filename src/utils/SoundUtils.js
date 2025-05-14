@@ -76,9 +76,9 @@ class SoundUtils {
 
     // ローカルストレージから設定を読み込む（存在する場合）    this._loadSettingsFromStorage();    // サウンドプリセット定義
     this.soundPresets = {
-      // 基本ゲーム効果音 - ファイル名大文字小文字に対応
-      success: this._getSoundPathWithFallback('Hit05-1.mp3', 'hit05-1.mp3'), // タイピング成功音
-      error: this._getSoundPathWithFallback('Hit04-1.mp3', 'hit04-1.mp3'), // タイピングエラー音
+      // 基本ゲーム効果音 - 実際のファイル名に合わせて（小文字で定義）
+      success: getStaticPath('/sounds/hit05-1.mp3'), // タイピング成功音
+      error: getStaticPath('/sounds/hit04-1.mp3'), // タイピングエラー音
       complete: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音
       button: getStaticPath('/sounds/buttonsound1.mp3'), // ボタンクリック音
     };
