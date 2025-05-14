@@ -1,5 +1,5 @@
 import './globals.css';
-import { fontClasses } from './fonts';  // fonts.jsからfontClassesをインポート
+import { fontClasses } from './fonts'; // fonts.jsからfontClassesをインポート
 import MCPInitializer from '../components/MCPInitializer';
 import { logger, LOG_LEVELS } from '../utils/LogUtils';
 
@@ -12,45 +12,45 @@ export const metadata = {
   description: 'Next.jsで作成されたタイピング練習ゲーム',
 };
 
-export default function RootLayout({ children }) {  return (
+export default function RootLayout({ children }) {
+  return (
     <html lang="ja">
       <head>
         {/* レスポンシブ対応のためのビューポート設定 */}
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
         {/* 重要な音声ファイルをプリロード */}
-        <link 
-          rel="preload" 
-          href="/sounds/hit04-1.mp3" 
-          as="audio" 
-          type="audio/mpeg" 
-          crossOrigin="anonymous" 
+        <link
+          rel="preload"
+          href="/sounds/Hit04-1.mp3"
+          as="audio"
+          crossOrigin="anonymous"
         />
-        <link 
-          rel="preload" 
-          href="/sounds/hit05-1.mp3" 
-          as="audio" 
-          type="audio/mpeg" 
-          crossOrigin="anonymous" 
+        <link
+          rel="preload"
+          href="/sounds/Hit05-1.mp3"
+          as="audio"
+          crossOrigin="anonymous"
         />
-        <link 
-          rel="preload" 
-          href="/sounds/buttonsound1.mp3" 
-          as="audio" 
-          type="audio/mpeg" 
-          crossOrigin="anonymous" 
+        <link
+          rel="preload"
+          href="/sounds/buttonsound1.mp3"
+          as="audio"
+          crossOrigin="anonymous"
         />
-        <link 
-          rel="preload" 
-          href="/sounds/resultsound.mp3" 
-          as="audio" 
-          type="audio/mpeg" 
-          crossOrigin="anonymous" 
+        <link
+          rel="preload"
+          href="/sounds/resultsound.mp3"
+          as="audio"
+          crossOrigin="anonymous"
         />
-        
+
         {/* ランタイムエラーを抑制するためのスクリプト */}
-        <script dangerouslySetInnerHTML={{
-          __html: `
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
             // chrome拡張機能やLive Previewによるエラーメッセージを抑制
             window.addEventListener('error', function(event) {
               if (event.message && event.message.includes('runtime.lastError') && 
@@ -60,12 +60,14 @@ export default function RootLayout({ children }) {  return (
                 return true;
               }
             }, true);
-          `
-        }} />
+          `,
+          }}
+        />
 
         {/* MCP初期化スクリプト - ログ出力を完全に無効化 */}
-        <script dangerouslySetInnerHTML={{
-          __html: `
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
             // MCPオブジェクトの初期化
             window._mcp = window._mcp || {
               send: function(channel, data) {
@@ -86,24 +88,23 @@ export default function RootLayout({ children }) {  return (
               eventListeners: new Map()
             };
             // 初期化メッセージも抑制
-          `
-        }} />
+          `,
+          }}
+        />
       </head>
       <body
-        className={fontClasses}  // Geistの代わりにfonts.jsで定義したフォントクラスを使用
+        className={fontClasses} // Geistの代わりにfonts.jsで定義したフォントクラスを使用
         suppressHydrationWarning
         style={{
           position: 'relative',
           margin: 0,
           padding: 0,
           minHeight: '100vh',
-          backgroundColor: '#111'
+          backgroundColor: '#111',
         }}
       >
         {/* MCPサーバー接続初期化 - childrenを渡す */}
-        <MCPInitializer>
-          {children}
-        </MCPInitializer>
+        <MCPInitializer>{children}</MCPInitializer>
       </body>
     </html>
   );

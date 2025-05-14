@@ -50,9 +50,8 @@ export function useGameController(options = {}) {
   const { setGameState } = useGameContext();  /**
    * 蝠城｡後′螳御ｺ・＠縺滓凾縺ｮ蜃ｦ逅・
    */  const handleProblemComplete = useCallback((typingStats) => {
-    // 蜉ｹ譫憺浹蜀咲函
-    soundSystem.playSound('clear');
-
+    // 蜉ｹ譫憺浹蜀咲函縺ｯ逵∫払・育ｶｴ繧ｰ繝ｫ繝域浹螢ｰ縺ｨ縺九・繧九◆繧・
+    
     // 谺｡縺ｮ蝠城｡梧焚繧定ｨ育ｮ・
     const newSolvedCount = gameState.solvedCount + 1;
     console.log('[GameController] 蝠城｡悟ｮ御ｺ・- 隗｣遲疲焚譖ｴ譁ｰ:', newSolvedCount);

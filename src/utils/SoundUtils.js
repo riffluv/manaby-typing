@@ -64,7 +64,7 @@ class SoundUtils {
     this.currentBgm = null;
     this.bgmElement = null;
     this.bgmVolume = 0.5; // デフォルトBGM音量 (0.0〜1.0)
-    this.bgmEnabled = true; // BGM有効フラグ
+    this.bgmEnabled = false; // BGM有効フラグ（デフォルトではオフ）
     this.pendingBgm = null; // 自動再生ポリシーによりブロックされたBGM情報を保持
     this.userInteracted = false; // ユーザーがページと対話したかどうかのフラグ
 
@@ -72,14 +72,13 @@ class SoundUtils {
     this.volume = 1.0;
 
     // 効果音のオン/オフ設定
-    this.sfxEnabled = true;
-
-    // ローカルストレージから設定を読み込む（存在する場合）    this._loadSettingsFromStorage();    // サウンドプリセット定義
+    this.sfxEnabled = true; // ローカルストレージから設定を読み込む（存在する場合）    this._loadSettingsFromStorage();    // サウンドプリセット定義
     this.soundPresets = {
-      // 基本ゲーム効果音 - 実際のファイル名に合わせて（小文字で定義）
-      success: getStaticPath('/sounds/hit05-1.mp3'), // タイピング成功音
-      error: getStaticPath('/sounds/hit04-1.mp3'), // タイピングエラー音
+      // 基本ゲーム効果音 - 実際のファイル名に合わせて（大文字で定義）
+      success: getStaticPath('/sounds/Hit05-1.mp3'), // タイピング成功音
+      error: getStaticPath('/sounds/Hit04-1.mp3'), // タイピングエラー音
       complete: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音
+      clear: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音（別名）
       button: getStaticPath('/sounds/buttonsound1.mp3'), // ボタンクリック音
     };
 
@@ -123,16 +122,18 @@ class SoundUtils {
     // プライマリとフォールバックの両方のパスを生成
     const primaryPath = getStaticPath(`/sounds/${primaryName}`);
     const fallbackPath = getStaticPath(`/sounds/${fallbackName}`);
-    
+
     // Vercel環境では小文字のパスを優先
-    const isVercel = typeof process !== 'undefined' && 
-                    process.env && process.env.VERCEL === '1';
-    
+    const isVercel =
+      typeof process !== 'undefined' &&
+      process.env &&
+      process.env.VERCEL === '1';
+
     if (isVercel) {
       console.log(`Vercel環境検出: ${fallbackPath} を使用`);
       return fallbackPath;
     }
-    
+
     // GitHub Pages環境では大文字のパスを優先
     console.log(`非Vercel環境: ${primaryPath} を使用`);
     return primaryPath;
@@ -223,7 +224,7 @@ class SoundUtils {
   /**
    * 基本的な効果音をロードする
    * @returns {Promise} ロード完了時に解決されるPromise
-   */  async initializeAllSounds() {
+   */ async initializeAllSounds() {
     // サーバーサイドレンダリング時は何もしない
     if (typeof window === 'undefined') {
       return Promise.resolve(false);
@@ -254,7 +255,7 @@ class SoundUtils {
           }
         }
       }
-      
+
       // 2次的な音声は並列ロード
       for (const name of secondarySounds) {
         if (this.soundPresets[name]) {
@@ -282,7 +283,7 @@ class SoundUtils {
    * @param {string} name - 効果音の名前
    * @param {string} url - 効果音ファイルのURL
    * @returns {Promise} - ロード完了時に解決されるPromise
-   */  async loadSound(name, url) {
+   */ async loadSound(name, url) {
     // サーバーサイドレンダリング時は何もしない
     if (typeof window === 'undefined') {
       return Promise.resolve();
@@ -294,34 +295,40 @@ class SoundUtils {
 
       // 本番環境では音声ファイルをキャッシュ利用（キャッシュバスティングなし）
       // 開発環境のみタイムスタンプを使用
-      const cacheBustedUrl = process.env.NODE_ENV === 'production' 
-        ? url 
-        : `${url}?t=${this.timestamp}`;
+      const cacheBustedUrl =
+        process.env.NODE_ENV === 'production'
+          ? url
+          : `${url}?t=${this.timestamp}`;
       console.log(`サウンド「${name}」をロード中: ${cacheBustedUrl}`);
 
       // GitHub Pages対策：フェッチリクエストで詳細なエラーログ
       console.log(`${name}の読み込み開始: ${cacheBustedUrl}`);
 
       // 最初に通常のURLで試行
-      let response = await fetch(cacheBustedUrl);
-
-      // 大文字小文字の問題を検出して対処する試み
+      let response = await fetch(cacheBustedUrl); // 大文字小文字の問題を検出して対処する試み
       if (!response.ok) {
         console.warn(
           `${name}のロードに失敗 (${response.status})。代替URLで再試行...`
         );
 
-        // 代替URL試行 - URLに含まれるファイル名部分の最初の文字を大文字に変更
+        // 代替URL試行 - URLに含まれるファイル名部分の最初の文字を大文字/小文字に変更
         const urlParts = url.split('/');
         const fileName = urlParts[urlParts.length - 1];
 
         // 代替ファイル名で再試行
-        let capitalizedFileName;
+        let alternateFileName = fileName;
         if (fileName.startsWith('hit') && fileName.endsWith('.mp3')) {
-          capitalizedFileName = 'H' + fileName.substring(1);
-          urlParts[urlParts.length - 1] = capitalizedFileName;
+          // 小文字から大文字へ
+          alternateFileName = 'H' + fileName.substring(1);
+        } else if (fileName.startsWith('Hit') && fileName.endsWith('.mp3')) {
+          // 大文字から小文字へ
+          alternateFileName = 'h' + fileName.substring(1);
+        }
+
+        if (alternateFileName !== fileName) {
+          urlParts[urlParts.length - 1] = alternateFileName;
           const alternateUrl = urlParts.join('/') + `?t=${this.timestamp}`;
-          console.log(`代替URL試行: ${alternateUrl}`);
+          console.log(`代替URL試行: ${alternateUrl} (元: ${fileName})`);
 
           response = await fetch(alternateUrl);
         }
@@ -641,7 +648,6 @@ class SoundUtils {
 
     logUtil.debug(`BGMの音量を設定: ${this.bgmVolume}`);
   }
-
   /**
    * BGMを有効/無効に切り替える
    * @param {boolean} enabled - BGMを有効にするか
@@ -649,17 +655,18 @@ class SoundUtils {
   setBgmEnabled(enabled) {
     this.bgmEnabled = enabled;
 
-    if (this.bgmElement) {
-      if (enabled) {
-        // 有効化する場合は再生を再開
+    if (enabled) {
+      // 有効化する場合
+      if (this.bgmElement) {
+        // BGM要素が存在する場合は再生を再開
         this.bgmElement.volume = this.bgmVolume;
         if (this.bgmElement.paused) {
           this.resumeBgm();
         }
-      } else {
-        // 無効化する場合は一時停止
-        this.bgmElement.pause();
       }
+    } else {
+      // 無効化する場合は完全に停止
+      this.stopBgm();
     }
 
     logUtil.debug(`BGMを${enabled ? '有効' : '無効'}にしました`);
@@ -678,7 +685,6 @@ class SoundUtils {
       this.context.resume();
     }
   }
-
   /**
    * BGMを再生する
    * @param {string} name - BGM名（プリセットに定義されているもの）
@@ -687,6 +693,8 @@ class SoundUtils {
   playBgm(name, loop = true) {
     // サーバーサイドレンダリング時や無効時は何もしない
     if (typeof window === 'undefined' || !this.bgmEnabled) {
+      // BGMが無効の場合は、既存のBGMを確実に停止する
+      this.stopBgm();
       return;
     }
 
@@ -799,17 +807,26 @@ class SoundUtils {
       logUtil.debug(`BGM「${this.currentBgm}」を再開しました`);
     }
   }
-
   /**
    * BGMを停止する
    */
   stopBgm() {
+    // BGM要素がなくても状態をリセットする
     if (this.bgmElement) {
       this.bgmElement.pause();
       this.bgmElement.currentTime = 0;
       this.bgmElement = null;
       logUtil.debug(`BGM「${this.currentBgm}」を停止しました`);
+    }
+
+    // 常にcurrentBgmをリセットする（bgmElementがない場合も）
+    if (this.currentBgm) {
       this.currentBgm = null;
+    }
+
+    // pendingBgmもリセット
+    if (this.pendingBgm) {
+      this.pendingBgm = null;
     }
   }
 

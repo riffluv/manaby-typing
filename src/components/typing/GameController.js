@@ -31,9 +31,12 @@ export function useGameController(options = {}) {
   const DEBUG_MODE = process.env.NODE_ENV === 'development' && false; // 必要に応じて有効化
 
   // デバッグログ関数
-  const debugLog = useCallback((message, ...args) => {
-    if (DEBUG_MODE) console.log(`[GameController] ${message}`, ...args);
-  }, [DEBUG_MODE]);
+  const debugLog = useCallback(
+    (message, ...args) => {
+      if (DEBUG_MODE) console.log(`[GameController] ${message}`, ...args);
+    },
+    [DEBUG_MODE]
+  );
 
   // Game Contextから状態取得
   const { gameState } = useGameContext();
@@ -45,7 +48,7 @@ export function useGameController(options = {}) {
   const prevGameStateRef = useRef({
     solvedCount: 0,
     requiredProblemCount: 0,
-    lastUpdated: Date.now() // 状態追跡を追加
+    lastUpdated: Date.now(), // 状態追跡を追加
   });
 
   // パフォーマンス測定 - 追加情報
@@ -53,7 +56,7 @@ export function useGameController(options = {}) {
     lastKeyPressTime: 0,
     inputLatency: 0,
     frameDrops: 0,
-    totalKeyPresses: 0 // 総タイピング数を記録
+    totalKeyPresses: 0, // 総タイピング数を記録
   });
 
   // タイピング参照（循環参照問題を回避）
@@ -67,164 +70,189 @@ export function useGameController(options = {}) {
 
   /**
    * 問題が完了した時の処理
-   */
-  const handleProblemComplete = useCallback((typingStats) => {
-    // 効果音再生
-    soundSystem.playSound('clear');
+   */ const handleProblemComplete = useCallback(
+    (typingStats) => {
+      // 効果音再生は省略（リザルト画面の音声とかぶるため）
 
-    // 次の問題数を計算
-    const newSolvedCount = gameState.solvedCount + 1;
-    // 問題完了のログは削除
+      // 次の問題数を計算
+      const newSolvedCount = gameState.solvedCount + 1;
+      // 問題完了のログは削除
 
-    // ゲームクリア判定
-    const isGameClear = newSolvedCount >= gameState.requiredProblemCount;
+      // ゲームクリア判定
+      const isGameClear = newSolvedCount >= gameState.requiredProblemCount;
 
-    // すべてのスコア計算は削除 - リファクタリングのための準備
+      // すべてのスコア計算は削除 - リファクタリングのための準備
 
-    // スコア計算削除のログを削除
+      // スコア計算削除のログを削除
 
-    if (isGameClear) {
-      // ゲームクリア時の処理
-      // 全問題完了のログを削除
+      if (isGameClear) {
+        // ゲームクリア時の処理
+        // 全問題完了のログを削除
 
-      // 終了時間を記録
-      const endTime = Date.now();
-      const startTime = gameState.startTime || typing.typingStats?.statsRef?.current?.startTime || endTime;
-      const elapsedTimeMs = endTime - startTime;
+        // 終了時間を記録
+        const endTime = Date.now();
+        const startTime =
+          gameState.startTime ||
+          typing.typingStats?.statsRef?.current?.startTime ||
+          endTime;
+        const elapsedTimeMs = endTime - startTime;
 
-      // KPM計算 - 問題ごとのKPMの平均値を優先
-      let averageKPM = 0;
-      // 各問題のKPMを累積
-      const allProblemKPMs = [
-        ...(gameState.problemKPMs || []),
-        typing?.typingStats?.displayStats?.kpm || 0
-      ].filter(kpm => kpm > 0);
+        // KPM計算 - 問題ごとのKPMの平均値を優先
+        let averageKPM = 0;
+        // 各問題のKPMを累積
+        const allProblemKPMs = [
+          ...(gameState.problemKPMs || []),
+          typing?.typingStats?.displayStats?.kpm || 0,
+        ].filter((kpm) => kpm > 0);
 
-      if (allProblemKPMs && allProblemKPMs.length > 0) {
-        // 問題ごとのKPMの平均を計算
-        averageKPM = allProblemKPMs.reduce((sum, kpm) => sum + kpm, 0) / allProblemKPMs.length;
-      } else {
-        // 問題データがない場合は単純計算
-        const totalCorrectKeyCount = typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
-        averageKPM = Math.floor(totalCorrectKeyCount / (elapsedTimeMs / 60000));
-      }
+        if (allProblemKPMs && allProblemKPMs.length > 0) {
+          // 問題ごとのKPMの平均を計算
+          averageKPM =
+            allProblemKPMs.reduce((sum, kpm) => sum + kpm, 0) /
+            allProblemKPMs.length;
+        } else {
+          // 問題データがない場合は単純計算
+          const totalCorrectKeyCount =
+            typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
+          averageKPM = Math.floor(
+            totalCorrectKeyCount / (elapsedTimeMs / 60000)
+          );
+        }
 
-      // ゲーム全体の累積キー入力統計の計算
-      // 最後のお題のキー入力状況
-      const lastProblemCorrectKeys = typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
-      const lastProblemMissKeys = typing?.typingStats?.statsRef?.current?.mistakeCount || 0;
+        // ゲーム全体の累積キー入力統計の計算
+        // 最後のお題のキー入力状況
+        const lastProblemCorrectKeys =
+          typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
+        const lastProblemMissKeys =
+          typing?.typingStats?.statsRef?.current?.mistakeCount || 0;
 
-      // 累積入力数の計算（全問題の累積）
-      const totalCorrectKeyCount = (gameState.totalCorrectKeys || 0) + lastProblemCorrectKeys;
-      const totalMissCount = (gameState.totalMissKeys || 0) + lastProblemMissKeys;
-      const totalKeystrokes = totalCorrectKeyCount + totalMissCount;
-      const accuracy = totalKeystrokes > 0 ? Math.round((totalCorrectKeyCount / totalKeystrokes) * 100) : 100;
+        // 累積入力数の計算（全問題の累積）
+        const totalCorrectKeyCount =
+          (gameState.totalCorrectKeys || 0) + lastProblemCorrectKeys;
+        const totalMissCount =
+          (gameState.totalMissKeys || 0) + lastProblemMissKeys;
+        const totalKeystrokes = totalCorrectKeyCount + totalMissCount;
+        const accuracy =
+          totalKeystrokes > 0
+            ? Math.round((totalCorrectKeyCount / totalKeystrokes) * 100)
+            : 100;
 
-      // 問題数は「解いた問題数」を表示
-      const correctProblemCount = newSolvedCount;      // 詳細なデバッグログを削除
+        // 問題数は「解いた問題数」を表示
+        const correctProblemCount = newSolvedCount; // 詳細なデバッグログを削除
 
-      // スコアデータをGameContextに保存
-      setGameState(prev => ({
-        ...prev,
-        solvedCount: newSolvedCount,
-        isGameClear: true,
-        problemKPMs: allProblemKPMs,
-        startTime: startTime,
-        endTime: endTime,
-        // 全問題の累積統計を保存
-        totalCorrectKeys: totalCorrectKeyCount,
-        totalMissKeys: totalMissCount,
-        // リザルト画面で使用する統計情報（従来モードと同じ形式で提供）
-        stats: {
-          kpm: Math.round(averageKPM * 10) / 10, // 小数点1位までの平均KPM
-          correctCount: totalCorrectKeyCount, // 累積の正解キー数
-          missCount: totalMissCount, // 累積のミス入力数
-          accuracy: accuracy, // 正確率（累積値から計算）
-          rank: TypingUtils.getRank(averageKPM) || 'F',
+        // スコアデータをGameContextに保存
+        setGameState((prev) => ({
+          ...prev,
+          solvedCount: newSolvedCount,
+          isGameClear: true,
           problemKPMs: allProblemKPMs,
-          elapsedTimeMs: elapsedTimeMs,
-          totalTime: elapsedTimeMs / 1000,
-          solvedProblems: correctProblemCount // 別途、解いた問題数も追加
-        }
-      }));
+          startTime: startTime,
+          endTime: endTime,
+          // 全問題の累積統計を保存
+          totalCorrectKeys: totalCorrectKeyCount,
+          totalMissKeys: totalMissCount,
+          // リザルト画面で使用する統計情報（従来モードと同じ形式で提供）
+          stats: {
+            kpm: Math.round(averageKPM * 10) / 10, // 小数点1位までの平均KPM
+            correctCount: totalCorrectKeyCount, // 累積の正解キー数
+            missCount: totalMissCount, // 累積のミス入力数
+            accuracy: accuracy, // 正確率（累積値から計算）
+            rank: TypingUtils.getRank(averageKPM) || 'F',
+            problemKPMs: allProblemKPMs,
+            elapsedTimeMs: elapsedTimeMs,
+            totalTime: elapsedTimeMs / 1000,
+            solvedProblems: correctProblemCount, // 別途、解いた問題数も追加
+          },
+        }));
 
-      // リザルト画面に遷移
-      window.lastResultTransition = Date.now();
+        // リザルト画面に遷移
+        window.lastResultTransition = Date.now();
 
-      setTimeout(() => {
-        console.log('[GameController] handleProblemComplete: リザルト画面に遷移 - スコアなし');
-        goToScreen(SCREENS.RESULT, {
-          playSound: true,
-          soundType: 'result',
-          // スコア情報はリザルト画面に渡さない
-          gameState: {}
-        });
-      }, 300);
-    } else {
-      // ゲームクリアでない場合 - 次の問題に進む処理
-      // 問題数と統計情報を更新
-      const currentProblemKPM = typing?.typingStats?.displayStats?.kpm || 0;
-      const currentProblemCorrectKeys = typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
-      const currentProblemMistakes = typing?.typingStats?.statsRef?.current?.mistakeCount || 0;
-
-      console.log('[GameController] 問題完了統計: ', {
-        KPM: currentProblemKPM,
-        正解キー数: currentProblemCorrectKeys,
-        ミス数: currentProblemMistakes
-      });
-
-      // 問題ごとのKPM情報を蓄積
-      const updatedProblemKPMs = [
-        ...(gameState.problemKPMs || []),
-        currentProblemKPM
-      ].filter(kpm => kpm > 0);
-
-      // 全問題の累積統計を更新
-      setGameState(prev => ({
-        ...prev,
-        solvedCount: newSolvedCount,
-        problemKPMs: updatedProblemKPMs,
-        // 累積打鍵数も追跡
-        totalCorrectKeys: (prev.totalCorrectKeys || 0) + currentProblemCorrectKeys,
-        totalMissKeys: (prev.totalMissKeys || 0) + currentProblemMistakes
-      }));      // 次の問題をセット（超高速応答バージョン - マイクロタスクを使用）
-      queueMicrotask(() => {
-        try {
-          // 新しい問題を即座に生成（ログは開発環境でのみ出力）
-          const nextProblem = getRandomProblem({
-            difficulty: gameState.difficulty,
-            category: gameState.category,
-            excludeRecent: [currentProblem?.displayText],
+        setTimeout(() => {
+          console.log(
+            '[GameController] handleProblemComplete: リザルト画面に遷移 - スコアなし'
+          );
+          goToScreen(SCREENS.RESULT, {
+            playSound: true,
+            soundType: 'result',
+            // スコア情報はリザルト画面に渡さない
+            gameState: {},
           });
+        }, 300);
+      } else {
+        // ゲームクリアでない場合 - 次の問題に進む処理
+        // 問題数と統計情報を更新
+        const currentProblemKPM = typing?.typingStats?.displayStats?.kpm || 0;
+        const currentProblemCorrectKeys =
+          typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
+        const currentProblemMistakes =
+          typing?.typingStats?.statsRef?.current?.mistakeCount || 0;
 
-          // デバッグ情報（開発環境のみ）
-          if (DEBUG_MODE) {
-            debugLog('次の問題を選択:', {
-              displayText: nextProblem?.displayText?.substring(0, 10) + '...',
-              難易度: gameState.difficulty
+        console.log('[GameController] 問題完了統計: ', {
+          KPM: currentProblemKPM,
+          正解キー数: currentProblemCorrectKeys,
+          ミス数: currentProblemMistakes,
+        });
+
+        // 問題ごとのKPM情報を蓄積
+        const updatedProblemKPMs = [
+          ...(gameState.problemKPMs || []),
+          currentProblemKPM,
+        ].filter((kpm) => kpm > 0);
+
+        // 全問題の累積統計を更新
+        setGameState((prev) => ({
+          ...prev,
+          solvedCount: newSolvedCount,
+          problemKPMs: updatedProblemKPMs,
+          // 累積打鍵数も追跡
+          totalCorrectKeys:
+            (prev.totalCorrectKeys || 0) + currentProblemCorrectKeys,
+          totalMissKeys: (prev.totalMissKeys || 0) + currentProblemMistakes,
+        })); // 次の問題をセット（超高速応答バージョン - マイクロタスクを使用）
+        queueMicrotask(() => {
+          try {
+            // 新しい問題を即座に生成（ログは開発環境でのみ出力）
+            const nextProblem = getRandomProblem({
+              difficulty: gameState.difficulty,
+              category: gameState.category,
+              excludeRecent: [currentProblem?.displayText],
             });
-          }
 
-          // 問題をすぐにセット
-          setCurrentProblem(nextProblem);
-
-          // タイピングセッション更新（即時）
-          if (typing?.setProblem) {
-            // 同期的に問題を設定してレスポンスを最大限に速く
-            typing.setProblem(nextProblem);
-
-            // パフォーマンスマーク（開発環境のみ）
-            if (DEBUG_MODE && typeof performance !== 'undefined' && performance.mark) {
-              performance.mark('problem-set-complete');
+            // デバッグ情報（開発環境のみ）
+            if (DEBUG_MODE) {
+              debugLog('次の問題を選択:', {
+                displayText: nextProblem?.displayText?.substring(0, 10) + '...',
+                難易度: gameState.difficulty,
+              });
             }
+
+            // 問題をすぐにセット
+            setCurrentProblem(nextProblem);
+
+            // タイピングセッション更新（即時）
+            if (typing?.setProblem) {
+              // 同期的に問題を設定してレスポンスを最大限に速く
+              typing.setProblem(nextProblem);
+
+              // パフォーマンスマーク（開発環境のみ）
+              if (
+                DEBUG_MODE &&
+                typeof performance !== 'undefined' &&
+                performance.mark
+              ) {
+                performance.mark('problem-set-complete');
+              }
+            }
+          } catch (err) {
+            // エラーが発生しても処理を継続
+            console.error('[GameController] 問題設定エラー:', err);
           }
-        } catch (err) {
-          // エラーが発生しても処理を継続
-          console.error('[GameController] 問題設定エラー:', err);
-        }
-      });
-    }
-  }, [gameState, currentProblem, setGameState, goToScreen]);
+        });
+      }
+    },
+    [gameState, currentProblem, setGameState, goToScreen]
+  );
 
   /**
    * タイピングゲームカスタムフック
@@ -238,60 +266,64 @@ export function useGameController(options = {}) {
   });
 
   // 初期化後にRefに保存
-  typingRef.current = typing;  /**
+  typingRef.current = typing;
+  /**
    * キーイベントハンドラ（超高速パフォーマンス版 2025年5月12日）
    */
-  const handleKeyDown = useCallback((e) => {
-    // 最小限のセーフティチェック（処理速度優先）
-    if (!e?.key) return;
+  const handleKeyDown = useCallback(
+    (e) => {
+      // 最小限のセーフティチェック（処理速度優先）
+      if (!e?.key) return;
 
-    // Escキーは特別処理（ショートカット）
-    if (e.key === 'Escape') {
-      goToScreen(SCREENS.MAIN_MENU, { playSound: true, soundType: 'button' });
-      return;
-    }
+      // Escキーは特別処理（ショートカット）
+      if (e.key === 'Escape') {
+        goToScreen(SCREENS.MAIN_MENU, { playSound: true, soundType: 'button' });
+        return;
+      }
 
-    // 入力キー記録を非同期処理に移動してメインスレッドを高速化
-    if (onLastPressedKeyChange) {
-      queueMicrotask(() => {
-        onLastPressedKeyChange(e.key);
-      });
-    }
+      // 入力キー記録を非同期処理に移動してメインスレッドを高速化
+      if (onLastPressedKeyChange) {
+        queueMicrotask(() => {
+          onLastPressedKeyChange(e.key);
+        });
+      }
 
-    // タイピングセッションのセーフティチェック
-    if (!typing || !typing.typingSession) {
-      debugLog('タイピングセッションがありません - 入力を無視します');
-      return;
-    }    // パフォーマンス最適化 - 最小限の処理のみをメインスレッドで行う
-    try {
-      // 入力処理を直接実行して高速化（typingmania-refの実装に着想）
-      const result = typing.handleInput(e.key);
+      // タイピングセッションのセーフティチェック
+      if (!typing || !typing.typingSession) {
+        debugLog('タイピングセッションがありません - 入力を無視します');
+        return;
+      } // パフォーマンス最適化 - 最小限の処理のみをメインスレッドで行う
+      try {
+        // 入力処理を直接実行して高速化（typingmania-refの実装に着想）
+        const result = typing.handleInput(e.key);
 
-      // キー入力カウント更新を非同期処理に移動
-      queueMicrotask(() => {
-        performanceRef.current.totalKeyPresses++;
-        performanceRef.current.lastKeyPressTime = Date.now();
+        // キー入力カウント更新を非同期処理に移動
+        queueMicrotask(() => {
+          performanceRef.current.totalKeyPresses++;
+          performanceRef.current.lastKeyPressTime = Date.now();
 
-        // パフォーマンスモニタリング（開発環境のみ）
-        if (DEBUG_MODE) {
-          // メトリクスの更新
-          if (typing.performanceMetrics) {
-            typing.performanceMetrics.lastKeyTime = Date.now();
+          // パフォーマンスモニタリング（開発環境のみ）
+          if (DEBUG_MODE) {
+            // メトリクスの更新
+            if (typing.performanceMetrics) {
+              typing.performanceMetrics.lastKeyTime = Date.now();
+            }
           }
-        }
-      });
+        });
 
-      // キー入力イベントの伝播を即座に止める（最高優先度）
-      if (result?.success) {
-        e.preventDefault();
+        // キー入力イベントの伝播を即座に止める（最高優先度）
+        if (result?.success) {
+          e.preventDefault();
+        }
+      } catch (err) {
+        // エラー発生時もユーザー体験を維持
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[GameController] キー入力処理エラー:', err);
+        }
       }
-    } catch (err) {
-      // エラー発生時もユーザー体験を維持
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('[GameController] キー入力処理エラー:', err);
-      }
-    }
-  }, [typing, goToScreen, onLastPressedKeyChange]);
+    },
+    [typing, goToScreen, onLastPressedKeyChange]
+  );
 
   /**
    * 次に入力すべきキーを取得
@@ -312,10 +344,18 @@ export function useGameController(options = {}) {
       // Workerの終了処理を追加
       // メッセージチャネルが閉じられたエラーを防ぐため、コンポーネントのアンマウント時に
       // 明示的にリソースを解放する
-      if (typingWorkerManager && typeof typingWorkerManager.reset === 'function') {
-        console.log('[GameController] コンポーネントのアンマウント時にWorkerをリセットします');
-        typingWorkerManager.reset().catch(err => {
-          console.warn('[GameController] Worker終了中にエラーが発生しました:', err);
+      if (
+        typingWorkerManager &&
+        typeof typingWorkerManager.reset === 'function'
+      ) {
+        console.log(
+          '[GameController] コンポーネントのアンマウント時にWorkerをリセットします'
+        );
+        typingWorkerManager.reset().catch((err) => {
+          console.warn(
+            '[GameController] Worker終了中にエラーが発生しました:',
+            err
+          );
         });
       }
     };
@@ -330,7 +370,7 @@ export function useGameController(options = {}) {
       // 難易度設定の確認とデバッグログ
       console.log('[GameController] 現在の難易度設定:', {
         difficulty: gameState.difficulty,
-        category: gameState.category
+        category: gameState.category,
       });
 
       const initialProblem = getRandomProblem({
@@ -343,14 +383,14 @@ export function useGameController(options = {}) {
         kanaText: initialProblem?.kanaText,
         選択された難易度: gameState.difficulty,
         カテゴリー: gameState.category,
-        問題オブジェクト全体: initialProblem
+        問題オブジェクト全体: initialProblem,
       });
 
-      setCurrentProblem(initialProblem);      // タイピングゲームに問題を設定
+      setCurrentProblem(initialProblem); // タイピングゲームに問題を設定
       if (initialProblem && typing?.setProblem) {
         console.log('[GameController] 初期タイピングセッションに問題を設定:', {
           displayText: initialProblem?.displayText,
-          time: new Date().toTimeString()
+          time: new Date().toTimeString(),
         });
 
         // 初期問題設定を確実に行う（わずかな遅延を入れて状態が確実に更新されるようにする）
@@ -359,7 +399,7 @@ export function useGameController(options = {}) {
           console.log('[GameController] 問題設定直前の状態:', {
             typing_ready: !!typing,
             currentProblem: currentProblem?.displayText,
-            time: new Date().toTimeString()
+            time: new Date().toTimeString(),
           });
 
           typing.setProblem(initialProblem);
@@ -376,11 +416,11 @@ export function useGameController(options = {}) {
   return {
     // 状態
     typing,
-    typingRef: typingRef,  // 修正済みのRef
+    typingRef: typingRef, // 修正済みのRef
     currentProblem,
     gameState,
     // 現在のゲーム状態を含むオブジェクト
-    gameState: { currentProblem },  // 現在の問題をgameStateの一部として明示的に共有
+    gameState: { currentProblem }, // 現在の問題をgameStateの一部として明示的に共有
 
     // メソッド
     getNextKey,
@@ -392,7 +432,7 @@ export function useGameController(options = {}) {
       },
       get lastKeyPressTime() {
         return performanceRef.current.lastKeyPressTime;
-      }
+      },
     },
   };
 }
@@ -422,7 +462,7 @@ export function useGameCompleteHandler(gameState, goToScreen, typingRef) {
           goToScreen(SCREENS.RESULT, {
             playSound: true,
             // スコア情報は渡さない
-            gameState: {}
+            gameState: {},
           });
         }, 250);
       }
@@ -439,4 +479,3 @@ export function cleanupTypingWorker() {
   // タイピングWorkerのクリーンアップ
   typingWorkerManager.cleanup();
 }
-
