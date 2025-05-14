@@ -49,12 +49,7 @@ const GameStatusBar = ({
     []
   );
   // スコア情報の分解（安全なアクセス）
-  const { 
-    score = 0, 
-    combo = 0, 
-    maxCombo = 0, 
-    rank = 'F' 
-  } = scoreInfo || {}; // scoreInfoがnullまたはundefinedの場合に空オブジェクトをデフォルト値として使用
+  const { score = 0, combo = 0, maxCombo = 0, rank = 'F' } = scoreInfo || {}; // scoreInfoがnullまたはundefinedの場合に空オブジェクトをデフォルト値として使用
 
   // デバッグ用にscoreInfoの状態を確認
   if (!scoreInfo && process.env.NODE_ENV === 'development') {
@@ -127,7 +122,6 @@ const GameStatusBar = ({
           title="manaby - 就労支援"
         />
       </div>
-
       {/* スコア情報の表示エリア */}
       <div className={styles.stats_container}>
         {/* スコア表示 */}
@@ -136,8 +130,12 @@ const GameStatusBar = ({
           initial={animationVariants.score.initial}
           animate={animationVariants.score.animate}
           transition={animationVariants.score.transition}
-        >          <span className={styles.score_label}>Score:</span>
-          <span className={styles.score_value}>{(typeof score === 'number' ? score : 0).toLocaleString()}</span>
+        >
+          {' '}
+          <span className={styles.score_label}>Score:</span>
+          <span className={styles.score_value}>
+            {(typeof score === 'number' ? score : 0).toLocaleString()}
+          </span>
         </motion.div>
 
         {/* ランク表示 */}
@@ -147,36 +145,32 @@ const GameStatusBar = ({
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
-          <span className={styles.rank_label}>Rank:</span>          <span
-            className={`${styles.rank_value} ${rankColorClass}`}
-          >
+          <span className={styles.rank_label}>Rank:</span>{' '}
+          <span className={`${styles.rank_value} ${rankColorClass}`}>
             {rank}
           </span>
         </motion.div>
       </div>
-
-      {/* コンボ表示 - コンボが2以上の場合のみ表示 */}      {showCombo && (
+      {/* コンボ表示 - コンボが2以上の場合のみ表示 */}{' '}
+      {showCombo && (
         <motion.div
           className={styles.combo_container}
           initial={animationVariants.combo.initial}
-          animate={{ 
+          animate={{
             scale: comboScale,
             opacity: 1,
-            y: combo > 10 ? [-2, 2, -2] : 0
+            y: combo > 10 ? [-2, 2, -2] : 0,
           }}
           transition={{
             y: { repeat: Infinity, duration: 0.5 },
-            scale: { type: 'spring', stiffness: 300, damping: 15 }
+            scale: { type: 'spring', stiffness: 300, damping: 15 },
           }}
           exit={{ scale: 0.8, opacity: 0 }}
         >
-          <span className={styles.combo_value}>
-            {combo}
-          </span>
+          <span className={styles.combo_value}>{combo}</span>
           <span className={styles.combo_label}>COMBO</span>
         </motion.div>
       )}
-
       {/* 残りの統計情報 */}
       <div className={styles.typing_stats}>
         <div className={styles.kpm_display}>

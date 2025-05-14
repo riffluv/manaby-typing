@@ -78,43 +78,53 @@ const GameScreen = () => {
     return null;
   }
 
-  return (<ErrorBoundary>
-    <div className={styles.typing_game__wrapper}>
-      <div className={styles.typing_game}>
-        {/* コーナー装飾、スキャンライン、ドットパターンを削除 */}        {/* ステータスバー */}
-        <GameStatusBar
-          solvedCount={gameState.solvedCount}
-          requiredCount={gameState.requiredProblemCount || 5}
-          typingStats={typing?.stats || {}}
-          scoreInfo={scoreInfo} // スコア情報を渡す
-        />{/* メイン画面 */}          <main className={styles.typing_game__main}>            {/* タイピングエリア */}            <TypingArea
-          typing={typing}
-          currentProblem={typing?.typingSession?.problem || currentGameState?.currentProblem || gameState.currentProblem}
-          lastPressedKey={lastPressedKey}
-          className={styles.typing_game__typing_area}
-        />
-
-          {/* デバッグ情報 */}
-          {DEBUG_GAME_SCREEN && (
-            <PerformanceDebugDisplay
-              inputLatency={performanceMetrics?.inputLatency || 0}
-              fps={debugInfo?.fps}
-              stats={typing?.displayStats}
-              nextKey={getNextKey()}
-              className={styles.typing_game__debug}
+  return (
+    <ErrorBoundary>
+      <div className={styles.typing_game__wrapper}>
+        <div className={styles.typing_game}>
+          {/* コーナー装飾、スキャンライン、ドットパターンを削除 */}{' '}
+          {/* ステータスバー */}
+          <GameStatusBar
+            solvedCount={gameState.solvedCount}
+            requiredCount={gameState.requiredProblemCount || 5}
+            typingStats={typing?.stats || {}}
+            scoreInfo={scoreInfo} // スコア情報を渡す
+          />
+          {/* メイン画面 */}{' '}
+          <main className={styles.typing_game__main}>
+            {' '}
+            {/* タイピングエリア */}{' '}
+            <TypingArea
+              typing={typing}
+              currentProblem={
+                typing?.typingSession?.problem ||
+                currentGameState?.currentProblem ||
+                gameState.currentProblem
+              }
+              lastPressedKey={lastPressedKey}
+              className={styles.typing_game__typing_area}
             />
-          )}        </main>
-
-        {/* SF風のショートカットメニューボタン */}
-        <button
-          onClick={handleMenuButtonClick}
-          className={styles.typing_game__menu_button}
-        >
-          <span>Esc:</span> メニュー
-        </button>
+            {/* デバッグ情報 */}
+            {DEBUG_GAME_SCREEN && (
+              <PerformanceDebugDisplay
+                inputLatency={performanceMetrics?.inputLatency || 0}
+                fps={debugInfo?.fps}
+                stats={typing?.displayStats}
+                nextKey={getNextKey()}
+                className={styles.typing_game__debug}
+              />
+            )}{' '}
+          </main>
+          {/* SF風のショートカットメニューボタン */}
+          <button
+            onClick={handleMenuButtonClick}
+            className={styles.typing_game__menu_button}
+          >
+            <span>Esc:</span> メニュー
+          </button>
+        </div>
       </div>
-    </div>
-  </ErrorBoundary>
+    </ErrorBoundary>
   );
 };
 

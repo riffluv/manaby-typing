@@ -30,7 +30,8 @@ export const saveToStorage = (key, value) => {
 
   try {
     // オブジェクトや配列はJSON文字列に変換
-    const valueToStore = typeof value === 'object' ? JSON.stringify(value) : value;
+    const valueToStore =
+      typeof value === 'object' ? JSON.stringify(value) : value;
     localStorage.setItem(key, valueToStore);
     return true;
   } catch (error) {
@@ -166,10 +167,10 @@ export const getBackgroundStyle = () => {
 export const saveScreenBackground = (screenId, backgroundConfig) => {
   // 現在の全画面背景設定を取得
   const screenBackgrounds = getFromStorage(STORAGE_KEYS.SCREEN_BACKGROUNDS, {});
-  
+
   // 対象の画面の設定を更新
   screenBackgrounds[screenId] = backgroundConfig;
-  
+
   // 更新した設定を保存
   return saveToStorage(STORAGE_KEYS.SCREEN_BACKGROUNDS, screenBackgrounds);
 };
@@ -211,15 +212,15 @@ export const getUsername = (defaultUsername = 'プレイヤー') => {
 export const saveHighScore = (difficulty, scoreData) => {
   // 現在のハイスコアを取得
   const highScores = getFromStorage(STORAGE_KEYS.HIGH_SCORES, {});
-  
+
   // 難易度別のハイスコアを更新
   if (!highScores[difficulty] || scoreData.kpm > highScores[difficulty].kpm) {
     highScores[difficulty] = {
       ...scoreData,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
     };
   }
-  
+
   // 更新したハイスコアを保存
   return saveToStorage(STORAGE_KEYS.HIGH_SCORES, highScores);
 };
@@ -231,11 +232,11 @@ export const saveHighScore = (difficulty, scoreData) => {
  */
 export const getHighScore = (difficulty = null) => {
   const highScores = getFromStorage(STORAGE_KEYS.HIGH_SCORES, {});
-  
+
   if (difficulty) {
     return highScores[difficulty] || null;
   }
-  
+
   return highScores;
 };
 
@@ -280,9 +281,9 @@ export const getScreenSize = (defaultSize = { width: 800, height: 600 }) => {
  * @param {number} [options.delay=100] - 適用する遅延時間(ms)
  * @returns {Promise<boolean>} 適用が成功したかどうか
  */
-export const applyBackgroundFromStorage = async ({ 
+export const applyBackgroundFromStorage = async ({
   targetSelector = '#__next > div',
-  delay = 100
+  delay = 100,
 } = {}) => {
   if (typeof window === 'undefined') {
     return false;
@@ -290,7 +291,7 @@ export const applyBackgroundFromStorage = async ({
 
   // 管理者モードでない場合は背景を適用しない
   if (!isAdminMode()) {
-    console.log('管理者モードではないため、カスタム背景を適用しません');
+    // 管理者モードではないため、カスタム背景を適用しません
     return false;
   }
 
@@ -303,11 +304,13 @@ export const applyBackgroundFromStorage = async ({
     }
 
     // DOMの準備を待つための小さな遅延
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
 
     const targetElement = document.querySelector(targetSelector);
     if (!targetElement) {
-      console.warn(`背景を適用する要素が見つかりませんでした: ${targetSelector}`);
+      console.warn(
+        `背景を適用する要素が見つかりませんでした: ${targetSelector}`
+      );
       return false;
     }
 
@@ -327,7 +330,7 @@ export const applyBackgroundFromStorage = async ({
       targetElement.style.backgroundPosition = 'center';
     }
 
-    console.log('保存された背景とスタイルを適用しました');
+    // 保存された背景とスタイルを適用
     return true;
   } catch (error) {
     console.error('背景適用中にエラーが発生しました:', error);
@@ -347,25 +350,25 @@ export const applyScreenBackground = async (screenId) => {
 
   // 画面固有の背景設定を取得
   const screenBackground = getScreenBackground(screenId);
-  
+
   // 画面固有の設定がなければ共通設定を使用
   if (!screenBackground) {
     return applyBackgroundFromStorage();
   }
-  
+
   try {
     const targetElement = document.querySelector('#__next > div');
     if (!targetElement) {
       return false;
     }
-    
+
     // 画面固有の背景画像とスタイルを適用
     if (screenBackground.imageUrl) {
       targetElement.style.backgroundImage = `url(${screenBackground.imageUrl})`;
       targetElement.style.backgroundSize = 'cover';
       targetElement.style.backgroundPosition = 'center';
     }
-    
+
     if (screenBackground.styleObject) {
       Object.entries(screenBackground.styleObject).forEach(([key, value]) => {
         if (key !== 'backgroundImage' && value) {
@@ -373,7 +376,7 @@ export const applyScreenBackground = async (screenId) => {
         }
       });
     }
-    
+
     console.log(`${screenId}画面用の背景を適用しました`);
     return true;
   } catch (error) {

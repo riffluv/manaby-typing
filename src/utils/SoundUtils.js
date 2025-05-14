@@ -80,12 +80,14 @@ class SoundUtils {
       complete: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音
       clear: getStaticPath('/sounds/resultsound.mp3'), // ゲームクリア音（別名）
       button: getStaticPath('/sounds/buttonsound1.mp3'), // ボタンクリック音
-    };    // GitHub Pages向けに追加デバッグ情報（デプロイ環境）
-    console.log('環境情報:', {
-      NODE_ENV: process.env.NODE_ENV,
-      basePath: process.env.NEXT_PUBLIC_BASE_PATH || '未設定',
-      例示パス: getStaticPath('/sounds/buttonsound1.mp3'), // 存在するファイルを参照
-    }); // BGMプリセット定義
+    }; // GitHub Pages向けに追加デバッグ情報（デプロイ環境）
+    if (DEBUG_SOUND_UTILS) {
+      logUtil.debug('環境情報:', {
+        NODE_ENV: process.env.NODE_ENV,
+        basePath: process.env.NEXT_PUBLIC_BASE_PATH || '未設定',
+        例示パス: getStaticPath('/sounds/buttonsound1.mp3'), // 存在するファイルを参照
+      });
+    } // BGMプリセット定義
     this.bgmPresets = {
       lobby: getStaticPath('/sounds/battle_of_the_emperor.mp3'), // ロビー/メインメニューBGM
       battle: getStaticPath('/sounds/battle.mp3'), // ゲームプレイBGM
@@ -126,14 +128,14 @@ class SoundUtils {
       typeof process !== 'undefined' &&
       process.env &&
       process.env.VERCEL === '1';
-
     if (isVercel) {
-      console.log(`Vercel環境検出: ${fallbackPath} を使用`);
+      if (DEBUG_SOUND_UTILS)
+        logUtil.debug(`Vercel環境検出: ${fallbackPath} を使用`);
       return fallbackPath;
     }
 
     // GitHub Pages環境では大文字のパスを優先
-    console.log(`非Vercel環境: ${primaryPath} を使用`);
+    if (DEBUG_SOUND_UTILS) logUtil.debug(`非Vercel環境: ${primaryPath} を使用`);
     return primaryPath;
   }
 
@@ -232,22 +234,23 @@ class SoundUtils {
       // 基本的な効果音のみをロード - タイピング中の効果音を優先
       const prioritySounds = ['success', 'error']; // 最優先の効果音
       const secondarySounds = ['button', 'complete']; // 二次的な効果音
-      const loadPromises = [];
-
-      // 各音声ファイルのパスをログ出力
-      console.log('サウンドプリセット:', {
-        success: this.soundPresets.success,
-        error: this.soundPresets.error,
-        button: this.soundPresets.button,
-        complete: this.soundPresets.complete,
-      });
+      const loadPromises = []; // 各音声ファイルのパスをログ出力
+      if (DEBUG_SOUND_UTILS) {
+        logUtil.debug('サウンドプリセット:', {
+          success: this.soundPresets.success,
+          error: this.soundPresets.error,
+          button: this.soundPresets.button,
+          complete: this.soundPresets.complete,
+        });
+      }
 
       // 優先度の高い音声を先に順次ロード
       for (const name of prioritySounds) {
         if (this.soundPresets[name]) {
           try {
             await this.loadSound(name, this.soundPresets[name]);
-            console.log(`優先${name}音声のロードに成功しました`);
+            if (DEBUG_SOUND_UTILS)
+              logUtil.debug(`優先${name}音声のロードに成功しました`);
           } catch (err) {
             console.error(`優先${name}音声のロードに失敗しました:`, err);
           }
@@ -259,7 +262,11 @@ class SoundUtils {
         if (this.soundPresets[name]) {
           loadPromises.push(
             this.loadSound(name, this.soundPresets[name])
-              .then(() => console.log(`${name}音声のロードに成功しました`))
+              .then(
+                () =>
+                  DEBUG_SOUND_UTILS &&
+                  logUtil.debug(`${name}音声のロードに成功しました`)
+              )
               .catch((err) =>
                 console.error(`${name}音声のロードに失敗しました:`, err)
               )
@@ -269,7 +276,8 @@ class SoundUtils {
 
       // すべての効果音を読み込む
       await Promise.all(loadPromises);
-      console.log('基本的な効果音のロードが完了しました');
+      if (DEBUG_SOUND_UTILS)
+        logUtil.debug('基本的な効果音のロードが完了しました');
       return true;
     } catch (error) {
       console.error('効果音の初期化に失敗しました:', error);
@@ -297,10 +305,11 @@ class SoundUtils {
         process.env.NODE_ENV === 'production'
           ? url
           : `${url}?t=${this.timestamp}`;
-      console.log(`サウンド「${name}」をロード中: ${cacheBustedUrl}`);
-
-      // GitHub Pages対策：フェッチリクエストで詳細なエラーログ
-      console.log(`${name}の読み込み開始: ${cacheBustedUrl}`);
+      if (DEBUG_SOUND_UTILS) {
+        logUtil.debug(`サウンド「${name}」をロード中: ${cacheBustedUrl}`);
+        // GitHub Pages対策：フェッチリクエストで詳細なエラーログ
+        logUtil.debug(`${name}の読み込み開始: ${cacheBustedUrl}`);
+      }
 
       // 最初に通常のURLで試行
       let response = await fetch(cacheBustedUrl); // 大文字小文字の問題を検出して対処する試み
@@ -326,7 +335,8 @@ class SoundUtils {
         if (alternateFileName !== fileName) {
           urlParts[urlParts.length - 1] = alternateFileName;
           const alternateUrl = urlParts.join('/') + `?t=${this.timestamp}`;
-          console.log(`代替URL試行: ${alternateUrl} (元: ${fileName})`);
+          if (DEBUG_SOUND_UTILS)
+            logUtil.debug(`代替URL試行: ${alternateUrl} (元: ${fileName})`);
 
           response = await fetch(alternateUrl);
         }
@@ -343,13 +353,15 @@ class SoundUtils {
         );
       }
 
-      console.log(`${name}のレスポンス取得成功`);
+      if (DEBUG_SOUND_UTILS) logUtil.debug(`${name}のレスポンス取得成功`);
       const arrayBuffer = await response.arrayBuffer();
-      console.log(
-        `${name}のバッファ取得成功:`,
-        arrayBuffer.byteLength,
-        'bytes'
-      );
+      if (DEBUG_SOUND_UTILS) {
+        logUtil.debug(
+          `${name}のバッファ取得成功:`,
+          arrayBuffer.byteLength,
+          'bytes'
+        );
+      }
 
       // 音声データをデコード
       return new Promise((resolve, reject) => {
@@ -358,7 +370,8 @@ class SoundUtils {
             arrayBuffer,
             (audioBuffer) => {
               this.sfxBuffers[lowerName] = audioBuffer;
-              console.log(`サウンド「${name}」のロード・デコード完了`);
+              if (DEBUG_SOUND_UTILS)
+                logUtil.debug(`サウンド「${name}」のロード・デコード完了`);
               resolve();
             },
             (error) => {
@@ -460,12 +473,14 @@ class SoundUtils {
       if (presetKey) {
         // GitHub Pages対応：デバッグログ追加
         const soundUrl = this.soundPresets[presetKey];
-        console.log(`${name}サウンド自動ロード開始:`, soundUrl);
+        if (DEBUG_SOUND_UTILS)
+          logUtil.debug(`${name}サウンド自動ロード開始:`, soundUrl);
 
         // 遅延読み込みを開始し、ロード完了後に再生
         this.loadSound(lowerName, soundUrl)
           .then(() => {
-            console.log(`${name}サウンドのロードに成功、再生を試みます`);
+            if (DEBUG_SOUND_UTILS)
+              logUtil.debug(`${name}サウンドのロードに成功、再生を試みます`);
             // ロード完了後すぐに再生
             if (this.sfxBuffers[lowerName]) {
               this._playBuffer(this.sfxBuffers[lowerName]);

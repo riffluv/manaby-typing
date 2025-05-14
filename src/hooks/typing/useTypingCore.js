@@ -18,17 +18,20 @@ export function useTypingCore(options = {}) {
   // オプションのセーフティチェック
   const {
     initialProblem = null,
-    onProblemStateChange = () => { },
-    onSessionInitialized = () => { },
+    onProblemStateChange = () => {},
+    onSessionInitialized = () => {},
   } = options || {};
 
   // デバッグモード設定
   const DEBUG_MODE = process.env.NODE_ENV === 'development' && false; // 必要に応じて有効化
 
   // デバッグログ関数
-  const debugLog = useCallback((message, ...args) => {
-    if (DEBUG_MODE) console.log(`[useTypingCore] ${message}`, ...args);
-  }, [DEBUG_MODE]);
+  const debugLog = useCallback(
+    (message, ...args) => {
+      if (DEBUG_MODE) console.log(`[useTypingCore] ${message}`, ...args);
+    },
+    [DEBUG_MODE]
+  );
 
   // タイピングセッション
   const sessionRef = useRef(null);
@@ -41,7 +44,7 @@ export function useTypingCore(options = {}) {
     initTime: 0,
     lastUpdateTime: 0,
     errorCount: 0,
-    hasValidRomaji: false
+    hasValidRomaji: false,
   });
 
   // 表示情報（デフォルトを安全な型で定義）
@@ -53,7 +56,7 @@ export function useTypingCore(options = {}) {
     currentInput: '',
     expectedNextChar: '',
     currentCharRomaji: '',
-    updated: Date.now() // 更新時刻を追加
+    updated: Date.now(), // 更新時刻を追加
   });
 
   // 進捗情報
@@ -65,107 +68,125 @@ export function useTypingCore(options = {}) {
   const validateProblem = useCallback((problem) => {
     if (!problem) return false;
     if (!problem.kanaText || typeof problem.kanaText !== 'string') return false;
-    if (!problem.displayText || typeof problem.displayText !== 'string') return false;
+    if (!problem.displayText || typeof problem.displayText !== 'string')
+      return false;
     return true;
-  }, []);  /**
+  }, []);
+  /**
    * セッション初期化処理（リファクタリング・安定化版 2025年5月12日）
    */
-  const initializeSession = useCallback((problem) => {
-    // 問題データの検証（厳密化）
-    if (!validateProblem(problem)) {
-      console.warn('[useTypingCore] 無効な問題データです',
-        problem ? JSON.stringify(problem).substring(0, 100) : 'undefined');
-      return false;
-    }
-
-    // セッション初期化時刻を記録
-    sessionStatusRef.current.initTime = Date.now();
-
-    // 問題データログ（デバッグ用）
-    debugLog('問題データ初期化:', {
-      displayText: problem.displayText,
-      kanaText: problem.kanaText ?
-        (problem.kanaText.length > 20 ? problem.kanaText.substring(0, 20) + '...' : problem.kanaText) :
-        '<なし>',
-      timestamp: new Date().toLocaleTimeString()
-    });
-
-    try {
-      // 既存セッションのクリーンアップ
-      if (sessionRef.current) {
-        debugLog('既存セッションをクリーンアップします');
-        // 必要に応じてクリーンアップ処理を追加
-      }
-
-      // 新しいタイピングセッションを作成（エラーハンドリング強化）
-      const session = TypingUtils.createTypingSession(problem);
-      if (!session) {
-        console.error('[useTypingCore] セッションの作成に失敗しました');
-        sessionStatusRef.current.errorCount++;
+  const initializeSession = useCallback(
+    (problem) => {
+      // 問題データの検証（厳密化）
+      if (!validateProblem(problem)) {
+        console.warn(
+          '[useTypingCore] 無効な問題データです',
+          problem ? JSON.stringify(problem).substring(0, 100) : 'undefined'
+        );
         return false;
       }
 
-      // セッションを保存
-      sessionRef.current = session;
-      completedRef.current = false;
+      // セッション初期化時刻を記録
+      sessionStatusRef.current.initTime = Date.now();
 
-      // 表示情報を初期化（安全性確認）
-      const colorInfo = session.getColoringInfo();
-
-      // ローマ字データの有効性確認
-      const hasValidRomaji = colorInfo && typeof colorInfo.romaji === 'string' && colorInfo.romaji.length > 0;
-      sessionStatusRef.current.hasValidRomaji = hasValidRomaji;
-
-      if (!hasValidRomaji) {
-        console.warn('[useTypingCore] 有効なローマ字データが取得できませんでした', colorInfo);
-      } debugLog('初期化時の表示情報:', {
-        romaji: colorInfo && colorInfo.romaji ?
-          (colorInfo.romaji.substring(0, 30) + (colorInfo.romaji.length > 30 ? '...' : '')) :
-          '<なし>',
-        currentCharIndex: colorInfo?.currentCharIndex ?? 0,
-        expectedNextChar: colorInfo?.expectedNextChar ?? '',
-        valid: !!colorInfo && typeof colorInfo.romaji === 'string'
+      // 問題データログ（デバッグ用）
+      debugLog('問題データ初期化:', {
+        displayText: problem.displayText,
+        kanaText: problem.kanaText
+          ? problem.kanaText.length > 20
+            ? problem.kanaText.substring(0, 20) + '...'
+            : problem.kanaText
+          : '<なし>',
+        timestamp: new Date().toLocaleTimeString(),
       });
 
-      // 表示情報を初期値として設定（セーフティチェック強化）
-      const initialDisplayInfo = {
-        romaji: colorInfo?.romaji || '',
-        typedLength: 0,
-        currentInputLength: colorInfo?.currentInputLength ?? 0,
-        currentCharIndex: colorInfo?.currentCharIndex ?? 0,
-        currentInput: colorInfo?.currentInput || '',
-        expectedNextChar: colorInfo?.expectedNextChar || '',
-        currentCharRomaji: colorInfo?.currentCharRomaji || '',
-        updated: Date.now() // 更新時刻を含める
-      };
+      try {
+        // 既存セッションのクリーンアップ
+        if (sessionRef.current) {
+          debugLog('既存セッションをクリーンアップします');
+          // 必要に応じてクリーンアップ処理を追加
+        }
 
-      // 無効なデータチェック
-      if (!initialDisplayInfo.romaji) {
-        console.warn('[useTypingCore] 表示用ローマ字が生成されませんでした');
-        initialDisplayInfo.romaji = ''; // 安全な初期値を確保
+        // 新しいタイピングセッションを作成（エラーハンドリング強化）
+        const session = TypingUtils.createTypingSession(problem);
+        if (!session) {
+          console.error('[useTypingCore] セッションの作成に失敗しました');
+          sessionStatusRef.current.errorCount++;
+          return false;
+        }
+
+        // セッションを保存
+        sessionRef.current = session;
+        completedRef.current = false;
+
+        // 表示情報を初期化（安全性確認）
+        const colorInfo = session.getColoringInfo();
+
+        // ローマ字データの有効性確認
+        const hasValidRomaji =
+          colorInfo &&
+          typeof colorInfo.romaji === 'string' &&
+          colorInfo.romaji.length > 0;
+        sessionStatusRef.current.hasValidRomaji = hasValidRomaji;
+
+        if (!hasValidRomaji) {
+          console.warn(
+            '[useTypingCore] 有効なローマ字データが取得できませんでした',
+            colorInfo
+          );
+        }
+        debugLog('初期化時の表示情報:', {
+          romaji:
+            colorInfo && colorInfo.romaji
+              ? colorInfo.romaji.substring(0, 30) +
+                (colorInfo.romaji.length > 30 ? '...' : '')
+              : '<なし>',
+          currentCharIndex: colorInfo?.currentCharIndex ?? 0,
+          expectedNextChar: colorInfo?.expectedNextChar ?? '',
+          valid: !!colorInfo && typeof colorInfo.romaji === 'string',
+        });
+
+        // 表示情報を初期値として設定（セーフティチェック強化）
+        const initialDisplayInfo = {
+          romaji: colorInfo?.romaji || '',
+          typedLength: 0,
+          currentInputLength: colorInfo?.currentInputLength ?? 0,
+          currentCharIndex: colorInfo?.currentCharIndex ?? 0,
+          currentInput: colorInfo?.currentInput || '',
+          expectedNextChar: colorInfo?.expectedNextChar || '',
+          currentCharRomaji: colorInfo?.currentCharRomaji || '',
+          updated: Date.now(), // 更新時刻を含める
+        };
+
+        // 無効なデータチェック
+        if (!initialDisplayInfo.romaji) {
+          console.warn('[useTypingCore] 表示用ローマ字が生成されませんでした');
+          initialDisplayInfo.romaji = ''; // 安全な初期値を確保
+        }
+
+        // 表示情報を更新
+        setDisplayInfo(initialDisplayInfo);
+
+        // 進捗をリセット
+        setProgressPercentage(0);
+
+        // 完了フラグをリセット
+        setIsCompleted(false);
+
+        // 初期化完了
+        setIsInitialized(true);
+
+        // コールバック呼び出し
+        onSessionInitialized(session);
+
+        return true;
+      } catch (error) {
+        console.error('[useTypingCore] セッション初期化エラー:', error);
+        return false;
       }
-
-      // 表示情報を更新
-      setDisplayInfo(initialDisplayInfo);
-
-      // 進捗をリセット
-      setProgressPercentage(0);
-
-      // 完了フラグをリセット
-      setIsCompleted(false);
-
-      // 初期化完了
-      setIsInitialized(true);
-
-      // コールバック呼び出し
-      onSessionInitialized(session);
-
-      return true;
-    } catch (error) {
-      console.error('[useTypingCore] セッション初期化エラー:', error);
-      return false;
-    }
-  }, [validateProblem]);
+    },
+    [validateProblem]
+  );
 
   /**
    * 表示データを設定
@@ -175,19 +196,25 @@ export function useTypingCore(options = {}) {
   }, []);
   /**
    * 完了状態を更新
-   */
-  const setCompleted = useCallback((state) => {
-    try {
-      setIsCompleted(state);
-      if (state === true) {
-        completedRef.current = true;
+   */ const setCompleted = useCallback(
+    (state) => {
+      try {
+        setIsCompleted(state);
+        if (state === true) {
+          completedRef.current = true;
+        }
+        if (DEBUG_MODE)
+          console.log(`[useTypingCore] 完了状態を更新しました:`, state);
+      } catch (error) {
+        console.error(
+          '[useTypingCore] 完了状態の更新でエラーが発生しました:',
+          error
+        );
       }
-      console.log('[useTypingCore] 完了状態を更新しました:', state);
-    } catch (error) {
-      console.error('[useTypingCore] 完了状態の更新でエラーが発生しました:', error);
-    }
-  }, []);
-  
+    },
+    [DEBUG_MODE]
+  );
+
   /**
    * 次に入力すべきキーを取得
    */
@@ -216,7 +243,7 @@ export function useTypingCore(options = {}) {
     // 状態変更通知
     onProblemStateChange({
       type: 'completed',
-      progress: 100
+      progress: 100,
     });
   }, [onProblemStateChange]);
   /**
@@ -225,8 +252,9 @@ export function useTypingCore(options = {}) {
   useEffect(() => {
     if (initialProblem) {
       // 初期化を一度だけ行うようにするためのフラグを使う
-      const shouldInitialize = !isInitialized ||
-        (initialProblem?.displayText !== sessionRef.current?.displayText);
+      const shouldInitialize =
+        !isInitialized ||
+        initialProblem?.displayText !== sessionRef.current?.displayText;
 
       if (shouldInitialize) {
         initializeSession(initialProblem);

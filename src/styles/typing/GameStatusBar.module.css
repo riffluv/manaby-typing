@@ -26,12 +26,17 @@
   /* 高さを少し増やす */
   background: rgba(0, 0, 0, 0.2);
   /* 背景色を少し濃くする */
-  background-image: linear-gradient(to bottom, rgba(0, 30, 60, 0.2), rgba(0, 0, 0, 0.1));
+  background-image: linear-gradient(
+    to bottom,
+    rgba(0, 30, 60, 0.2),
+    rgba(0, 0, 0, 0.1)
+  );
   border-bottom: 1px solid rgba(0, 180, 255, 0.2);
   /* ボーダーを少し強調 */
   border-top: 1px solid rgba(0, 0, 0, 0.3);
   /* 上部にも薄いボーダーを追加 */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), inset 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25),
+    inset 0 1px rgba(255, 255, 255, 0.05);
   /* より洗練された影を追加 */
   display: flex;
   align-items: center;
@@ -56,7 +61,8 @@
   /* アスペクト比を保持 */
   margin-right: 20px;
   /* 右側の余白 */
-  filter: drop-shadow(0 0 4px rgba(255, 140, 0, 0.6)), drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
+  filter: drop-shadow(0 0 4px rgba(255, 140, 0, 0.6)),
+    drop-shadow(0 0 10px rgba(0, 180, 255, 0.3));
   /* 二重の光彩効果 */
   transition: all 0.3s ease;
   /* エフェクトのスムーズな遷移 */
@@ -64,7 +70,8 @@
 
 /* ホバー時の効果 */
 .manaby_logo:hover {
-  filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.8)), drop-shadow(0 0 12px rgba(0, 180, 255, 0.4));
+  filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.8)),
+    drop-shadow(0 0 12px rgba(0, 180, 255, 0.4));
   /* 光彩効果を強める */
   transform: scale(1.03);
   /* わずかに大きくする */
@@ -156,9 +163,7 @@
   font-weight: 800;
   color: #ffcc00;
   line-height: 1;
-  text-shadow: 
-    0 0 5px rgba(255, 140, 0, 0.8),
-    0 0 15px rgba(255, 100, 0, 0.6);
+  text-shadow: 0 0 5px rgba(255, 140, 0, 0.8), 0 0 15px rgba(255, 100, 0, 0.6);
 }
 
 .combo_label {

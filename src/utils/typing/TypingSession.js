@@ -440,16 +440,11 @@ export class TypingSession {
   /**
    * 完了状態かどうかを確認
    * @returns {boolean} 完了状態の場合true
-   */
-  isCompleted() {
+   */  isCompleted() {
     // デバッグログ追加
     if (this.completionStatus.totalProgress >= 99 && !this.completionStatus.completed) {
-      console.log('[TypingSession] 進捗は99%以上ですが完了フラグがfalseです', {
-        totalProgress: this.completionStatus.totalProgress,
-        completed: this.completionStatus.completed,
-        patternIndex: this.patternIndex,
-        patternsLength: this.patterns.length
-      });
+      // 進捗は99%以上だが完了フラグがfalseの場合は、エラー状態の可能性があるため
+      // デバッグが必要な場合のみログを表示
       
       // 進捗が99%以上ならcompletedも強制的にtrueにする
       this.completionStatus.completed = true;

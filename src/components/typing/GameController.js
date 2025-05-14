@@ -175,11 +175,9 @@ export function useGameController(options = {}) {
 
         // リザルト画面に遷移
         window.lastResultTransition = Date.now();
-
         setTimeout(() => {
-          console.log(
-            '[GameController] handleProblemComplete: リザルト画面に遷移 - スコアなし'
-          );
+          if (DEBUG_MODE)
+            console.log('[GameController] リザルト画面に遷移 - スコアなし');
           goToScreen(SCREENS.RESULT, {
             playSound: true,
             soundType: 'result',
@@ -195,12 +193,12 @@ export function useGameController(options = {}) {
           typing?.typingStats?.statsRef?.current?.correctKeyCount || 0;
         const currentProblemMistakes =
           typing?.typingStats?.statsRef?.current?.mistakeCount || 0;
-
-        console.log('[GameController] 問題完了統計: ', {
-          KPM: currentProblemKPM,
-          正解キー数: currentProblemCorrectKeys,
-          ミス数: currentProblemMistakes,
-        });
+        if (DEBUG_MODE)
+          console.log('[GameController] 問題完了統計: ', {
+            KPM: currentProblemKPM,
+            正解キー数: currentProblemCorrectKeys,
+            ミス数: currentProblemMistakes,
+          });
 
         // 問題ごとのKPM情報を蓄積
         const updatedProblemKPMs = [
@@ -282,44 +280,48 @@ export function useGameController(options = {}) {
    */
   useEffect(() => {
     if (!typing || !typing.typingSession) return;
-    
+
     // スコア情報更新のインターバル設定（60fps以下のレートで更新）
     const scoreUpdateInterval = setInterval(() => {
-      try {        // スコア情報の取得（堅牢性の改善）
+      try {
+        // スコア情報の取得（堅牢性の改善）
         const session = typing?.typingSession;
         const combo = session?.getCombo?.() || 0;
         const maxCombo = session?.getMaxCombo?.() || 0;
-        
+
         // スコアデータの取得（安全なアクセス）
         // typing.scoreDataが未定義の場合の対応
         const scoreData = typing?.scoreData || {};
         const score = scoreData?.score || 0;
-        
+
         // ランク情報の取得（堅牢に）
-        const rank = typing?.displayStats?.rank || typing?.typingStats?.displayStats?.rank || 'F';
-        
+        const rank =
+          typing?.displayStats?.rank ||
+          typing?.typingStats?.displayStats?.rank ||
+          'F';
+
         // デバッグ用にスコア情報をログ出力（開発環境のみ）
         if (DEBUG_MODE && (combo > 5 || score > 5000)) {
           debugLog('現在のスコア情報:', {
             score,
             combo,
             maxCombo,
-            rank
+            rank,
           });
         }
-        
+
         // スコア情報の状態を更新
         setScoreInfo({
           score,
           combo,
           maxCombo,
-          rank
+          rank,
         });
       } catch (error) {
         console.error('[GameController] スコア情報更新エラー:', error);
       }
     }, 50); // 50ms間隔でスコア情報を更新（約20fps）
-    
+
     return () => {
       clearInterval(scoreUpdateInterval);
     };
@@ -426,39 +428,45 @@ export function useGameController(options = {}) {
     // 初回ロード時か問題がない場合は新しい問題をセット
     if (!currentProblem) {
       // 難易度設定の確認とデバッグログ
-      console.log('[GameController] 現在の難易度設定:', {
-        difficulty: gameState.difficulty,
-        category: gameState.category,
-      });
+      if (DEBUG_MODE)
+        console.log('[GameController] 現在の難易度設定:', {
+          difficulty: gameState.difficulty,
+          category: gameState.category,
+        });
 
       const initialProblem = getRandomProblem({
         difficulty: gameState.difficulty,
         category: gameState.category,
       });
-
-      console.log('[GameController] 初期問題をロード:', {
-        displayText: initialProblem?.displayText,
-        kanaText: initialProblem?.kanaText,
-        選択された難易度: gameState.difficulty,
-        カテゴリー: gameState.category,
-        問題オブジェクト全体: initialProblem,
-      });
+      if (DEBUG_MODE)
+        console.log('[GameController] 初期問題をロード:', {
+          displayText: initialProblem?.displayText,
+          kanaText: initialProblem?.kanaText,
+          選択された難易度: gameState.difficulty,
+          カテゴリー: gameState.category,
+          問題オブジェクト全体: initialProblem,
+        });
 
       setCurrentProblem(initialProblem); // タイピングゲームに問題を設定
       if (initialProblem && typing?.setProblem) {
-        console.log('[GameController] 初期タイピングセッションに問題を設定:', {
-          displayText: initialProblem?.displayText,
-          time: new Date().toTimeString(),
-        });
+        if (DEBUG_MODE)
+          console.log(
+            '[GameController] 初期タイピングセッションに問題を設定:',
+            {
+              displayText: initialProblem?.displayText,
+              time: new Date().toTimeString(),
+            }
+          );
 
         // 初期問題設定を確実に行う（わずかな遅延を入れて状態が確実に更新されるようにする）
         setTimeout(() => {
           // 問題設定前のコンポーネント状態をチェック
-          console.log('[GameController] 問題設定直前の状態:', {
-            typing_ready: !!typing,
-            currentProblem: currentProblem?.displayText,
-            time: new Date().toTimeString(),
-          });
+          if (DEBUG_MODE)
+            console.log('[GameController] 問題設定直前の状態:', {
+              typing_ready: !!typing,
+              currentProblem: currentProblem?.displayText,
+              time: new Date().toTimeString(),
+            });
 
           typing.setProblem(initialProblem);
 
@@ -478,7 +486,7 @@ export function useGameController(options = {}) {
     gameState,
     // 現在のゲーム状態を含むオブジェクト
     gameState: { currentProblem }, // 現在の問題をgameStateの一部として明示的に共有
-    
+
     // スコア情報
     scoreInfo,
 
