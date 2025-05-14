@@ -2,8 +2,7 @@
   "version": 2,
   "buildCommand": "next build",
   "outputDirectory": ".next",
-  "framework": "nextjs",
-  "git": {
+  "framework": "nextjs",  "git": {
     "deploymentEnabled": {
       "main": true,
       "gh-pages": false
@@ -11,9 +10,14 @@
   },
   "github": {
     "enabled": true,
-    "silent": true
+    "silent": true,
+    "autoAlias": true,
+    "productionBranch": "main",
+    "deployOnPush": {
+      "gh-pages": false,
+      "main": true
+    }
   },
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" == \"gh-pages\" ]; then exit 0; else exit 1; fi",
   "headers": [
     {
       "source": "/sounds/(.*)\\.mp3",
