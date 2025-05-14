@@ -1,4 +1,4 @@
-/** @type {import('next').NextConfig} */  // 本番ビルド用の設定か開発用の設定かを環境変数で判断
+/** @type {import('next').NextConfig} */ // 本番ビルド用の設定か開発用の設定かを環境変数で判断
 const isProd = process.env.NODE_ENV === 'production';
 // Vercel環境かどうか
 const isVercel = process.env.VERCEL === '1';
@@ -10,15 +10,18 @@ function getBasePath() {
     console.log('Vercel環境を検出: ベースパス=""を使用');
     return '';
   }
-  
+
   // GitHub Pages環境またはGitHub環境変数が設定されている場合
-  if (process.env.NEXT_PUBLIC_BASE_PATH || 
-      (process.env.GITHUB_REPOSITORY && process.env.GITHUB_REPOSITORY.includes('manaby-typing'))) {
+  if (
+    process.env.NEXT_PUBLIC_BASE_PATH ||
+    (process.env.GITHUB_REPOSITORY &&
+      process.env.GITHUB_REPOSITORY.includes('manaby-typing'))
+  ) {
     const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '/manaby-typing';
     console.log(`GitHub Pages環境を検出: ベースパス="${basePath}"を使用`);
     return basePath;
   }
-  
+
   // デフォルトは空のベースパス
   console.log('デフォルト環境: ベースパス=""を使用');
   return '';
@@ -49,18 +52,21 @@ const configureWebpack = (config, { isServer }) => {
 };
 
 // 環境に応じた設定
-const nextConfig = {  // GitHub PagesとVercelどちらにも対応する設定
+const nextConfig = {
+  // GitHub PagesとVercelどちらにも対応する設定
   basePath: getBasePath(),
   assetPrefix: getBasePath(),
   // 静的エクスポートの設定（本番環境かつVercel以外の環境のみ）
-  ...((isProd && !isVercel) ? { 
-    output: 'export',
-    // 静的エクスポート設定のカスタマイズ
-    trailingSlash: true,
-    images: {
-      unoptimized: true,
-    }
-  } : {}),
+  ...(isProd && !isVercel
+    ? {
+        output: 'export',
+        // 静的エクスポート設定のカスタマイズ
+        trailingSlash: true,
+        images: {
+          unoptimized: true,
+        },
+      }
+    : {}),
 
   // Webpackの設定
   webpack: configureWebpack,

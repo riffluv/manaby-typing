@@ -223,16 +223,16 @@ class SoundUtils {
   /**
    * 基本的な効果音をロードする
    * @returns {Promise} ロード完了時に解決されるPromise
-   */
-  async initializeAllSounds() {
+   */  async initializeAllSounds() {
     // サーバーサイドレンダリング時は何もしない
     if (typeof window === 'undefined') {
       return Promise.resolve(false);
     }
 
     try {
-      // 基本的な効果音のみをロード
-      const basicSounds = ['success', 'error', 'button', 'complete'];
+      // 基本的な効果音のみをロード - タイピング中の効果音を優先
+      const prioritySounds = ['success', 'error']; // 最優先の効果音
+      const secondarySounds = ['button', 'complete']; // 二次的な効果音
       const loadPromises = [];
 
       // 各音声ファイルのパスをログ出力
@@ -243,7 +243,20 @@ class SoundUtils {
         complete: this.soundPresets.complete,
       });
 
-      for (const name of basicSounds) {
+      // 優先度の高い音声を先に順次ロード
+      for (const name of prioritySounds) {
+        if (this.soundPresets[name]) {
+          try {
+            await this.loadSound(name, this.soundPresets[name]);
+            console.log(`優先${name}音声のロードに成功しました`);
+          } catch (err) {
+            console.error(`優先${name}音声のロードに失敗しました:`, err);
+          }
+        }
+      }
+      
+      // 2次的な音声は並列ロード
+      for (const name of secondarySounds) {
         if (this.soundPresets[name]) {
           loadPromises.push(
             this.loadSound(name, this.soundPresets[name])
@@ -269,7 +282,7 @@ class SoundUtils {
    * @param {string} name - 効果音の名前
    * @param {string} url - 効果音ファイルのURL
    * @returns {Promise} - ロード完了時に解決されるPromise
-   */ async loadSound(name, url) {
+   */  async loadSound(name, url) {
     // サーバーサイドレンダリング時は何もしない
     if (typeof window === 'undefined') {
       return Promise.resolve();
@@ -279,8 +292,11 @@ class SoundUtils {
       // 名前を小文字に統一して処理
       const lowerName = name.toLowerCase();
 
-      // キャッシュバスティングのためにURLにタイムスタンプを追加
-      const cacheBustedUrl = `${url}?t=${this.timestamp}`;
+      // 本番環境では音声ファイルをキャッシュ利用（キャッシュバスティングなし）
+      // 開発環境のみタイムスタンプを使用
+      const cacheBustedUrl = process.env.NODE_ENV === 'production' 
+        ? url 
+        : `${url}?t=${this.timestamp}`;
       console.log(`サウンド「${name}」をロード中: ${cacheBustedUrl}`);
 
       // GitHub Pages対策：フェッチリクエストで詳細なエラーログ

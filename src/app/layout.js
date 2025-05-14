@@ -12,10 +12,39 @@ export const metadata = {
   description: 'Next.jsで作成されたタイピング練習ゲーム',
 };
 
-export default function RootLayout({ children }) {
-  return (
+export default function RootLayout({ children }) {  return (
     <html lang="ja">
       <head>
+        {/* 重要な音声ファイルをプリロード */}
+        <link 
+          rel="preload" 
+          href="/sounds/hit04-1.mp3" 
+          as="audio" 
+          type="audio/mpeg" 
+          crossOrigin="anonymous" 
+        />
+        <link 
+          rel="preload" 
+          href="/sounds/hit05-1.mp3" 
+          as="audio" 
+          type="audio/mpeg" 
+          crossOrigin="anonymous" 
+        />
+        <link 
+          rel="preload" 
+          href="/sounds/buttonsound1.mp3" 
+          as="audio" 
+          type="audio/mpeg" 
+          crossOrigin="anonymous" 
+        />
+        <link 
+          rel="preload" 
+          href="/sounds/resultsound.mp3" 
+          as="audio" 
+          type="audio/mpeg" 
+          crossOrigin="anonymous" 
+        />
+        
         {/* ランタイムエラーを抑制するためのスクリプト */}
         <script dangerouslySetInnerHTML={{
           __html: `
