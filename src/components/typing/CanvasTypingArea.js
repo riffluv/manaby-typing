@@ -33,14 +33,14 @@ const CanvasTypingArea = ({
     typedLength: 0,
     currentCharIndex: 0,
     hasError: false,
-    lastUpdated: Date.now()
+    lastUpdated: Date.now(),
   });
-  
+
   // パフォーマンスメトリクス
   const [perfMetrics, setPerfMetrics] = useState({
     fps: 0,
     renderTime: 0,
-    inputLatency: 0
+    inputLatency: 0,
   });
 
   // ゲーム状態参照（Canvas Engineに渡すための状態）
@@ -53,7 +53,7 @@ const CanvasTypingArea = ({
     progress: 0,
     score: 0,
     kpm: 0,
-    currentProblem: null
+    currentProblem: null,
   });
 
   // デバッグログ関数
@@ -72,8 +72,8 @@ const CanvasTypingArea = ({
       backgroundColor: '#1a1a1a',
       textColor: '#ffffff',
       typedColor: '#4FC3F7', // 入力済み文字の色
-      highlightColor: '#FF8800',  // 入力中の文字の色
-      errorColor: '#ff3333',  // エラー時の色
+      highlightColor: '#FF8800', // 入力中の文字の色
+      errorColor: '#ff3333', // エラー時の色
       nextCharColor: '#00AAFF', // 次の文字の色
       // パフォーマンス設定
       useOffscreenCanvas: true,
@@ -84,10 +84,10 @@ const CanvasTypingArea = ({
 
     // Canvasを初期化
     engine.initialize(canvasRef.current, gameStateRef.current);
-    
+
     // アニメーションを開始
     engine.startAnimation();
-    
+
     // refに保存
     engineRef.current = engine;
 
@@ -122,7 +122,7 @@ const CanvasTypingArea = ({
         currentCharIndex = 0,
         currentInput = '',
         currentCharRomaji = '',
-        expectedNextChar = ''
+        expectedNextChar = '',
       } = typing.displayInfo;
 
       // ローマ字データの有効性確認
@@ -130,14 +130,14 @@ const CanvasTypingArea = ({
 
       // デバッグ出力（条件付き）
       debugLog('表示データ更新:', {
-        romaji: hasValidRomaji ?
-          (romaji.substring(0, 20) + (romaji.length > 20 ? '...' : '')) :
-          '<無効>',
+        romaji: hasValidRomaji
+          ? romaji.substring(0, 20) + (romaji.length > 20 ? '...' : '')
+          : '<無効>',
         typedLength,
         currentCharIndex,
         currentInput,
         expectedNextChar,
-        valid: hasValidRomaji
+        valid: hasValidRomaji,
       });
 
       // 表示データを更新
@@ -149,9 +149,9 @@ const CanvasTypingArea = ({
         currentCharRomaji: currentCharRomaji || '',
         expectedNextChar: expectedNextChar || '',
         hasError: false,
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
       };
-      
+
       setDisplayData(newDisplayData);
 
       // ゲーム状態をCanvasEngineに渡すための状態を更新
@@ -164,8 +164,10 @@ const CanvasTypingArea = ({
         progress: typing.stats?.progressPercentage || 0,
         score: typing.stats?.score || 0,
         kpm: typing.stats?.kpm || 0,
-        currentProblem: currentProblem || null
-      };      // 状態を更新して再描画を促す
+        currentProblem: currentProblem || null,
+        currentInput: currentInput || '',
+        expectedNextChar: expectedNextChar || '',
+      }; // 状態を更新して再描画を促す
       if (engineRef.current) {
         engineRef.current.updateGameState(gameStateRef.current);
       }
@@ -174,11 +176,11 @@ const CanvasTypingArea = ({
       console.error('[CanvasTypingArea] 表示データ更新エラー:', error);
 
       // エラー状態を設定
-      setDisplayData(prevData => ({
+      setDisplayData((prevData) => ({
         ...prevData,
         hasError: true,
         errorMessage: error.message,
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
       }));
     }
   }, [
@@ -193,7 +195,7 @@ const CanvasTypingArea = ({
     typing?.stats?.score,
     typing?.stats?.kpm,
     currentProblem,
-    lastPressedKey
+    lastPressedKey,
   ]);
 
   // パフォーマンスメトリクス更新
@@ -205,27 +207,81 @@ const CanvasTypingArea = ({
         setPerfMetrics({
           fps: Math.round(1000 / (metrics.lastRenderDuration || 16.67)),
           renderTime: metrics.lastRenderDuration || 0,
-          inputLatency: metrics.keyPressToRenderLatency || 0
+          inputLatency: metrics.keyPressToRenderLatency || 0,
         });
       }
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, []);
-
-  // キー入力時にCanvasEngineに通知
+  }, []); // キー入力時にCanvasEngineに通知 - オブザーバーモードで動作
   useEffect(() => {
-    const onKeyDown = () => {
-      if (engineRef.current) {
+    const onKeyDown = (event) => {
+      // キーボードイベントを監視するだけ（実際の入力処理は行わない）
+      if (engineRef.current && typing) {
+        // キー入力時間を記録（レイテンシ測定用）
         engineRef.current.recordKeyPress();
+
+        const key = event.key;
+        // 現在のキーが期待されるキーと一致するかを本来のロジックで判定
+        const expectedKey = typing?.displayInfo?.expectedNextChar || '';
+
+        // 即時フィードバックのための描画処理（入力処理はせず、表示のみを担当）
+        if (expectedKey && key.length === 1) {
+          // 実際のタイピング判定を行わず、エラー状態だけ同期
+          engineRef.current.handleKeyInput(
+            key,
+            key.toLowerCase() === expectedKey.toLowerCase()
+          );
+        }
       }
     };
 
+    // パッシブモードで監視（キャプチャしない、preventDefault()も呼ばない）
     window.addEventListener('keydown', onKeyDown);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, []);
+  }, [typing?.displayInfo?.expectedNextChar]); // 入力確定（typedLengthの変更）を検出して部分入力をリセット
+  const prevTypedLengthRef = useRef(0);
+  useEffect(() => {
+    const currentTypedLength = typing?.displayInfo?.typedLength || 0;
+    if (
+      prevTypedLengthRef.current !== currentTypedLength &&
+      engineRef.current
+    ) {
+      // typedLengthが変わった = 入力が確定した = 部分入力をリセット
+      engineRef.current.resetPartialInput();
+      prevTypedLengthRef.current = currentTypedLength;
+    }
+  }, [typing?.displayInfo?.typedLength]); // エラー状態の検知と管理用のref
+  const prevErrorStateRef = useRef(false);
+
+  // エラーアニメーションのリセットを追加
+  useEffect(() => {
+    if (typing?.errorAnimation !== prevErrorStateRef.current) {
+      // エラー状態が変わった
+      prevErrorStateRef.current = typing?.errorAnimation || false;
+
+      if (engineRef.current?.gameState) {
+        // エラー状態を同期
+        engineRef.current.gameState.isError = typing?.errorAnimation || false;
+        engineRef.current.render(); // 再描画を強制
+      }
+    }
+
+    // エラーアニメーションが終了した時に自動的にエラー状態をリセット
+    if (typing?.errorAnimation === true && engineRef.current?.gameState) {
+      // エラー状態リセットのためのタイマーを設定
+      const timer = setTimeout(() => {
+        if (engineRef.current?.gameState) {
+          engineRef.current.gameState.isError = false;
+          engineRef.current.render(); // 再描画を強制
+        }
+      }, 300); // エラーアニメーション時間を考慮したタイミング
+
+      return () => clearTimeout(timer);
+    }
+  }, [typing?.errorAnimation]); // 削除 - 重複したコードブロックのため
 
   // typingオブジェクトが存在しない場合のフォールバック
   if (!typing) {
@@ -250,7 +306,7 @@ const CanvasTypingArea = ({
   // デバッグ情報の表示（デバッグモードのみ）
   const renderDebugInfo = () => {
     if (!DEBUG_MODE) return null;
-    
+
     return (
       <div className={styles.debug_info}>
         <p>FPS: {perfMetrics.fps}</p>
@@ -265,13 +321,13 @@ const CanvasTypingArea = ({
   return (
     <div className={`${styles.canvas_typing_area} ${className || ''}`}>
       {/* Canvas要素 */}
-      <canvas 
+      <canvas
         ref={canvasRef}
         className={styles.typing_canvas}
         width="800"
         height="600"
       />
-      
+
       {/* デバッグ情報（条件付き表示） */}
       {renderDebugInfo()}
     </div>

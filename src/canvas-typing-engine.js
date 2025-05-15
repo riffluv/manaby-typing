@@ -1,6 +1,6 @@
 /**
  * Enhanced Canvas Rendering Engine for High-Performance Typing Game
- * 
+ *
  * 拡張バージョン（2025年5月15日）
  * タイピングゲーム専用のCanvas描画エンジン
  * - 問題テキスト表示とタイピング状態表示に特化
@@ -20,8 +20,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   backgroundColor: '#1a1a1a',
   textColor: '#ffffff',
   typedColor: '#4FC3F7', // 入力済み文字の色
-  highlightColor: '#FF8800',  // 入力中の文字の色
-  errorColor: '#ff3333',  // エラー時の色
+  highlightColor: '#FF8800', // 入力中の文字の色
+  errorColor: '#ff3333', // エラー時の色
   nextCharColor: '#00AAFF', // 次の文字の色
   keyboardHeight: 200,
   animationDuration: 150, // ms
@@ -73,6 +73,10 @@ export default class CanvasTypingEngine {
 
     // ゲーム状態参照
     this.gameState = null;
+
+    // キーフォーカス管理用の状態
+    this.partialKeys = ''; // 現在入力中のローマ字
+    this.currentFocus = ''; // 現在フォーカス中のキー(次に期待されるキー)
 
     // バインディング
     this._renderFrame = this._renderFrame.bind(this);
@@ -137,6 +141,11 @@ export default class CanvasTypingEngine {
     this.ctx.textBaseline = 'middle';
     this.ctx.textAlign = 'left';
     this.ctx.imageSmoothingEnabled = false; // ピクセルアートのクリアな表示用
+
+    // フォントを設定（読み込み確実性のため）
+    document.fonts.ready.then(() => {
+      this.render(); // フォント読み込み後に再描画
+    });
   }
 
   /**
@@ -149,7 +158,7 @@ export default class CanvasTypingEngine {
     const dpr = window.devicePixelRatio || 1;
     this.offscreenCanvas.width = this.settings.width * dpr;
     this.offscreenCanvas.height = this.settings.height * dpr;
-    
+
     // オフスクリーンコンテキスト取得
     this.offscreenCtx = this.offscreenCanvas.getContext('2d', {
       alpha: true,
@@ -199,7 +208,24 @@ export default class CanvasTypingEngine {
    */
   updateGameState(newState) {
     this.gameState = { ...this.gameState, ...newState };
-    
+
+    // 現在の入力から部分的なキー入力とフォーカスを更新
+    if (this.gameState && this.gameState.currentInput !== undefined) {
+      this.partialKeys = this.gameState.currentInput || '';
+
+      // 次に入力すべきキーを取得
+      if (this.gameState.romaji && this.partialKeys !== undefined) {
+        const typedLength = this.gameState.typedLength || 0;
+        const currentCharPos = typedLength + this.partialKeys.length;
+
+        if (currentCharPos < this.gameState.romaji.length) {
+          this.currentFocus = this.gameState.romaji[currentCharPos];
+        } else {
+          this.currentFocus = '';
+        }
+      }
+    }
+
     // 状態が変わったらレンダリング
     if (!this.isAnimating) {
       this.render();
@@ -211,6 +237,84 @@ export default class CanvasTypingEngine {
    */
   recordKeyPress() {
     this.performanceMetrics.lastKeyPressTime = performance.now();
+  }
+  /**
+   * キー入力処理（即時フィードバック）
+   * @param {string} key - 入力されたキー
+   * @param {boolean} isCorrect - 正解かどうか
+   */
+  handleKeyInput(key, isCorrect = true) {
+    // 正解の場合、部分入力を更新
+    if (isCorrect && key) {
+      // 現在の部分入力を更新
+      this.partialKeys += key;
+
+      // エラー状態を強制的にリセット（正解キーが入力された場合）
+      if (this.gameState) {
+        this.gameState.isError = false;
+      }
+
+      // フォーカスを更新
+      if (this.gameState && this.gameState.romaji) {
+        const typedLength = this.gameState.typedLength || 0;
+        const currentPos = typedLength + this.partialKeys.length;
+
+        if (currentPos < this.gameState.romaji.length) {
+          this.currentFocus = this.gameState.romaji[currentPos];
+        } else {
+          this.currentFocus = '';
+        }
+      }
+    } else if (!isCorrect) {
+      // 不正解の場合のエラー表示（エラー状態を設定）
+      if (this.gameState) {
+        this.gameState.isError = true;
+      }
+    }
+
+    // キー入力時間を記録
+    this.performanceMetrics.lastKeyPressTime = performance.now();
+
+    // 状態が変わったらレンダリング
+    if (!this.isAnimating) {
+      this.render();
+    }
+  }
+  /**
+   * 部分入力のリセット（ローマ字確定時）
+   */
+  resetPartialInput() {
+    // 部分入力をクリア
+    this.partialKeys = '';
+
+    // フォーカスを更新
+    if (this.gameState && this.gameState.romaji) {
+      const typedLength = this.gameState.typedLength || 0;
+
+      if (typedLength < this.gameState.romaji.length) {
+        this.currentFocus = this.gameState.romaji[typedLength];
+      } else {
+        this.currentFocus = '';
+      }
+    }
+
+    // エラー状態もリセット
+    if (this.gameState) {
+      this.gameState.isError = false;
+    }
+
+    // 状態が変わったらレンダリング
+    this.render();
+  }
+  /**
+   * エラー状態のリセット
+   */
+  resetErrorState() {
+    if (this.gameState) {
+      this.gameState.isError = false;
+      // 再描画を呼び出し
+      this.render();
+    }
   }
 
   /**
@@ -344,7 +448,6 @@ export default class CanvasTypingEngine {
       );
     });
   }
-
   /**
    * タイピングテキスト（ローマ字）の描画
    * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
@@ -353,58 +456,81 @@ export default class CanvasTypingEngine {
   _renderTypingText(ctx) {
     if (!this.gameState) return;
 
-    const { romaji = '', typedLength = 0, isError = false } = this.gameState;
+    const {
+      romaji = '',
+      typedLength = 0,
+      isError = false,
+      currentInput = '',
+    } = this.gameState;
 
     if (!romaji) return;
 
     // フォント設定
     ctx.font = `${this.settings.fontSize}px ${this.settings.fontFamily}`;
-    
+
     // 文字幅を計算（モノスペースフォント前提）
     const charWidth = this.settings.fontSize * 0.6;
-    
+
     // タイピングテキスト表示位置
     const textWidth = romaji.length * charWidth;
     const startX = (this.settings.width - textWidth) / 2;
     const startY = 160;
 
-    // 1. 入力済み部分（typedLength文字まで）
+    // 1. 確定済み入力部分（typedLength文字まで）- 青色
     if (typedLength > 0) {
-      ctx.fillStyle = this.settings.typedColor;
+      ctx.fillStyle = this.settings.typedColor; // 青色
       for (let i = 0; i < typedLength; i++) {
         const char = romaji[i];
         ctx.fillText(char, startX + i * charWidth, startY);
       }
     }
 
-    // 2. 次の文字（強調表示または赤エラー表示）
-    if (typedLength < romaji.length) {
-      ctx.fillStyle = isError 
-        ? this.settings.errorColor 
-        : this.settings.nextCharColor;
-      
-      const nextChar = romaji[typedLength];
-      ctx.fillText(nextChar, startX + typedLength * charWidth, startY);
+    // 2. 部分入力中のローマ字（緑色）
+    if (this.partialKeys && this.partialKeys.length > 0) {
+      ctx.fillStyle = '#88FF88'; // 緑色（入力中のローマ字）
+      for (let i = 0; i < this.partialKeys.length; i++) {
+        const char = this.partialKeys[i];
+        const pos = typedLength + i;
+        ctx.fillText(char, startX + pos * charWidth, startY);
+      }
+    } // 3. 現在フォーカス中の文字（オレンジまたは赤）- 次に入力すべきキー
+    const currentPosition =
+      typedLength + (this.partialKeys ? this.partialKeys.length : 0);
+    if (currentPosition < romaji.length) {
+      // エラー状態の場合のみ赤にする（正解入力後はエラー状態をクリア）
+      const errorState =
+        this.partialKeys.length > 0
+          ? false
+          : isError || this.gameState?.isError || false;
 
-      // 3. 未入力部分（次の文字以降）
-      if (typedLength + 1 < romaji.length) {
-        ctx.fillStyle = this.settings.textColor;
-        
-        for (let i = typedLength + 1; i < romaji.length; i++) {
+      ctx.fillStyle = errorState
+        ? this.settings.errorColor // 赤色（エラー時）
+        : '#FF8800'; // オレンジ色（フォーカス中のキー）
+
+      const focusChar = romaji[currentPosition];
+      ctx.fillText(focusChar, startX + currentPosition * charWidth, startY);
+
+      // 4. 残りの未入力部分（白色）
+      if (currentPosition + 1 < romaji.length) {
+        ctx.fillStyle = this.settings.textColor; // 白色
+
+        for (let i = currentPosition + 1; i < romaji.length; i++) {
           const char = romaji[i];
           ctx.fillText(char, startX + i * charWidth, startY);
         }
       }
+    } else {
+      // すべての入力が完了した場合、最後の文字をハイライト
+      if (romaji.length > 0 && typedLength >= romaji.length) {
+        ctx.fillStyle = '#88FF88'; // 緑色（完了）
+        ctx.fillText('✓', startX + romaji.length * charWidth, startY);
+      }
     }
 
-    // 入力中のローマ字表示（例："k" + "a" を入力中）
-    if (this.gameState.currentInput) {
-      ctx.fillStyle = '#AAFFAA';
-      ctx.fillText(
-        this.gameState.currentInput, 
-        startX, 
-        startY + this.settings.fontSize * 1.5
-      );
+    // 入力中のローマ字表示（下部に表示）
+    if (currentInput) {
+      ctx.fillStyle = '#AAFFAA'; // 薄い緑色
+      ctx.fillText(currentInput, startX, startY + this.settings.fontSize * 1.5);
     }
   }
 
