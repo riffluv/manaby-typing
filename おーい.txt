@@ -25,6 +25,7 @@ git commit -m "修正したコメント"
 # 3. GitHub リポジトリに変更をプッシュ
 git push origin main
 
+git push -f origin main
 
 # 確認
 git log --oneline

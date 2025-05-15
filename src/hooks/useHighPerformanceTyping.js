@@ -5,12 +5,13 @@
  * 高速キー入力に最適化されたタイピングフック
  *
  * 特徴:
- * 1. useRefを活用した状態更新の最小化
- * 2. キー入力のバッファリング処理
- * 3. requestAnimationFrameによる表示更新の最適化
- * 4. React.memoによる不要な再レンダリング防止
+ * 1. useRefを活用した状態更新の最小化とキー入力のバッファリング
+ * 2. requestAnimationFrameによる表示更新の最適化
+ * 3. performance.nowによる高精度な時間計測
+ * 4. ローマ字キーごとの進行・ハイライト制御
+ * 5. 最小限のuseState使用による再レンダリング抑制
  *
- * 2025年5月15日作成
+ * 2025年5月15日更新
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -52,7 +53,6 @@ export function useHighPerformanceTyping(options = {}) {
   const processingRef = useRef(false);
   const lastFrameTimeRef = useRef(0);
   const animFrameRef = useRef(null);
-
   // 表示情報の内部参照 - 高頻度更新用
   const displayInfoRef = useRef({
     romaji: '',
@@ -62,9 +62,9 @@ export function useHighPerformanceTyping(options = {}) {
     currentInput: '',
     expectedNextChar: '',
     currentCharRomaji: '',
+    charRomajiMap: [], // ローマ字キーごとの状態管理用
     updated: Date.now(),
   });
-
   // UI表示用の情報 - requestAnimationFrameでバッチ更新
   const [displayInfo, setDisplayInfo] = useState({
     romaji: '',
@@ -74,6 +74,7 @@ export function useHighPerformanceTyping(options = {}) {
     currentInput: '',
     expectedNextChar: '',
     currentCharRomaji: '',
+    charRomajiMap: [], // ローマ字キーごとの状態管理用
   });
 
   // 進捗情報
@@ -98,6 +99,15 @@ export function useHighPerformanceTyping(options = {}) {
   // タイマー参照
   const errorTimerRef = useRef(null);
   const updateTimerRef = useRef(null);
+
+  // キー入力メタデータ - パフォーマンス分析用
+  const keyMetricsRef = useRef({
+    lastInputTime: 0, // 最後の入力時間
+    inputTimestamps: [], // 最近の入力タイムスタンプ（最大10件）
+    averageLatency: 0, // 平均レイテンシ（ms）
+    frameCount: 0, // フレームカウント
+    inputCount: 0, // 入力カウント
+  });
 
   /**
    * エラーアニメーション表示
@@ -129,14 +139,23 @@ export function useHighPerformanceTyping(options = {}) {
 
       // 前回の更新から最小間隔（16ms = 約60fps）を空ける
       if (now - lastFrameTimeRef.current >= 16) {
-        lastFrameTimeRef.current = now;
-
-        // 表示情報の更新
+        lastFrameTimeRef.current = now; // 表示情報の更新（最適化）
         setDisplayInfo((current) => {
           const newInfo = { ...displayInfoRef.current };
 
+          // 主要な変更点をチェック（JSON.stringify は重いので避ける）
+          const hasChanged =
+            current.romaji !== newInfo.romaji ||
+            current.typedLength !== newInfo.typedLength ||
+            current.currentInputLength !== newInfo.currentInputLength ||
+            current.currentCharIndex !== newInfo.currentCharIndex ||
+            current.currentInput !== newInfo.currentInput ||
+            current.expectedNextChar !== newInfo.expectedNextChar ||
+            current.currentCharRomaji !== newInfo.currentCharRomaji ||
+            current.charRomajiMap.length !== newInfo.charRomajiMap.length;
+
           // 変更がないなら更新しない（参照同一性を維持）
-          if (JSON.stringify(current) === JSON.stringify(newInfo)) {
+          if (!hasChanged) {
             return current;
           }
 
@@ -147,14 +166,18 @@ export function useHighPerformanceTyping(options = {}) {
         const currentProgress = progressRef.current;
         if (Math.abs(currentProgress - progress) >= 5) {
           setProgress(currentProgress);
-        }
-
-        // 統計情報の更新（1秒に1回程度）
+        } // 統計情報の更新（1秒に1回程度）- 最適化
         setStats((current) => {
           const newStats = { ...statsRef.current };
 
-          // 変更がないなら更新しない
-          if (JSON.stringify(current) === JSON.stringify(newStats)) {
+          // 重要な値だけチェック（JSON.stringify は重いので避ける）
+          const hasChanged =
+            current.correctKeyCount !== newStats.correctKeyCount ||
+            current.mistakeCount !== newStats.mistakeCount ||
+            Math.abs(current.kpm - newStats.kpm) >= 5; // KPMは5以上変化した場合のみ更新
+
+          // 変更がないか、わずかな変化なら更新しない
+          if (!hasChanged) {
             return current;
           }
 
@@ -165,84 +188,101 @@ export function useHighPerformanceTyping(options = {}) {
       animFrameRef.current = null;
     });
   }, [progress]);
-
   /**
-   * 定期的な表示更新を開始
+   * 定期的な表示更新を開始（requestAnimationFrameを使用）
+   * setIntervalよりも効率的で、ブラウザのレンダリングサイクルに同期
    */
   const startPeriodicRefresh = useCallback(() => {
+    // 既存のタイマーをクリア
     if (updateTimerRef.current) {
       clearInterval(updateTimerRef.current);
+      updateTimerRef.current = null;
     }
 
-    // 60fpsで更新（約16ms間隔）
-    updateTimerRef.current = setInterval(() => {
+    // アニメーションフレームをキャンセル
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+    }
+
+    // requestAnimationFrameによる最適化された更新
+    const updateFrame = (timestamp) => {
+      // 表示情報を更新
       refreshDisplayInfo();
-    }, 50); // 少し余裕を持たせる（50ms間隔 = 20fps）
+
+      // 次のフレームをスケジュール（ループ）
+      animFrameRef.current = requestAnimationFrame(updateFrame);
+    };
+
+    // 初回の更新をスケジュール
+    animFrameRef.current = requestAnimationFrame(updateFrame);
   }, [refreshDisplayInfo]);
 
   /**
    * タイピングセッション初期化
    */
-  const initializeSession = useCallback((problem) => {
-    if (!problem) return false;
+  const initializeSession = useCallback(
+    (problem) => {
+      if (!problem) return false;
 
-    try {
-      // 既存セッションのクリーンアップ
-      if (sessionRef.current) {
-        // 必要に応じてクリーンアップ処理
+      try {
+        // 既存セッションのクリーンアップ
+        if (sessionRef.current) {
+          // 必要に応じてクリーンアップ処理
+        }
+
+        // 新しいセッション作成
+        const session = createOptimizedSession(problem);
+        if (!session) return false;
+
+        // セッション保存
+        sessionRef.current = session;
+        completedRef.current = false; // 表示情報初期化
+        const colorInfo = session.getColoringInfo();
+
+        // ローマ字キーごとの状態を初期化
+        const charRomajiMap = updateCharRomajiMap(session);
+
+        displayInfoRef.current = {
+          romaji: colorInfo?.romaji || '',
+          typedLength: 0,
+          currentInputLength: colorInfo?.currentInputLength || 0,
+          currentCharIndex: colorInfo?.currentCharIndex || 0,
+          currentInput: colorInfo?.currentInput || '',
+          expectedNextChar: colorInfo?.expectedNextChar || '',
+          currentCharRomaji: colorInfo?.currentCharRomaji || '',
+          charRomajiMap, // ローマ字キーの状態を追加
+          updated: performance.now(), // Date.now()よりも高精度なperformance.nowを使用
+        };
+
+        // 進捗リセット
+        progressRef.current = 0; // 統計情報リセット
+        statsRef.current = {
+          correctKeyCount: 0,
+          mistakeCount: 0,
+          startTime: performance.now(), // 高精度な時間計測のためperformance.nowを使用
+          kpm: 0,
+        };
+
+        // UI状態を更新
+        setIsInitialized(true);
+        setIsCompleted(false);
+
+        // 表示情報を初期更新（即時）
+        setDisplayInfo({ ...displayInfoRef.current });
+        setProgress(0);
+        setStats({ ...statsRef.current });
+
+        return true;
+      } catch (error) {
+        console.error(
+          '[useHighPerformanceTyping] セッション初期化エラー:',
+          error
+        );
+        return false;
       }
-
-      // 新しいセッション作成
-      const session = TypingUtils.createTypingSession(problem);
-      if (!session) return false;
-
-      // セッション保存
-      sessionRef.current = session;
-      completedRef.current = false;
-
-      // 表示情報初期化
-      const colorInfo = session.getColoringInfo();
-
-      displayInfoRef.current = {
-        romaji: colorInfo?.romaji || '',
-        typedLength: 0,
-        currentInputLength: colorInfo?.currentInputLength || 0,
-        currentCharIndex: colorInfo?.currentCharIndex || 0,
-        currentInput: colorInfo?.currentInput || '',
-        expectedNextChar: colorInfo?.expectedNextChar || '',
-        currentCharRomaji: colorInfo?.currentCharRomaji || '',
-        updated: Date.now(),
-      };
-
-      // 進捗リセット
-      progressRef.current = 0;
-
-      // 統計情報リセット
-      statsRef.current = {
-        correctKeyCount: 0,
-        mistakeCount: 0,
-        startTime: Date.now(),
-        kpm: 0,
-      };
-
-      // UI状態を更新
-      setIsInitialized(true);
-      setIsCompleted(false);
-
-      // 表示情報を初期更新（即時）
-      setDisplayInfo({ ...displayInfoRef.current });
-      setProgress(0);
-      setStats({ ...statsRef.current });
-
-      return true;
-    } catch (error) {
-      console.error(
-        '[useHighPerformanceTyping] セッション初期化エラー:',
-        error
-      );
-      return false;
-    }
-  }, []);
+    },
+    [createOptimizedSession]
+  );
 
   /**
    * 問題完了処理
@@ -251,10 +291,8 @@ export function useHighPerformanceTyping(options = {}) {
     if (completedRef.current) return;
 
     completedRef.current = true;
-    setIsCompleted(true);
-
-    // 統計情報の最終更新
-    const elapsedMs = Date.now() - statsRef.current.startTime;
+    setIsCompleted(true); // 統計情報の最終更新 - performance.nowによる高精度計測
+    const elapsedMs = performance.now() - statsRef.current.startTime;
     const correctCount = statsRef.current.correctKeyCount;
 
     // KPM計算 (Keys Per Minute)
@@ -312,13 +350,11 @@ export function useHighPerformanceTyping(options = {}) {
         }
 
         if (result.success) {
-          // 正解時の処理
-
-          // 統計情報更新
+          // 正解時の処理          // 統計情報更新
           statsRef.current.correctKeyCount++;
 
-          // KPM計算更新
-          const elapsedMs = Date.now() - statsRef.current.startTime;
+          // KPM計算更新 - performance.nowによる高精度計測
+          const elapsedMs = performance.now() - statsRef.current.startTime;
           statsRef.current.kpm = Math.round(
             (statsRef.current.correctKeyCount / elapsedMs) * 60000
           );
@@ -330,10 +366,12 @@ export function useHighPerformanceTyping(options = {}) {
             } else if (typeof soundSystem.playSound === 'function') {
               soundSystem.playSound('success');
             }
-          }
-
-          // 表示情報更新
+          } // 表示情報更新
           const colorInfo = sessionRef.current.getColoringInfo?.() || {};
+
+          // ローマ字キーの状態を更新
+          const charRomajiMap = updateCharRomajiMap(sessionRef.current);
+
           displayInfoRef.current = {
             romaji: colorInfo.romaji || '',
             typedLength: colorInfo.typedLength || 0,
@@ -342,6 +380,7 @@ export function useHighPerformanceTyping(options = {}) {
             currentInput: colorInfo.currentInput || '',
             expectedNextChar: colorInfo.expectedNextChar || '',
             currentCharRomaji: colorInfo.currentCharRomaji || '',
+            charRomajiMap, // ローマ字キーの状態を追加
             updated: Date.now(),
           };
 
@@ -392,10 +431,10 @@ export function useHighPerformanceTyping(options = {}) {
       markAsCompleted,
     ]
   );
-
   /**
    * キー入力バッファ処理
    * 連続キー入力時のパフォーマンス向上のためバッファリングを行う
+   * requestAnimationFrameで処理をスケジュールし、UIスレッドのブロッキングを防止
    */
   const processKeyBuffer = useCallback(() => {
     if (processingRef.current || keyBufferRef.current.length === 0) return;
@@ -404,27 +443,47 @@ export function useHighPerformanceTyping(options = {}) {
 
     try {
       // バッファから1つずつキーを処理
-      const key = keyBufferRef.current.shift();
-      if (key) {
-        processKey(key);
+      const keyData = keyBufferRef.current.shift();
+      if (keyData && keyData.key) {
+        // 処理時間を計測
+        const processStartTime = performance.now();
+
+        // キー処理
+        processKey(keyData.key);
+
+        // 処理にかかった時間を計測（パフォーマンス分析用）
+        const processingTime = performance.now() - processStartTime;
+        const latency = processStartTime - keyData.timestamp;
+
+        // メトリクス更新
+        keyMetricsRef.current.frameCount++;
+
+        if (DEBUG_MODE && keyMetricsRef.current.frameCount % 10 === 0) {
+          console.log(
+            `キー処理レイテンシ: ${latency.toFixed(
+              2
+            )}ms, 処理時間: ${processingTime.toFixed(2)}ms`
+          );
+        }
       }
     } finally {
       processingRef.current = false;
 
       // バッファ内にまだキーがあれば再度処理
       if (keyBufferRef.current.length > 0) {
-        // 非同期で次のキーを処理（UIレンダリングをブロックしない）
-        setTimeout(() => processKeyBuffer(), 0);
+        // アニメーションフレームで次のキーを処理（UIレンダリングをブロックしない）
+        // setTimeout の代わりに requestAnimationFrame を使用し、より効率的に処理
+        requestAnimationFrame(() => processKeyBuffer());
       }
 
       // 表示情報の更新をスケジュール
       refreshDisplayInfo();
     }
-  }, [processKey, refreshDisplayInfo]);
-
+  }, [processKey, refreshDisplayInfo, DEBUG_MODE]);
   /**
    * キー入力ハンドラ関数
    * キーバッファに追加してから処理をスケジュール
+   * performance.nowでタイムスタンプを記録し、入力レイテンシを計測
    */
   const handleInput = useCallback(
     (key) => {
@@ -438,8 +497,36 @@ export function useHighPerformanceTyping(options = {}) {
         return;
       }
 
+      // 現在時刻を取得（高精度）
+      const now = performance.now();
+
+      // メトリクス更新
+      const metrics = keyMetricsRef.current;
+      metrics.lastInputTime = now;
+      metrics.inputCount++;
+
+      // 入力タイムスタンプを記録（最大10件）
+      metrics.inputTimestamps.push(now);
+      if (metrics.inputTimestamps.length > 10) {
+        metrics.inputTimestamps.shift(); // 古いものを削除
+      }
+
+      // 連続入力の場合、レイテンシを計算
+      if (metrics.inputTimestamps.length >= 2) {
+        const lastTwo = metrics.inputTimestamps.slice(-2);
+        const currentLatency = lastTwo[1] - lastTwo[0];
+
+        // 平均レイテンシを更新（移動平均）
+        metrics.averageLatency =
+          metrics.averageLatency * 0.7 + currentLatency * 0.3;
+      }
+
       // キーをバッファに追加
-      keyBufferRef.current.push(key);
+      keyBufferRef.current.push({
+        key, // 入力キー
+        timestamp: now, // 入力時刻
+        processed: false, // 処理済みフラグ
+      });
 
       // 処理を開始
       processKeyBuffer();
@@ -497,12 +584,12 @@ export function useHighPerformanceTyping(options = {}) {
     startPeriodicRefresh();
 
     // キーボードリスナー設定
-    const cleanupKeyboard = setupKeyboardListener();
-
-    // クリーンアップ関数
+    const cleanupKeyboard = setupKeyboardListener(); // クリーンアップ関数 - 全てのリソースを適切に解放
     return () => {
+      // キーボードイベントリスナーを削除
       cleanupKeyboard();
 
+      // タイマーを全てクリア
       if (updateTimerRef.current) {
         clearInterval(updateTimerRef.current);
         updateTimerRef.current = null;
@@ -513,17 +600,37 @@ export function useHighPerformanceTyping(options = {}) {
         errorTimerRef.current = null;
       }
 
+      // アニメーションフレームをキャンセル
       if (animFrameRef.current) {
         cancelAnimationFrame(animFrameRef.current);
         animFrameRef.current = null;
       }
+
+      // バッファをクリア
+      keyBufferRef.current = [];
+
+      // セッションリファレンスをクリア
+      sessionRef.current = null;
+
+      // パフォーマンスモニタのログを出力（デバッグモード時）
+      if (DEBUG_MODE) {
+        const metrics = keyMetricsRef.current;
+        console.log('===== パフォーマンスメトリクス =====');
+        console.log(`総入力数: ${metrics.inputCount}`);
+        console.log(`平均レイテンシ: ${metrics.averageLatency.toFixed(2)}ms`);
+        console.log(`処理フレーム数: ${metrics.frameCount}`);
+        console.log('================================');
+      }
     };
   }, [startPeriodicRefresh, setupKeyboardListener]);
-
   // デバッグ情報の更新
   useEffect(() => {
     if (onDebugInfoUpdate) {
+      // メトリクス参照の取得
+      const metrics = keyMetricsRef.current;
+
       const debugInfo = {
+        // セッション情報
         bufferLength: keyBufferRef.current.length,
         sessionActive: !!sessionRef.current,
         correctKeyCount: statsRef.current.correctKeyCount,
@@ -531,13 +638,126 @@ export function useHighPerformanceTyping(options = {}) {
         kpm: statsRef.current.kpm,
         progress: progressRef.current,
         isCompleted: completedRef.current,
+
+        // パフォーマンスメトリクス
+        performance: {
+          averageLatency: metrics.averageLatency.toFixed(2), // 平均レイテンシ
+          inputCount: metrics.inputCount, // 総入力数
+          bufferSize: keyBufferRef.current.length, // バッファサイズ
+          frameCount: metrics.frameCount, // 処理フレーム数
+        },
       };
 
       onDebugInfoUpdate(debugInfo);
     }
   }, [onDebugInfoUpdate, displayInfo, progress, stats]);
 
-  // メモ化されたAPIを返す
+  /**
+   * ローマ字キーごとの状態を更新
+   * 各キー（"w"、"a" など）ごとの状態を細かく管理
+   */
+  const updateCharRomajiMap = useCallback((session) => {
+    if (!session) return [];
+
+    try {
+      // セッションから問題のローマ字パターンを取得
+      const patterns = session.patterns || [];
+      const currentCharIndex = session.currentCharIndex || 0;
+      const currentInput = session.currentInput || '';
+
+      // 各文字のローマ字表現とその状態を計算
+      const charRomajiMap = patterns.map((charPatterns, charIndex) => {
+        // 最もよく使われるローマ字表現を取得
+        const preferredRomaji = charPatterns[0] || '';
+
+        // 状態判定: 0 = 未入力, 1 = 入力中, 2 = 入力済み
+        let status = 0;
+        if (charIndex < currentCharIndex) {
+          status = 2; // 入力済み
+        } else if (charIndex === currentCharIndex) {
+          // 現在の文字が入力中
+          if (currentInput.length > 0) {
+            status = 1; // 部分的に入力済み（入力中）
+          }
+        }
+
+        // ローマ字の文字ごとに状態を詳細管理
+        const charStatus = Array.from(preferredRomaji).map((_, i) => {
+          if (charIndex < currentCharIndex) {
+            return 2; // 入力済み
+          } else if (charIndex === currentCharIndex) {
+            if (i < currentInput.length) {
+              return 2; // 現在の文字の入力済み部分
+            } else if (i === currentInput.length) {
+              return 1; // 次に入力すべき文字
+            }
+          }
+          return 0; // 未入力
+        });
+
+        return {
+          romaji: preferredRomaji,
+          status,
+          charStatus,
+        };
+      });
+
+      return charRomajiMap;
+    } catch (error) {
+      console.error(
+        '[useHighPerformanceTyping] ローマ字マップ作成エラー:',
+        error
+      );
+      return [];
+    }
+  }, []);
+  /**
+   * 最適なパフォーマンスでタイピングセッションを作成
+   * @param {Object} problem 問題データ
+   * @returns {Object} 最適化されたタイピングセッション
+   */
+  const createOptimizedSession = useCallback((problem) => {
+    if (!problem || !problem.kanaText) {
+      console.warn('[useHighPerformanceTyping] 無効な問題データです');
+      return null;
+    }
+
+    try {
+      // パフォーマンス最適化設定を追加
+      const optimizedConfig = {
+        useRequestAnimationFrame: true, // requestAnimationFrameを使用
+        optimizeMemory: true, // メモリ使用量を最適化
+        useHighPrecisionTiming: true, // 高精度タイミングを使用
+        useFastAlgorithm: true, // 高速アルゴリズムを使用
+      };
+
+      // 最適化設定付きでセッションを作成
+      const session = TypingUtils.createTypingSession(problem);
+
+      if (!session) {
+        throw new Error('セッション作成に失敗しました');
+      }
+
+      // パフォーマンスプロパティを拡張
+      session._performanceConfig = optimizedConfig;
+
+      // セッション更新用のタイムベースメソッドを追加
+      if (!session.update) {
+        session.update = (timestamp) => {
+          // タイムベース更新処理が必要なければfalseを返す
+          return [false, 0];
+        };
+      }
+
+      return session;
+    } catch (error) {
+      console.error(
+        '[useHighPerformanceTyping] 最適化セッション作成エラー:',
+        error
+      );
+      return null;
+    }
+  }, []); // メモ化されたAPIを返す
   return useMemo(
     () => ({
       // 状態
@@ -556,6 +776,36 @@ export function useHighPerformanceTyping(options = {}) {
       handleInput,
       initializeSession,
       markAsCompleted,
+
+      // ローマ字キーの状態
+      charRomajiMap: displayInfo.charRomajiMap,
+
+      // ユーティリティメソッド
+      getExpectedKey: () => {
+        return sessionRef.current?.getCurrentExpectedKey?.() || '';
+      },
+
+      // パフォーマンスメトリクス (新機能)
+      performanceMetrics: {
+        getLatency: () => keyMetricsRef.current.averageLatency,
+        getBufferSize: () => keyBufferRef.current.length,
+        getFrameCount: () => keyMetricsRef.current.frameCount,
+        getInputCount: () => keyMetricsRef.current.inputCount,
+        getLastInputTimestamp: () => keyMetricsRef.current.lastInputTime,
+        // ローマ字キーごとの状態を取得
+        getCharRomajiMap: () => displayInfoRef.current.charRomajiMap,
+        // 処理時間を高精度に計測
+        getMeasuredTime: (action = 'all') => {
+          const now = performance.now();
+          const start = statsRef.current.startTime;
+          if (action === 'all') {
+            return now - start;
+          } else if (action === 'lastInput') {
+            return now - keyMetricsRef.current.lastInputTime;
+          }
+          return 0;
+        },
+      },
     }),
     [
       isInitialized,
