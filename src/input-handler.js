@@ -11,6 +11,14 @@
 const THROTTLE_TIME = 0; // 入力スロットリング（0で無効）
 const DEBUG = process.env.NODE_ENV === 'development';
 
+// 効果音プレイヤーの遅延インポート（循環参照を避けるため）
+let playInstantTypingSound;
+if (typeof window !== 'undefined') {
+  import('./AudioInitializer').then((module) => {
+    playInstantTypingSound = module.playInstantTypingSound;
+  });
+}
+
 /**
  * InputHandlerクラス
  * キーボード入力を高速に処理して描画パイプラインに伝播
@@ -216,6 +224,7 @@ export default class InputHandler {
       }
     }
   }
+
   /**
    * キー入力の処理
    * @param {string} key 押されたキー
@@ -229,33 +238,38 @@ export default class InputHandler {
     this.keyStates.set(key, true);
     this.lastPressedKey = key;
 
-    // キャンバスエンジンにキー入力タイミングを通知
-    if (this.canvasEngine) {
-      this.canvasEngine.recordKeyPress();
-    }
+    try {
+      // 【最適化】処理順序を変更：音 → 視覚 → ロジック
 
-    // メトリクス更新
-    this.metrics.totalKeyPresses++;
-
-    // コールバック関数を呼び出し (同期的に処理)
-    if (this.onKeyDown) {
-      try {
-        this.onKeyDown(key);
-
-        // キー入力後の即時描画更新（処理後すぐに視覚的フィードバック）
-        if (
-          this.canvasEngine &&
-          typeof this.canvasEngine.render === 'function'
-        ) {
-          this.canvasEngine.render();
-
-          // 入力から描画までの時間を計測
-          this.metrics.keyToRenderLatency =
-            performance.now() - processStartTime;
-        }
-      } catch (error) {
-        this._handleError(error);
+      // 1. 最優先：音のフィードバック - 超低レイテンシで効果音を再生
+      if (playInstantTypingSound) {
+        // 正解・不正解をここではチェックせず、即座にサウンドを再生
+        playInstantTypingSound('success');
       }
+
+      // 2. 次に優先：視覚的フィードバック
+      // キャンバスエンジンにキー入力タイミングを通知して即時描画
+      if (this.canvasEngine) {
+        this.canvasEngine.recordKeyPress();
+        // 即時視覚フィードバックのための描画更新
+        if (typeof this.canvasEngine.render === 'function') {
+          this.canvasEngine.render();
+        }
+      }
+
+      // 3. 最後：ゲームロジックの処理
+      // メトリクス更新
+      this.metrics.totalKeyPresses++;
+
+      // コールバック関数を呼び出し (ロジック処理)
+      if (this.onKeyDown) {
+        this.onKeyDown(key);
+      }
+
+      // パフォーマンス計測
+      this.metrics.keyToRenderLatency = performance.now() - processStartTime;
+    } catch (error) {
+      this._handleError(error);
     }
   }
 

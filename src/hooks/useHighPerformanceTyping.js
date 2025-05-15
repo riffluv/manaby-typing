@@ -312,7 +312,6 @@ export function useHighPerformanceTyping(options = {}) {
     // 最終的なUI更新
     refreshDisplayInfo();
   }, [onProblemComplete, refreshDisplayInfo]);
-
   /**
    * キー入力処理関数 - useRefを活用して状態更新を最小化
    */
@@ -323,7 +322,20 @@ export function useHighPerformanceTyping(options = {}) {
       }
 
       try {
-        // 入力処理
+        // 【効率化】処理順序を変更：音 → 視覚 → ロジック
+
+        // 1. 最優先：効果音再生 - 入力判定前に先に音を出して体感速度を向上
+        if (playSound && soundSystem) {
+          // この時点では正解/不正解を判断せずにとりあえず音を出す
+          // 正解音を優先し、あとで不正解だった場合はエラー音を鳴らす
+          if (typeof soundSystem.ultraFastPlayTypingSound === 'function') {
+            soundSystem.ultraFastPlayTypingSound('success');
+          } else if (typeof soundSystem.playSound === 'function') {
+            soundSystem.playSound('success');
+          }
+        }
+
+        // 2. 入力処理と結果判定
         let result;
 
         if (typeof sessionRef.current.accept === 'function') {
@@ -341,6 +353,15 @@ export function useHighPerformanceTyping(options = {}) {
           } else if (acceptResult === -1) {
             // 不正解
             result = { success: false, status: 'wrong_input' };
+
+            // 不正解の場合は追加でエラー音を再生
+            if (
+              playSound &&
+              soundSystem &&
+              typeof soundSystem.playSound === 'function'
+            ) {
+              soundSystem.playSound('error');
+            }
           } else {
             // 無効
             result = { success: false, status: 'invalid_input' };
@@ -353,7 +374,8 @@ export function useHighPerformanceTyping(options = {}) {
         }
 
         if (result.success) {
-          // 正解時の処理          // 統計情報更新
+          // 正解時の処理
+          // 統計情報更新
           statsRef.current.correctKeyCount++;
 
           // KPM計算更新 - performance.nowによる高精度計測
@@ -362,14 +384,7 @@ export function useHighPerformanceTyping(options = {}) {
             (statsRef.current.correctKeyCount / elapsedMs) * 60000
           );
 
-          // 効果音再生
-          if (playSound && soundSystem) {
-            if (typeof soundSystem.ultraFastPlayTypingSound === 'function') {
-              soundSystem.ultraFastPlayTypingSound('success');
-            } else if (typeof soundSystem.playSound === 'function') {
-              soundSystem.playSound('success');
-            }
-          } // 表示情報更新
+          // 表示情報更新
           const colorInfo = sessionRef.current.getColoringInfo?.() || {};
 
           // ローマ字キーの状態を更新

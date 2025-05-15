@@ -41,7 +41,8 @@ export default class CanvasTypingEngine {
   /**
    * コンストラクタ
    * @param {Object} options 設定オプション
-   */ constructor(options = {}) {
+   */
+  constructor(options = {}) {
     // 設定の統合
     this.settings = { ...DEFAULT_SETTINGS, ...options };
 
@@ -83,7 +84,9 @@ export default class CanvasTypingEngine {
       // デバッグ情報
       inputToRenderDelays: [], // 入力から描画までの遅延履歴（最大10件）
       averageInputLatency: 0, // 平均入力レイテンシ
-    }; // ゲーム状態参照
+    };
+
+    // ゲーム状態参照
     this.gameState = null;
 
     // キーフォーカス管理用の状態
@@ -305,37 +308,42 @@ export default class CanvasTypingEngine {
     const startTime = performance.now();
     this.performanceMetrics.lastKeyPressTime = startTime;
 
-    // 正解の場合、部分入力を更新
-    if (isCorrect && key) {
+    // 【最適化】視覚的フィードバックを即座に更新するため、最小限の処理を実行
+
+    // 即時視覚フィードバック（最優先）
+    // 正解/不正解を視覚的に区別するための効率的な前処理
+    if (isCorrect) {
+      // 高速パス：正解の場合
       // 現在の部分入力を更新
       this.partialKeys += key;
 
-      // エラー状態を強制的にリセット（正解キーが入力された場合）
+      // エラー状態を即座にリセット
       if (this.gameState) {
         this.gameState.isError = false;
       }
-
-      // フォーカスを更新
-      if (this.gameState && this.gameState.romaji) {
-        const typedLength = this.gameState.typedLength || 0;
-        const currentPos = typedLength + this.partialKeys.length;
-
-        if (currentPos < this.gameState.romaji.length) {
-          this.currentFocus = this.gameState.romaji[currentPos];
-        } else {
-          this.currentFocus = '';
-        }
-      }
-    } else if (!isCorrect) {
-      // 不正解の場合はエラー状態を適切に設定
+    } else {
+      // 高速パス：不正解の場合
       if (this.gameState) {
-        this.gameState.isError = true; // エラー状態を正しく設定
+        this.gameState.isError = true;
       }
     }
 
-    // 常に即時レンダリング（requestAnimationFrameを待たない）
-    // 入力から表示更新までのレイテンシを最小化
+    // 即時レンダリング（最優先で実行、animationFrameを待たない）
+    // これによりキー入力に対する視覚的フィードバックを最大限に高速化
     this.render();
+
+    // 視覚的フィードバックを優先させたあとで、追加の状態更新処理を実行
+    if (isCorrect && key && this.gameState && this.gameState.romaji) {
+      // フォーカス状態の更新（次に入力すべき文字のハイライト）
+      const typedLength = this.gameState.typedLength || 0;
+      const currentPos = typedLength + this.partialKeys.length;
+
+      if (currentPos < this.gameState.romaji.length) {
+        this.currentFocus = this.gameState.romaji[currentPos];
+      } else {
+        this.currentFocus = '';
+      }
+    }
 
     // 処理時間を計測（デバッグ用）
     const totalTime = performance.now() - startTime;

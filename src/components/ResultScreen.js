@@ -43,7 +43,7 @@ const ResultScreen = ({
         'ResultScreen: statsデータが不足しているか、KPMが0です',
         finalStats
       );
-    }    // スコアデータがあればローカルランキングに保存
+    } // スコアデータがあればローカルランキングに保存
     if (finalStats && finalStats.kpm > 0) {
       try {
         // 匿名のユーザー名でスコアを保存
@@ -53,16 +53,20 @@ const ResultScreen = ({
           correctCount: finalStats.correctCount || 0,
           missCount: finalStats.missCount || 0,
           accuracy: finalStats.accuracy || 0,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
         console.log('ResultScreen: ローカルランキングにスコアを保存しました');
       } catch (error) {
-        console.error('ResultScreen: ランキング保存でエラーが発生しました:', error);
+        console.error(
+          'ResultScreen: ランキング保存でエラーが発生しました:',
+          error
+        );
       }
     } else {
-      console.log('ResultScreen: スコアデータが無いためランキング保存をスキップします');
+      console.log(
+        'ResultScreen: スコアデータが無いためランキング保存をスキップします'
+      );
     }
-
   }, [stats, gameState]);
 
   // メニューに戻るハンドラー - 再利用可能なコールバックとして定義
@@ -108,7 +112,8 @@ const ResultScreen = ({
         // またはロードしてから再生する
         if (soundSystem.sfxBuffers['complete']) {
           soundSystem.play('complete');
-        } else {          // 効果音がロードされていない場合はロードしてから再生
+        } else {
+          // 効果音がロードされていない場合はロードしてから再生
           soundSystem
             .loadSound('complete', getStaticPath('/sounds/resultsound.mp3'))
             .then(() => soundSystem.play('complete'))
@@ -165,31 +170,36 @@ const ResultScreen = ({
         delay: 0.5,
       },
     },
-  };  // 統計データを安全に取得
+  }; // 統計データを安全に取得
   const safeStats = useMemo(() => {
     // 送られてきたstatsかgameStateのstatsを取得
     const inputStats = stats || gameState?.stats;
-    console.log('ResultScreen: 統計データ処理:', inputStats); if (inputStats && typeof inputStats === 'object') {
+    console.log('ResultScreen: 統計データ処理:', inputStats);
+    if (inputStats && typeof inputStats === 'object') {
       // デバッグ: より詳細なデータ
       console.log('ResultScreen: 詳細なステータスデータ', {
         入力されたcorrectCount: inputStats.correctCount,
         入力されたmissCount: inputStats.missCount,
         入力されたaccuracy: inputStats.accuracy,
         解答した問題数: inputStats.solvedProblems,
-        残りのデータ: inputStats
+        残りのデータ: inputStats,
       });
 
       // 統計情報をそのまま使用（正解キー数とミス数は必ず数値にする）
       return {
         kpm: inputStats.kpm || 0,
-        correctCount: typeof inputStats.correctCount === 'number' ? inputStats.correctCount : 0,
-        missCount: typeof inputStats.missCount === 'number' ? inputStats.missCount : 0,
+        correctCount:
+          typeof inputStats.correctCount === 'number'
+            ? inputStats.correctCount
+            : 0,
+        missCount:
+          typeof inputStats.missCount === 'number' ? inputStats.missCount : 0,
         accuracy: inputStats.accuracy || 0,
         totalTime: inputStats.totalTime || 0,
         elapsedTimeMs: inputStats.elapsedTimeMs || 0,
         rank: inputStats.rank || 'F',
         problemKPMs: inputStats.problemKPMs || [],
-        solvedProblems: inputStats.solvedProblems
+        solvedProblems: inputStats.solvedProblems,
       };
     }
 
@@ -202,42 +212,40 @@ const ResultScreen = ({
       totalTime: 0,
       elapsedTimeMs: 0,
       rank: 'F',
-      problemKPMs: []
+      problemKPMs: [],
     };
   }, [stats, gameState?.stats]);
-
-  // スコア計算のデバッグログも削除
-  console.log('ResultScreen: 詳細なKPM分析', {
-    safeStatsのKPM値: safeStats.kpm,
-    元のstatsのKPM値: stats?.kpm,
-    gameStateのKPM値: gameState?.stats?.kpm,
-    safeStats全体: safeStats
-  });
-
-  // KPMが異常に高い場合の警告
-  if (safeStats.kpm > 500) {
-    console.warn('ResultScreen: KPM値が異常に高い値です:', safeStats.kpm);
-    console.warn('元の計算データ:', {
-      correctCount: safeStats.correctCount,
-      elapsedTimeMs: safeStats.elapsedTimeMs,
-      elapsedMinutes: safeStats.elapsedTimeMs / 60000
+  // スコア計算のデバッグログ
+  if (process.env.NODE_ENV === 'development' && false) {
+    // falseに設定して無効化
+    console.log('ResultScreen: 詳細なKPM分析', {
+      safeStatsのKPM値: safeStats.kpm,
+      元のstatsのKPM値: stats?.kpm,
+      gameStateのKPM値: gameState?.stats?.kpm,
+      safeStats全体: safeStats,
     });
-  }  // 表示用に整形した統計情報を生成
-  const fixedStats = useMemo(() => {
-    console.log('ResultScreen: 統計情報を表示用に整形');
+  }
 
-    // KPMが異常に高い場合の警告
-    if (safeStats.kpm > 500) {
-      console.warn('ResultScreen: KPM値が異常に高い値です:', safeStats.kpm);
+  // 高KPM値の警告を削除（プロのタイピストには不要）  // 表示用に整形した統計情報を生成
+  const fixedStats = useMemo(() => {
+    if (process.env.NODE_ENV === 'development' && false) {
+      // falseに設定して無効化
+      console.log('ResultScreen: 統計情報を表示用に整形');
     }
+
+    // 高KPM値の警告を削除（プロのタイピストには不要）
 
     // ランクカラーの取得
     const rankColor = TypingUtils.getRankColor(safeStats.rank || 'F');
 
     // 小数点以下を整形
     const formattedKpm = safeStats.kpm ? formatDecimal(safeStats.kpm) : '0.0';
-    const formattedAccuracy = safeStats.accuracy ? formatDecimal(safeStats.accuracy) : '0.0';
-    const formattedTime = safeStats.totalTime ? formatDecimal(safeStats.totalTime) : '0.0';
+    const formattedAccuracy = safeStats.accuracy
+      ? formatDecimal(safeStats.accuracy)
+      : '0.0';
+    const formattedTime = safeStats.totalTime
+      ? formatDecimal(safeStats.totalTime)
+      : '0.0';
 
     return {
       totalTime: formattedTime,
@@ -247,7 +255,7 @@ const ResultScreen = ({
       missCount: safeStats.missCount || 0,
       rank: safeStats.rank || '-',
       rankColor: rankColor,
-      problemKPMs: safeStats.problemKPMs || []
+      problemKPMs: safeStats.problemKPMs || [],
     };
   }, [safeStats]);
 
@@ -288,7 +296,8 @@ const ResultScreen = ({
       className={styles.resultContainer}
       initial="hidden"
       animate="visible"
-      variants={containerVariants}    >
+      variants={containerVariants}
+    >
       {/* コーナー装飾、スキャンライン、ドットパターンを削除 */}
 
       <motion.div className={styles.resultHeader} variants={itemVariants}>
@@ -322,7 +331,6 @@ const ResultScreen = ({
             <div className={styles.statLabel}>KPM</div>
             <div className={styles.statValue}>{fixedStats.kpm}</div>
           </motion.div>
-
           {/* 正解率を特別に強調表示 */}
           <motion.div
             className={`${styles.statCard} ${styles.keyStatCard}`}
@@ -331,23 +339,27 @@ const ResultScreen = ({
           >
             <div className={styles.statLabel}>Accuracy</div>
             <div className={styles.statValue}>{fixedStats.accuracy}%</div>
-          </motion.div>          {/* 正解数：打鍵数（キーストローク）を表示 */}
+          </motion.div>{' '}
+          {/* 正解数：打鍵数（キーストローク）を表示 */}
           <motion.div className={styles.statCard} whileHover={{ scale: 1.03 }}>
             <div className={styles.statLabel}>Correct</div>
             <div className={styles.statValue}>{fixedStats.correctCount}</div>
           </motion.div>
-
           {/* ミス数 */}
           <motion.div className={styles.statCard} whileHover={{ scale: 1.03 }}>
             <div className={styles.statLabel}>Miss</div>
             <div className={styles.statValue}>{fixedStats.missCount}</div>
           </motion.div>
-
           {/* 問題数（必要な場合のみ表示） */}
           {fixedStats.solvedProblems !== undefined && (
-            <motion.div className={styles.statCard} whileHover={{ scale: 1.03 }}>
+            <motion.div
+              className={styles.statCard}
+              whileHover={{ scale: 1.03 }}
+            >
               <div className={styles.statLabel}>Problems</div>
-              <div className={styles.statValue}>{fixedStats.solvedProblems}</div>
+              <div className={styles.statValue}>
+                {fixedStats.solvedProblems}
+              </div>
             </motion.div>
           )}
         </motion.div>
