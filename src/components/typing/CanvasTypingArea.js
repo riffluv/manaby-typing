@@ -64,17 +64,18 @@ const CanvasTypingArea = ({
   useEffect(() => {
     if (!canvasRef.current) return;
 
-    // Canvas Typing Engineのインスタンスを作成
+  // Canvas Typing Engineのインスタンスを作成
     const engine = new CanvasTypingEngine({
       width: canvasRef.current.clientWidth,
       height: canvasRef.current.clientHeight,
       fontSize: 24,
       backgroundColor: '#1a1a1a',
       textColor: '#ffffff',
-      typedColor: '#4FC3F7', // 入力済み文字の色
-      highlightColor: '#FF8800', // 入力中の文字の色
+      typedColor: '#88FF88', // 入力済み文字の色（青から緑に変更）
+      highlightColor: '#FFB41E', // 入力中の文字の色（明るいオレンジに変更）
       errorColor: '#ff3333', // エラー時の色
-      nextCharColor: '#00AAFF', // 次の文字の色
+      nextCharColor: '#88FF88', // 次の文字の色（青から緑に変更）
+      showErrorHighlight: false, // エラー表示機能はオフに設定
       // パフォーマンス設定
       useOffscreenCanvas: true,
       useImageCaching: true,
