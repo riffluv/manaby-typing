@@ -22,6 +22,7 @@ git add .
 git commit -m "修正したコメント"
 
 
+
 # 3. GitHub リポジトリに変更をプッシュ
 git push origin main
 
