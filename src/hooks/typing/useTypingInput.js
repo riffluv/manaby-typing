@@ -253,12 +253,22 @@ export function useTypingInput(options = {}) {
             );
           }
         }
-
         if (result.success) {
-          // 統計情報の更新を遅延処理に移動（レスポンス優先）
-          queueMicrotask(() => {
-            inputStatsRef.current.correctKeyPresses++;
-          }); // 効果音再生の超高速化対応（レイテンシーを最小化）
+          // 統計情報の更新（KPM計算が正確に行われるように即時処理）
+          inputStatsRef.current.correctKeyPresses++;
+          inputStatsRef.current.lastKeyTime = timestamp;
+          inputStatsRef.current.totalKeyPresses++;
+
+          // デバッグモードの場合のみ詳細ログ出力
+          if (DEBUG_MODE) {
+            debugLog(`正解キー入力: ${key}`, {
+              正解数: inputStatsRef.current.correctKeyPresses,
+              総入力数: inputStatsRef.current.totalKeyPresses,
+              タイムスタンプ: new Date(timestamp).toLocaleTimeString(),
+            });
+          }
+
+          // 効果音再生の超高速化対応（レイテンシーを最小化）
           if (playSound && soundSystem) {
             // ウルトラ高速タイピング音再生メソッドを使用（エラーハンドリングを省略）
             if (typeof soundSystem.ultraFastPlayTypingSound === 'function') {

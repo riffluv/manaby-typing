@@ -518,7 +518,8 @@ export default class CanvasTypingEngine {
           const char = romaji[i];
           ctx.fillText(char, startX + i * charWidth, startY);
         }
-      }    } else {
+      }
+    } else {
       // すべての入力が完了した場合、最後の文字をハイライト
       if (romaji.length > 0 && typedLength >= romaji.length) {
         ctx.fillStyle = '#88FF88'; // 緑色（完了）

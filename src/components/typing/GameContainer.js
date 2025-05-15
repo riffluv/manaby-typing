@@ -89,14 +89,26 @@ const GameContainer = () => {
 
       // 問題統計を現在のref統計情報に追加
       const currentStats = statsRef.current;
-      const solvedCount = gameState.solvedCount + 1;
-
-      // 現在の問題のKPMを計算
+      const solvedCount = gameState.solvedCount + 1; // 現在の問題のKPMを計算
       const now = Date.now();
       const problemElapsedMs = problemStartTimeRef.current
         ? now - problemStartTimeRef.current
-        : 0;
+        : 0; // KPM計算のためのデバッグ情報（Weather Typing方式）
+      console.log('[GameContainer] 問題完了 KPM計算（Weather Typing方式）:', {
+        問題文: gameState.currentProblem?.displayText,
+        キー数: stats.correctKeyCount,
+        ミス数: stats.missCount,
+        経過時間ms: problemElapsedMs,
+        経過時間分: problemElapsedMs / 60000,
+        開始時間: new Date(problemStartTimeRef.current).toLocaleTimeString(),
+        終了時間: new Date(now).toLocaleTimeString(),
+        予測KPM値:
+          problemElapsedMs > 0
+            ? Math.floor(stats.correctKeyCount / (problemElapsedMs / 60000))
+            : 0,
+      });
 
+      // Weather Typing方式のKPM計算：キー数÷経過時間(分)
       const problemKPM =
         problemElapsedMs > 0
           ? Math.floor(stats.correctKeyCount / (problemElapsedMs / 60000))
@@ -122,23 +134,37 @@ const GameContainer = () => {
         // 終了時間を記録
         const endTime = Date.now();
         const startTime = gameState.startTime || endTime;
-        const elapsedTimeMs = endTime - startTime;
-
-        // 問題ごとのKPMを集計
+        const elapsedTimeMs = endTime - startTime; // 問題ごとのKPMを集計（Weather Typing方式）
         const allProblemKPMs = currentStats.problemStats
           .map((p) => p.kpm)
           .filter((kpm) => kpm > 0);
 
-        // KPM計算 - 問題ごとのKPMの平均値を計算
+        console.log('[GameContainer] 全問題のKPM:', {
+          問題別KPM: allProblemKPMs,
+          問題数: allProblemKPMs.length,
+        });
+
+        // KPM計算 - Weather Typing方式：問題ごとのKPMの平均値を計算
         let averageKPM = 0;
         if (allProblemKPMs && allProblemKPMs.length > 0) {
-          averageKPM =
-            allProblemKPMs.reduce((sum, kpm) => sum + kpm, 0) /
-            allProblemKPMs.length;
+          const totalKPM = allProblemKPMs.reduce((sum, kpm) => sum + kpm, 0);
+          averageKPM = totalKPM / allProblemKPMs.length;
+          console.log('[GameContainer] 平均KPM計算:', {
+            合計KPM: totalKPM,
+            問題数: allProblemKPMs.length,
+            平均KPM: averageKPM,
+          });
         } else {
+          // フォールバック計算（通常はここには来ないはず）
           averageKPM = Math.floor(
             currentStats.totalCorrectKeyCount / (elapsedTimeMs / 60000)
           );
+          console.log('[GameContainer] フォールバックKPM計算:', {
+            累計キー数: currentStats.totalCorrectKeyCount,
+            総時間ms: elapsedTimeMs,
+            総時間分: elapsedTimeMs / 60000,
+            計算KPM: averageKPM,
+          });
         }
 
         // 正確性の計算
@@ -147,18 +173,26 @@ const GameContainer = () => {
         const accuracy =
           totalKeystrokes > 0
             ? (currentStats.totalCorrectKeyCount / totalKeystrokes) * 100
-            : 100;
-
-        // 最終統計情報の作成
+            : 100; // Weather Typing方式で最終統計情報を作成
+        const finalKPM = Math.floor(averageKPM); // 確実に整数値にする
         const finalStats = {
           totalTime: elapsedTimeMs / 1000,
           correctCount: currentStats.totalCorrectKeyCount,
           missCount: currentStats.totalMissCount,
           accuracy: accuracy,
-          kpm: Math.floor(averageKPM),
+          kpm: finalKPM,
           problemKPMs: allProblemKPMs,
           elapsedTimeMs: elapsedTimeMs,
         };
+
+        console.log('[GameContainer] 最終スコア:', {
+          プレイ時間: finalStats.totalTime.toFixed(1) + '秒',
+          正解キー数: finalStats.correctCount,
+          ミス数: finalStats.missCount,
+          正確率: accuracy.toFixed(1) + '%',
+          KPM: finalKPM,
+          問題別KPM: allProblemKPMs,
+        });
 
         // MCP経由でゲーム完了を記録
         if (mcpContext.isActive) {
@@ -290,10 +324,9 @@ const GameContainer = () => {
       missCount: 0,
       kpm: 0,
       accuracy: 100,
-    });
-
-    // 問題開始時間をリセット
+    }); // 問題開始時間をリセット（初回キー入力時に設定される）
     problemStartTimeRef.current = null;
+    console.log('[GameContainer] 問題開始時間をリセット');
 
     // MCP経由で問題開始を記録（mcpContextは依存配列から外すため関数内でアクセス）
     const context = mcpContext;
@@ -347,10 +380,8 @@ const GameContainer = () => {
       // AudioContextの状態を確認
       if (soundsLoaded) {
         soundSystem.resume();
-      }
-
-      // Weather Typingのように、最初のキー入力時にタイマー計測を開始
-      if (!gameState.hasStartedTyping) {
+      } // Weather Typing方式: 最初のキー入力時にタイマー計測を開始
+      if (!gameState.hasStartedTyping || !problemStartTimeRef.current) {
         const now = Date.now();
         setGameState((prevState) => ({
           ...prevState,
@@ -359,8 +390,12 @@ const GameContainer = () => {
           currentProblemStartTime: now,
         }));
 
-        // 問題開始時間も記録
+        // 問題開始時間も記録（KPM計算の基準時間）
         problemStartTimeRef.current = now;
+        console.log('[GameContainer] タイピング開始時間を記録:', {
+          timestamp: now,
+          問題: gameState.currentProblem?.displayText,
+        });
       }
 
       // タイピング処理 - displayInfoからromajiを取得するように修正

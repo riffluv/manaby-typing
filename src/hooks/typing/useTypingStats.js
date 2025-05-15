@@ -68,17 +68,21 @@ export function useTypingStats(options = {}) {
       rank: 'F',
     });
   }, []);
-
   /**
    * 正解入力をカウント
+   * Weather Typing方式: 初回キーから計測開始
    */
   const countCorrectKey = useCallback((timestamp = Date.now()) => {
     const stats = statsRef.current;
 
-    // 初回入力時のみ開始時間を記録
+    // 初回入力時のみ開始時間を記録 (Weather Typing方式)
     if (!stats.startTime) {
       stats.startTime = timestamp;
       stats.currentProblemStartTime = timestamp;
+      console.log('[useTypingStats] 問題計測開始 (Weather Typing方式):', {
+        timestamp,
+        時刻: new Date(timestamp).toLocaleTimeString(),
+      });
     }
 
     // 正解カウントを更新
@@ -176,14 +180,31 @@ export function useTypingStats(options = {}) {
     async (options = {}) => {
       const { timestamp = Date.now() } = options;
 
-      const stats = statsRef.current;
-
-      // 問題ごとの統計情報を計算
+      const stats = statsRef.current; // 問題ごとの統計情報を計算
       const problemElapsedMs = stats.currentProblemStartTime
         ? timestamp - stats.currentProblemStartTime
         : 0;
       const problemKeyCount = stats.correctKeyCount || 0;
-      const problemMistakeCount = stats.mistakeCount || 0; // 問題完了時のミス数ログは削除// Worker初期化確認
+      const problemMistakeCount = stats.mistakeCount || 0;
+      // KPM計算のためのデバッグ情報（Weather Typing方式）
+      const minutesElapsed = problemElapsedMs / 60000;
+      const estimatedKPM = Math.floor(problemKeyCount / minutesElapsed);
+
+      console.log('[useTypingStats] 問題完了 KPM計算 (Weather Typing方式):', {
+        キー数: problemKeyCount,
+        経過時間ms: problemElapsedMs,
+        経過時間分: minutesElapsed.toFixed(4),
+        開始時間: stats.currentProblemStartTime
+          ? new Date(stats.currentProblemStartTime).toLocaleTimeString()
+          : '未設定',
+        終了時間: new Date(timestamp).toLocaleTimeString(),
+        KPM計算値: estimatedKPM,
+        計算式: `${problemKeyCount} キー ÷ ${minutesElapsed.toFixed(
+          4
+        )} 分 = ${estimatedKPM} KPM`,
+      });
+
+      // Worker初期化確認
       if (!stats.workerInitialized) {
         ScoreCalculationWorker.initialize();
         stats.workerInitialized = true;
@@ -206,6 +227,18 @@ export function useTypingStats(options = {}) {
           statsData
         );
         kpmResult = scoreResult.kpm;
+        // KPM計算結果の詳細ログ (Weather Typing方式)
+        const timeMinutes = problemElapsedMs / 60000;
+        console.log('[useTypingStats] KPM計算結果 (Worker):', {
+          KPM: kpmResult,
+          キー数: problemKeyCount,
+          時間ms: problemElapsedMs,
+          時間分: timeMinutes.toFixed(4),
+          計算式: `${problemKeyCount} キー ÷ ${timeMinutes.toFixed(
+            4
+          )} 分 = ${kpmResult} KPM`,
+          計算元データ: statsData,
+        });
       } catch (error) {
         console.error('[useTypingStats] 問題KPM計算エラー:', error);
         // フォールバック計算

@@ -19,9 +19,8 @@ const scoreCalcFunction = () => {
       if (!stats || !stats.keyCount || !stats.elapsedTimeMs) {
         return { kpm: 0, rank: 'F' };
       }
-
       try {
-        // KPM = キー数 / 分
+        // Weather Typing方式: KPM = キー数 / 分
         const minutes = stats.elapsedTimeMs / 60000;
         const kpm = Math.floor(stats.keyCount / minutes);
 
@@ -32,12 +31,17 @@ const scoreCalcFunction = () => {
         else if (kpm >= 200) rank = 'B';
         else if (kpm >= 150) rank = 'C';
         else if (kpm >= 100) rank = 'D';
-        else if (kpm >= 50) rank = 'E';        // 精度計算用の内部関数
+        else if (kpm >= 50) rank = 'E'; // 精度計算用の内部関数
         const calcAccuracy = (statData) => {
-          if (!statData || !statData.correctKeyCount || !statData.totalKeyCount) {
+          if (
+            !statData ||
+            !statData.correctKeyCount ||
+            !statData.totalKeyCount
+          ) {
             return 0;
           }
-          const accuracy = (statData.correctKeyCount / statData.totalKeyCount) * 100;
+          const accuracy =
+            (statData.correctKeyCount / statData.totalKeyCount) * 100;
           return Math.min(Math.max(0, Math.round(accuracy * 10) / 10), 100);
         };
 
@@ -48,7 +52,7 @@ const scoreCalcFunction = () => {
           normalized: Math.min(kpm, 600),
           accuracy: stats.accuracy || calcAccuracy(stats),
           timeStamp: new Date().toISOString(),
-          isWorker: true
+          isWorker: true,
         };
       } catch (error) {
         console.error('Worker内でのKPM計算エラー:', error);
@@ -68,10 +72,11 @@ const scoreCalcFunction = () => {
 
       try {
         // 有効な問題データのみ抽出
-        const validProblems = problemStats.filter(problem =>
-          problem &&
-          problem.problemKeyCount > 0 &&
-          problem.problemElapsedMs > 0
+        const validProblems = problemStats.filter(
+          (problem) =>
+            problem &&
+            problem.problemKeyCount > 0 &&
+            problem.problemElapsedMs > 0
         );
 
         if (validProblems.length === 0) {
@@ -79,7 +84,7 @@ const scoreCalcFunction = () => {
         }
 
         // 問題ごとにKPMを計算
-        const kpmValues = validProblems.map(problem => {
+        const kpmValues = validProblems.map((problem) => {
           const keyCount = problem.problemKeyCount || 0;
           const elapsedTimeMs = problem.problemElapsedMs || 0;
 
@@ -91,7 +96,9 @@ const scoreCalcFunction = () => {
 
         // KPMの平均値を計算
         const totalKpm = kpmValues.reduce((sum, kpm) => sum + kpm, 0);
-        const averageKpm = Math.floor(kpmValues.length > 0 ? totalKpm / kpmValues.length : 0);
+        const averageKpm = Math.floor(
+          kpmValues.length > 0 ? totalKpm / kpmValues.length : 0
+        );
 
         // ランクの計算
         let rank = 'F';
@@ -110,7 +117,7 @@ const scoreCalcFunction = () => {
           rank,
           rawKpm: averageKpm,
           sampleCount: validProblems.length,
-          timeStamp: new Date().toISOString()
+          timeStamp: new Date().toISOString(),
         };
       } catch (error) {
         console.error('Worker内での平均KPM計算エラー:', error);
@@ -135,7 +142,7 @@ const scoreCalcFunction = () => {
         console.error('Worker内での精度計算エラー:', error);
         return 0;
       }
-    }
+    },
   };
 };
 
@@ -149,11 +156,17 @@ const fallbackImpl = {
   calculateKPM(stats) {
     if (!stats || !stats.keyCount || !stats.elapsedTimeMs) {
       return { kpm: 0, rank: 'F' };
-    }
-
-    // KPM = キー数 / 分
+    } // Weather Typing方式: KPM = キー数 / 分
     const minutes = stats.elapsedTimeMs / 60000;
     const kpm = Math.floor(stats.keyCount / minutes);
+
+    // フォールバック実装でのログ出力
+    console.log('[ScoreCalculationWorker] フォールバックKPM計算:', {
+      キー数: stats.keyCount,
+      時間ms: stats.elapsedTimeMs,
+      時間分: minutes.toFixed(4),
+      計算KPM: kpm,
+    });
 
     // ランクの計算
     let rank = 'F';
@@ -162,12 +175,13 @@ const fallbackImpl = {
     else if (kpm >= 200) rank = 'B';
     else if (kpm >= 150) rank = 'C';
     else if (kpm >= 100) rank = 'D';
-    else if (kpm >= 50) rank = 'E';    // 内部精度計算関数
+    else if (kpm >= 50) rank = 'E'; // 内部精度計算関数
     const calculateAccuracy = (statData) => {
       if (!statData || !statData.correctKeyCount || !statData.totalKeyCount) {
         return 0;
       }
-      const accuracy = (statData.correctKeyCount / statData.totalKeyCount) * 100;
+      const accuracy =
+        (statData.correctKeyCount / statData.totalKeyCount) * 100;
       return Math.min(Math.max(0, Math.round(accuracy * 10) / 10), 100);
     };
 
@@ -177,7 +191,7 @@ const fallbackImpl = {
       normalized: Math.min(kpm, 600),
       accuracy: stats.accuracy || calculateAccuracy(stats),
       timeStamp: new Date().toISOString(),
-      isWorker: false
+      isWorker: false,
     };
   },
 
@@ -192,10 +206,9 @@ const fallbackImpl = {
     }
 
     // 有効な問題データのみ抽出
-    const validProblems = problemStats.filter(problem =>
-      problem &&
-      problem.problemKeyCount > 0 &&
-      problem.problemElapsedMs > 0
+    const validProblems = problemStats.filter(
+      (problem) =>
+        problem && problem.problemKeyCount > 0 && problem.problemElapsedMs > 0
     );
 
     if (validProblems.length === 0) {
@@ -203,7 +216,7 @@ const fallbackImpl = {
     }
 
     // 問題ごとにKPMを計算
-    const kpmValues = validProblems.map(problem => {
+    const kpmValues = validProblems.map((problem) => {
       const keyCount = problem.problemKeyCount || 0;
       const elapsedTimeMs = problem.problemElapsedMs || 0;
 
@@ -215,7 +228,9 @@ const fallbackImpl = {
 
     // KPMの平均値を計算
     const totalKpm = kpmValues.reduce((sum, kpm) => sum + kpm, 0);
-    const averageKpm = Math.floor(kpmValues.length > 0 ? totalKpm / kpmValues.length : 0);
+    const averageKpm = Math.floor(
+      kpmValues.length > 0 ? totalKpm / kpmValues.length : 0
+    );
 
     // ランクの計算
     let rank = 'F';
@@ -235,7 +250,7 @@ const fallbackImpl = {
       rawKpm: averageKpm,
       sampleCount: validProblems.length,
       timeStamp: new Date().toISOString(),
-      isWorker: false
+      isWorker: false,
     };
   },
 
@@ -251,7 +266,7 @@ const fallbackImpl = {
 
     const accuracy = (stats.correctKeyCount / stats.totalKeyCount) * 100;
     return Math.min(Math.max(0, Math.round(accuracy * 10) / 10), 100); // 小数点第1位まで
-  }
+  },
 };
 
 // Worker作成
@@ -264,7 +279,7 @@ let isInitialized = false;
 export default {
   /**
    * 初期化
-   */  initialize() {
+   */ initialize() {
     if (isInitialized) return;
 
     try {
@@ -277,7 +292,8 @@ export default {
       isInitialized = true;
 
       // Worker動作状況を確認してフォールバックを設定
-      const isWorkerActive = isWorkerAvailable() &&
+      const isWorkerActive =
+        isWorkerAvailable() &&
         scoreCalculationWorker &&
         scoreCalculationWorker.instance &&
         scoreCalculationWorker.instance.active;
@@ -343,7 +359,10 @@ export default {
 
     try {
       if (scoreCalculationWorker) {
-        return await scoreCalculationWorker.callMethod('calculateAccuracy', stats);
+        return await scoreCalculationWorker.callMethod(
+          'calculateAccuracy',
+          stats
+        );
       } else {
         return fallbackImpl.calculateAccuracy(stats);
       }
@@ -361,5 +380,5 @@ export default {
       scoreCalculationWorker.instance.close();
     }
     isInitialized = false;
-  }
+  },
 };
