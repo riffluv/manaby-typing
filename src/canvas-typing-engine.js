@@ -326,7 +326,8 @@ export default class CanvasTypingEngine {
           this.currentFocus = '';
         }
       }
-    } else if (!isCorrect) {    // 不正解の場合はエラー状態を適切に設定
+    } else if (!isCorrect) {
+      // 不正解の場合はエラー状態を適切に設定
       if (this.gameState) {
         this.gameState.isError = true; // エラー状態を正しく設定
       }
@@ -586,7 +587,8 @@ export default class CanvasTypingEngine {
       }
     } // 3. 現在フォーカス中の文字（オレンジまたは赤）- 次に入力すべきキー
     const currentPosition =
-      typedLength + (this.partialKeys ? this.partialKeys.length : 0);    if (currentPosition < romaji.length) {
+      typedLength + (this.partialKeys ? this.partialKeys.length : 0);
+    if (currentPosition < romaji.length) {
       // エラー状態の場合のみ赤にする（ただし設定で制御可能）
       const errorState =
         this.partialKeys.length > 0
@@ -594,9 +596,10 @@ export default class CanvasTypingEngine {
           : isError || this.gameState?.isError || false;
 
       // 設定でエラー表示を制御
-      ctx.fillStyle = (errorState && this.settings.showErrorHighlight)
-        ? this.settings.errorColor // 赤色（エラー時・表示設定がオンの場合）
-        : '#FFB41E'; // 明るいオレンジ色（フォーカス中のキー）
+      ctx.fillStyle =
+        errorState && this.settings.showErrorHighlight
+          ? this.settings.errorColor // 赤色（エラー時・表示設定がオンの場合）
+          : '#FFB41E'; // 明るいオレンジ色（フォーカス中のキー）
 
       const focusChar = romaji[currentPosition];
       ctx.fillText(focusChar, startX + currentPosition * charWidth, startY);
@@ -652,21 +655,16 @@ export default class CanvasTypingEngine {
       // この行の開始X位置を計算（中央揃え）
       const rowWidth = row.length * (KEY_SIZE + KEY_MARGIN) - KEY_MARGIN;
       const rowStartX = (this.settings.width - rowWidth) / 2;
-
       row.forEach((key, keyIndex) => {
         let keyWidth = key === ' ' ? KEY_SIZE * 6 : KEY_SIZE;
         const keyX = rowStartX + keyIndex * (KEY_SIZE + KEY_MARGIN);
-        const keyY = startY;        // キーの背景
+        const keyY = startY; // キーの背景
         ctx.fillStyle = '#333';
         if (key === nextKey) {
           // 次に入力すべきキー - 明るいオレンジに変更
-          ctx.fillStyle = '#FFB41E';        } else if (key === lastPressedKey) {
-          // 最後に押されたキー（エラー時はエラー色か緑かを設定で制御）
-          const isKeyError = this.gameState?.isError || false;
-          ctx.fillStyle = (isKeyError && this.settings.showErrorHighlight) 
-            ? this.settings.errorColor  // エラー色（エラー表示設定がオンの場合）
-            : '#88FF88';  // 緑色（通常時またはエラー表示設定がオフの場合）
+          ctx.fillStyle = '#FFB41E';
         }
+        // 最後に押したキーの緑表示は無効化（仕様変更）
 
         // 角丸長方形を描画
         this._roundRect(ctx, keyX, keyY, keyWidth, KEY_SIZE, KEY_RADIUS);

@@ -64,7 +64,7 @@ const CanvasTypingArea = ({
   useEffect(() => {
     if (!canvasRef.current) return;
 
-  // Canvas Typing Engineのインスタンスを作成
+    // Canvas Typing Engineのインスタンスを作成
     const engine = new CanvasTypingEngine({
       width: canvasRef.current.clientWidth,
       height: canvasRef.current.clientHeight,
