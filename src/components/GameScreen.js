@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import styles from '../styles/GameScreen.module.css';
+import canvasStyles from '../styles/CanvasGameScreen.module.css';
 import { useGameContext, SCREENS } from '../contexts/GameContext';
 import { motion } from 'framer-motion';
 import { usePageTransition } from './TransitionManager';
 import Button from './common/Button';
 import ErrorBoundary from './common/ErrorBoundary';
 import { PerformanceDebugDisplay } from './common/PerformanceMonitor';
-import TypingArea from './typing/TypingArea';
+// CanvasTypingAreaをインポート（通常のTypingAreaから置き換え）
+import CanvasTypingArea from './typing/CanvasTypingArea';
 import GameStatusBar from './typing/GameStatusBar';
 import {
   useGameController,
@@ -20,18 +22,20 @@ const DEBUG_GAME_SCREEN = process.env.NODE_ENV === 'development' && false;
 
 /**
  * タイピングゲーム画面コンポーネント
- * リファクタリング済み（2025年5月8日, 5月9日, 5月11日）- コンポーネント分離最適化版
+ * Canvas描画版 (2025年5月15日) - DOM要素からCanvasへ移行
  * UI部分とロジック部分を明確に分離
- * 5月11日: リファクタリング版のコントローラーを使用するように更新
  */
 const GameScreen = () => {
   const { gameState } = useGameContext();
   const { goToScreen } = usePageTransition();
-  // リファクタリング完了のログは開発が終わったため削除
+  
+  // キーハンドリング用のref
+  const canvasWrapperRef = useRef(null);
 
   // パフォーマンスメトリクス表示用の状態
   const [debugInfo, setDebugInfo] = useState({});
   const [lastPressedKey, setLastPressedKey] = useState('');
+  
   // ゲームコントローラーフック
   const {
     typing,
@@ -45,6 +49,7 @@ const GameScreen = () => {
     onLastPressedKeyChange: setLastPressedKey,
     goToScreen, // goToScreen関数をGameControllerに渡す
   });
+  
   // ゲーム完了ハンドラー
   useGameCompleteHandler(gameState, goToScreen, typingRef);
 
@@ -73,6 +78,13 @@ const GameScreen = () => {
     };
   }, [handleMenuButtonClick]);
 
+  // キャンバスにフォーカスを当てる
+  useEffect(() => {
+    if (canvasWrapperRef.current) {
+      canvasWrapperRef.current.focus();
+    }
+  }, []);
+
   // ゲームクリア状態の場合は何も表示しない - 早期リターン
   if (gameState.isGameClear === true) {
     return null;
@@ -82,7 +94,6 @@ const GameScreen = () => {
     <ErrorBoundary>
       <div className={styles.typing_game__wrapper}>
         <div className={styles.typing_game}>
-          {/* コーナー装飾、スキャンライン、ドットパターンを削除 */}{' '}
           {/* ステータスバー */}
           <GameStatusBar
             solvedCount={gameState.solvedCount}
@@ -90,20 +101,26 @@ const GameScreen = () => {
             typingStats={typing?.stats || {}}
             scoreInfo={scoreInfo} // スコア情報を渡す
           />
-          {/* メイン画面 */}{' '}
-          <main className={styles.typing_game__main}>
-            {' '}
-            {/* タイピングエリア */}{' '}
-            <TypingArea
-              typing={typing}
-              currentProblem={
-                typing?.typingSession?.problem ||
-                currentGameState?.currentProblem ||
-                gameState.currentProblem
-              }
-              lastPressedKey={lastPressedKey}
-              className={styles.typing_game__typing_area}
-            />
+            {/* メイン画面 */}
+          <main 
+            className={styles.typing_game__main}
+            ref={canvasWrapperRef}
+            tabIndex={0} // キーボードイベントを受け取れるようにする
+          >
+            {/* Canvas描画タイピングエリア */}
+            <div className={canvasStyles.typing_game__canvas_container}>
+              <CanvasTypingArea
+                typing={typing}
+                currentProblem={
+                  typing?.typingSession?.problem ||
+                  currentGameState?.currentProblem ||
+                  gameState.currentProblem
+                }
+                lastPressedKey={lastPressedKey}
+                className={styles.typing_game__typing_area}
+              />
+            </div>
+            
             {/* デバッグ情報 */}
             {DEBUG_GAME_SCREEN && (
               <PerformanceDebugDisplay
@@ -113,8 +130,9 @@ const GameScreen = () => {
                 nextKey={getNextKey()}
                 className={styles.typing_game__debug}
               />
-            )}{' '}
+            )}
           </main>
+          
           {/* SF風のショートカットメニューボタン */}
           <button
             onClick={handleMenuButtonClick}
