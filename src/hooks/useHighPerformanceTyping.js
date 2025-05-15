@@ -99,7 +99,6 @@ export function useHighPerformanceTyping(options = {}) {
   // タイマー参照
   const errorTimerRef = useRef(null);
   const updateTimerRef = useRef(null);
-
   // キー入力メタデータ - パフォーマンス分析用
   const keyMetricsRef = useRef({
     lastInputTime: 0, // 最後の入力時間
@@ -107,6 +106,10 @@ export function useHighPerformanceTyping(options = {}) {
     averageLatency: 0, // 平均レイテンシ（ms）
     frameCount: 0, // フレームカウント
     inputCount: 0, // 入力カウント
+    totalProcessingTime: 0, // 総処理時間
+    averageProcessingTime: 0, // 平均処理時間
+    fastPathActivations: 0, // 高速処理モード発動回数
+    consecutiveInputs: 0, // 連続入力回数
   });
 
   /**
@@ -433,23 +436,42 @@ export function useHighPerformanceTyping(options = {}) {
   );
   /**
    * キー入力バッファ処理
-   * 連続キー入力時のパフォーマンス向上のためバッファリングを行う
-   * requestAnimationFrameで処理をスケジュールし、UIスレッドのブロッキングを防止
+   * 連続キー入力時のパフォーマンス向上とレイテンシ最小化のための最適化バッファ処理
+   * 高速レスポンス向けに改良（2025年5月16日）
    */
   const processKeyBuffer = useCallback(() => {
-    if (processingRef.current || keyBufferRef.current.length === 0) return;
+    // バッファが空の場合は何もしない
+    if (keyBufferRef.current.length === 0) return;
 
+    // 処理中フラグをチェック（ただし連続入力時の遅延を避けるため、高速パスを追加）
+    if (processingRef.current && keyBufferRef.current.length <= 1) return; // 複数キーがバッファに溜まっている場合は特別ルール適用（高速処理モード）
+    const fastPath =
+      keyBufferRef.current.length > 1 ||
+      keyMetricsRef.current.consecutiveInputs > 2;
+
+    // 高速パス有効化のカウント
+    if (fastPath) {
+      keyMetricsRef.current.fastPathActivations++;
+    }
+
+    // 処理中フラグを設定
     processingRef.current = true;
 
     try {
-      // バッファから1つずつキーを処理
+      // バッファからキーを取得
       const keyData = keyBufferRef.current.shift();
       if (keyData && keyData.key) {
-        // 処理時間を計測
+        // 処理時間を高精度で計測
         const processStartTime = performance.now();
 
-        // キー処理
+        // 即時キー処理（遅延なし）
         processKey(keyData.key);
+
+        // 高速レスポンスのため、状態更新もここで即時実行
+        if (fastPath || performance.now() - processStartTime < 5) {
+          // 処理が早かった場合は即座に表示情報更新（レスポンス向上）
+          refreshDisplayInfo();
+        }
 
         // 処理にかかった時間を計測（パフォーマンス分析用）
         const processingTime = performance.now() - processStartTime;
@@ -457,27 +479,42 @@ export function useHighPerformanceTyping(options = {}) {
 
         // メトリクス更新
         keyMetricsRef.current.frameCount++;
+        keyMetricsRef.current.totalProcessingTime =
+          (keyMetricsRef.current.totalProcessingTime || 0) + processingTime;
+        keyMetricsRef.current.averageProcessingTime =
+          keyMetricsRef.current.totalProcessingTime /
+          keyMetricsRef.current.frameCount;
 
+        // デバッグログ
         if (DEBUG_MODE && keyMetricsRef.current.frameCount % 10 === 0) {
           console.log(
             `キー処理レイテンシ: ${latency.toFixed(
               2
-            )}ms, 処理時間: ${processingTime.toFixed(2)}ms`
+            )}ms, 処理時間: ${processingTime.toFixed(
+              2
+            )}ms, 平均: ${keyMetricsRef.current.averageProcessingTime.toFixed(
+              2
+            )}ms`
           );
         }
       }
     } finally {
-      processingRef.current = false;
-
-      // バッファ内にまだキーがあれば再度処理
+      // バッファ内にまだキーがあれば即時処理
       if (keyBufferRef.current.length > 0) {
-        // アニメーションフレームで次のキーを処理（UIレンダリングをブロックしない）
-        // setTimeout の代わりに requestAnimationFrame を使用し、より効率的に処理
-        requestAnimationFrame(() => processKeyBuffer());
+        // 連続入力モードでは即時処理（requestAnimationFrameを待たない）
+        if (fastPath) {
+          processingRef.current = false;
+          processKeyBuffer(); // 即時再帰呼び出し
+        } else {
+          // 通常のケース: 次のレンダリングサイクルで処理
+          processingRef.current = false;
+          queueMicrotask(() => processKeyBuffer()); // requestAnimationFrameより高速
+        }
+      } else {
+        processingRef.current = false;
+        // 処理完了後に表示情報を最終更新
+        refreshDisplayInfo();
       }
-
-      // 表示情報の更新をスケジュール
-      refreshDisplayInfo();
     }
   }, [processKey, refreshDisplayInfo, DEBUG_MODE]);
   /**
@@ -509,9 +546,7 @@ export function useHighPerformanceTyping(options = {}) {
       metrics.inputTimestamps.push(now);
       if (metrics.inputTimestamps.length > 10) {
         metrics.inputTimestamps.shift(); // 古いものを削除
-      }
-
-      // 連続入力の場合、レイテンシを計算
+      } // 連続入力の場合、レイテンシを計算
       if (metrics.inputTimestamps.length >= 2) {
         const lastTwo = metrics.inputTimestamps.slice(-2);
         const currentLatency = lastTwo[1] - lastTwo[0];
@@ -519,6 +554,13 @@ export function useHighPerformanceTyping(options = {}) {
         // 平均レイテンシを更新（移動平均）
         metrics.averageLatency =
           metrics.averageLatency * 0.7 + currentLatency * 0.3;
+
+        // 連続入力検知 (200ms以内の連続入力)
+        if (currentLatency < 200) {
+          metrics.consecutiveInputs++;
+        } else {
+          metrics.consecutiveInputs = 0;
+        }
       }
 
       // キーをバッファに追加
@@ -785,13 +827,18 @@ export function useHighPerformanceTyping(options = {}) {
         return sessionRef.current?.getCurrentExpectedKey?.() || '';
       },
 
-      // パフォーマンスメトリクス (新機能)
+      // パフォーマンスメトリクス (拡張版)
       performanceMetrics: {
         getLatency: () => keyMetricsRef.current.averageLatency,
         getBufferSize: () => keyBufferRef.current.length,
         getFrameCount: () => keyMetricsRef.current.frameCount,
         getInputCount: () => keyMetricsRef.current.inputCount,
         getLastInputTimestamp: () => keyMetricsRef.current.lastInputTime,
+        // 新しいメトリクス
+        getAverageProcessingTime: () =>
+          keyMetricsRef.current.averageProcessingTime,
+        getFastPathActivations: () => keyMetricsRef.current.fastPathActivations,
+        getConsecutiveInputs: () => keyMetricsRef.current.consecutiveInputs,
         // ローマ字キーごとの状態を取得
         getCharRomajiMap: () => displayInfoRef.current.charRomajiMap,
         // 処理時間を高精度に計測
@@ -805,6 +852,17 @@ export function useHighPerformanceTyping(options = {}) {
           }
           return 0;
         },
+        // デバッグ情報の詳細を取得
+        getDetailedMetrics: () => ({
+          averageLatency:
+            keyMetricsRef.current.averageLatency.toFixed(2) + 'ms',
+          averageProcessingTime:
+            keyMetricsRef.current.averageProcessingTime.toFixed(2) + 'ms',
+          inputCount: keyMetricsRef.current.inputCount,
+          bufferSize: keyBufferRef.current.length,
+          fastPathActivations: keyMetricsRef.current.fastPathActivations,
+          consecutiveInputs: keyMetricsRef.current.consecutiveInputs,
+        }),
       },
     }),
     [

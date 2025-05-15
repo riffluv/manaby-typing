@@ -40,8 +40,7 @@ export default class CanvasTypingEngine {
   /**
    * コンストラクタ
    * @param {Object} options 設定オプション
-   */
-  constructor(options = {}) {
+   */ constructor(options = {}) {
     // 設定の統合
     this.settings = { ...DEFAULT_SETTINGS, ...options };
 
@@ -60,23 +59,39 @@ export default class CanvasTypingEngine {
     this.frameCount = 0;
     this.fps = 0;
 
-    // パフォーマンス測定
+    // パフォーマンス測定 - 拡張版
     this.performanceMetrics = {
+      // レンダリング関連
       lastRenderDuration: 0,
       averageRenderTime: 0,
+
+      // キー入力レイテンシ関連
       keyPressToRenderLatency: 0,
       lastKeyPressTime: 0,
       renderStartTime: 0,
+
+      // キー入力処理時間
+      lastInputProcessTime: 0,
+      lastRenderAfterInputTime: 0,
+      keyPressHistory: [], // 入力履歴（タイムスタンプ、レンダリング時間、レイテンシ）
+
+      // フレーム関連
       totalFrames: 0,
       droppedFrames: 0,
-    };
 
-    // ゲーム状態参照
+      // デバッグ情報
+      inputToRenderDelays: [], // 入力から描画までの遅延履歴（最大10件）
+      averageInputLatency: 0, // 平均入力レイテンシ
+    }; // ゲーム状態参照
     this.gameState = null;
 
     // キーフォーカス管理用の状態
     this.partialKeys = ''; // 現在入力中のローマ字
     this.currentFocus = ''; // 現在フォーカス中のキー(次に期待されるキー)
+
+    // 描画制御フラグ
+    this._needsRender = true; // 描画が必要かどうかのフラグ
+    this._lastRenderTime = 0; // 最終描画時刻
 
     // バインディング
     this._renderFrame = this._renderFrame.bind(this);
@@ -201,12 +216,15 @@ export default class CanvasTypingEngine {
 
     return this;
   }
-
   /**
    * ゲーム状態の更新
    * @param {Object} newState 新しいゲーム状態
    */
   updateGameState(newState) {
+    // 変更前の状態を保存（差分検出用）
+    const prevState = this.gameState ? { ...this.gameState } : {};
+
+    // 新しい状態をマージ
     this.gameState = { ...this.gameState, ...newState };
 
     // 現在の入力から部分的なキー入力とフォーカスを更新
@@ -226,17 +244,55 @@ export default class CanvasTypingEngine {
       }
     }
 
-    // 状態が変わったらレンダリング
-    if (!this.isAnimating) {
-      this.render();
+    // 重要な状態変化があったかチェック（差分検出）
+    const hasImportantChange =
+      prevState.romaji !== this.gameState.romaji ||
+      prevState.typedLength !== this.gameState.typedLength ||
+      prevState.isError !== this.gameState.isError ||
+      prevState.nextKey !== this.gameState.nextKey;
+
+    // 表示に関わる状態変更があった場合、描画フラグをセット
+    if (hasImportantChange) {
+      this._needsRender = true;
+
+      // 即時描画（アニメーションを待たない）
+      if (!this.isAnimating) {
+        // レンダリング処理を直ちに実行（フレーム更新を待たない）
+        this.render(true);
+      }
     }
+  }
+  /**
+   * キー入力時間の記録（レイテンシ測定用）
+   * @returns {number} 現在の時刻（performance.now()の値）
+   */
+  recordKeyPress() {
+    const now = performance.now();
+    this.performanceMetrics.lastKeyPressTime = now;
+    this.performanceMetrics.keyPressHistory =
+      this.performanceMetrics.keyPressHistory || [];
+
+    // 最大10件の入力履歴を保持
+    if (this.performanceMetrics.keyPressHistory.length > 10) {
+      this.performanceMetrics.keyPressHistory.shift();
+    }
+
+    // 入力履歴に追加
+    this.performanceMetrics.keyPressHistory.push({
+      timestamp: now,
+      renderTime: 0,
+      latency: 0,
+    });
+
+    return now;
   }
 
   /**
-   * キー入力時間の記録（レイテンシ測定用）
+   * パフォーマンスメトリクスの取得
+   * @returns {Object} パフォーマンスメトリクス
    */
-  recordKeyPress() {
-    this.performanceMetrics.lastKeyPressTime = performance.now();
+  getPerformanceMetrics() {
+    return { ...this.performanceMetrics };
   }
   /**
    * キー入力処理（即時フィードバック）
@@ -244,6 +300,10 @@ export default class CanvasTypingEngine {
    * @param {boolean} isCorrect - 正解かどうか
    */
   handleKeyInput(key, isCorrect = true) {
+    // キー入力開始時間を記録
+    const startTime = performance.now();
+    this.performanceMetrics.lastKeyPressTime = startTime;
+
     // 正解の場合、部分入力を更新
     if (isCorrect && key) {
       // 現在の部分入力を更新
@@ -272,13 +332,16 @@ export default class CanvasTypingEngine {
       }
     }
 
-    // キー入力時間を記録
-    this.performanceMetrics.lastKeyPressTime = performance.now();
+    // 常に即時レンダリング（requestAnimationFrameを待たない）
+    // 入力から表示更新までのレイテンシを最小化
+    this.render();
 
-    // 状態が変わったらレンダリング
-    if (!this.isAnimating) {
-      this.render();
-    }
+    // 処理時間を計測（デバッグ用）
+    const totalTime = performance.now() - startTime;
+    this.performanceMetrics.lastInputProcessTime = totalTime;
+
+    // レンダリング後の時間を記録（メトリクス用）
+    this.performanceMetrics.lastRenderAfterInputTime = performance.now();
   }
   /**
    * 部分入力のリセット（ローマ字確定時）
@@ -316,16 +379,29 @@ export default class CanvasTypingEngine {
       this.render();
     }
   }
-
   /**
    * 描画の実行
+   * @param {boolean} forceRender - アニメーション状態に関わらず強制描画する場合はtrue
    * @returns {CanvasTypingEngine} このインスタンス
    */
-  render() {
+  render(forceRender = false) {
+    // 高精度タイムスタンプで描画開始時間を記録
     const startTime = performance.now();
     this.performanceMetrics.renderStartTime = startTime;
 
+    // 描画の必要がない場合はスキップ（アニメーション中は常に描画）
+    if (!this.isAnimating && !forceRender && !this._needsRender) {
+      return this;
+    }
+
+    // 描画済みフラグをリセット
+    this._needsRender = false;
+
+    // 描画コンテキストの取得（オフスクリーンかメインか）
     const ctx = this.settings.useOffscreenCanvas ? this.offscreenCtx : this.ctx;
+
+    // フル描画の代わりに差分のみ描画する最適化
+    // （ここでは簡略化のため、全体を再描画する従来の方法を使用）
 
     // 背景クリア
     ctx.fillStyle = this.settings.backgroundColor;
@@ -334,13 +410,14 @@ export default class CanvasTypingEngine {
     // 問題テキストの描画
     this._renderProblem(ctx);
 
-    // タイピングテキストの描画
+    // タイピングテキストの描画（最も重要な要素）
     this._renderTypingText(ctx);
 
     // バーチャルキーボードの描画
     this._renderKeyboard(ctx);
 
     // オフスクリーンバッファを使用している場合、メインキャンバスに転送
+    // この処理はブラウザの最適化を利用するため、requestAnimationFrameを待たずに即座に実行
     if (this.settings.useOffscreenCanvas && this.offscreenCanvas) {
       this.ctx.drawImage(this.offscreenCanvas, 0, 0);
     }
@@ -349,11 +426,27 @@ export default class CanvasTypingEngine {
     const renderDuration = performance.now() - startTime;
     this._updatePerformanceMetrics(renderDuration);
 
-    // インプットラグの計測
+    // キー入力からレンダリングまでのレイテンシ計測 - 拡張版
     if (this.performanceMetrics.lastKeyPressTime > 0) {
-      this.performanceMetrics.keyPressToRenderLatency =
-        startTime - this.performanceMetrics.lastKeyPressTime;
-      this.performanceMetrics.lastKeyPressTime = 0; // リセット
+      const latency = startTime - this.performanceMetrics.lastKeyPressTime;
+      this.performanceMetrics.keyPressToRenderLatency = latency;
+
+      // 履歴に追加（最大10件）
+      this.performanceMetrics.inputToRenderDelays.push(latency);
+      if (this.performanceMetrics.inputToRenderDelays.length > 10) {
+        this.performanceMetrics.inputToRenderDelays.shift();
+      }
+
+      // 平均値の計算（移動平均）
+      const sum = this.performanceMetrics.inputToRenderDelays.reduce(
+        (a, b) => a + b,
+        0
+      );
+      this.performanceMetrics.averageInputLatency =
+        sum / this.performanceMetrics.inputToRenderDelays.length;
+
+      // 計測後にリセット
+      this.performanceMetrics.lastKeyPressTime = 0;
     }
 
     return this;

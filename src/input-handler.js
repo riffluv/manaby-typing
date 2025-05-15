@@ -55,13 +55,15 @@ export default class InputHandler {
     this._handleKeyDown = this._handleKeyDown.bind(this);
     this._handleKeyUp = this._handleKeyUp.bind(this);
   }
-
   /**
    * イベントリスナー登録
    */
   initialize() {
-    // keydownとkeyupイベントリスナーを追加
-    window.addEventListener('keydown', this._handleKeyDown, { passive: false });
+    // keydownとkeyupイベントリスナーを追加 - 高優先度と明示的なpassive設定
+    window.addEventListener('keydown', this._handleKeyDown, {
+      passive: false,
+      capture: true, // キャプチャフェーズで処理（他のハンドラより先に実行）
+    });
     window.addEventListener('keyup', this._handleKeyUp, { passive: true });
 
     // デバッグログ
@@ -92,7 +94,6 @@ export default class InputHandler {
 
     return this;
   }
-
   /**
    * キー押下イベントのハンドリング
    * @param {KeyboardEvent} event キーボードイベント
@@ -101,6 +102,33 @@ export default class InputHandler {
   _handleKeyDown(event) {
     const startTime = performance.now();
 
+    // 高速パス: 1文字の文字入力のみに最適化（タイピング処理の高速化）
+    if (event.key.length === 1) {
+      // 文字入力はデフォルト動作を防止（スクロールなど）
+      event.preventDefault();
+
+      // キーコードと文字の取得（小文字化）
+      const key = event.key.toLowerCase();
+
+      // タイムスタンプを記録
+      this.lastKeyDownTime = startTime;
+
+      // すでに押されているキーの場合は無視（キーリピート対応）
+      if (this.keyStates.get(key)) {
+        return;
+      }
+
+      // 即座に処理（スロットリングなしで直接処理）
+      this._processKeyDown(key);
+
+      // 処理時間を計測
+      const processingTime = performance.now() - startTime;
+      this._updateMetrics(processingTime);
+
+      return;
+    }
+
+    // 通常パス: 特殊キー処理
     // イベントのデフォルト動作を防止（スクロールなど）
     // Tabキーなど特定のキーは例外とする
     if (
@@ -188,13 +216,15 @@ export default class InputHandler {
       }
     }
   }
-
   /**
    * キー入力の処理
    * @param {string} key 押されたキー
    * @private
    */
   _processKeyDown(key) {
+    // 処理開始時間を記録（パフォーマンス計測用）
+    const processStartTime = performance.now();
+
     // キーの状態を更新
     this.keyStates.set(key, true);
     this.lastPressedKey = key;
@@ -207,10 +237,22 @@ export default class InputHandler {
     // メトリクス更新
     this.metrics.totalKeyPresses++;
 
-    // コールバック関数を呼び出し
+    // コールバック関数を呼び出し (同期的に処理)
     if (this.onKeyDown) {
       try {
         this.onKeyDown(key);
+
+        // キー入力後の即時描画更新（処理後すぐに視覚的フィードバック）
+        if (
+          this.canvasEngine &&
+          typeof this.canvasEngine.render === 'function'
+        ) {
+          this.canvasEngine.render();
+
+          // 入力から描画までの時間を計測
+          this.metrics.keyToRenderLatency =
+            performance.now() - processStartTime;
+        }
       } catch (error) {
         this._handleError(error);
       }

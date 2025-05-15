@@ -213,10 +213,23 @@ const CanvasTypingArea = ({
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, []); // キー入力時にCanvasEngineに通知 - オブザーバーモードで動作
+  }, []); // キー入力時にCanvasEngineに通知 - 高速フィードバック対応版
   useEffect(() => {
     const onKeyDown = (event) => {
-      // キーボードイベントを監視するだけ（実際の入力処理は行わない）
+      // 処理開始時間を記録
+      const startTime = performance.now();
+
+      // 高速処理に集中するため、文字キーのみを処理
+      if (
+        !(event.key.length === 1) ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.metaKey
+      ) {
+        return;
+      }
+
+      // キーボードイベントの即時処理 (VanillaJSでの高速化)
       if (engineRef.current && typing) {
         // キー入力時間を記録（レイテンシ測定用）
         engineRef.current.recordKeyPress();
@@ -225,21 +238,42 @@ const CanvasTypingArea = ({
         // 現在のキーが期待されるキーと一致するかを本来のロジックで判定
         const expectedKey = typing?.displayInfo?.expectedNextChar || '';
 
-        // 即時フィードバックのための描画処理（入力処理はせず、表示のみを担当）
+        // 即時フィードバックのための描画処理
         if (expectedKey && key.length === 1) {
-          // 実際のタイピング判定を行わず、エラー状態だけ同期
-          engineRef.current.handleKeyInput(
-            key,
-            key.toLowerCase() === expectedKey.toLowerCase()
-          );
+          // ブラウザの次のペイントをブロックさせないよう、優先処理を行う
+          if (window.requestIdleCallback) {
+            // 低優先度処理をキューに入れる (メインスレッドの詰まりを防ぐ)
+            window.requestIdleCallback(() => {
+              // デバッグ用のパフォーマンス測定
+              setPerfMetrics((prev) => ({
+                ...prev,
+                inputLatency: performance.now() - startTime,
+              }));
+            });
+          }
+
+          // 実際のキー入力処理と描画を即座に行う (最も高速なパス)
+          const isCorrect = key.toLowerCase() === expectedKey.toLowerCase();
+          engineRef.current.handleKeyInput(key, isCorrect);
+
+          // 正確な入力の場合、preventDefault()でブラウザ標準の入力動作を抑制
+          if (isCorrect) {
+            event.preventDefault();
+          }
         }
       }
     };
 
-    // パッシブモードで監視（キャプチャしない、preventDefault()も呼ばない）
-    window.addEventListener('keydown', onKeyDown);
+    // パフォーマンスを最大化するためのキーダウンイベント設定
+    window.addEventListener('keydown', onKeyDown, {
+      passive: false, // preventDefault()を呼び出すため
+      capture: true, // イベントキャプチャフェーズで優先処理
+    });
+
     return () => {
-      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', onKeyDown, {
+        capture: true, // イベント削除時も同じオプションを指定
+      });
     };
   }, [typing?.displayInfo?.expectedNextChar]); // 入力確定（typedLengthの変更）を検出して部分入力をリセット
   const prevTypedLengthRef = useRef(0);
