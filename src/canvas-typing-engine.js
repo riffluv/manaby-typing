@@ -361,6 +361,15 @@ export default class CanvasTypingEngine {
    * @private
    */
   _renderFrame(timestamp) {
+    // _needsRenderがfalseなら描画処理をスキップ
+    if (!this._needsRender) {
+      // 次のフレームのスケジュール（アニメーション中のみ）
+      if (this.isAnimating) {
+        this.animationFrameId = requestAnimationFrame(this._renderFrame);
+      }
+      return;
+    }
+
     // 高精度タイムスタンプで描画開始時間を記録
     const startTime = performance.now();
     this.performanceMetrics.renderStartTime = startTime;

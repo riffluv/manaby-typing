@@ -280,7 +280,8 @@ const CanvasTypingArea = ({
     if (
       prevTypedLengthRef.current !== currentTypedLength &&
       engineRef.current
-    ) {      // typedLengthが変わった = 入力が確定した = 入力状態をリセット
+    ) {
+      // typedLengthが変わった = 入力が確定した = 入力状態をリセット
       engineRef.current.resetInputState();
       prevTypedLengthRef.current = currentTypedLength;
     }
@@ -300,7 +301,7 @@ const CanvasTypingArea = ({
       }
     }
 
-  // エラーアニメーションが終了した時に自動的にエラー状態をリセット
+    // エラーアニメーションが終了した時に自動的にエラー状態をリセット
     if (typing?.errorAnimation === true && engineRef.current?.gameState) {
       // エラー状態リセットのためのタイマーを設定
       const timer = setTimeout(() => {
@@ -334,6 +335,15 @@ const CanvasTypingArea = ({
     );
   }
 
+  // デバッグ情報の表示（常時表示版）
+  const renderPerfInfo = () => (
+    <div className={styles.debug_info}>
+      <p>FPS: {perfMetrics.fps}</p>
+      <p>レンダー時間: {perfMetrics.renderTime.toFixed(2)}ms</p>
+      <p>入力レイテンシ: {perfMetrics.inputLatency.toFixed(2)}ms</p>
+    </div>
+  );
+
   // デバッグ情報の表示（デバッグモードのみ）
   const renderDebugInfo = () => {
     if (!DEBUG_MODE) return null;
@@ -359,7 +369,10 @@ const CanvasTypingArea = ({
         height="600"
       />
 
-      {/* デバッグ情報（条件付き表示） */}
+      {/* パフォーマンス情報（常時表示） */}
+      {renderPerfInfo()}
+
+      {/* デバッグ情報（DEBUG_MODE時のみ詳細） */}
       {renderDebugInfo()}
     </div>
   );
