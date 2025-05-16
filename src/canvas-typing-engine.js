@@ -61,31 +61,6 @@ export default class CanvasTypingEngine {
     this.frameCount = 0;
     this.fps = 0;
 
-    // パフォーマンス測定 - 拡張版
-    this.performanceMetrics = {
-      // レンダリング関連
-      lastRenderDuration: 0,
-      averageRenderTime: 0,
-
-      // キー入力レイテンシ関連
-      keyPressToRenderLatency: 0,
-      lastKeyPressTime: 0,
-      renderStartTime: 0,
-
-      // キー入力処理時間
-      lastInputProcessTime: 0,
-      lastRenderAfterInputTime: 0,
-      keyPressHistory: [], // 入力履歴（タイムスタンプ、レンダリング時間、レイテンシ）
-
-      // フレーム関連
-      totalFrames: 0,
-      droppedFrames: 0,
-
-      // デバッグ情報
-      inputToRenderDelays: [], // 入力から描画までの遅延履歴（最大10件）
-      averageInputLatency: 0, // 平均入力レイテンシ
-    };
-
     // ゲーム状態参照
     this.gameState = null;
 
@@ -245,46 +220,12 @@ export default class CanvasTypingEngine {
     }
   }
   /**
-   * キー入力時間の記録（レイテンシ測定用）
-   * @returns {number} 現在の時刻（performance.now()の値）
-   */
-  recordKeyPress() {
-    const now = performance.now();
-    this.performanceMetrics.lastKeyPressTime = now;
-    this.performanceMetrics.keyPressHistory =
-      this.performanceMetrics.keyPressHistory || [];
-
-    // 最大10件の入力履歴を保持
-    if (this.performanceMetrics.keyPressHistory.length > 10) {
-      this.performanceMetrics.keyPressHistory.shift();
-    }
-
-    // 入力履歴に追加
-    this.performanceMetrics.keyPressHistory.push({
-      timestamp: now,
-      renderTime: 0,
-      latency: 0,
-    });
-
-    return now;
-  }
-
-  /**
-   * パフォーマンスメトリクスの取得
-   * @returns {Object} パフォーマンスメトリクス
-   */
-  getPerformanceMetrics() {
-    return { ...this.performanceMetrics };
-  }
-  /**
    * キー入力処理（状態更新のみ）
    * @param {string} key - 入力されたキー
    * @param {boolean} isCorrect - 正解かどうか
-   */ handleKeyInput(key, isCorrect = true) {
-    // キー入力開始時間を記録（レイテンシ測定用）
-    const startTime = performance.now();
-    this.performanceMetrics.lastKeyPressTime = startTime;
-
+   */
+  handleKeyInput(key, isCorrect = true) {
+    // パフォーマンス測定の残骸を削除
     // 状態更新のみを行う（描画は行わない）
     if (this.gameState) {
       // エラー状態の更新
@@ -302,10 +243,6 @@ export default class CanvasTypingEngine {
         }
       }
     }
-
-    // 処理時間を計測（デバッグ用）
-    const totalTime = performance.now() - startTime;
-    this.performanceMetrics.lastInputProcessTime = totalTime;
 
     // 描画フラグを立てる（次のrequestAnimationFrameで描画される）
     this._needsRender = true;
@@ -370,20 +307,6 @@ export default class CanvasTypingEngine {
       return;
     }
 
-    // 高精度タイムスタンプで描画開始時間を記録
-    const startTime = performance.now();
-    this.performanceMetrics.renderStartTime = startTime;
-
-    // フレームレート計算
-    this.frameCount++;
-    const secondElapsed = timestamp - this.lastRenderTime;
-
-    if (secondElapsed >= 1000) {
-      this.fps = Math.round((this.frameCount * 1000) / secondElapsed);
-      this.frameCount = 0;
-      this.lastRenderTime = timestamp;
-    }
-
     // 描画コンテキストの取得（オフスクリーンかメインか）
     const ctx = this.settings.useOffscreenCanvas ? this.offscreenCtx : this.ctx;
 
@@ -406,33 +329,6 @@ export default class CanvasTypingEngine {
       this.ctx.drawImage(this.offscreenCanvas, 0, 0);
     }
 
-    // レンダリング時間の計測
-    const renderDuration = performance.now() - startTime;
-    this._updatePerformanceMetrics(renderDuration);
-
-    // キー入力からレンダリングまでのレイテンシ計測
-    if (this.performanceMetrics.lastKeyPressTime > 0) {
-      const latency = startTime - this.performanceMetrics.lastKeyPressTime;
-      this.performanceMetrics.keyPressToRenderLatency = latency;
-
-      // 履歴に追加（最大10件）
-      this.performanceMetrics.inputToRenderDelays.push(latency);
-      if (this.performanceMetrics.inputToRenderDelays.length > 10) {
-        this.performanceMetrics.inputToRenderDelays.shift();
-      }
-
-      // 平均値の計算
-      const sum = this.performanceMetrics.inputToRenderDelays.reduce(
-        (a, b) => a + b,
-        0
-      );
-      this.performanceMetrics.averageInputLatency =
-        sum / this.performanceMetrics.inputToRenderDelays.length;
-
-      // 計測後にリセット（次のフレームでの再計測のため）
-      this.performanceMetrics.lastKeyPressTime = 0;
-    }
-
     // 描画済みフラグをリセット
     this._needsRender = false;
 
@@ -440,37 +336,6 @@ export default class CanvasTypingEngine {
     if (this.isAnimating) {
       this.animationFrameId = requestAnimationFrame(this._renderFrame);
     }
-  }
-
-  /**
-   * パフォーマンス測定値の更新
-   * @param {number} renderDuration 描画にかかった時間（ms）
-   * @private
-   */
-  _updatePerformanceMetrics(renderDuration) {
-    const metrics = this.performanceMetrics;
-
-    // 単一フレーム測定値
-    metrics.lastRenderDuration = renderDuration;
-
-    // 移動平均の更新
-    metrics.totalFrames++;
-    metrics.averageRenderTime =
-      metrics.averageRenderTime * 0.95 + renderDuration * 0.05;
-
-    // フレームドロップの検出
-    if (renderDuration > 16.67) {
-      // 60FPS = 16.67ms/frame
-      metrics.droppedFrames++;
-    }
-  }
-
-  /**
-   * パフォーマンス測定値の取得
-   * @returns {Object} パフォーマンス測定値
-   */
-  getPerformanceMetrics() {
-    return { ...this.performanceMetrics, fps: this.fps };
   }
 
   /**
@@ -528,7 +393,7 @@ export default class CanvasTypingEngine {
    * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
    * @param {Object} state ゲーム状態
    * @private
-   */ 
+   */
   drawPrompt(ctx, state) {
     if (!state || !state.romaji) return;
 
@@ -556,13 +421,13 @@ export default class CanvasTypingEngine {
     // InputProcessorから提供されるパーツ情報がある場合、それを使用
     if (displayParts && Array.isArray(displayParts)) {
       let xPos = startX;
-      
+
       // 各パーツに対する処理
-      displayParts.forEach(part => {
+      displayParts.forEach((part) => {
         const { type, text } = part;
-        
+
         // パーツの種類に応じた色設定
-        switch(type) {
+        switch (type) {
           case 'typed':
             ctx.fillStyle = this.settings.typedColor; // 入力済み
             break;
@@ -584,7 +449,7 @@ export default class CanvasTypingEngine {
           default:
             ctx.fillStyle = this.settings.textColor;
         }
-        
+
         // テキスト描画
         if (text) {
           for (let i = 0; i < text.length; i++) {
@@ -593,13 +458,13 @@ export default class CanvasTypingEngine {
           }
         }
       });
-      
+
       // 入力完了チェック
       if (romaji.length > 0 && typedLength >= romaji.length) {
         ctx.fillStyle = this.settings.typedColor;
         ctx.fillText('✓', xPos, startY);
       }
-      
+
       return;
     }
 

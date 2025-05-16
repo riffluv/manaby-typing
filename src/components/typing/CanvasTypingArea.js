@@ -36,13 +36,6 @@ const CanvasTypingArea = ({
     lastUpdated: Date.now(),
   });
 
-  // パフォーマンスメトリクス
-  const [perfMetrics, setPerfMetrics] = useState({
-    fps: 0,
-    renderTime: 0,
-    inputLatency: 0,
-  });
-
   // ゲーム状態参照（Canvas Engineに渡すための状態）
   const gameStateRef = useRef({
     romaji: '',
@@ -199,22 +192,7 @@ const CanvasTypingArea = ({
     lastPressedKey,
   ]);
 
-  // パフォーマンスメトリクス更新
-  useEffect(() => {
-    // 定期的にパフォーマンス情報を取得
-    const intervalId = setInterval(() => {
-      if (engineRef.current) {
-        const metrics = engineRef.current.getPerformanceMetrics();
-        setPerfMetrics({
-          fps: Math.round(1000 / (metrics.lastRenderDuration || 16.67)),
-          renderTime: metrics.lastRenderDuration || 0,
-          inputLatency: metrics.keyPressToRenderLatency || 0,
-        });
-      }
-    }, 1000);
-
-    return () => clearInterval(intervalId);
-  }, []); // キー入力時にCanvasEngineに通知 - リフレッシュレート同期版
+  // キー入力時にCanvasEngineに通知 - リフレッシュレート同期版
   useEffect(() => {
     const onKeyDown = (event) => {
       // 処理開始時間を記録
@@ -232,9 +210,6 @@ const CanvasTypingArea = ({
 
       // キーボードイベントの処理 - 状態変更のみ行い描画はrequestAnimationFrameに任せる
       if (engineRef.current && typing) {
-        // キー入力時間を記録（レイテンシ測定用）
-        engineRef.current.recordKeyPress();
-
         const key = event.key;
         // 現在のキーが期待されるキーと一致するかを判定
         const expectedKey = typing?.displayInfo?.expectedNextChar || '';
@@ -247,16 +222,6 @@ const CanvasTypingArea = ({
           // 正確な入力の場合、preventDefault()でブラウザ標準の入力動作を抑制
           if (isCorrect) {
             event.preventDefault();
-          }
-
-          // パフォーマンス測定 - 低い優先度で実行
-          if (window.requestIdleCallback) {
-            window.requestIdleCallback(() => {
-              setPerfMetrics((prev) => ({
-                ...prev,
-                inputLatency: performance.now() - startTime,
-              }));
-            });
           }
         }
       }
@@ -335,30 +300,6 @@ const CanvasTypingArea = ({
     );
   }
 
-  // デバッグ情報の表示（常時表示版）
-  const renderPerfInfo = () => (
-    <div className={styles.debug_info}>
-      <p>FPS: {perfMetrics.fps}</p>
-      <p>レンダー時間: {perfMetrics.renderTime.toFixed(2)}ms</p>
-      <p>入力レイテンシ: {perfMetrics.inputLatency.toFixed(2)}ms</p>
-    </div>
-  );
-
-  // デバッグ情報の表示（デバッグモードのみ）
-  const renderDebugInfo = () => {
-    if (!DEBUG_MODE) return null;
-
-    return (
-      <div className={styles.debug_info}>
-        <p>FPS: {perfMetrics.fps}</p>
-        <p>レンダー時間: {perfMetrics.renderTime.toFixed(2)}ms</p>
-        <p>入力レイテンシ: {perfMetrics.inputLatency.toFixed(2)}ms</p>
-        <p>文字数: {displayData.romaji.length}</p>
-        <p>入力済み: {displayData.typedLength}</p>
-      </div>
-    );
-  };
-
   return (
     <div className={`${styles.canvas_typing_area} ${className || ''}`}>
       {/* Canvas要素 */}
@@ -368,12 +309,6 @@ const CanvasTypingArea = ({
         width="800"
         height="600"
       />
-
-      {/* パフォーマンス情報（常時表示） */}
-      {renderPerfInfo()}
-
-      {/* デバッグ情報（DEBUG_MODE時のみ詳細） */}
-      {renderDebugInfo()}
     </div>
   );
 };
