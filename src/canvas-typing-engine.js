@@ -219,8 +219,7 @@ export default class CanvasTypingEngine {
     }
 
     return this;
-  }
-  /**
+  }  /**
    * ゲーム状態の更新
    * @param {Object} newState 新しいゲーム状態
    */
@@ -231,31 +230,14 @@ export default class CanvasTypingEngine {
     // 新しい状態をマージ
     this.gameState = { ...this.gameState, ...newState };
 
-    // 現在の入力から部分的なキー入力とフォーカスを更新
-    if (this.gameState && this.gameState.currentInput !== undefined) {
-      this.partialKeys = this.gameState.currentInput || '';
-
-      // 次に入力すべきキーを取得
-      if (this.gameState.romaji && this.partialKeys !== undefined) {
-        const typedLength = this.gameState.typedLength || 0;
-        const currentCharPos = typedLength + this.partialKeys.length;
-
-        if (currentCharPos < this.gameState.romaji.length) {
-          this.currentFocus = this.gameState.romaji[currentCharPos];
-        } else {
-          this.currentFocus = '';
-        }
-      }
-    }
-
     // 重要な状態変化があったかチェック（差分検出）
     const hasImportantChange =
       prevState.romaji !== this.gameState.romaji ||
       prevState.typedLength !== this.gameState.typedLength ||
       prevState.isError !== this.gameState.isError ||
-      prevState.nextKey !== this.gameState.nextKey;
+      prevState.currentInput !== this.gameState.currentInput;
 
-    // 表示に関わる状態変更があった場合、描画フラグのみをセット
+    // 表示に関わる状態変更があった場合、描画フラグをセット
     if (hasImportantChange) {
       this._needsRender = true;
       // 描画は次のrequestAnimationFrameに任せる
@@ -292,8 +274,7 @@ export default class CanvasTypingEngine {
    */
   getPerformanceMetrics() {
     return { ...this.performanceMetrics };
-  }
-  /**
+  }  /**
    * キー入力処理（状態更新のみ）
    * @param {string} key - 入力されたキー
    * @param {boolean} isCorrect - 正解かどうか
@@ -304,30 +285,18 @@ export default class CanvasTypingEngine {
     this.performanceMetrics.lastKeyPressTime = startTime;
 
     // 状態更新のみを行う（描画は行わない）
-    if (isCorrect) {
-      // 正解の場合: 部分入力を更新
-      this.partialKeys += key;
-
-      // エラー状態を即座にリセット
-      if (this.gameState) {
-        this.gameState.isError = false;
-      }
-    } else {
-      // 不正解の場合: エラー状態をセット
-      if (this.gameState) {
-        this.gameState.isError = true;
-      }
-    }
-
-    // フォーカス状態の更新（次に入力すべき文字）
-    if (key && this.gameState && this.gameState.romaji) {
-      const typedLength = this.gameState.typedLength || 0;
-      const currentPos = typedLength + this.partialKeys.length;
-
-      if (currentPos < this.gameState.romaji.length) {
-        this.currentFocus = this.gameState.romaji[currentPos];
-      } else {
-        this.currentFocus = '';
+    if (this.gameState) {
+      // エラー状態の更新
+      this.gameState.isError = !isCorrect;
+      
+      // 正解の場合は部分入力を更新（新しいロジックでは単純化）
+      if (isCorrect && key) {
+        // 次の文字が期待されるキーと一致する場合、入力を進める
+        const expectedPos = this.gameState.typedLength || 0;
+        if (expectedPos < this.gameState.romaji?.length) {
+          // ここでは部分入力を直接更新せず、gameStateに必要な情報のみ保持
+          this.gameState.currentInput = key;
+        }
       }
     }
 
@@ -337,42 +306,31 @@ export default class CanvasTypingEngine {
 
     // 描画フラグを立てる（次のrequestAnimationFrameで描画される）
     this._needsRender = true;
-  }
-  /**
-   * 部分入力のリセット（ローマ字確定時）
+  }  /**
+   * 入力状態のリセット（ローマ字確定時）
    */
-  resetPartialInput() {
-    // 部分入力をクリア
-    this.partialKeys = '';
-
-    // フォーカスを更新
-    if (this.gameState && this.gameState.romaji) {
-      const typedLength = this.gameState.typedLength || 0;
-
-      if (typedLength < this.gameState.romaji.length) {
-        this.currentFocus = this.gameState.romaji[typedLength];
-      } else {
-        this.currentFocus = '';
-      }
-    }
-
-    // エラー状態もリセット
+  resetInputState() {
+    // 状態をリセット
     if (this.gameState) {
+      // エラー状態をリセット
       this.gameState.isError = false;
+      
+      // 現在の入力をクリア
+      this.gameState.currentInput = '';
     }
 
-    // 描画フラグを立てるのみ（次のフレームで描画）
+    // 描画フラグを立てる（次のフレームで描画）
     this._needsRender = true;
-  }
-
-  /**
+  }  /**
    * エラー状態のリセット
    */
   resetErrorState() {
     if (this.gameState) {
       this.gameState.isError = false;
-      // 描画フラグを立てるのみ（次のフレームで描画）
+      // エラー後に確実に再描画する
       this._needsRender = true;
+      // 強制的に即時レンダリングを実行
+      this.render(true);
     }
   }
   /**
@@ -392,7 +350,6 @@ export default class CanvasTypingEngine {
 
     return this;
   }
-
   /**
    * アニメーションフレームの描画 - 実際の描画処理
    * @param {number} timestamp タイムスタンプ
@@ -424,6 +381,7 @@ export default class CanvasTypingEngine {
     this._renderProblem(ctx);
 
     // タイピングテキストの描画（最も重要な要素）
+    // 状態ベースのレンダリングに変更
     this._renderTypingText(ctx);
 
     // バーチャルキーボードの描画
@@ -541,76 +499,78 @@ export default class CanvasTypingEngine {
    */
   _renderTypingText(ctx) {
     if (!this.gameState) return;
-
+    
+    // 新しいdrawPromptメソッドを利用して描画
+    this.drawPrompt(ctx, this.gameState);
+  }  /**
+   * タイピングテキスト（ローマ字）の描画関数
+   * 状態ベースでテキストの各文字をレンダリング
+   * - 入力済み文字は緑色で表示
+   * - 部分入力中の文字（「と」の「t」など）も緑色で表示
+   * - 部分入力がない場合、次に入力すべき文字はオレンジ色（エラー時は赤色）
+   * - 残りの文字は白色で表示
+   * 
+   * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
+   * @param {Object} state ゲーム状態
+   * @private
+   */  drawPrompt(ctx, state) {
+    if (!state || !state.romaji) return;
+  
     const {
       romaji = '',
       typedLength = 0,
+      currentInput = '', // 部分入力（例：「と」の「t」）を取得
       isError = false,
-      currentInput = '',
-    } = this.gameState;
-
-    if (!romaji) return;
-
+      startY = 160, // 垂直位置（オプション）
+    } = state;
+  
     // フォント設定
     ctx.font = `${this.settings.fontSize}px ${this.settings.fontFamily}`;
-
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+  
     // 文字幅を計算（モノスペースフォント前提）
     const charWidth = this.settings.fontSize * 0.6;
-
+  
     // タイピングテキスト表示位置
     const textWidth = romaji.length * charWidth;
-    const startX = (this.settings.width - textWidth) / 2;
-    const startY = 160; // 1. 確定済み入力部分（typedLength文字まで）- 緑色に変更
-    if (typedLength > 0) {
-      ctx.fillStyle = '#88FF88'; // 緑色（入力済み文字）
-      for (let i = 0; i < typedLength; i++) {
-        const char = romaji[i];
-        ctx.fillText(char, startX + i * charWidth, startY);
+    const startX = (this.settings.width - textWidth) / 2;    
+    // 次に入力すべき文字の位置を計算
+    // 部分入力が存在する場合は、入力済み文字数 + 部分入力の次の位置
+    // 部分入力がない場合は、入力済み文字数の位置
+    const nextCharPosition = currentInput ? typedLength + 1 : typedLength;
+    
+    // すべての文字を一文字ずつ処理
+    for (let i = 0; i < romaji.length; i++) {
+      const char = romaji[i];
+      
+      // 文字の状態に基づいて色を決定
+      if (i < typedLength) {
+        // すでに入力済みの文字
+        ctx.fillStyle = this.settings.typedColor; // 緑色
+      } 
+      else if (i === typedLength && currentInput) {
+        // 部分入力の文字（例：「と」の「t」）
+        ctx.fillStyle = this.settings.typedColor; // 緑色
+      }      else if (i === nextCharPosition) {
+        // 次に入力すべき文字
+        ctx.fillStyle = isError === true
+          ? this.settings.errorColor // エラー時は赤色
+          : this.settings.highlightColor; // 通常はオレンジ色
       }
-    }
-
-    // 2. 部分入力中のローマ字（緑色）
-    if (this.partialKeys && this.partialKeys.length > 0) {
-      ctx.fillStyle = '#88FF88'; // 緑色（入力中のローマ字）
-      for (let i = 0; i < this.partialKeys.length; i++) {
-        const char = this.partialKeys[i];
-        const pos = typedLength + i;
-        ctx.fillText(char, startX + pos * charWidth, startY);
-      }
-    } // 3. 現在フォーカス中の文字（オレンジまたは赤）- 次に入力すべきキー
-    const currentPosition =
-      typedLength + (this.partialKeys ? this.partialKeys.length : 0);
-    if (currentPosition < romaji.length) {
-      // エラー状態の場合のみ赤にする（ただし設定で制御可能）
-      const errorState =
-        this.partialKeys.length > 0
-          ? false
-          : isError || this.gameState?.isError || false;
-
-      // 設定でエラー表示を制御
-      ctx.fillStyle =
-        errorState && this.settings.showErrorHighlight
-          ? this.settings.errorColor // 赤色（エラー時・表示設定がオンの場合）
-          : '#FFB41E'; // 明るいオレンジ色（フォーカス中のキー）
-
-      const focusChar = romaji[currentPosition];
-      ctx.fillText(focusChar, startX + currentPosition * charWidth, startY);
-
-      // 4. 残りの未入力部分（白色）
-      if (currentPosition + 1 < romaji.length) {
+      else {
+        // まだ入力されていない文字
         ctx.fillStyle = this.settings.textColor; // 白色
-
-        for (let i = currentPosition + 1; i < romaji.length; i++) {
-          const char = romaji[i];
-          ctx.fillText(char, startX + i * charWidth, startY);
-        }
       }
-    } else {
-      // すべての入力が完了した場合、最後の文字をハイライト
-      if (romaji.length > 0 && typedLength >= romaji.length) {
-        ctx.fillStyle = '#88FF88'; // 緑色（完了）
-        ctx.fillText('✓', startX + romaji.length * charWidth, startY);
-      }
+      
+      // 文字を描画
+      ctx.fillText(char, startX + i * charWidth, startY);
+    }
+    
+    if (romaji.length > 0 && typedLength >= romaji.length) {
+      // 入力完了時のチェックマーク
+      ctx.fillStyle = this.settings.typedColor; // 緑色（完了）
+      ctx.fillText('✓', startX + romaji.length * charWidth, startY);
     }
   }
 

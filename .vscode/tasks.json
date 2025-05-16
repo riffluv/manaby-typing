@@ -1,9 +1,8 @@
 {
   "version": "2.0.0",
-  "tasks": [
-    {
+  "tasks": [    {
       "type": "Live Preview",
-      "workspacePath": "c:\\Users\\hr-hm\\Desktop\\typing-game6",
+      "workspacePath": "c:\\Users\\88763892\\Desktop\\manabyCanvas",
       "problemMatcher": [],
       "label": "Live Preview: サーバーを実行する",
       "group": {

@@ -506,14 +506,11 @@ export default class CanvasEngine {
       ctx.fillStyle = this.settings.highlightColor;
       const typedText = romaji.substring(0, typedLength);
       ctx.fillText(typedText, startX, startY);
-    }
-
-    // 次の文字（強調表示）
+    }    // 次の文字（強調表示）
     if (typedLength < romaji.length) {
       const nextChar = romaji.charAt(typedLength);
-      ctx.fillStyle = isError
-        ? this.settings.errorColor
-        : this.settings.nextCharColor;
+      // エラー状態に関わらず常に緑色（入力済みと同じ色）で表示
+      ctx.fillStyle = this.settings.nextCharColor; // 緑色 (#88FF88)
       ctx.fillText(nextChar, startX + typedLength * charWidth, startY);
 
       // 残りの文字

@@ -280,9 +280,8 @@ const CanvasTypingArea = ({
     if (
       prevTypedLengthRef.current !== currentTypedLength &&
       engineRef.current
-    ) {
-      // typedLengthが変わった = 入力が確定した = 部分入力をリセット
-      engineRef.current.resetPartialInput();
+    ) {      // typedLengthが変わった = 入力が確定した = 入力状態をリセット
+      engineRef.current.resetInputState();
       prevTypedLengthRef.current = currentTypedLength;
     }
   }, [typing?.displayInfo?.typedLength]); // エラー状態の検知と管理用のref
@@ -301,13 +300,13 @@ const CanvasTypingArea = ({
       }
     }
 
-    // エラーアニメーションが終了した時に自動的にエラー状態をリセット
+  // エラーアニメーションが終了した時に自動的にエラー状態をリセット
     if (typing?.errorAnimation === true && engineRef.current?.gameState) {
       // エラー状態リセットのためのタイマーを設定
       const timer = setTimeout(() => {
         if (engineRef.current?.gameState) {
-          engineRef.current.gameState.isError = false;
-          engineRef.current.render(); // 再描画を強制
+          // エラー状態をリセットする専用のメソッドを使用
+          engineRef.current.resetErrorState();
         }
       }, 300); // エラーアニメーション時間を考慮したタイミング
 
