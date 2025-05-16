@@ -118,7 +118,7 @@ export default class CanvasTypingEngine {
   _setupCanvasSize() {
     const { width, height } = this.settings;
     // DPIスケーリングの問題解決のため、devicePixelRatioを使用しない
-    
+
     // キャンバス内部バッファサイズ設定（1:1の比率で設定）
     this.canvas.width = width;
     this.canvas.height = height;
@@ -606,23 +606,23 @@ export default class CanvasTypingEngine {
    */
   setCanvasSize(width, height) {
     if (!this.canvas) return this;
-    
+
     // 設定を更新
     this.settings.width = width;
     this.settings.height = height;
-    
+
     // キャンバス内部バッファサイズを更新（devicePixelRatioを使わない）
     this.canvas.width = width;
     this.canvas.height = height;
-    
+
     // コンテキストをリセット
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    
+
     // デフォルト描画スタイルを再設定
     this.ctx.textBaseline = 'middle';
     this.ctx.textAlign = 'left';
     this.ctx.imageSmoothingEnabled = false;
-    
+
     // オフスクリーンキャンバスがあれば更新
     if (this.settings.useOffscreenCanvas && this.offscreenCanvas) {
       this.offscreenCanvas.width = width;
@@ -632,10 +632,10 @@ export default class CanvasTypingEngine {
       this.offscreenCtx.textAlign = 'left';
       this.offscreenCtx.imageSmoothingEnabled = false;
     }
-    
+
     // 再描画フラグを設定
     this._needsRender = true;
-    
+
     return this;
   }
 }

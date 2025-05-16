@@ -190,7 +190,7 @@ export default class CanvasEngine {
   _setupCanvasSize() {
     const { width, height } = this.settings;
     // DPIスケーリングの問題解決のため、devicePixelRatioを使用しない
-    
+
     // キャンバス内部バッファサイズ設定（1:1の比率で設定）
     this.canvas.width = width;
     this.canvas.height = height;
@@ -215,7 +215,7 @@ export default class CanvasEngine {
   _initializeLayers() {
     if (!this.settings.useOffscreenCanvas) {
       return; // オフスクリーンキャンバスを使用しない場合はスキップ
-    }    // 各レイヤー用のオフスクリーンキャンバスを作成
+    } // 各レイヤー用のオフスクリーンキャンバスを作成
     this.settings.layers.forEach((layerName) => {
       const offscreen = document.createElement('canvas');
       // DPIスケーリングの問題解決のため、devicePixelRatioを使用しない
@@ -504,7 +504,7 @@ export default class CanvasEngine {
       ctx.fillStyle = this.settings.highlightColor;
       const typedText = romaji.substring(0, typedLength);
       ctx.fillText(typedText, startX, startY);
-    }    // 次の文字（強調表示）
+    } // 次の文字（強調表示）
     if (typedLength < romaji.length) {
       const nextChar = romaji.charAt(typedLength);
       // エラー状態に関わらず常に緑色（入力済みと同じ色）で表示
@@ -699,23 +699,23 @@ export default class CanvasEngine {
    */
   setCanvasSize(width, height) {
     if (!this.canvas) return this;
-    
+
     // 設定を更新
     this.settings.width = width;
     this.settings.height = height;
-    
+
     // キャンバス内部バッファサイズを更新（devicePixelRatioを使わない）
     this.canvas.width = width;
     this.canvas.height = height;
-    
+
     // コンテキストをリセット
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    
+
     // デフォルト描画スタイルを再設定
     this.ctx.textBaseline = 'middle';
     this.ctx.textAlign = 'left';
     this.ctx.imageSmoothingEnabled = false;
-    
+
     // レイヤーも更新
     if (this.settings.useOffscreenCanvas && this.layers) {
       this.layers.forEach((layer) => {
@@ -725,10 +725,10 @@ export default class CanvasEngine {
         layer.ctx.textBaseline = 'middle';
         layer.ctx.textAlign = 'left';
         layer.ctx.imageSmoothingEnabled = false;
-        layer.isDirty = true;  // 再描画フラグ
+        layer.isDirty = true; // 再描画フラグ
       });
     }
-    
+
     return this;
   }
 }
