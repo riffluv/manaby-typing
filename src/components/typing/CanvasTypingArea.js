@@ -71,12 +71,12 @@ const CanvasTypingArea = ({
       fontSize: 24,
       backgroundColor: '#1a1a1a',
       textColor: '#ffffff',
-      typedColor: '#88FF88', // 入力済み文字の色（青から緑に変更）
-      highlightColor: '#FFB41E', // 入力中の文字の色（明るいオレンジに変更）
+      typedColor: '#88FF88', // 入力済み文字の色
+      highlightColor: '#FFB41E', // 入力中の文字の色
       errorColor: '#ff3333', // エラー時の色
-      nextCharColor: '#88FF88', // 次の文字の色（青から緑に変更）
+      nextCharColor: '#88FF88', // 次の文字の色
       showErrorHighlight: false, // エラー表示機能はオフに設定
-      // パフォーマンス設定
+      // パフォーマンス設定 - 常にrequestAnimationFrameを使用
       useOffscreenCanvas: true,
       useImageCaching: true,
       preRenderChars: true,
@@ -86,7 +86,7 @@ const CanvasTypingArea = ({
     // Canvasを初期化
     engine.initialize(canvasRef.current, gameStateRef.current);
 
-    // アニメーションを開始
+    // アニメーションを開始 - モニターリフレッシュレートと同期
     engine.startAnimation();
 
     // refに保存
@@ -214,7 +214,7 @@ const CanvasTypingArea = ({
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, []); // キー入力時にCanvasEngineに通知 - 高速フィードバック対応版
+  }, []); // キー入力時にCanvasEngineに通知 - リフレッシュレート同期版
   useEffect(() => {
     const onKeyDown = (event) => {
       // 処理開始時間を記録
@@ -230,36 +230,33 @@ const CanvasTypingArea = ({
         return;
       }
 
-      // キーボードイベントの即時処理 (VanillaJSでの高速化)
+      // キーボードイベントの処理 - 状態変更のみ行い描画はrequestAnimationFrameに任せる
       if (engineRef.current && typing) {
         // キー入力時間を記録（レイテンシ測定用）
         engineRef.current.recordKeyPress();
 
         const key = event.key;
-        // 現在のキーが期待されるキーと一致するかを本来のロジックで判定
+        // 現在のキーが期待されるキーと一致するかを判定
         const expectedKey = typing?.displayInfo?.expectedNextChar || '';
 
-        // 即時フィードバックのための描画処理
         if (expectedKey && key.length === 1) {
-          // ブラウザの次のペイントをブロックさせないよう、優先処理を行う
-          if (window.requestIdleCallback) {
-            // 低優先度処理をキューに入れる (メインスレッドの詰まりを防ぐ)
-            window.requestIdleCallback(() => {
-              // デバッグ用のパフォーマンス測定
-              setPerfMetrics((prev) => ({
-                ...prev,
-                inputLatency: performance.now() - startTime,
-              }));
-            });
-          }
-
-          // 実際のキー入力処理と描画を即座に行う (最も高速なパス)
+          // キーの状態更新のみを行う（描画は行わない）
           const isCorrect = key.toLowerCase() === expectedKey.toLowerCase();
           engineRef.current.handleKeyInput(key, isCorrect);
 
           // 正確な入力の場合、preventDefault()でブラウザ標準の入力動作を抑制
           if (isCorrect) {
             event.preventDefault();
+          }
+
+          // パフォーマンス測定 - 低い優先度で実行
+          if (window.requestIdleCallback) {
+            window.requestIdleCallback(() => {
+              setPerfMetrics((prev) => ({
+                ...prev,
+                inputLatency: performance.now() - startTime,
+              }));
+            });
           }
         }
       }
