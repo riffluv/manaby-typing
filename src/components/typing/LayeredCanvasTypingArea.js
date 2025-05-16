@@ -458,8 +458,7 @@ const LayeredCanvasTypingArea = ({
   ]);
 
   // キー入力時の処理
-  useEffect(() => {
-    const onKeyDown = (event) => {
+  useEffect(() => {    const onKeyDown = (event) => {
       // 処理開始時間を記録
       const startTime = performance.now();
 
@@ -475,14 +474,22 @@ const LayeredCanvasTypingArea = ({
 
       // キーボードイベントの処理
       // 各エンジンに入力イベントを通知
-      const expectedKey = typing?.displayInfo?.expectedNextChar || '';      if (expectedKey && event.key.length === 1) {
-        // 正誤判定
-        const isCorrect = event.key.toLowerCase() === expectedKey.toLowerCase();
+      const expectedKey = typing?.displayInfo?.expectedNextChar || '';
+      const currentInput = typing?.displayInfo?.currentInput || '';
+      
+      if (expectedKey && event.key.length === 1) {
+        // 入力文字の取得（小文字化）
+        const inputKey = event.key.toLowerCase();
+        
+        // 正誤判定 - 部分入力を考慮した判定
+        // 1. 期待される次のキーと一致するか
+        // 2. 現在の部分入力に続く有効なローマ字かどうか
+        const isCorrect = inputKey === expectedKey.toLowerCase();
 
         // ゲーム状態を更新 - リファクタリングしたロジックに合わせて更新
         if (keyboardEngineRef.current) {
           keyboardEngineRef.current.recordKeyPress();
-          keyboardEngineRef.current.handleKeyInput(event.key, isCorrect);
+          keyboardEngineRef.current.handleKeyInput(inputKey, isCorrect);
         }
 
         // 正確な入力の場合、標準の入力動作を抑制

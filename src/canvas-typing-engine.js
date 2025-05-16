@@ -278,8 +278,7 @@ export default class CanvasTypingEngine {
    * キー入力処理（状態更新のみ）
    * @param {string} key - 入力されたキー
    * @param {boolean} isCorrect - 正解かどうか
-   */
-  handleKeyInput(key, isCorrect = true) {
+   */  handleKeyInput(key, isCorrect = true) {
     // キー入力開始時間を記録（レイテンシ測定用）
     const startTime = performance.now();
     this.performanceMetrics.lastKeyPressTime = startTime;
@@ -287,6 +286,8 @@ export default class CanvasTypingEngine {
     // 状態更新のみを行う（描画は行わない）
     if (this.gameState) {
       // エラー状態の更新
+      // 部分入力がある場合は、そのキー入力が正しいかどうかを判定
+      // 部分入力中は基本的にエラーフラグを立てない（途中の正しい入力はエラーではない）
       this.gameState.isError = !isCorrect;
       
       // 正解の場合は部分入力を更新（新しいロジックでは単純化）
@@ -534,8 +535,7 @@ export default class CanvasTypingEngine {
   
     // タイピングテキスト表示位置
     const textWidth = romaji.length * charWidth;
-    const startX = (this.settings.width - textWidth) / 2;    
-    // 次に入力すべき文字の位置を計算
+    const startX = (this.settings.width - textWidth) / 2;      // 次に入力すべき文字の位置を計算
     // 部分入力が存在する場合は、入力済み文字数 + 部分入力の次の位置
     // 部分入力がない場合は、入力済み文字数の位置
     const nextCharPosition = currentInput ? typedLength + 1 : typedLength;
@@ -552,11 +552,16 @@ export default class CanvasTypingEngine {
       else if (i === typedLength && currentInput) {
         // 部分入力の文字（例：「と」の「t」）
         ctx.fillStyle = this.settings.typedColor; // 緑色
-      }      else if (i === nextCharPosition) {
-        // 次に入力すべき文字
-        ctx.fillStyle = isError === true
-          ? this.settings.errorColor // エラー時は赤色
-          : this.settings.highlightColor; // 通常はオレンジ色
+      }      else if (i === nextCharPosition) {        // 次に入力すべき文字
+        // 部分入力がある場合は常にオレンジ色を使用（エラー時でも赤くしない）
+        if (currentInput) {
+          ctx.fillStyle = this.settings.highlightColor; // 部分入力中は常にオレンジ色
+        } else {
+          // 部分入力がない場合のみ、エラー時は赤色を使用
+          ctx.fillStyle = isError === true
+            ? this.settings.errorColor // エラー時は赤色
+            : this.settings.highlightColor; // 通常はオレンジ色
+        }
       }
       else {
         // まだ入力されていない文字
