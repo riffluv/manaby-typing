@@ -219,7 +219,8 @@ export default class CanvasTypingEngine {
     }
 
     return this;
-  }  /**
+  }
+  /**
    * ゲーム状態の更新
    * @param {Object} newState 新しいゲーム状態
    */
@@ -274,11 +275,12 @@ export default class CanvasTypingEngine {
    */
   getPerformanceMetrics() {
     return { ...this.performanceMetrics };
-  }  /**
+  }
+  /**
    * キー入力処理（状態更新のみ）
    * @param {string} key - 入力されたキー
    * @param {boolean} isCorrect - 正解かどうか
-   */  handleKeyInput(key, isCorrect = true) {
+   */ handleKeyInput(key, isCorrect = true) {
     // キー入力開始時間を記録（レイテンシ測定用）
     const startTime = performance.now();
     this.performanceMetrics.lastKeyPressTime = startTime;
@@ -289,7 +291,7 @@ export default class CanvasTypingEngine {
       // 部分入力がある場合は、そのキー入力が正しいかどうかを判定
       // 部分入力中は基本的にエラーフラグを立てない（途中の正しい入力はエラーではない）
       this.gameState.isError = !isCorrect;
-      
+
       // 正解の場合は部分入力を更新（新しいロジックでは単純化）
       if (isCorrect && key) {
         // 次の文字が期待されるキーと一致する場合、入力を進める
@@ -307,7 +309,8 @@ export default class CanvasTypingEngine {
 
     // 描画フラグを立てる（次のrequestAnimationFrameで描画される）
     this._needsRender = true;
-  }  /**
+  }
+  /**
    * 入力状態のリセット（ローマ字確定時）
    */
   resetInputState() {
@@ -315,14 +318,15 @@ export default class CanvasTypingEngine {
     if (this.gameState) {
       // エラー状態をリセット
       this.gameState.isError = false;
-      
+
       // 現在の入力をクリア
       this.gameState.currentInput = '';
     }
 
     // 描画フラグを立てる（次のフレームで描画）
     this._needsRender = true;
-  }  /**
+  }
+  /**
    * エラー状態のリセット
    */
   resetErrorState() {
@@ -500,78 +504,133 @@ export default class CanvasTypingEngine {
    */
   _renderTypingText(ctx) {
     if (!this.gameState) return;
-    
+
     // 新しいdrawPromptメソッドを利用して描画
     this.drawPrompt(ctx, this.gameState);
-  }  /**
-   * タイピングテキスト（ローマ字）の描画関数
+  }
+  /**
+   * タイピングテキスト（ローマ字）の描画関数 - 改良版
    * 状態ベースでテキストの各文字をレンダリング
    * - 入力済み文字は緑色で表示
    * - 部分入力中の文字（「と」の「t」など）も緑色で表示
-   * - 部分入力がない場合、次に入力すべき文字はオレンジ色（エラー時は赤色）
+   * - 次に入力すべき文字はオレンジ色（部分入力中はエラー時でも赤くしない）
    * - 残りの文字は白色で表示
-   * 
+   *
    * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
    * @param {Object} state ゲーム状態
    * @private
-   */  drawPrompt(ctx, state) {
+   */ 
+  drawPrompt(ctx, state) {
     if (!state || !state.romaji) return;
-  
+
     const {
       romaji = '',
       typedLength = 0,
       currentInput = '', // 部分入力（例：「と」の「t」）を取得
       isError = false,
       startY = 160, // 垂直位置（オプション）
+      displayParts = null, // InputProcessorから提供されるパーツ情報（オプション）
     } = state;
-  
+
     // フォント設定
     ctx.font = `${this.settings.fontSize}px ${this.settings.fontFamily}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-  
+
     // 文字幅を計算（モノスペースフォント前提）
     const charWidth = this.settings.fontSize * 0.6;
-  
+
     // タイピングテキスト表示位置
     const textWidth = romaji.length * charWidth;
-    const startX = (this.settings.width - textWidth) / 2;      // 次に入力すべき文字の位置を計算
+    const startX = (this.settings.width - textWidth) / 2;
+
+    // InputProcessorから提供されるパーツ情報がある場合、それを使用
+    if (displayParts && Array.isArray(displayParts)) {
+      let xPos = startX;
+      
+      // 各パーツに対する処理
+      displayParts.forEach(part => {
+        const { type, text } = part;
+        
+        // パーツの種類に応じた色設定
+        switch(type) {
+          case 'typed':
+            ctx.fillStyle = this.settings.typedColor; // 入力済み
+            break;
+          case 'current_input':
+            ctx.fillStyle = this.settings.typedColor; // 部分入力
+            break;
+          case 'next_char':
+            ctx.fillStyle = this.settings.highlightColor; // 次の文字
+            break;
+          case 'error':
+            ctx.fillStyle = this.settings.errorColor; // エラー
+            break;
+          case 'current_remaining':
+            ctx.fillStyle = this.settings.highlightColor; // 部分入力の残り
+            break;
+          case 'not_typed':
+            ctx.fillStyle = this.settings.textColor; // 未入力
+            break;
+          default:
+            ctx.fillStyle = this.settings.textColor;
+        }
+        
+        // テキスト描画
+        if (text) {
+          for (let i = 0; i < text.length; i++) {
+            ctx.fillText(text[i], xPos, startY);
+            xPos += charWidth;
+          }
+        }
+      });
+      
+      // 入力完了チェック
+      if (romaji.length > 0 && typedLength >= romaji.length) {
+        ctx.fillStyle = this.settings.typedColor;
+        ctx.fillText('✓', xPos, startY);
+      }
+      
+      return;
+    }
+
+    // 従来の方式でのレンダリング（互換性のため）
     // 部分入力が存在する場合は、入力済み文字数 + 部分入力の次の位置
     // 部分入力がない場合は、入力済み文字数の位置
     const nextCharPosition = currentInput ? typedLength + 1 : typedLength;
-    
+
     // すべての文字を一文字ずつ処理
     for (let i = 0; i < romaji.length; i++) {
       const char = romaji[i];
-      
+
       // 文字の状態に基づいて色を決定
       if (i < typedLength) {
         // すでに入力済みの文字
         ctx.fillStyle = this.settings.typedColor; // 緑色
-      } 
-      else if (i === typedLength && currentInput) {
+      } else if (i === typedLength && currentInput) {
         // 部分入力の文字（例：「と」の「t」）
         ctx.fillStyle = this.settings.typedColor; // 緑色
-      }      else if (i === nextCharPosition) {        // 次に入力すべき文字
+      } else if (i === nextCharPosition) {
+        // 次に入力すべき文字
         // 部分入力がある場合は常にオレンジ色を使用（エラー時でも赤くしない）
         if (currentInput) {
           ctx.fillStyle = this.settings.highlightColor; // 部分入力中は常にオレンジ色
         } else {
           // 部分入力がない場合のみ、エラー時は赤色を使用
-          ctx.fillStyle = isError === true
-            ? this.settings.errorColor // エラー時は赤色
-            : this.settings.highlightColor; // 通常はオレンジ色
+          ctx.fillStyle =
+            isError === true
+              ? this.settings.errorColor // エラー時は赤色
+              : this.settings.highlightColor; // 通常はオレンジ色
         }
-      }
-      else {
+      } else {
         // まだ入力されていない文字
         ctx.fillStyle = this.settings.textColor; // 白色
       }
-      
+
       // 文字を描画
       ctx.fillText(char, startX + i * charWidth, startY);
     }
-    
+
     if (romaji.length > 0 && typedLength >= romaji.length) {
       // 入力完了時のチェックマーク
       ctx.fillStyle = this.settings.typedColor; // 緑色（完了）

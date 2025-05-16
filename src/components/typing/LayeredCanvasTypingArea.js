@@ -181,24 +181,25 @@ const LayeredCanvasTypingArea = ({
             canvas.width / 2,
             centerY + index * lineHeight,
             canvas.width - 60
-          );        });
-        
+          );
+        });
+
         // リファクタリングされた描画メソッドを使用してタイピングテキストを描画
         // 状態ベースの描画に変更 - drawPrompt関数を呼び出す
         if (odaiEngineRef.current) {
           const state = gameStateRef.current;
           const startY = centerY + lines.length * lineHeight + 50;
-          
+
           // フォントの設定
           ctx.font = `24px 'Roboto Mono', monospace`;
-          
+
           // 新しいdrawPrompt関数を使用して描画
           // タイピングの進捗状態に基づいて色分けされた文字を描画
           odaiEngineRef.current.drawPrompt(ctx, {
             romaji: state.romaji || '',
-            typedLength: state.typedLength || 0, 
+            typedLength: state.typedLength || 0,
             isError: state.isError || false,
-            startY: startY // 垂直位置を渡す（任意パラメータ）
+            startY: startY, // 垂直位置を渡す（任意パラメータ）
           });
         }
 
@@ -290,7 +291,8 @@ const LayeredCanvasTypingArea = ({
             const keyY = startY;
 
             // キーの背景
-            ctx.fillStyle = '#333';            if (key === nextKey) {
+            ctx.fillStyle = '#333';
+            if (key === nextKey) {
               // 次に入力すべきキー - 明るいオレンジ色でハイライト
               ctx.fillStyle = '#FFB41E';
             } else if (key === lastPressedKey) {
@@ -358,7 +360,6 @@ const LayeredCanvasTypingArea = ({
       }
     };
   }, []);
-
   // 表示データの更新
   useEffect(() => {
     // typing存在チェック
@@ -368,7 +369,9 @@ const LayeredCanvasTypingArea = ({
     }
 
     try {
-      const { displayInfo } = typing;
+      // InputProcessorが使用されている場合は、そこから表示情報を取得
+      // そうでない場合は従来のdisplayInfoから取得
+      const displayInfo = typing?.processor ? typing.processor.getDisplayInfo() : typing?.displayInfo;
       if (!displayInfo) return;
 
       const {
@@ -404,21 +407,20 @@ const LayeredCanvasTypingArea = ({
         lastUpdated: Date.now(),
       };
 
-      setDisplayData(newDisplayData);
-
-      // ゲーム状態を更新
+      setDisplayData(newDisplayData);      // ゲーム状態を更新
       gameStateRef.current = {
         romaji: romaji || '',
         typedLength: typedLength || 0,
         isError: typing.errorAnimation || false,
         nextKey: expectedNextChar || '',
         lastPressedKey: lastPressedKey || '',
-        progress: typing.stats?.progressPercentage || 0,
+        progress: typing?.processor ? typing.processor.getCompletionPercentage() : (typing.stats?.progressPercentage || 0),
         score: typing.stats?.score || 0,
-        kpm: typing.stats?.kpm || 0,
+        kpm: typing?.processor ? typing.processor.getStats().kpm : (typing.stats?.kpm || 0),
         currentProblem: currentProblem || null,
         currentInput: currentInput || '',
         expectedNextChar: expectedNextChar || '',
+        displayParts: typing?.processor ? typing.processor.getDisplayInfo().displayParts : null, // 新しいDisplayParts情報
       };
 
       // 各エンジンに状態を通知して再描画を促す
@@ -456,9 +458,9 @@ const LayeredCanvasTypingArea = ({
     currentProblem,
     lastPressedKey,
   ]);
-
   // キー入力時の処理
-  useEffect(() => {    const onKeyDown = (event) => {
+  useEffect(() => {
+    const onKeyDown = (event) => {
       // 処理開始時間を記録
       const startTime = performance.now();
 
@@ -476,25 +478,48 @@ const LayeredCanvasTypingArea = ({
       // 各エンジンに入力イベントを通知
       const expectedKey = typing?.displayInfo?.expectedNextChar || '';
       const currentInput = typing?.displayInfo?.currentInput || '';
-      
-      if (expectedKey && event.key.length === 1) {
+
+      if (event.key.length === 1) {
         // 入力文字の取得（小文字化）
         const inputKey = event.key.toLowerCase();
-        
-        // 正誤判定 - 部分入力を考慮した判定
-        // 1. 期待される次のキーと一致するか
-        // 2. 現在の部分入力に続く有効なローマ字かどうか
-        const isCorrect = inputKey === expectedKey.toLowerCase();
 
-        // ゲーム状態を更新 - リファクタリングしたロジックに合わせて更新
-        if (keyboardEngineRef.current) {
-          keyboardEngineRef.current.recordKeyPress();
-          keyboardEngineRef.current.handleKeyInput(inputKey, isCorrect);
-        }
+        // InputProcessor使用時は、キー入力を直接InputProcessorに渡す
+        if (typing?.processor) {
+          // InputProcessorでの処理
+          const result = typing.processor.handleInput(inputKey);
+          
+          // 処理が成功した場合（正しい入力の場合）
+          if (result.success) {
+            // キーボードの視覚的フィードバックを更新
+            if (keyboardEngineRef.current) {
+              keyboardEngineRef.current.recordKeyPress();
+              keyboardEngineRef.current.handleKeyInput(inputKey, true);
+            }
+            
+            // デフォルトのブラウザ処理を抑制
+            event.preventDefault();
+          } else if (result.status === 'invalid_input') {
+            // 誤入力の場合
+            if (keyboardEngineRef.current) {
+              keyboardEngineRef.current.recordKeyPress();
+              keyboardEngineRef.current.handleKeyInput(inputKey, false);
+            }
+          }
+        } else {
+          // 従来の方法（互換性のため）
+          // 正誤判定 - 部分入力を考慮した判定
+          const isCorrect = inputKey === expectedKey.toLowerCase();
 
-        // 正確な入力の場合、標準の入力動作を抑制
-        if (isCorrect) {
-          event.preventDefault();
+          // ゲーム状態を更新
+          if (keyboardEngineRef.current) {
+            keyboardEngineRef.current.recordKeyPress();
+            keyboardEngineRef.current.handleKeyInput(inputKey, isCorrect);
+          }
+
+          // 正確な入力の場合、標準の入力動作を抑制
+          if (isCorrect) {
+            event.preventDefault();
+          }
         }
       }
     };
