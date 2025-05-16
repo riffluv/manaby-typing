@@ -183,25 +183,24 @@ export default class CanvasEngine {
 
     return this;
   }
-
   /**
-   * キャンバスサイズの設定 - デバイスピクセル比を考慮した高品質表示
+   * キャンバスサイズの設定 - DPI問題対応のためdevicePixelRatioを使用しない
    * @private
    */
   _setupCanvasSize() {
     const { width, height } = this.settings;
-    const dpr = window.devicePixelRatio || 1;
-
-    // キャンバス内部バッファサイズ設定
-    this.canvas.width = width * dpr;
-    this.canvas.height = height * dpr;
+    // DPIスケーリングの問題解決のため、devicePixelRatioを使用しない
+    
+    // キャンバス内部バッファサイズ設定（1:1の比率で設定）
+    this.canvas.width = width;
+    this.canvas.height = height;
 
     // CSS表示サイズ設定
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
 
-    // コンテキストスケール設定
-    this.ctx.scale(dpr, dpr);
+    // スケール設定なし - 1:1マッピングを維持
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     // デフォルト描画スタイル設定
     this.ctx.textBaseline = 'middle';
@@ -216,20 +215,19 @@ export default class CanvasEngine {
   _initializeLayers() {
     if (!this.settings.useOffscreenCanvas) {
       return; // オフスクリーンキャンバスを使用しない場合はスキップ
-    }
-
-    // 各レイヤー用のオフスクリーンキャンバスを作成
+    }    // 各レイヤー用のオフスクリーンキャンバスを作成
     this.settings.layers.forEach((layerName) => {
       const offscreen = document.createElement('canvas');
-      const dpr = window.devicePixelRatio || 1;
-      offscreen.width = this.settings.width * dpr;
-      offscreen.height = this.settings.height * dpr;
+      // DPIスケーリングの問題解決のため、devicePixelRatioを使用しない
+      offscreen.width = this.settings.width;
+      offscreen.height = this.settings.height;
 
       const offCtx = offscreen.getContext('2d', {
         alpha: true,
         desynchronized: true,
       });
-      offCtx.scale(dpr, dpr);
+      // スケールせず1:1マッピングを維持
+      offCtx.setTransform(1, 0, 0, 1, 0, 0);
 
       this.layers.set(layerName, {
         canvas: offscreen,
@@ -692,5 +690,45 @@ export default class CanvasEngine {
     ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
     ctx.fill();
+  }
+
+  /**
+   * キャンバスサイズを設定する - CanvasManagerとの互換用
+   * @param {number} width - 新しい幅
+   * @param {number} height - 新しい高さ
+   */
+  setCanvasSize(width, height) {
+    if (!this.canvas) return this;
+    
+    // 設定を更新
+    this.settings.width = width;
+    this.settings.height = height;
+    
+    // キャンバス内部バッファサイズを更新（devicePixelRatioを使わない）
+    this.canvas.width = width;
+    this.canvas.height = height;
+    
+    // コンテキストをリセット
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    // デフォルト描画スタイルを再設定
+    this.ctx.textBaseline = 'middle';
+    this.ctx.textAlign = 'left';
+    this.ctx.imageSmoothingEnabled = false;
+    
+    // レイヤーも更新
+    if (this.settings.useOffscreenCanvas && this.layers) {
+      this.layers.forEach((layer) => {
+        layer.canvas.width = width;
+        layer.canvas.height = height;
+        layer.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        layer.ctx.textBaseline = 'middle';
+        layer.ctx.textAlign = 'left';
+        layer.ctx.imageSmoothingEnabled = false;
+        layer.isDirty = true;  // 再描画フラグ
+      });
+    }
+    
+    return this;
   }
 }

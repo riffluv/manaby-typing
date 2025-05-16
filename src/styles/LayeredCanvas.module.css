@@ -1,0 +1,127 @@
+/**
+ * LayeredCanvas.module.css
+ * 複数のCanvasレイヤーを使用したタイピングゲーム画面のスタイル
+ */
+
+.app_container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  background-color: #0f0f0f;
+  overflow: hidden;
+}
+
+.app_header {
+  width: 100%;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.app_logo {
+  height: 3rem;
+  object-fit: contain;
+}
+
+.game_container {
+  position: relative;
+  width: 100%;
+  max-width: 100vw;
+  height: calc(100vh - 5rem);
+  max-height: calc(100vh - 5rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  overflow: hidden;
+}
+
+.game_ui_container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 背景用キャンバスの基本スタイル */
+.background_canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* お題表示用キャンバスの基本スタイル */
+.odai_canvas {
+  width: 100%;
+  height: 70%;
+  object-fit: contain;
+  z-index: 1;
+}
+
+/* キーボード表示用キャンバスの基本スタイル */
+.keyboard_canvas {
+  width: 100%;
+  height: 30%;
+  max-height: 30vh;
+  object-fit: contain;
+  z-index: 2;
+}
+
+/* GPU高速化用クラス（ハードウェアアクセラレーション強制） */
+.gpu_accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* デバッグ情報表示パネル */
+.debug_info {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-family: monospace;
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  z-index: 100;
+}
+
+/* レスポンシブ対応 */
+@media screen and (max-width: 768px) {
+  .app_logo {
+    height: 2.5rem;
+  }
+
+  .keyboard_canvas {
+    height: 40%;
+    max-height: 40vh;
+  }
+
+  .odai_canvas {
+    height: 60%;
+  }
+}
+
+/* 高DPI（拡大表示）対応 */
+@media screen and (min-resolution: 120dpi) {
+  .game_container {
+    height: calc(100vh - 6rem);
+    max-height: calc(100vh - 6rem);
+  }
+}
