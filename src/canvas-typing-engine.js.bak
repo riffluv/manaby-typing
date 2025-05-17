@@ -1,11 +1,11 @@
 /**
  * Enhanced Canvas Rendering Engine for High-Performance Typing Game
  *
- * 拡張バージョン（2025年5月15日）
+ * 拡張バージョン（2025年5月17日）
  * タイピングゲーム専用のCanvas描画エンジン
  * - 問題テキスト表示とタイピング状態表示に特化
- * - 高性能な描画処理
- * - 極限までのパフォーマンス最適化
+ * - 単一Canvasでの効率的な描画処理
+ * - レイヤー概念はコンテキスト内部で処理
  */
 
 // デバッグモード設定
@@ -19,10 +19,10 @@ const DEFAULT_SETTINGS = Object.freeze({
   fontSize: 24,
   backgroundColor: '#1a1a1a',
   textColor: '#ffffff',
-  typedColor: '#88FF88', // 入力済み文字の色（青から緑に変更）
-  highlightColor: '#FFB41E', // 入力中の文字の色（明るいオレンジに変更）
+  typedColor: '#88FF88', // 入力済み文字の色
+  highlightColor: '#FFB41E', // 入力中の文字の色
   errorColor: '#ff3333', // エラー時の色
-  nextCharColor: '#88FF88', // 次の文字の色（青から緑に変更）
+  nextCharColor: '#88FF88', // 次の文字の色
   keyboardHeight: 200,
   animationDuration: 150, // ms
   showErrorHighlight: false, // エラー表示のオン/オフを制御するフラグ
@@ -31,6 +31,9 @@ const DEFAULT_SETTINGS = Object.freeze({
   useImageCaching: true,
   preRenderChars: true,
   useRequestAnimationFrame: true,
+  // レイヤー設定
+  enableBackgroundLayer: true, // 背景レイヤーの有効化
+  enableKeyboardLayer: true, // キーボードレイヤーの有効化
 });
 
 /**
@@ -54,6 +57,15 @@ export default class CanvasTypingEngine {
     this.offscreenCanvas = null;
     this.offscreenCtx = null;
 
+    // 静的コンテンツ用のオフスクリーンキャンバス
+    this.staticBackgroundCanvas = null;
+    this.staticBackgroundCtx = null;
+    this.staticKeyboardCanvas = null;
+    this.staticKeyboardCtx = null;
+
+    // プリレンダリングされた文字のキャッシュ
+    this.charCache = new Map();
+
     // アニメーション管理
     this.animationFrameId = null;
     this.isAnimating = false;
@@ -64,13 +76,21 @@ export default class CanvasTypingEngine {
     // ゲーム状態参照
     this.gameState = null;
 
+    // キーフォーカス管理用の状態
+    this.partialKeys = ''; // 現在入力中のローマ字
+    this.currentFocus = ''; // 現在フォーカス中のキー(次に期待されるキー)
+
     // 描画制御フラグ
     this._needsRender = true; // 描画が必要かどうかのフラグ
     this._lastRenderTime = 0; // 最終描画時刻
+    this._staticContentRendered = false; // 静的コンテンツが描画済みか
 
     // バインディング
     this._renderFrame = this._renderFrame.bind(this);
     this.render = this.render.bind(this);
+    this._renderBackgroundLayer = this._renderBackgroundLayer.bind(this);
+    this._renderProblemLayer = this._renderProblemLayer.bind(this);
+    this._renderKeyboardLayer = this._renderKeyboardLayer.bind(this);
   }
 
   /**
@@ -97,16 +117,22 @@ export default class CanvasTypingEngine {
     // キャンバスサイズ設定 - ピクセル比を考慮
     this._setupCanvasSize();
 
-    // オフスクリーンキャンバス作成（必要な場合）
+    // 静的コンテンツ用のオフスクリーンキャンバスを作成
     if (this.settings.useOffscreenCanvas) {
-      this._setupOffscreenCanvas();
+      this._createOffscreenCanvases();
     }
 
-    // 初期描画
-    this.render();
+    // プリレンダリング文字セット（最適化のため）
+    if (this.settings.preRenderChars) {
+      this._preRenderCharSet();
+    }
 
-    return this;
+    // キーハンドリングをバインド
+    this._bindKeyHandlers();
+
+    return this; // メソッドチェーン用
   }
+
   /**
    * キャンバスサイズの設定 - DPI問題対応のためdevicePixelRatioを使用しない
    * @private
@@ -136,30 +162,43 @@ export default class CanvasTypingEngine {
       this.render(); // フォント読み込み後に再描画
     });
   }
+
   /**
-   * オフスクリーンキャンバスの設定（パフォーマンス向上）
+   * オフスクリーンキャンバスの作成（最適化）
    * @private
    */
-  _setupOffscreenCanvas() {
-    // オフスクリーンキャンバス作成
-    this.offscreenCanvas = document.createElement('canvas');
-    // DPIスケーリングの問題解決のため、devicePixelRatioを使用しない
-    this.offscreenCanvas.width = this.settings.width;
-    this.offscreenCanvas.height = this.settings.height;
+  _createOffscreenCanvases() {
+    // メインのオフスクリーンキャンバス
+    if (!this.offscreenCanvas) {
+      this.offscreenCanvas = document.createElement('canvas');
+      this.offscreenCanvas.width = this.canvas.width;
+      this.offscreenCanvas.height = this.canvas.height;
+      this.offscreenCtx = this.offscreenCanvas.getContext('2d', {
+        alpha: false,
+      });
+    }
 
-    // オフスクリーンコンテキスト取得
-    this.offscreenCtx = this.offscreenCanvas.getContext('2d', {
-      alpha: true,
-      desynchronized: true,
-    });
-    // スケールせず1:1マッピングを維持
-    this.offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
+    // 背景用の静的オフスクリーンキャンバス
+    if (this.settings.enableBackgroundLayer && !this.staticBackgroundCanvas) {
+      this.staticBackgroundCanvas = document.createElement('canvas');
+      this.staticBackgroundCanvas.width = this.canvas.width;
+      this.staticBackgroundCanvas.height = this.canvas.height;
+      this.staticBackgroundCtx = this.staticBackgroundCanvas.getContext('2d', {
+        alpha: false,
+      });
+    }
 
-    // スタイル設定
-    this.offscreenCtx.textBaseline = 'middle';
-    this.offscreenCtx.textAlign = 'left';
-    this.offscreenCtx.imageSmoothingEnabled = false;
+    // キーボード用の静的オフスクリーンキャンバス
+    if (this.settings.enableKeyboardLayer && !this.staticKeyboardCanvas) {
+      this.staticKeyboardCanvas = document.createElement('canvas');
+      this.staticKeyboardCanvas.width = this.canvas.width;
+      this.staticKeyboardCanvas.height = this.canvas.height * 0.3; // キーボードの高さは画面の30%
+      this.staticKeyboardCtx = this.staticKeyboardCanvas.getContext('2d', {
+        alpha: true,
+      });
+    }
   }
+
   /**
    * アニメーションループの開始
    * @returns {CanvasTypingEngine} このインスタンス
@@ -190,6 +229,7 @@ export default class CanvasTypingEngine {
 
     return this;
   }
+
   /**
    * ゲーム状態の更新
    * @param {Object} newState 新しいゲーム状態
@@ -214,6 +254,7 @@ export default class CanvasTypingEngine {
       // 描画は次のrequestAnimationFrameに任せる
     }
   }
+
   /**
    * キー入力処理（状態更新のみ）
    * @param {string} key - 入力されたキー
@@ -242,6 +283,7 @@ export default class CanvasTypingEngine {
     // 描画フラグを立てる（次のrequestAnimationFrameで描画される）
     this._needsRender = true;
   }
+
   /**
    * 入力状態のリセット（ローマ字確定時）
    */
@@ -258,6 +300,7 @@ export default class CanvasTypingEngine {
     // 描画フラグを立てる（次のフレームで描画）
     this._needsRender = true;
   }
+
   /**
    * エラー状態のリセット
    */
@@ -270,6 +313,7 @@ export default class CanvasTypingEngine {
       this.render(true);
     }
   }
+
   /**
    * 描画の実行 - 外部からの呼び出し用
    * 実際の描画は requestAnimationFrame のサイクルで行われる
@@ -288,84 +332,380 @@ export default class CanvasTypingEngine {
     return this;
   }
   /**
-   * アニメーションフレームの描画 - 実際の描画処理
-   * @param {number} timestamp タイムスタンプ
+   * レンダリングフレーム - requestAnimationFrameで呼び出される
+   * @param {number} timestamp 現在のタイムスタンプ
    * @private
    */
   _renderFrame(timestamp) {
-    // _needsRenderがfalseなら描画処理をスキップ
-    if (!this._needsRender) {
-      // 次のフレームのスケジュール（アニメーション中のみ）
-      if (this.isAnimating) {
-        this.animationFrameId = requestAnimationFrame(this._renderFrame);
-      }
-      return;
+    // アニメーションが停止している場合は処理しない
+    if (!this.isAnimating) return;
+
+    // FPS計算（デバッグ用）
+    this._updateFPS(timestamp);
+
+    // 再描画の必要性を判断
+    const needsRender = this._shouldRender(timestamp);
+
+    if (needsRender) {
+      // 実際の描画処理
+      this._renderContents(timestamp);
+
+      // 最終描画時刻を更新
+      this._lastRenderTime = timestamp;
     }
 
-    // 描画コンテキストの取得（オフスクリーンかメインか）
-    const ctx = this.settings.useOffscreenCanvas ? this.offscreenCtx : this.ctx;
+    // 次のフレームをリクエスト
+    this.animationFrameId = requestAnimationFrame(this._renderFrame);
+  }
 
-    // 背景クリア
-    ctx.fillStyle = this.settings.backgroundColor;
-    ctx.fillRect(0, 0, this.settings.width, this.settings.height);
+  /**
+   * 描画の実行 - 外部からの呼び出し用
+   * 実際の描画は requestAnimationFrame のサイクルで行われる
+   * @param {boolean} forceRender - アニメーション状態に関わらず強制描画する場合はtrue
+   * @returns {CanvasTypingEngine} このインスタンス
+   */
+  render(forceRender = false) {
+    // 描画フラグを立てるだけ - 実際の描画はrequestAnimationFrameのタイミングで行う
+    this._needsRender = true;
 
-    // 問題テキストの描画
-    this._renderProblem(ctx);
+    // アニメーションが停止していて強制描画が必要な場合のみ、1フレームだけ描画
+    if (!this.isAnimating && forceRender) {
+      this._renderContents(performance.now());
+    }
 
-    // タイピングテキストの描画（最も重要な要素）
-    // 状態ベースのレンダリングに変更
-    this._renderTypingText(ctx);
+    return this;
+  }
 
-    // バーチャルキーボードの描画
-    this._renderKeyboard(ctx);
+  /**
+   * 実際の描画処理 - レイヤー別に描画を管理
+   * @param {number} timestamp 現在のタイムスタンプ
+   * @private
+   */
+  _renderContents(timestamp) {
+    // キャンバスのクリア
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // オフスクリーンバッファを使用している場合、メインキャンバスに転送
-    if (this.settings.useOffscreenCanvas && this.offscreenCanvas) {
+    // オフスクリーンキャンバスが有効な場合、そこに描画
+    const targetCtx = this.settings.useOffscreenCanvas
+      ? this.offscreenCtx
+      : this.ctx;
+
+    if (this.settings.useOffscreenCanvas) {
+      targetCtx.clearRect(
+        0,
+        0,
+        this.offscreenCanvas.width,
+        this.offscreenCanvas.height
+      );
+    }
+
+    // 1. 背景レイヤー描画
+    if (this.settings.enableBackgroundLayer) {
+      this._renderBackgroundLayer(targetCtx, timestamp);
+    }
+
+    // 2. お題テキストレイヤー描画
+    this._renderProblemLayer(targetCtx, timestamp);
+
+    // 3. キーボードレイヤー描画
+    if (this.settings.enableKeyboardLayer) {
+      this._renderKeyboardLayer(targetCtx, timestamp);
+    }
+
+    // オフスクリーンキャンバスを本物のキャンバスにコピー
+    if (this.settings.useOffscreenCanvas) {
       this.ctx.drawImage(this.offscreenCanvas, 0, 0);
-    }
-
-    // 描画済みフラグをリセット
-    this._needsRender = false;
-
-    // 次のフレームのスケジュール（アニメーション中のみ）
-    if (this.isAnimating) {
-      this.animationFrameId = requestAnimationFrame(this._renderFrame);
     }
   }
 
   /**
-   * 問題テキストの描画
+   * 背景レイヤーの描画
    * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
-   * @private
+   * @param {number} timestamp タイムスタンプ
    */
-  _renderProblem(ctx) {
-    if (!this.gameState || !this.gameState.currentProblem) return;
+  _renderBackgroundLayer(ctx, timestamp) {
+    // 静的背景が既に描画されていて変更がない場合はキャッシュを使用
+    if (this._staticContentRendered && this.staticBackgroundCanvas) {
+      ctx.drawImage(this.staticBackgroundCanvas, 0, 0);
+      return;
+    }
 
-    const { currentProblem } = this.gameState;
-    const displayText = currentProblem.displayText || '';
+    // 背景グラデーション
+    const width = this.canvas.width;
+    const height = this.canvas.height;
+    const targetCtx = this.staticBackgroundCtx || ctx;
 
-    if (!displayText) return;
+    const gradient = targetCtx.createLinearGradient(0, 0, 0, height);
+    gradient.addColorStop(0, '#0f1218');
+    gradient.addColorStop(1, '#161b24');
 
-    // 問題テキスト表示
-    ctx.font = `${this.settings.fontSize}px ${this.settings.fontFamily}`;
-    ctx.fillStyle = this.settings.textColor;
+    targetCtx.fillStyle = gradient;
+    targetCtx.fillRect(0, 0, width, height);
+
+    // グリッド線（軽量化）
+    targetCtx.strokeStyle = 'rgba(65, 105, 225, 0.1)';
+    targetCtx.lineWidth = 1;
+
+    // 水平グリッド線（50px間隔）
+    const gridSpacing = 50;
+    for (let y = gridSpacing; y < height; y += gridSpacing) {
+      targetCtx.beginPath();
+      targetCtx.moveTo(0, y);
+      targetCtx.lineTo(width, y);
+      targetCtx.stroke();
+    }
+
+    // 静的コンテンツとしてマーク
+    this._staticContentRendered = true;
+
+    // 静的キャンバスを使用しない場合は、コンテキストに直接描画済み
+    if (!this.staticBackgroundCtx) {
+      return;
+    }
+
+    // 静的キャンバスの内容をターゲットに転送
+    ctx.drawImage(this.staticBackgroundCanvas, 0, 0);
+  }
+
+  /**
+   * お題テキストレイヤーの描画
+   * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
+   * @param {number} timestamp タイムスタンプ
+   */
+  _renderProblemLayer(ctx, timestamp) {
+    // 状態がない場合は何もしない
+    if (!this.gameState) return;
+
+    const { romaji = '', typedLength = 0 } = this.gameState;
+
+    // お題がない場合は何もしない
+    if (!romaji) return;
+
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+    const fontSize = this.settings.fontSize;
+
+    // フォント設定
+    ctx.font = `${fontSize}px ${this.settings.fontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // 複数行対応（改行で分割）
-    const lines = displayText.split('\n');
-    let y = 80;
-    const lineHeight = this.settings.fontSize * 1.5;
+    // 文字を描画する位置 (中央配置)
+    const centerX = width / 2;
+    const centerY = height * 0.4; // 画面の上部40%位置
 
-    lines.forEach((line, index) => {
+    // 1. 全体を通常色で描画
+    ctx.fillStyle = this.settings.textColor;
+    ctx.fillText(romaji, centerX, centerY);
+
+    // 2. 入力済みの部分を上書き
+    if (typedLength > 0) {
+      const typedText = romaji.substring(0, typedLength);
+      ctx.fillStyle = this.settings.typedColor;
+      ctx.fillText(typedText, centerX, centerY);
+    }
+
+    // 3. 次の文字をハイライト
+    if (typedLength < romaji.length) {
+      const nextChar = romaji[typedLength];
+      const measuredText = ctx.measureText(romaji.substring(0, typedLength));
+      const nextCharX =
+        centerX - ctx.measureText(romaji).width / 2 + measuredText.width;
+
+      ctx.fillStyle = this.settings.highlightColor;
       ctx.fillText(
-        line,
-        this.settings.width / 2,
-        y + index * lineHeight,
-        this.settings.width - 40
+        nextChar,
+        nextCharX + ctx.measureText(nextChar).width / 2,
+        centerY
       );
-    });
+    }
   }
+
+  /**
+   * キーボードレイヤーの描画
+   * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
+   * @param {number} timestamp タイムスタンプ
+   */
+  _renderKeyboardLayer(ctx, timestamp) {
+    // キーボードの基本配置を静的に描画
+    if (!this._staticContentRendered && this.staticKeyboardCtx) {
+      this._renderStaticKeyboard(this.staticKeyboardCtx);
+    }
+
+    // 静的キーボードを使用
+    if (this.staticKeyboardCanvas) {
+      ctx.drawImage(
+        this.staticKeyboardCanvas,
+        0,
+        this.canvas.height - this.staticKeyboardCanvas.height
+      );
+    }
+
+    // 動的部分（現在のキーハイライトなど）を描画
+    this._renderKeyHighlights(ctx);
+  }
+
+  /**
+   * 静的なキーボード基本レイアウトの描画
+   * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
+   */
+  _renderStaticKeyboard(ctx) {
+    // キーボードの基本レイアウトを描画（キーの位置と通常状態）
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+
+    // キーボードの背景
+    ctx.fillStyle = 'rgba(20, 20, 30, 0.7)';
+    ctx.fillRect(0, 0, width, height);
+
+    // キーの配置
+    const keyRows = [
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='],
+      ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']'],
+      ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'", '\\'],
+      ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/'],
+    ];
+
+    const keySize = Math.min(width / 14, height / 5);
+    const startY = height * 0.1;
+    const startX = (width - keyRows[0].length * keySize * 1.1) / 2;
+
+    // 各行のキーを描画
+    keyRows.forEach((row, rowIndex) => {
+      const rowOffset = rowIndex * 0.2 * keySize; // 各行の水平オフセット
+      row.forEach((key, keyIndex) => {
+        const x = startX + rowOffset + keyIndex * keySize * 1.1;
+        const y = startY + rowIndex * keySize * 1.1;
+
+        // キーの背景
+        ctx.fillStyle = 'rgba(40, 40, 50, 0.9)';
+        ctx.fillRect(x, y, keySize, keySize);
+
+        // キーの境界
+        ctx.strokeStyle = 'rgba(100, 100, 120, 0.6)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, keySize, keySize);
+
+        // キー文字
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${keySize * 0.5}px ${this.settings.fontFamily}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(key, x + keySize / 2, y + keySize / 2);
+      });
+    });
+
+    // スペースキー
+    const spaceWidth = width * 0.4;
+    const spaceX = (width - spaceWidth) / 2;
+    const spaceY = startY + 4 * keySize * 1.1;
+
+    ctx.fillStyle = 'rgba(40, 40, 50, 0.9)';
+    ctx.fillRect(spaceX, spaceY, spaceWidth, keySize);
+
+    ctx.strokeStyle = 'rgba(100, 100, 120, 0.6)';
+    ctx.strokeRect(spaceX, spaceY, spaceWidth, keySize);
+  }
+
+  /**
+   * キーハイライトの描画（動的部分）
+   * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
+   */
+  _renderKeyHighlights(ctx) {
+    if (!this.gameState || !this.gameState.nextKey) return;
+
+    const nextKey = this.gameState.nextKey.toUpperCase();
+    const lastKey = this.gameState.lastPressedKey?.toUpperCase();
+
+    // キーボードのレイアウト情報を取得
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+    const keySize = Math.min(width / 14, height / 5);
+    const startY = height - this.staticKeyboardCanvas.height + height * 0.1;
+    const startX = (width - 12 * keySize * 1.1) / 2;
+
+    // キーの配置マップを作成
+    const keyLayout = this._createKeyboardLayout(startX, startY, keySize);
+
+    // 次のキーをハイライト
+    if (nextKey && keyLayout[nextKey]) {
+      const { x, y } = keyLayout[nextKey];
+
+      // 次のキーを強調
+      ctx.fillStyle = 'rgba(255, 180, 30, 0.7)'; // オレンジ色で強調
+      ctx.fillRect(x, y, keySize, keySize);
+
+      // キーの境界線
+      ctx.strokeStyle = 'rgba(255, 200, 0, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, keySize, keySize);
+
+      // キー文字
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${keySize * 0.5}px ${this.settings.fontFamily}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(nextKey, x + keySize / 2, y + keySize / 2);
+    }
+
+    // 最後に押されたキーをアニメーション
+    if (lastKey && keyLayout[lastKey] && lastKey !== nextKey) {
+      const { x, y } = keyLayout[lastKey];
+
+      // キーの押下エフェクト
+      ctx.fillStyle = 'rgba(60, 220, 130, 0.7)'; // 緑色のエフェクト
+      ctx.fillRect(x, y, keySize, keySize);
+
+      // キーの境界線
+      ctx.strokeStyle = 'rgba(80, 240, 160, 0.9)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, keySize, keySize);
+
+      // キー文字
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${keySize * 0.5}px ${this.settings.fontFamily}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(lastKey, x + keySize / 2, y + keySize / 2);
+    }
+  }
+
+  /**
+   * キーボードレイアウトを生成
+   * @param {number} startX 開始X座標
+   * @param {number} startY 開始Y座標
+   * @param {number} keySize キーサイズ
+   * @returns {Object} キーの位置マップ
+   * @private
+   */
+  _createKeyboardLayout(startX, startY, keySize) {
+    const layout = {};
+    const keyRows = [
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='],
+      ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']'],
+      ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'", '\\'],
+      ['Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/'],
+    ];
+
+    keyRows.forEach((row, rowIndex) => {
+      const rowOffset = rowIndex * 0.2 * keySize; // 各行のオフセット
+      row.forEach((key, keyIndex) => {
+        layout[key] = {
+          x: startX + rowOffset + keyIndex * keySize * 1.1,
+          y: startY + rowIndex * keySize * 1.1,
+        };
+      });
+    });
+
+    // スペースキー
+    layout[' '] = {
+      x: (this.canvas.width - this.canvas.width * 0.4) / 2,
+      y: startY + 4 * keySize * 1.1,
+    };
+
+    return layout;
+  }
+
   /**
    * タイピングテキスト（ローマ字）の描画
    * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
@@ -377,6 +717,7 @@ export default class CanvasTypingEngine {
     // 新しいdrawPromptメソッドを利用して描画
     this.drawPrompt(ctx, this.gameState);
   }
+
   /**
    * タイピングテキスト（ローマ字）の描画関数 - 改良版
    * 状態ベースでテキストの各文字をレンダリング
@@ -636,21 +977,81 @@ export default class CanvasTypingEngine {
   }
 
   /**
-   * リソースの解放とクリーンアップを行うメソッド
-   * アニメーションループを停止し、参照を解放します
-   * @returns {CanvasTypingEngine} このインスタンス
+   * リソース解放
    */
   destroy() {
-    // アニメーションループを停止
+    // アニメーションを停止
     this.stopAnimation();
 
-    // リソース参照の解放
+    // キャンバスの参照を解放
     this.canvas = null;
     this.ctx = null;
+
+    // オフスクリーンキャンバスの参照を解放
     this.offscreenCanvas = null;
     this.offscreenCtx = null;
+    this.staticBackgroundCanvas = null;
+    this.staticBackgroundCtx = null;
+    this.staticKeyboardCanvas = null;
+    this.staticKeyboardCtx = null;
+
+    // ゲーム状態の参照を解放
     this.gameState = null;
 
     return this;
+  }
+
+  /**
+   * プリレンダリングする文字セットを生成
+   * パフォーマンス向上のために、よく使用される文字を事前にレンダリングする
+   * @private
+   */
+  _preRenderCharSet() {
+    if (!this.ctx) return;
+
+    // 事前レンダリングする文字セット
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,;:?!-_\'"/\\@#$%^&*()[]{}+=<>';
+    
+    // オフスクリーンキャンバスを作成
+    const charCanvas = document.createElement('canvas');
+    const fontSize = this.settings.fontSize;
+    const charSize = fontSize * 1.5; // 余白のため少し大きめに
+    charCanvas.width = charSize;
+    charCanvas.height = charSize;
+    const charCtx = charCanvas.getContext('2d');
+    
+    // 各文字をレンダリングしてキャッシュに保存
+    chars.split('').forEach(char => {
+      // キャンバスをクリア
+      charCtx.clearRect(0, 0, charSize, charSize);
+      
+      // 文字の描画スタイル
+      charCtx.font = `${fontSize}px ${this.settings.fontFamily}`;
+      charCtx.textAlign = 'center';
+      charCtx.textBaseline = 'middle';
+      
+      // 通常の文字
+      charCtx.fillStyle = this.settings.textColor;
+      charCtx.fillText(char, charSize / 2, charSize / 2);
+      this.charCache.set(`normal_${char}`, charCtx.getImageData(0, 0, charSize, charSize));
+      
+      // タイプ済みの文字
+      charCtx.clearRect(0, 0, charSize, charSize);
+      charCtx.fillStyle = this.settings.typedColor;
+      charCtx.fillText(char, charSize / 2, charSize / 2);
+      this.charCache.set(`typed_${char}`, charCtx.getImageData(0, 0, charSize, charSize));
+      
+      // ハイライト文字
+      charCtx.clearRect(0, 0, charSize, charSize);
+      charCtx.fillStyle = this.settings.highlightColor;
+      charCtx.fillText(char, charSize / 2, charSize / 2);
+      this.charCache.set(`highlight_${char}`, charCtx.getImageData(0, 0, charSize, charSize));
+      
+      // エラー文字
+      charCtx.clearRect(0, 0, charSize, charSize);
+      charCtx.fillStyle = this.settings.errorColor;
+      charCtx.fillText(char, charSize / 2, charSize / 2);
+      this.charCache.set(`error_${char}`, charCtx.getImageData(0, 0, charSize, charSize));
+    });
   }
 }
