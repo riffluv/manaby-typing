@@ -40,8 +40,9 @@ const DEFAULT_SETTINGS = Object.freeze({
   height: 600, // キャンバス高さ（ピクセル）
 
   // フォント・テキスト設定
-  fontFamily: "'SF Mono', Monaco, Consolas, monospace", // モノスペースフォントを推奨
-  fontSize: 24, // フォントサイズ（ピクセル）
+  fontFamily:
+    "'SF Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', Monaco, Consolas, monospace", // 高品質モノスペースフォント
+  fontSize: 26, // フォントサイズ（高DPI環境での視認性向上）
 
   // 色設定
   backgroundColor: '#1a1a1a', // 背景色
@@ -154,22 +155,27 @@ export default class CanvasTypingEngine {
     return this;
   }
   /**
-   * キャンバスサイズの設定 - DPI問題対応のためdevicePixelRatioを使用しない
+   * キャンバスサイズの設定 - 高DPI対応でシャープな描画を実現
    * @private
    */
   _setupCanvasSize() {
     const { width, height } = this.settings;
-    // DPIスケーリングの問題解決のため、devicePixelRatioを使用しない
 
-    // キャンバス内部バッファサイズ設定（1:1の比率で設定）
-    this.canvas.width = width;
-    this.canvas.height = height;
+    // デバイスピクセル比を取得（高DPIディスプレイ対応）
+    this.dpr = window.devicePixelRatio || 1;
 
     // CSS表示サイズ設定
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
 
-    // スケール設定なし - 1:1マッピングを維持
+    // 物理ピクセルサイズを高DPI対応に設定（高解像度）
+    this.canvas.width = Math.floor(width * this.dpr);
+    this.canvas.height = Math.floor(height * this.dpr);
+
+    // コンテキスト倍率をDPRに合わせてスケール
+    this.ctx.scale(this.dpr, this.dpr);
+
+    // デフォルト設定を適用
     this._setupContextDefaults(this.ctx);
 
     // フォントを設定（読み込み確実性のため）
@@ -178,22 +184,28 @@ export default class CanvasTypingEngine {
     });
   }
   /**
-   * オフスクリーンキャンバスの設定（パフォーマンス向上）
+   * オフスクリーンキャンバスの設定（パフォーマンス向上と高DPI対応）
    * @private
    */
   _setupOffscreenCanvas() {
     // オフスクリーンキャンバス作成
     this.offscreenCanvas = document.createElement('canvas');
-    // DPIスケーリングの問題解決のため、devicePixelRatioを使用しない
-    this.offscreenCanvas.width = this.settings.width;
-    this.offscreenCanvas.height = this.settings.height;
+
+    // 高DPI対応のサイズ設定
+    const { width, height } = this.settings;
+    this.offscreenCanvas.width = Math.floor(width * this.dpr);
+    this.offscreenCanvas.height = Math.floor(height * this.dpr);
 
     // オフスクリーンコンテキスト取得
     this.offscreenCtx = this.offscreenCanvas.getContext('2d', {
       alpha: true,
       desynchronized: true,
     });
-    // スケールせず1:1マッピングを維持
+
+    // 高DPI対応のスケーリング設定
+    this.offscreenCtx.scale(this.dpr, this.dpr);
+
+    // デフォルト設定を適用
     this._setupContextDefaults(this.offscreenCtx);
   }
   /**
@@ -416,12 +428,13 @@ export default class CanvasTypingEngine {
     this.drawPrompt(ctx, this.gameState);
   }
   /**
-   * タイピングテキスト（ローマ字）の描画関数 - 改良版
+   * タイピングテキスト（ローマ字）の描画関数 - 高DPI対応版
    * 状態ベースでテキストの各文字をレンダリング
    * - 入力済み文字は緑色で表示
    * - 部分入力中の文字（「と」の「t」など）も緑色で表示
    * - 次に入力すべき文字はオレンジ色（部分入力中はエラー時でも赤くしない）
    * - 残りの文字は白色で表示
+   * - 高DPI環境でもシャープに表示
    *
    * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
    * @param {Object} state ゲーム状態
@@ -439,11 +452,17 @@ export default class CanvasTypingEngine {
       displayParts = null, // InputProcessorから提供されるパーツ情報（オプション）
     } = state;
 
-    // テキスト配置を左揃えに変更（その他のデフォルト設定は_setupContextDefaultsで設定済み）
+    // 高品質テキストレンダリングのための設定
     ctx.textAlign = 'left';
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // フォントサイズを調整（高DPI環境で視認性を向上）
+    const fontSize = this.settings.fontSize;
+    ctx.font = `${fontSize}px ${this.settings.fontFamily}`;
 
     // 文字幅を計算（モノスペースフォント前提）
-    const charWidth = this.settings.fontSize * 0.6;
+    const charWidth = fontSize * 0.6;
 
     // タイピングテキスト表示位置
     const textWidth = romaji.length * charWidth;
@@ -502,9 +521,7 @@ export default class CanvasTypingEngine {
     // 従来の方式でのレンダリング（互換性のため）
     // 部分入力が存在する場合は、入力済み文字数 + 部分入力の次の位置
     // 部分入力がない場合は、入力済み文字数の位置
-    const nextCharPosition = currentInput ? typedLength + 1 : typedLength;
-
-    // すべての文字を一文字ずつ処理
+    const nextCharPosition = currentInput ? typedLength + 1 : typedLength; // すべての文字を一文字ずつ処理
     for (let i = 0; i < romaji.length; i++) {
       const char = romaji[i];
 
@@ -530,21 +547,42 @@ export default class CanvasTypingEngine {
       } else {
         // まだ入力されていない文字
         ctx.fillStyle = this.settings.textColor; // 白色
-      }
+      } // 高品質なテキスト描画（文字の鮮明さを向上）
+      const x = startX + i * charWidth;
+      const y = startY;
 
-      // 文字を描画
-      ctx.fillText(char, startX + i * charWidth, startY);
+      // 高品質レンダリングのため、整数座標に配置
+      const intX = Math.round(x);
+      const intY = Math.round(y);
+
+      // 影付きテキストで視認性を向上（オプション）
+      if (i === nextCharPosition) {
+        // 次の入力文字には軽い発光効果
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 4;
+        ctx.fillText(char, intX, intY);
+        ctx.shadowBlur = 0; // 影をリセット
+      } else {
+        // 通常の文字
+        ctx.fillText(char, intX, intY);
+      }
     }
 
     if (romaji.length > 0 && typedLength >= romaji.length) {
-      // 入力完了時のチェックマーク
+      // 入力完了時のチェックマーク（高品質描画）
       ctx.fillStyle = this.settings.typedColor; // 緑色（完了）
-      ctx.fillText('✓', startX + romaji.length * charWidth, startY);
+      const checkX = Math.round(startX + romaji.length * charWidth);
+      const checkY = Math.round(startY);
+
+      // 完了マークには特別な効果
+      ctx.shadowColor = this.settings.typedColor;
+      ctx.shadowBlur = 5;
+      ctx.fillText('✓', checkX, checkY);
+      ctx.shadowBlur = 0; // 影をリセット
     }
   }
-
   /**
-   * 仮想キーボードの描画
+   * 高品質な仮想キーボードの描画（高DPI対応）
    * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
    * @private
    */
@@ -553,10 +591,10 @@ export default class CanvasTypingEngine {
 
     const { nextKey = '', lastPressedKey = '' } = this.gameState;
 
-    // キーボード定数
-    const KEY_SIZE = 36;
-    const KEY_MARGIN = 4;
-    const KEY_RADIUS = 4;
+    // キーボード定数（高DPI環境用に調整）
+    const KEY_SIZE = 40; // 大きめのキーサイズで視認性向上
+    const KEY_MARGIN = 5;
+    const KEY_RADIUS = 6; // より丸みを持たせて現代的なデザインに
     const KEYBOARD_Y = this.settings.height - 240;
 
     // キーボードレイアウト（日本語）
@@ -585,19 +623,43 @@ export default class CanvasTypingEngine {
           // 次に入力すべきキー - 明るいオレンジに変更
           ctx.fillStyle = '#FFB41E';
         }
-        // 最後に押したキーの緑表示は無効化（仕様変更）
+        // 最後に押したキーの緑表示は無効化（仕様変更）        // 高品質な角丸長方形を描画（整数座標にスナップ）
+        const roundedKeyX = Math.round(keyX);
+        const roundedKeyY = Math.round(keyY);
 
-        // 角丸長方形を描画
-        this._roundRect(ctx, keyX, keyY, keyWidth, KEY_SIZE, KEY_RADIUS); // キーの文字
-        ctx.fillStyle = '#fff';
-        ctx.font = '16px sans-serif';
-        ctx.textAlign = 'center';
-        // textBaselineは既にmiddleに設定済み
-        ctx.fillText(
-          key === ' ' ? 'SPACE' : key,
-          keyX + keyWidth / 2,
-          keyY + KEY_SIZE / 2
+        // キーの影を追加（立体感を出す）
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetY = 2;
+
+        this._roundRect(
+          ctx,
+          roundedKeyX,
+          roundedKeyY,
+          keyWidth,
+          KEY_SIZE,
+          KEY_RADIUS
         );
+
+        // 影をリセット
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+
+        // キーの文字を高品質に描画
+        ctx.fillStyle = '#fff';
+        ctx.font = '18px "SF Pro", "Segoe UI", sans-serif'; // より読みやすいフォント
+        ctx.textAlign = 'center';
+
+        // 鮮明なテキスト描画のためのアンチエイリアシング設定
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        // テキスト位置を整数座標にスナップ
+        const textX = Math.round(roundedKeyX + keyWidth / 2);
+        const textY = Math.round(roundedKeyY + KEY_SIZE / 2);
+
+        ctx.fillText(key === ' ' ? 'SPACE' : key, textX, textY);
       });
 
       startY += KEY_SIZE + KEY_MARGIN;
@@ -752,27 +814,33 @@ export default class CanvasTypingEngine {
   /**
    * 描画コンテキストのデフォルト設定を適用
    * すべての描画処理前に呼び出すことで、コンテキストの一貫性を保つ
+   * 高DPI環境での高品質表示のための設定も含む
    * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
    * @private
    */
   _setupContextDefaults(ctx) {
     if (!ctx) return;
 
-    // 変換マトリックスをリセット（スケールや回転をクリア）
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // 高DPI環境では、変換マトリックスはsetupCanvasSizeで設定済み
+    // ここでは追加の変換を適用しない
 
     // テキスト描画関連の設定
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
     ctx.font = `${this.settings.fontSize}px ${this.settings.fontFamily}`;
 
-    // 描画品質関連の設定
-    ctx.imageSmoothingEnabled = false;
+    // 高品質テキスト描画のための追加設定
+    ctx.imageSmoothingEnabled = true; // テキストの場合はスムージングを有効化
+    ctx.imageSmoothingQuality = 'high'; // 最高品質を指定
+
+    // テキストレンダリング（非標準だが一部ブラウザで効果あり）
+    if (ctx.textRendering) ctx.textRendering = 'optimizeLegibility';
+    if (ctx.fontKerning) ctx.fontKerning = 'normal';
 
     // 線関連のデフォルト設定
     ctx.lineWidth = 1;
-    ctx.lineCap = 'butt';
-    ctx.lineJoin = 'miter';
+    ctx.lineCap = 'round'; // より滑らかな線端
+    ctx.lineJoin = 'round'; // より滑らかな接合点
 
     // デフォルトの描画色
     ctx.fillStyle = this.settings.textColor;
