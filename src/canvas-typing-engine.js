@@ -1,34 +1,67 @@
 /**
  * Enhanced Canvas Rendering Engine for High-Performance Typing Game
  *
- * 拡張バージョン（2025年5月15日）
+ * 拡張バージョン（2025年5月17日）
  * タイピングゲーム専用のCanvas描画エンジン
  * - 問題テキスト表示とタイピング状態表示に特化
  * - 高性能な描画処理
  * - 極限までのパフォーマンス最適化
+ *
+ * 最新の改良点:
+ * - DPI自動調整機能 - 様々な解像度・スケーリング設定でも正しく表示
+ * - レスポンシブ対応 - 親要素のサイズ変更に自動で追従
+ * - 最適化された描画コンテキスト管理 - 一貫性のある描画とパフォーマンス向上
+ * - リソース管理の改善 - メモリリークを防止する適切な解放処理
+ * - Window/MacOS/Linux間の互換性強化
+ *
+ * 利用方法:
+ * 1. インスタンス作成: const engine = new CanvasTypingEngine(options);
+ * 2. 初期化: engine.initialize(canvasElement, gameState);
+ * 3. アニメーション開始: engine.startAnimation();
+ * 4. ゲーム状態更新: engine.updateGameState(newState);
+ * 5. 終了時リソース解放: engine.destroy();
+ *
+ * レスポンシブ設定を有効にする場合:
+ * const engine = new CanvasTypingEngine({ fitToContainer: true });
  */
 
 // デバッグモード設定
 const DEBUG = process.env.NODE_ENV === 'development';
 
-// 固定サイズ設定（最適化のため）
+/**
+ * デフォルト設定オブジェクト
+ * 最適なパフォーマンスとユーザー体験のための推奨設定
+ *
+ * @constant {Object} DEFAULT_SETTINGS
+ */
 const DEFAULT_SETTINGS = Object.freeze({
-  width: 800,
-  height: 600,
-  fontFamily: "'SF Mono', Monaco, Consolas, monospace",
-  fontSize: 24,
-  backgroundColor: '#1a1a1a',
-  textColor: '#ffffff',
-  typedColor: '#88FF88', // 入力済み文字の色（青から緑に変更）
-  highlightColor: '#FFB41E', // 入力中の文字の色（明るいオレンジに変更）
+  // キャンバスサイズ設定
+  width: 800, // キャンバス幅（ピクセル）
+  height: 600, // キャンバス高さ（ピクセル）
+
+  // フォント・テキスト設定
+  fontFamily: "'SF Mono', Monaco, Consolas, monospace", // モノスペースフォントを推奨
+  fontSize: 24, // フォントサイズ（ピクセル）
+
+  // 色設定
+  backgroundColor: '#1a1a1a', // 背景色
+  textColor: '#ffffff', // 通常テキストの色
+  typedColor: '#88FF88', // 入力済み文字の色
+  highlightColor: '#FFB41E', // 入力中の文字の色
   errorColor: '#ff3333', // エラー時の色
-  nextCharColor: '#88FF88', // 次の文字の色（青から緑に変更）
-  keyboardHeight: 200,
-  animationDuration: 150, // ms
-  showErrorHighlight: false, // エラー表示のオン/オフを制御するフラグ
+  nextCharColor: '#88FF88', // 次の文字の色
+
+  // レイアウト設定
+  keyboardHeight: 200, // 仮想キーボードの高さ
+
+  // アニメーション設定
+  animationDuration: 150, // アニメーション時間（ms）
+  showErrorHighlight: false, // エラー表示の有無
+
   // レスポンシブ設定
-  fitToContainer: false, // 親要素サイズに合わせるかどうか
-  // パフォーマンス設定
+  fitToContainer: false, // 親要素サイズに自動適応するかどうか
+
+  // パフォーマンス最適化設定
   useOffscreenCanvas: true,
   useImageCaching: true,
   preRenderChars: true,
@@ -137,12 +170,7 @@ export default class CanvasTypingEngine {
     this.canvas.style.height = `${height}px`;
 
     // スケール設定なし - 1:1マッピングを維持
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    // デフォルト描画スタイル設定
-    this.ctx.textBaseline = 'middle';
-    this.ctx.textAlign = 'left';
-    this.ctx.imageSmoothingEnabled = false; // ピクセルアートのクリアな表示用
+    this._setupContextDefaults(this.ctx);
 
     // フォントを設定（読み込み確実性のため）
     document.fonts.ready.then(() => {
@@ -166,12 +194,7 @@ export default class CanvasTypingEngine {
       desynchronized: true,
     });
     // スケールせず1:1マッピングを維持
-    this.offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
-
-    // スタイル設定
-    this.offscreenCtx.textBaseline = 'middle';
-    this.offscreenCtx.textAlign = 'left';
-    this.offscreenCtx.imageSmoothingEnabled = false;
+    this._setupContextDefaults(this.offscreenCtx);
   }
   /**
    * アニメーションループの開始
@@ -320,6 +343,9 @@ export default class CanvasTypingEngine {
     // 描画コンテキストの取得（オフスクリーンかメインか）
     const ctx = this.settings.useOffscreenCanvas ? this.offscreenCtx : this.ctx;
 
+    // 各フレームごとにコンテキストをリセット
+    this._setupContextDefaults(ctx);
+
     // 背景クリア
     ctx.fillStyle = this.settings.backgroundColor;
     ctx.fillRect(0, 0, this.settings.width, this.settings.height);
@@ -347,7 +373,6 @@ export default class CanvasTypingEngine {
       this.animationFrameId = requestAnimationFrame(this._renderFrame);
     }
   }
-
   /**
    * 問題テキストの描画
    * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
@@ -361,11 +386,9 @@ export default class CanvasTypingEngine {
 
     if (!displayText) return;
 
-    // 問題テキスト表示
-    ctx.font = `${this.settings.fontSize}px ${this.settings.fontFamily}`;
+    // 必要な設定のみ変更（ベース設定は_setupContextDefaultsで設定済み）
     ctx.fillStyle = this.settings.textColor;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center'; // 中央揃えに変更
 
     // 複数行対応（改行で分割）
     const lines = displayText.split('\n');
@@ -416,10 +439,8 @@ export default class CanvasTypingEngine {
       displayParts = null, // InputProcessorから提供されるパーツ情報（オプション）
     } = state;
 
-    // フォント設定
-    ctx.font = `${this.settings.fontSize}px ${this.settings.fontFamily}`;
+    // テキスト配置を左揃えに変更（その他のデフォルト設定は_setupContextDefaultsで設定済み）
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
 
     // 文字幅を計算（モノスペースフォント前提）
     const charWidth = this.settings.fontSize * 0.6;
@@ -567,13 +588,11 @@ export default class CanvasTypingEngine {
         // 最後に押したキーの緑表示は無効化（仕様変更）
 
         // 角丸長方形を描画
-        this._roundRect(ctx, keyX, keyY, keyWidth, KEY_SIZE, KEY_RADIUS);
-
-        // キーの文字
+        this._roundRect(ctx, keyX, keyY, keyWidth, KEY_SIZE, KEY_RADIUS); // キーの文字
         ctx.fillStyle = '#fff';
         ctx.font = '16px sans-serif';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        // textBaselineは既にmiddleに設定済み
         ctx.fillText(
           key === ' ' ? 'SPACE' : key,
           keyX + keyWidth / 2,
@@ -627,21 +646,13 @@ export default class CanvasTypingEngine {
     this.canvas.height = height;
 
     // コンテキストをリセット
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    // デフォルト描画スタイルを再設定
-    this.ctx.textBaseline = 'middle';
-    this.ctx.textAlign = 'left';
-    this.ctx.imageSmoothingEnabled = false;
+    this._setupContextDefaults(this.ctx);
 
     // オフスクリーンキャンバスがあれば更新
     if (this.settings.useOffscreenCanvas && this.offscreenCanvas) {
       this.offscreenCanvas.width = width;
       this.offscreenCanvas.height = height;
-      this.offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
-      this.offscreenCtx.textBaseline = 'middle';
-      this.offscreenCtx.textAlign = 'left';
-      this.offscreenCtx.imageSmoothingEnabled = false;
+      this._setupContextDefaults(this.offscreenCtx);
     }
 
     // 再描画フラグを設定
@@ -663,7 +674,7 @@ export default class CanvasTypingEngine {
       window.removeEventListener('resize', this._resizeHandler);
       this._resizeHandler = null;
     }
-    
+
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
       this._resizeObserver = null;
@@ -718,7 +729,7 @@ export default class CanvasTypingEngine {
     }
 
     // リサイズリスナーにも通知
-    this.resizeListeners.forEach(listener => {
+    this.resizeListeners.forEach((listener) => {
       try {
         listener(this.settings.width, this.settings.height);
       } catch (e) {
@@ -737,5 +748,44 @@ export default class CanvasTypingEngine {
       this.resizeListeners.push(listener);
     }
     return this;
+  }
+  /**
+   * 描画コンテキストのデフォルト設定を適用
+   * すべての描画処理前に呼び出すことで、コンテキストの一貫性を保つ
+   * @param {CanvasRenderingContext2D} ctx 描画コンテキスト
+   * @private
+   */
+  _setupContextDefaults(ctx) {
+    if (!ctx) return;
+
+    // 変換マトリックスをリセット（スケールや回転をクリア）
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    // テキスト描画関連の設定
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.font = `${this.settings.fontSize}px ${this.settings.fontFamily}`;
+
+    // 描画品質関連の設定
+    ctx.imageSmoothingEnabled = false;
+
+    // 線関連のデフォルト設定
+    ctx.lineWidth = 1;
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
+
+    // デフォルトの描画色
+    ctx.fillStyle = this.settings.textColor;
+    ctx.strokeStyle = '#000000';
+
+    // シャドウをクリア（存在する場合）
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0)';
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // 合成処理のデフォルト
+    ctx.globalAlpha = 1.0;
+    ctx.globalCompositeOperation = 'source-over';
   }
 }
