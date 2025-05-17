@@ -26,6 +26,8 @@ const DEFAULT_SETTINGS = Object.freeze({
   keyboardHeight: 200,
   animationDuration: 150, // ms
   showErrorHighlight: false, // エラー表示のオン/オフを制御するフラグ
+  // レスポンシブ設定
+  fitToContainer: false, // 親要素サイズに合わせるかどうか
   // パフォーマンス設定
   useOffscreenCanvas: true,
   useImageCaching: true,
@@ -66,9 +68,16 @@ export default class CanvasTypingEngine {
     this._needsRender = true; // 描画が必要かどうかのフラグ
     this._lastRenderTime = 0; // 最終描画時刻
 
+    // リサイズ処理用
+    this._resizeHandler = null;
+    this._resizeObserver = null;
+    this.container = null;
+    this.resizeListeners = [];
+
     // バインディング
     this._renderFrame = this._renderFrame.bind(this);
     this.render = this.render.bind(this);
+    this._handleResize = this._handleResize.bind(this);
   }
 
   /**
@@ -89,11 +98,17 @@ export default class CanvasTypingEngine {
       desynchronized: true, // レイテンシ低減のため
     });
 
+    // コンテナ要素の設定（親要素がない場合はbodyを使用）
+    this.container = canvas.parentElement || document.body;
+
     // ゲーム状態設定
     this.gameState = gameState;
 
     // キャンバスサイズ設定 - ピクセル比を考慮
     this._setupCanvasSize();
+
+    // リサイズイベントリスナー設定
+    this._setupResizeHandling();
 
     // オフスクリーンキャンバス作成（必要な場合）
     if (this.settings.useOffscreenCanvas) {
@@ -634,7 +649,6 @@ export default class CanvasTypingEngine {
 
     return this;
   }
-
   /**
    * リソースの解放とクリーンアップを行うメソッド
    * アニメーションループを停止し、参照を解放します
@@ -644,13 +658,84 @@ export default class CanvasTypingEngine {
     // アニメーションループを停止
     this.stopAnimation();
 
+    // リサイズ監視を停止
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler);
+      this._resizeHandler = null;
+    }
+    
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+
     // リソース参照の解放
     this.canvas = null;
     this.ctx = null;
     this.offscreenCanvas = null;
     this.offscreenCtx = null;
     this.gameState = null;
+    this.resizeListeners = [];
 
+    return this;
+  }
+
+  /**
+   * リサイズハンドリング設定
+   * @private
+   */
+  _setupResizeHandling() {
+    // 既存のハンドラがあれば削除
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler);
+    }
+
+    // リサイズハンドラを設定
+    this._resizeHandler = this._handleResize;
+    window.addEventListener('resize', this._resizeHandler);
+
+    // ResizeObserverが利用可能な場合は、コンテナのリサイズも監視
+    if (typeof ResizeObserver !== 'undefined' && this.container) {
+      if (this._resizeObserver) {
+        this._resizeObserver.disconnect();
+      }
+      this._resizeObserver = new ResizeObserver(() => {
+        this._handleResize();
+      });
+      this._resizeObserver.observe(this.container);
+    }
+  }
+
+  /**
+   * リサイズイベントのハンドリング
+   * @private
+   */
+  _handleResize() {
+    // 親要素サイズに合わせるモードなら親要素のサイズを取得
+    if (this.settings.fitToContainer && this.container) {
+      const containerRect = this.container.getBoundingClientRect();
+      this.setCanvasSize(containerRect.width, containerRect.height);
+    }
+
+    // リサイズリスナーにも通知
+    this.resizeListeners.forEach(listener => {
+      try {
+        listener(this.settings.width, this.settings.height);
+      } catch (e) {
+        console.error('リサイズリスナーでエラー:', e);
+      }
+    });
+  }
+
+  /**
+   * リサイズリスナーの追加
+   * @param {Function} listener - (width, height)を引数に取るコールバック関数
+   * @returns {CanvasTypingEngine} このインスタンス
+   */
+  onResize(listener) {
+    if (typeof listener === 'function') {
+      this.resizeListeners.push(listener);
+    }
     return this;
   }
 }
