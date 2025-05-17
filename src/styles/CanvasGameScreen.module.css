@@ -1,4 +1,4 @@
-/* Canvas対応版のタイピングゲームエリアのスタイル */
+/* Canvas対応版のタイピングゲームエリアのスタイル - BEM記法準拠 */
 .typing_game__canvas_container {
   position: relative;
   width: 100%;

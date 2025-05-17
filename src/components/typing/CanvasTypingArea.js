@@ -279,13 +279,12 @@ const CanvasTypingArea = ({
       return () => clearTimeout(timer);
     }
   }, [typing?.errorAnimation]); // 削除 - 重複したコードブロックのため
-
   // typingオブジェクトが存在しない場合のフォールバック
   if (!typing) {
     debugLog('typingオブジェクトがありません');
     return (
-      <div className={`${styles.canvas_typing_area} ${className || ''}`}>
-        <div className={styles.typing_loading}>読み込み中...</div>
+      <div className={`${styles.typing_canvas} ${className || ''}`}>
+        <div className={styles.typing_canvas__loading}>読み込み中...</div>
       </div>
     );
   }
@@ -294,18 +293,18 @@ const CanvasTypingArea = ({
   if (!currentProblem) {
     debugLog('問題データがありません');
     return (
-      <div className={`${styles.canvas_typing_area} ${className || ''}`}>
-        <div className={styles.typing_loading}>問題を読み込み中...</div>
+      <div className={`${styles.typing_canvas} ${className || ''}`}>
+        <div className={styles.typing_canvas__loading}>問題を読み込み中...</div>
       </div>
     );
   }
 
   return (
-    <div className={`${styles.canvas_typing_area} ${className || ''}`}>
+    <div className={`${styles.typing_canvas} ${className || ''}`}>
       {/* Canvas要素 */}
       <canvas
         ref={canvasRef}
-        className={styles.typing_canvas}
+        className={styles.typing_canvas__element}
         width="800"
         height="600"
       />

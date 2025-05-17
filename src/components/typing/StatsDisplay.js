@@ -15,35 +15,37 @@ const StatsDisplay = ({
   solvedCount = 0,
   requiredProblemCount = 5,
   className = '',
-  animate = true
+  animate = true,
 }) => {
   // 統計情報表示用のクラス
-  const containerClass = `${styles.statsDisplay} ${className}`.trim();
-  
+  const containerClass = `${styles.stats_display} ${className}`.trim();
+
   // アニメーションなしの場合
   if (!animate) {
     return (
       <div className={containerClass}>
-        <div className={styles.statValues}>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>KPM:</span>
-            <span className={styles.statValue}>{kpm}</span>
+        <div className={styles.stats_display__values}>
+          <div className={styles.stats_display__item}>
+            <span className={styles.stats_display__label}>KPM:</span>
+            <span className={styles.stats_display__value}>{kpm}</span>
           </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>正確性:</span>
-            <span className={styles.statValue}>{Math.round(accuracy)}%</span>
+          <div className={styles.stats_display__item}>
+            <span className={styles.stats_display__label}>正確性:</span>
+            <span className={styles.stats_display__value}>
+              {Math.round(accuracy)}%
+            </span>
           </div>
         </div>
-        
-        <div className={styles.problemProgress}>
-          <span className={styles.progressLabel}>
+
+        <div className={styles.stats_display__progress}>
+          <span className={styles.stats_display__progress_label}>
             お題: {solvedCount + 1}/{requiredProblemCount}
           </span>
         </div>
       </div>
     );
   }
-  
+
   // アニメーション効果付きの表示
   return (
     <motion.div
@@ -52,44 +54,48 @@ const StatsDisplay = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className={styles.statValues}>
-        <motion.div 
-          className={styles.statItem}
+      <div className={styles.stats_display__values}>
+        <motion.div
+          className={styles.stats_display__item}
           initial={{ opacity: 0, x: -5 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <span className={styles.statLabel}>KPM:</span>
-          <span className={styles.statValue}>{kpm}</span>
+          <span className={styles.stats_display__label}>KPM:</span>
+          <span className={styles.stats_display__value}>{kpm}</span>
         </motion.div>
-        
-        <motion.div 
-          className={styles.statItem}
+
+        <motion.div
+          className={styles.stats_display__item}
           initial={{ opacity: 0, x: -5 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
-          <span className={styles.statLabel}>正確性:</span>
-          <span className={styles.statValue}>{Math.round(accuracy)}%</span>
+          <span className={styles.stats_display__label}>正確性:</span>
+          <span className={styles.stats_display__value}>
+            {Math.round(accuracy)}%
+          </span>
         </motion.div>
       </div>
-      
-      <motion.div 
-        className={styles.problemProgress}
+
+      <motion.div
+        className={styles.stats_display__progress}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, delay: 0.3 }}
       >
-        <span className={styles.progressLabel}>
+        <span className={styles.stats_display__progress_label}>
           お題: {solvedCount + 1}/{requiredProblemCount}
         </span>
-        
+
         {/* 進捗バー */}
-        <div className={styles.progressBarContainer}>
-          <motion.div 
-            className={styles.progressBar}
+        <div className={styles.stats_display__progress_bar_container}>
+          <motion.div
+            className={styles.stats_display__progress_bar}
             initial={{ width: '0%' }}
-            animate={{ width: `${(solvedCount / requiredProblemCount) * 100}%` }}
+            animate={{
+              width: `${(solvedCount / requiredProblemCount) * 100}%`,
+            }}
             transition={{ duration: 0.5 }}
           />
         </div>

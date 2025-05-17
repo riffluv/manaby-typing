@@ -1,7 +1,8 @@
 /* StatsDisplay.module.css */
-/* タイピングゲーム統計情報の表示スタイル */
+/* タイピングゲーム統計情報の表示スタイル - BEM記法準拠 */
 
-.statsDisplay {
+/* ブロック: 統計情報表示 */
+.stats_display {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -11,42 +12,49 @@
   margin-bottom: 0.5rem;
 }
 
-.statValues {
+/* 要素: 統計値グループ */
+.stats_display__values {
   display: flex;
   gap: 1.5rem;
 }
 
-.statItem {
+/* 要素: 統計項目 */
+.stats_display__item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.statLabel {
+/* 要素: 統計ラベル */
+.stats_display__label {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.8);
 }
 
-.statValue {
+/* 要素: 統計値 */
+.stats_display__value {
   font-size: 1.1rem;
   font-weight: bold;
   color: #ffffff;
 }
 
-.problemProgress {
+/* 要素: 問題進行状況 */
+.stats_display__progress {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 0.25rem;
 }
 
-.progressLabel {
+/* 要素: 進行状況ラベル */
+.stats_display__progress_label {
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.9);
   font-weight: 500;
 }
 
-.progressBarContainer {
+/* 要素: 進行状況バーコンテナ */
+.stats_display__progress_bar_container {
   width: 100px;
   height: 4px;
   background-color: rgba(255, 255, 255, 0.2);
@@ -54,43 +62,51 @@
   overflow: hidden;
 }
 
-.progressBar {
+/* 要素: 進行状況バー */
+.stats_display__progress_bar {
   height: 100%;
-  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
   border-radius: 2px;
 }
 
-/* ハイライト効果 */
-.highlightKpm {
+/* 修飾子: KPMハイライト */
+.stats_display__value--highlight-kpm {
   color: #4caf50;
   animation: pulse 1s ease-in-out;
 }
 
-.highlightAccuracy {
+/* 修飾子: 正確性ハイライト */
+.stats_display__value--highlight-accuracy {
   color: #2196f3;
   animation: pulse 1s ease-in-out;
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* メディアクエリ - モバイル対応 */
 @media (max-width: 768px) {
-  .statsDisplay {
+  .stats_display {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
 
-  .statValues {
+  .stats_display__values {
     width: 100%;
     justify-content: space-between;
   }
 
-  .problemProgress {
+  .stats_display__progress {
     width: 100%;
     align-items: flex-start;
   }

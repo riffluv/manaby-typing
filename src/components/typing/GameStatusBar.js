@@ -62,19 +62,17 @@ const GameStatusBar = React.memo(
         default:
           return '';
       }
-    }, [rank]);
-
-    // ロゴだけを含むシンプルなヘッダーを返す - framer-motionを除去
+    }, [rank]); // ロゴだけを含むシンプルなヘッダーを返す - framer-motionを除去
     return (
       <header
-        className={`${styles.status_bar} ${className} ${styles.empty_bar} ${styles.fade_in}`}
+        className={`${styles.game_status__bar} ${className} ${styles.game_status__bar_empty} ${styles.game_status__fade_in}`}
       >
         {/* manabyロゴを左上に配置 - CSSアニメーションを使用 */}
-        <div className={styles.logo_container}>
+        <div className={styles.game_status__logo_container}>
           <img
             src={getStaticPath('/images/manaby01_.png')}
             alt="manaby ロゴ"
-            className={`${styles.manaby_logo} ${styles.logo_animation}`}
+            className={`${styles.game_status__logo_image} ${styles.game_status__logo}`}
             title="manaby - 就労支援"
             loading="eager"
             width={35}

@@ -1,6 +1,6 @@
 /* 
  * GameStatusBar.module.css
- * ゲームステータスバー用のスタイル
+ * ゲームステータスバー用のスタイル - BEM記法準拠
  * タイプマニア風のスタイル要素を追加
  */
 
@@ -16,7 +16,13 @@
   }
 }
 
-.fade_in {
+/* BEMのブロック: game_status */
+.game_status {
+  /* ベースとなるブロックスタイル */
+}
+
+/* BEMの要素: アニメーション関連 */
+.game_status__fade_in {
   animation: fadeIn 0.3s ease-out forwards;
 }
 
@@ -30,16 +36,16 @@
   }
 }
 
-.logo_animation {
+.game_status__logo {
   animation: logoFadeIn 0.3s ease-out forwards;
   transition: transform 0.2s ease;
 }
 
-.logo_animation:hover {
+.game_status__logo:hover {
   transform: scale(1.05) translateY(-1px);
 }
 
-.status_bar {
+.game_status__bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -54,7 +60,7 @@
 }
 
 /* 空のステータスバー - ロゴのみを配置するシンプルバージョン */
-.empty_bar {
+.game_status__bar_empty {
   padding: 0.25rem 0.8rem;
   /* 上下のパディングを少し小さく */
   min-height: 42px;
@@ -78,7 +84,7 @@
 }
 
 /* manabyロゴのコンテナ */
-.logo_container {
+.game_status__logo_container {
   height: 100%;
   display: flex;
   align-items: center;
@@ -88,7 +94,7 @@
 }
 
 /* manabyロゴ画像 */
-.manaby_logo {
+.game_status__logo_image {
   height: 35px;
   /* 少し大きめのサイズに調整 */
   width: auto;

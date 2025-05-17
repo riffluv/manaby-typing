@@ -1,7 +1,8 @@
 /* CanvasTypingArea.module.css */
-/* Canvas描画用タイピングエリアのスタイル */
+/* Canvas描画用タイピングエリアのスタイル - BEM記法準拠 */
 
-.canvas_typing_area {
+/* ブロック: タイピングキャンバス */
+.typing_canvas {
   position: relative;
   width: 100%;
   height: 100%;
@@ -11,7 +12,8 @@
   justify-content: center;
 }
 
-.typing_canvas {
+/* 要素: キャンバス要素 */
+.typing_canvas__element {
   width: 100%;
   height: 100%;
   background-color: #1a1a1a;
@@ -19,14 +21,16 @@
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
-.typing_loading {
+/* 要素: ローディング表示 */
+.typing_canvas__loading {
   color: #ffffff;
   font-size: 1.2rem;
   padding: 2rem;
   text-align: center;
 }
 
-.debug_info {
+/* 要素: デバッグ情報 */
+.typing_canvas__debug {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -39,7 +43,8 @@
   z-index: 100;
 }
 
-.debug_info p {
+/* デバッグ情報内の段落 */
+.typing_canvas__debug p {
   margin: 2px 0;
   white-space: nowrap;
 }

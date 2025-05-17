@@ -28,14 +28,14 @@ const DEBUG_GAME_SCREEN = process.env.NODE_ENV === 'development' && false;
 const GameScreen = () => {
   const { gameState } = useGameContext();
   const { goToScreen } = usePageTransition();
-  
+
   // キーハンドリング用のref
   const canvasWrapperRef = useRef(null);
 
   // パフォーマンスメトリクス表示用の状態
   const [debugInfo, setDebugInfo] = useState({});
   const [lastPressedKey, setLastPressedKey] = useState('');
-  
+
   // ゲームコントローラーフック
   const {
     typing,
@@ -49,7 +49,7 @@ const GameScreen = () => {
     onLastPressedKeyChange: setLastPressedKey,
     goToScreen, // goToScreen関数をGameControllerに渡す
   });
-  
+
   // ゲーム完了ハンドラー
   useGameCompleteHandler(gameState, goToScreen, typingRef);
 
@@ -89,23 +89,49 @@ const GameScreen = () => {
   if (gameState.isGameClear === true) {
     return null;
   }
-
   return (
     <ErrorBoundary>
       <div className={styles.typing_game__wrapper}>
         <div className={styles.typing_game}>
+          {/* SF風のコーナー装飾 */}
+          <div
+            className={`${styles.typing_game__corner} ${styles['typing_game__corner--top-left']}`}
+          >
+            <div className={styles.typing_game__corner_tech}></div>
+          </div>
+          <div
+            className={`${styles.typing_game__corner} ${styles['typing_game__corner--top-right']}`}
+          >
+            <div className={styles.typing_game__corner_tech}></div>
+          </div>
+          <div
+            className={`${styles.typing_game__corner} ${styles['typing_game__corner--bottom-left']}`}
+          >
+            <div className={styles.typing_game__corner_tech}></div>
+          </div>
+          <div
+            className={`${styles.typing_game__corner} ${styles['typing_game__corner--bottom-right']}`}
+          >
+            <div className={styles.typing_game__corner_tech}></div>
+          </div>
+
+          {/* スキャンラインとドットパターン */}
+          <div className={styles.typing_game__scanlines}></div>
+          <div className={styles.typing_game__dot_pattern}></div>
+
           {/* ステータスバー */}
           <GameStatusBar
             solvedCount={gameState.solvedCount}
             requiredCount={gameState.requiredProblemCount || 5}
             typingStats={typing?.stats || {}}
-            scoreInfo={scoreInfo} // スコア情報を渡す
+            scoreInfo={scoreInfo}
           />
-            {/* メイン画面 */}
-          <main 
+
+          {/* メイン画面 */}
+          <main
             className={styles.typing_game__main}
             ref={canvasWrapperRef}
-            tabIndex={0} // キーボードイベントを受け取れるようにする
+            tabIndex={0}
           >
             {/* Canvas描画タイピングエリア */}
             <div className={canvasStyles.typing_game__canvas_container}>
@@ -120,7 +146,7 @@ const GameScreen = () => {
                 className={styles.typing_game__typing_area}
               />
             </div>
-            
+
             {/* デバッグ情報 */}
             {DEBUG_GAME_SCREEN && (
               <PerformanceDebugDisplay
@@ -132,7 +158,7 @@ const GameScreen = () => {
               />
             )}
           </main>
-          
+
           {/* SF風のショートカットメニューボタン */}
           <button
             onClick={handleMenuButtonClick}
