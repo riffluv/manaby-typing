@@ -58,8 +58,6 @@ export default class CanvasTypingEngine {
     this.animationFrameId = null;
     this.isAnimating = false;
     this.lastRenderTime = 0;
-    this.frameCount = 0;
-    this.fps = 0;
 
     // ゲーム状態参照
     this.gameState = null;
@@ -220,7 +218,6 @@ export default class CanvasTypingEngine {
    * @param {boolean} isCorrect - 正解かどうか
    */
   handleKeyInput(key, isCorrect = true) {
-    // パフォーマンス測定の残骸を削除
     // 状態更新のみを行う（描画は行わない）
     if (this.gameState) {
       // エラー状態の更新
@@ -293,6 +290,9 @@ export default class CanvasTypingEngine {
    * @private
    */
   _renderFrame(timestamp) {
+    // 現在のフレーム時間を保存
+    this.lastRenderTime = timestamp;
+
     // _needsRenderがfalseなら描画処理をスキップ
     if (!this._needsRender) {
       // 次のフレームのスケジュール（アニメーション中のみ）
