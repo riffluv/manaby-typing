@@ -49,6 +49,18 @@
   padding: 8px;
   border-radius: 4px;
   font-size: 0.8rem;
+}
+
+/* 要素: キーボード表示エリア */
+.typing_canvas__keyboard {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  width: 94%;
+  max-width: 680px;
+  margin: 0 auto;
+  z-index: 10;
   font-family: monospace;
   z-index: 100;
 }

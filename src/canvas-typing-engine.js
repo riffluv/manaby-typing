@@ -54,6 +54,7 @@ const DEFAULT_SETTINGS = Object.freeze({
 
   // レイアウト設定
   keyboardHeight: 200, // 仮想キーボードの高さ
+  renderKeyboard: true, // 内部キーボードレンダリング有効/無効
 
   // アニメーション設定
   animationDuration: 150, // アニメーション時間（ms）
@@ -587,7 +588,7 @@ export default class CanvasTypingEngine {
    * @private
    */
   _renderKeyboard(ctx) {
-    if (!this.gameState) return;
+    if (!this.gameState || this.settings.renderKeyboard === false) return;
 
     const { nextKey = '', lastPressedKey = '' } = this.gameState;
 

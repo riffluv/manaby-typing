@@ -1,0 +1,683 @@
+/**
+ * PixiJS v8を使用したタイピングゲームエンジン
+ *
+ * Canvas 2D APIからPixiJS v8に完全に置き換えたタイピングゲームエンジン
+ * ESM形式でインポートし、PixiJS v8のAPIを使用しています
+ *
+ * 特徴:
+ * - PixiJS v8のText, Graphics, Containerを使用
+ * - ESモジュール形式のインポート
+ * - 高DPIディスプレイのサポート
+ * - レスポンシブデザイン対応
+ * - 効率的なレンダリングパフォーマンス
+ */
+
+import * as PIXI from 'pixi.js';
+// PixiJS v8のフィルターをインポート
+import { GlowFilter } from '@pixi/filter-glow';
+import { BlurFilter } from '@pixi/filter-blur';
+
+// デバッグモード設定
+const DEBUG = process.env.NODE_ENV === 'development';
+
+/**
+ * デフォルト設定オブジェクト
+ */
+const DEFAULT_SETTINGS = Object.freeze({
+  // キャンバスサイズ設定
+  width: 800, // 幅（ピクセル）
+  height: 600, // 高さ（ピクセル）
+
+  // フォント・テキスト設定
+  fontFamily:
+    "'SF Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', Monaco, Consolas, monospace",
+  fontSize: 26,
+
+  // 色設定
+  backgroundColor: 0x1a1a1a, // 背景色（16進数形式）
+  textColor: 0xffffff, // 通常テキスト
+  typedColor: 0x88ff88, // 入力済み文字
+  highlightColor: 0xffb41e, // 入力中の文字
+  errorColor: 0xff3333, // エラー時
+  nextCharColor: 0x88ff88, // 次の文字
+
+  // レイアウト設定
+  keyboardHeight: 200,
+
+  // アニメーション設定
+  animationDuration: 150,
+  showErrorHighlight: false,
+
+  // レスポンシブ設定
+  fitToContainer: false,
+});
+
+/**
+ * PixiTypingEngineクラス
+ * PixiJS v8を使用したタイピングゲーム描画エンジン
+ */
+export default class PixiTypingEngine {
+  /**
+   * コンストラクタ
+   * @param {Object} options 設定オプション
+   */
+  constructor(options = {}) {
+    // 設定の統合
+    this.settings = { ...DEFAULT_SETTINGS, ...options };
+
+    // PixiJSアプリケーション
+    this.app = null;
+
+    // ゲーム要素のコンテナ
+    this.gameContainer = null;
+    this.promptContainer = null;
+    this.keyboardContainer = null;
+
+    // アニメーション管理
+    this.isAnimating = false;
+
+    // ゲーム状態参照
+    this.gameState = null;
+
+    // 描画制御フラグ
+    this._needsRender = true;
+
+    // リサイズ処理用
+    this._resizeHandler = null;
+    this._resizeObserver = null;
+    this.container = null;
+    this.resizeListeners = [];
+
+    // バインディング
+    this._handleResize = this._handleResize.bind(this);
+  }
+
+  /**
+   * PixiJSアプリケーションの初期化
+   * @param {HTMLElement} container ターゲットコンテナ要素
+   * @param {Object} gameState ゲーム状態
+   * @returns {Promise<PixiTypingEngine>} 初期化完了後のPromise
+   */
+  async initialize(container, gameState = {}) {
+    if (!container || !(container instanceof HTMLElement)) {
+      throw new Error('有効なコンテナ要素が必要です');
+    }
+
+    // デバッグログ
+    console.log('pixi-typing-engine: 初期化開始', {
+      width: this.settings.width,
+      height: this.settings.height,
+      hasGameState: !!gameState,
+      hasRomaji: gameState?.romaji ? true : false
+    });
+
+    try {
+      // コンテナ設定
+      this.container = container;
+
+      // ゲーム状態設定
+      this.gameState = gameState;
+
+      // PixiJS v8のアプリケーション作成（初期化メソッド使用）
+      this.app = new PIXI.Application();
+      
+      // PixiJS v8の初期化（v8ではawait app.init()が必要）
+      await this.app.init({
+        width: this.settings.width,
+        height: this.settings.height,
+        backgroundColor: this.settings.backgroundColor,
+        resolution: window.devicePixelRatio || 1,
+        antialias: true,
+        autoDensity: true,
+      });
+
+      // コンテナにキャンバスを追加
+      container.appendChild(this.app.canvas);
+      
+      // キャンバスのスタイルを明示的に固定
+      this.app.canvas.style.width = '800px';
+      this.app.canvas.style.height = '600px';
+      this.app.canvas.style.maxWidth = '100%';
+      this.app.canvas.style.display = 'block';
+      this.app.canvas.style.margin = '0 auto';
+      
+      console.log('pixi-typing-engine: PixiJSアプリケーション初期化完了');
+      
+      // ゲーム用コンテナを作成
+      this.gameContainer = new PIXI.Container();
+      
+      // ステージに追加
+      this.app.stage.addChild(this.gameContainer);
+
+      // お題表示用コンテナ
+      this.promptContainer = new PIXI.Container();
+      // Y位置を調整して上部に配置
+      this.promptContainer.position.set(0, 80);
+      this.gameContainer.addChild(this.promptContainer);
+
+      // キーボード表示用コンテナ
+      this.keyboardContainer = new PIXI.Container();
+      // Y位置を調整して下部に配置
+      this.keyboardContainer.position.set(0, this.settings.height - 240);
+      this.gameContainer.addChild(this.keyboardContainer);
+      
+      // リサイズイベントリスナー設定
+      this._setupResizeHandling();
+
+      // 初期描画を強制
+      this._needsRender = true;
+      this.render();
+      
+      console.log('pixi-typing-engine: 初期化完了');
+    } catch (error) {
+      console.error('pixi-typing-engine: 初期化エラー:', error);
+      throw error;
+    }
+
+    return this;
+  }
+
+  /**
+   * ウィンドウリサイズイベントの監視設定
+   * @private
+   */
+  _setupResizeHandling() {
+    // ウィンドウリサイズリスナー
+    this._resizeHandler = () => {
+      this._handleResize();
+    };
+
+    window.addEventListener('resize', this._resizeHandler);
+
+    // ResizeObserver APIがサポートされている場合
+    if (typeof ResizeObserver !== 'undefined') {
+      this._resizeObserver = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          if (entry.target === this.container && this.settings.fitToContainer) {
+            this._handleResize();
+            break;
+          }
+        }
+      });
+
+      if (this.container) {
+        this._resizeObserver.observe(this.container);
+      }
+    }
+  }
+
+  /**
+   * リサイズ処理
+   * @private
+   */
+  _handleResize() {
+    if (this.settings.fitToContainer && this.container) {
+      const { width, height } = this.container.getBoundingClientRect();
+      this.resize(width, height);
+    }
+  }
+
+  /**
+   * アプリケーションサイズの変更
+   * @param {number} width 新しい幅
+   * @param {number} height 新しい高さ
+   */  resize(width, height) {
+    if (!this.app) return this;
+    
+    // 固定サイズを維持するが、表示は調整
+    const targetWidth = Math.min(800, width);
+    const targetHeight = Math.min(600, height);
+
+    // サイズ設定を更新
+    this.settings.width = targetWidth;
+    this.settings.height = targetHeight;
+
+    // レンダラーサイズを更新
+    if (this.app.renderer) {
+      this.app.renderer.resize(targetWidth, targetHeight);
+    }
+    
+    if (this.app.canvas) {
+      // キャンバスのスタイルを維持
+      this.app.canvas.style.width = `${targetWidth}px`;
+      this.app.canvas.style.height = `${targetHeight}px`;
+      this.app.canvas.style.maxWidth = '100%';
+    }
+
+    // キーボードの位置を更新
+    if (this.keyboardContainer) {
+      this.keyboardContainer.position.set(0, targetHeight - 240);
+    }
+
+    // 再描画フラグを設定
+    this._needsRender = true;
+    this.render();
+
+    return this;
+  }
+  /**
+   * ゲーム状態の更新
+   * @param {Object} newState 新しいゲーム状態
+   * @returns {PixiTypingEngine} このインスタンス（メソッドチェーン用）
+   */
+  updateGameState(newState) {
+    // 前回の状態を保存
+    const prevState = this.gameState || {};
+    
+    // 新しい状態を統合
+    this.gameState = { ...prevState, ...newState };
+    
+    // デバッグログ - 重要な状態変更のみログ出力
+    if (
+      newState.romaji !== prevState.romaji ||
+      newState.displayText !== prevState.displayText ||
+      newState.nextKey !== prevState.nextKey
+    ) {
+      console.log('pixi-typing-engine: 状態更新', {
+        romaji: newState.romaji?.substring(0, 15) + (newState.romaji?.length > 15 ? '...' : '') || '[なし]',
+        displayText: newState.displayText || '[なし]',
+        nextKey: newState.nextKey || '[なし]'
+      });
+    }
+    
+    // 再描画フラグ
+    this._needsRender = true;
+    
+    // すぐに描画
+    this.render();
+    
+    return this;
+  }
+  /**
+   * シーンの描画
+   * ゲーム状態に基づいて、お題とキーボードを描画します
+   */
+  render() {
+    if (!this.app) return;
+    
+    // デバッグログを追加（1回だけ）
+    if (this._needsRender) {
+      console.log('pixi-typing-engine: レンダリング実行', {
+        hasGameState: !!this.gameState,
+        hasRomaji: this.gameState?.romaji ? true : false,
+        displayText: this.gameState?.displayText,
+        needsRender: this._needsRender,
+        width: this.settings.width,
+        height: this.settings.height
+      });
+    }
+
+    // 描画が必要ない場合は早期リターン
+    if (!this._needsRender) return;
+
+    // 既存の子要素をすべてクリア（重複防止）
+    this.promptContainer.removeChildren();
+    this.keyboardContainer.removeChildren();
+
+    try {
+      // お題（タイピングテキスト）の描画
+      this._renderPrompt();
+
+      // キーボードの描画
+      this._renderKeyboard();
+
+      // 描画完了
+      this._needsRender = false;
+    } catch (error) {
+      console.error('pixi-typing-engine: レンダリングエラー', error);
+    }
+  }
+  /**
+   * お題テキストの描画
+   * @private
+   */
+  _renderPrompt() {
+    if (!this.gameState) {
+      console.warn('pixi-typing-engine: お題描画 - ゲーム状態がありません');
+      return;
+    }
+
+    // お題表示用テキスト
+    if (this.gameState.displayText) {
+      // デバッグログ
+      console.log('pixi-typing-engine: お題テキスト描画', {
+        text: this.gameState.displayText,
+        width: this.settings.width
+      });
+      
+      const lines = this.gameState.displayText.split('\\n');
+      let y = 0;
+      const lineHeight = this.settings.fontSize * 1.5;
+
+      lines.forEach((line, index) => {
+        const text = new PIXI.Text({
+          text: line,
+          style: {
+            fontFamily: this.settings.fontFamily,
+            fontSize: this.settings.fontSize,
+            fill: this.settings.textColor,
+            align: 'center',
+          }
+        });
+        text.anchor.set(0.5, 0);
+        text.position.set(this.settings.width / 2, y + index * lineHeight);
+        this.promptContainer.addChild(text);
+      });
+    }
+
+    // タイピングテキスト（ローマ字）の描画
+    this.drawPrompt();
+  }
+  /**
+   * タイピングテキスト（ローマ字）の描画
+   * @private
+   */
+  drawPrompt() {
+    if (!this.gameState) {
+      console.warn('pixi-typing-engine: romaji描画 - ゲーム状態がありません');
+      return;
+    }
+    
+    // 必要なデータがない場合はダミーテキストを表示
+    if (!this.gameState.romaji) {
+      console.warn('pixi-typing-engine: romaji描画 - romajiデータがありません、ダミーを表示します');
+      
+      // ダミータイピングテキスト
+      const dummyText = new PIXI.Text({
+        text: "ダミーテキスト (loading...)",
+        style: {
+          fontFamily: this.settings.fontFamily,
+          fontSize: this.settings.fontSize,
+          fill: this.settings.textColor,
+        }
+      });
+      dummyText.anchor.set(0.5, 0);
+      dummyText.position.set(this.settings.width / 2, 160);
+      this.promptContainer.addChild(dummyText);
+      return;
+    }
+
+    const {
+      romaji = '',
+      typedLength = 0,
+      currentInput = '',
+      isError = false,
+    } = this.gameState;
+
+    // 文字幅を計算
+    const fontSize = this.settings.fontSize;
+    const charWidth = fontSize * 0.6;
+
+    // タイピングテキスト表示位置
+    const textWidth = romaji.length * charWidth;
+    const startX = (this.settings.width - textWidth) / 2;
+    const startY = 160;
+
+    // 部分入力が存在する場合は、入力済み文字数 + 部分入力の次の位置
+    // 部分入力がない場合は、入力済み文字数の位置
+    const nextCharPosition = currentInput ? typedLength + 1 : typedLength;
+
+    // 文字を表示するコンテナ
+    const promptTextContainer = new PIXI.Container();
+    promptTextContainer.position.set(0, startY);
+    this.promptContainer.addChild(promptTextContainer);
+
+    // すべての文字を一文字ずつ処理
+    for (let i = 0; i < romaji.length; i++) {
+      const char = romaji[i];
+      let textColor;
+
+      // 文字の状態に基づいて色を決定
+      if (i < typedLength) {
+        // すでに入力済みの文字
+        textColor = this.settings.typedColor;
+      } else if (i === typedLength && currentInput) {
+        // 部分入力の文字（例：「と」の「t」）
+        textColor = this.settings.typedColor;
+      } else if (i === nextCharPosition) {
+        // 次に入力すべき文字
+        // 部分入力がある場合は常にオレンジ色を使用（エラー時でも赤くしない）
+        if (currentInput) {
+          textColor = this.settings.highlightColor;
+        } else {
+          // 部分入力がない場合のみ、エラー時は赤色を使用
+          textColor = isError === true
+            ? this.settings.errorColor
+            : this.settings.highlightColor;
+        }
+      } else {
+        // まだ入力されていない文字
+        textColor = this.settings.textColor;
+      }
+
+      // 文字のテキストオブジェクト作成
+      const charText = new PIXI.Text({
+        text: char,
+        style: {
+          fontFamily: this.settings.fontFamily,
+          fontSize: this.settings.fontSize,
+          fill: textColor,
+        }
+      });
+
+      // 文字の位置設定
+      charText.position.set(startX + i * charWidth, 0);
+      promptTextContainer.addChild(charText);      // 次に入力する文字に特別な効果を追加（オプション）      if (i === nextCharPosition) {
+        try {
+          // PixiJS v8互換のグローエフェクト
+          // textColorは数値（16進数）なので、そのまま使用
+          const glowFilter = new GlowFilter({
+            distance: 4,
+            outerStrength: 1.5,
+            color: textColor // 直接16進数カラー値を使用
+          });
+          charText.filters = [glowFilter];
+        } catch (error) {
+          console.warn('pixi-typing-engine: グローエフェクト適用エラー', error);
+        }
+      }
+    }
+
+    // 入力完了チェック
+    if (romaji.length > 0 && typedLength >= romaji.length) {
+      const checkmark = new PIXI.Text({
+        text: '✓',
+        style: {
+          fontFamily: this.settings.fontFamily,
+          fontSize: this.settings.fontSize,
+          fill: this.settings.typedColor,
+        }      });
+      
+      checkmark.position.set(startX + romaji.length * charWidth, 0);
+      
+      // チェックマークにグロー効果（PixiJS v8互換）
+      try {
+        const glowFilter = new GlowFilter({
+          distance: 5,
+          outerStrength: 2,
+          color: this.settings.typedColor // 直接16進数カラー値を使用
+        });
+        checkmark.filters = [glowFilter];
+      } catch (error) {
+        console.warn('pixi-typing-engine: チェックマークのエフェクト適用エラー', error);
+      }
+      
+      promptTextContainer.addChild(checkmark);
+    }
+  }
+
+  /**
+   * 仮想キーボードの描画
+   * @private
+   */
+  _renderKeyboard() {
+    if (!this.gameState) return;
+
+    const { nextKey = '', lastPressedKey = '' } = this.gameState;
+
+    // キーボード定数
+    const KEY_SIZE = 40;
+    const KEY_MARGIN = 5;
+    const KEY_RADIUS = 6;
+
+    // キーボードレイアウト（日本語）
+    const KEYBOARD_LAYOUT = [
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '\\'],
+      ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '@', '['],
+      ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', ':', ']'],
+      ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', '\\'],
+      [' '], // スペースキー
+    ];
+
+    // 各行の描画
+    let startY = 0;
+
+    KEYBOARD_LAYOUT.forEach((row, rowIndex) => {
+      // この行の開始X位置を計算（中央揃え）
+      const rowWidth = row.length * (KEY_SIZE + KEY_MARGIN) - KEY_MARGIN;
+      const rowStartX = (this.settings.width - rowWidth) / 2;
+
+      row.forEach((key, keyIndex) => {
+        let keyWidth = key === ' ' ? KEY_SIZE * 6 : KEY_SIZE;
+        const keyX = rowStartX + keyIndex * (KEY_SIZE + KEY_MARGIN);
+        
+        // キーのグラフィックスオブジェクト作成
+        const keyGraphics = new PIXI.Graphics();
+        keyGraphics.position.set(keyX, startY);
+        
+        // キーの色設定
+        let keyColor = 0x333333; // 通常のキー色
+          if (key === nextKey) {
+          // 次に入力すべきキー
+          keyColor = 0xFFB41E; // オレンジ色
+        }
+        
+        // 角丸四角形を描画（PixiJS v8互換）
+        keyGraphics.fill({ color: keyColor });
+        keyGraphics.roundRect(0, 0, keyWidth, KEY_SIZE, KEY_RADIUS);
+        
+        // 影効果（ドロップシャドウ）
+        const shadow = new PIXI.Graphics();
+        shadow.fill({ color: 0x000000, alpha: 0.3 });        shadow.roundRect(2, 2, keyWidth, KEY_SIZE, KEY_RADIUS);
+        shadow.filters = [new BlurFilter(3)];
+        
+        // キーの文字を描画
+        const keyText = new PIXI.Text({
+          text: key === ' ' ? 'SPACE' : key,
+          style: {
+            fontFamily: '"SF Pro", "Segoe UI", sans-serif',
+            fontSize: 18,
+            fill: 0xFFFFFF,
+            align: 'center',
+          }
+        });
+        
+        // テキストを中央配置
+        keyText.anchor.set(0.5, 0.5);
+        keyText.position.set(keyWidth / 2, KEY_SIZE / 2);
+        
+        // PixiJS v8では、コンテナでないオブジェクトに子要素を追加できないため
+        // ラッパーコンテナを作成
+        const keyContainer = new PIXI.Container();
+        keyContainer.position.set(keyX, startY);
+        
+        // 影とキーをコンテナに追加
+        this.keyboardContainer.addChild(shadow);
+        this.keyboardContainer.addChild(keyContainer);
+        
+        // キーとテキストをコンテナに追加
+        keyContainer.addChild(keyGraphics);
+        keyContainer.addChild(keyText);
+      });
+
+      startY += KEY_SIZE + KEY_MARGIN;
+    });
+  }
+  /**
+   * アニメーションの開始
+   * @returns {PixiTypingEngine} このインスタンス
+   */
+  startAnimation() {
+    if (!this.isAnimating) {
+      this.isAnimating = true;
+      
+      // デバッグログ
+      console.log('pixi-typing-engine: アニメーション開始');
+      
+      // 初期描画を強制
+      this._needsRender = true;
+      this.render();
+      
+      // PixiJSのティッカーに描画関数を追加（バインドを使用）
+      this.app.ticker.add(() => {
+        if (this._needsRender) {
+          this.render();
+          this._needsRender = false;
+        }
+      });
+    }
+    return this;
+  }
+
+  /**
+   * ティッカー更新関数
+   * @private
+   */
+  _tickerUpdate() {
+    if (this._needsRender) {
+      this.render();
+      this._needsRender = false;
+    }
+  }
+
+  /**
+   * アニメーションの停止
+   * @returns {PixiTypingEngine} このインスタンス
+   */
+  stopAnimation() {
+    if (this.isAnimating) {
+      this.isAnimating = false;
+      
+      // ティッカーから描画関数を削除
+      this.app.ticker.remove(this._tickerUpdate, this);
+    }
+    return this;
+  }
+
+  /**
+   * リソースの解放とクリーンアップを行うメソッド
+   */
+  destroy() {
+    // アニメーションループを停止
+    this.stopAnimation();
+
+    // リサイズ監視を停止
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler);
+      this._resizeHandler = null;
+    }
+
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+
+    // PixiJSアプリケーションの破棄
+    if (this.app) {
+      this.app.destroy(true, { children: true, texture: true, baseTexture: true });
+      this.app = null;
+    }
+
+    // リソース参照の解放
+    this.gameContainer = null;
+    this.promptContainer = null;
+    this.keyboardContainer = null;
+    this.gameState = null;
+    this.resizeListeners = [];
+
+    // canvas要素を削除
+    if (this.container && this.container.firstChild) {
+      this.container.removeChild(this.container.firstChild);
+    }
+  }
+}

@@ -9,6 +9,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import styles from '../../styles/typing/CanvasTypingArea.module.css';
 import CanvasTypingEngine from '../../canvas-typing-engine';
+import RetroSFKeyboard from './RetroSFKeyboard';
 
 /**
  * Canvas描画によるタイピングエリアコンポーネント
@@ -55,9 +56,7 @@ const CanvasTypingArea = ({
   };
   // Canvas Typing Engineの初期化
   useEffect(() => {
-    if (!canvasRef.current) return;
-
-    // Canvas Typing Engineのインスタンスを作成
+    if (!canvasRef.current) return; // Canvas Typing Engineのインスタンスを作成
     const engine = new CanvasTypingEngine({
       width: canvasRef.current.clientWidth,
       height: canvasRef.current.clientHeight,
@@ -69,6 +68,7 @@ const CanvasTypingArea = ({
       errorColor: '#ff3333', // エラー時の色
       nextCharColor: '#88FF88', // 次の文字の色
       showErrorHighlight: false, // エラー表示機能はオフに設定
+      renderKeyboard: false, // 内部キーボードレンダリングを無効化
       // パフォーマンス設定 - 常にrequestAnimationFrameを使用
       useOffscreenCanvas: true,
       useImageCaching: true,
@@ -298,7 +298,6 @@ const CanvasTypingArea = ({
       </div>
     );
   }
-
   return (
     <div className={`${styles.typing_canvas} ${className || ''}`}>
       {/* Canvas要素 */}
@@ -308,6 +307,14 @@ const CanvasTypingArea = ({
         width="800"
         height="600"
       />
+
+      {/* レトロSF風キーボード */}
+      <div className={styles.typing_canvas__keyboard}>
+        <RetroSFKeyboard
+          nextKey={gameStateRef.current.nextKey || ''}
+          lastPressedKey={gameStateRef.current.lastPressedKey || ''}
+        />
+      </div>
     </div>
   );
 };

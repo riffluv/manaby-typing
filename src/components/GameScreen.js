@@ -91,30 +91,7 @@ const GameScreen = () => {
   }
   return (
     <ErrorBoundary>
-      <div className={styles.typing_game__wrapper}>
-        <div className={styles.typing_game}>
-          {/* SF風のコーナー装飾 */}
-          <div
-            className={`${styles.typing_game__corner} ${styles['typing_game__corner--top-left']}`}
-          >
-            <div className={styles.typing_game__corner_tech}></div>
-          </div>
-          <div
-            className={`${styles.typing_game__corner} ${styles['typing_game__corner--top-right']}`}
-          >
-            <div className={styles.typing_game__corner_tech}></div>
-          </div>
-          <div
-            className={`${styles.typing_game__corner} ${styles['typing_game__corner--bottom-left']}`}
-          >
-            <div className={styles.typing_game__corner_tech}></div>
-          </div>
-          <div
-            className={`${styles.typing_game__corner} ${styles['typing_game__corner--bottom-right']}`}
-          >
-            <div className={styles.typing_game__corner_tech}></div>
-          </div>
-
+      <div className={styles.typing_game__wrapper}>        <div className={styles.typing_game}>
           {/* スキャンラインとドットパターン */}
           <div className={styles.typing_game__scanlines}></div>
           <div className={styles.typing_game__dot_pattern}></div>
