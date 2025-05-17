@@ -462,7 +462,10 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: radial-gradient(rgba(255, 140, 0, 0.06) 1px, transparent 1px),
+  background-image: radial-gradient(
+      rgba(255, 140, 0, 0.06) 1px,
+      transparent 1px
+    ),
     radial-gradient(rgba(255, 140, 0, 0.05) 1px, transparent 1px);
   background-size: 24px 24px, 36px 36px;
   background-position: 0 0, 12px 12px;

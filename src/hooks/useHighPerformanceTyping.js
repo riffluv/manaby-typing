@@ -129,63 +129,35 @@ export function useHighPerformanceTyping(options = {}) {
   }, []);
 
   /**
-   * 表示情報と進捗のリフレッシュ
-   * requestAnimationFrameを使用して効率的にUIを更新
+   * 表示情報と進捗のリフレッシュ - 超低レイテンシー版（2025年5月18日最適化）
+   * 視覚的反応速度を最大化するためにレンダリングサイクル調整
    */
   const refreshDisplayInfo = useCallback(() => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
     }
 
+    // 即座に更新を実行（ダブルバッファリングで最適化）
+    // 前のフレームをキャンセルして即座に新しいフレームをスケジュール
     animFrameRef.current = requestAnimationFrame(() => {
       const now = performance.now();
 
-      // 前回の更新から最小間隔（16ms = 約60fps）を空ける
-      if (now - lastFrameTimeRef.current >= 16) {
-        lastFrameTimeRef.current = now; // 表示情報の更新（最適化）
+      // フレームレート制限を緩和（16ms → 8msに変更して120fps相当の滑らかさに）
+      if (now - lastFrameTimeRef.current >= 8) {
+        lastFrameTimeRef.current = now;
+
+        // 表示情報を即時更新
         setDisplayInfo((current) => {
           const newInfo = { ...displayInfoRef.current };
-
-          // 主要な変更点をチェック（JSON.stringify は重いので避ける）
-          const hasChanged =
-            current.romaji !== newInfo.romaji ||
-            current.typedLength !== newInfo.typedLength ||
-            current.currentInputLength !== newInfo.currentInputLength ||
-            current.currentCharIndex !== newInfo.currentCharIndex ||
-            current.currentInput !== newInfo.currentInput ||
-            current.expectedNextChar !== newInfo.expectedNextChar ||
-            current.currentCharRomaji !== newInfo.currentCharRomaji ||
-            current.charRomajiMap.length !== newInfo.charRomajiMap.length;
-
-          // 変更がないなら更新しない（参照同一性を維持）
-          if (!hasChanged) {
-            return current;
-          }
-
-          return newInfo;
+          return newInfo; // 常に更新して即時反映を保証
         });
 
-        // 進捗情報の更新（5%以上変化した場合のみ）
+        // 進捗情報の更新（即時反映）
         const currentProgress = progressRef.current;
-        if (Math.abs(currentProgress - progress) >= 5) {
-          setProgress(currentProgress);
-        } // 統計情報の更新（1秒に1回程度）- 最適化
-        setStats((current) => {
-          const newStats = { ...statsRef.current };
+        setProgress(currentProgress);
 
-          // 重要な値だけチェック（JSON.stringify は重いので避ける）
-          const hasChanged =
-            current.correctKeyCount !== newStats.correctKeyCount ||
-            current.mistakeCount !== newStats.mistakeCount ||
-            Math.abs(current.kpm - newStats.kpm) >= 5; // KPMは5以上変化した場合のみ更新
-
-          // 変更がないか、わずかな変化なら更新しない
-          if (!hasChanged) {
-            return current;
-          }
-
-          return newStats;
-        });
+        // 統計情報も即座に更新
+        setStats({ ...statsRef.current });
       }
 
       animFrameRef.current = null;
@@ -320,17 +292,43 @@ export function useHighPerformanceTyping(options = {}) {
       if (!sessionRef.current || completedRef.current) {
         return { success: false };
       }
-
       try {
-        // 【効率化】処理順序を変更：音 → 視覚 → ロジック
+        // 【超効率化】処理順序を最適化: 直接音声APIを呼び出し、最短経路で音を鳴らす
 
-        // 1. 最優先：効果音再生 - 入力判定前に先に音を出して体感速度を向上
+        // 1. 最優先：効果音再生 - 入力判定前に即時音を出して体感速度を最大化
         if (playSound && soundSystem) {
-          // この時点では正解/不正解を判断せずにとりあえず音を出す
-          // 正解音を優先し、あとで不正解だった場合はエラー音を鳴らす
-          if (typeof soundSystem.ultraFastPlayTypingSound === 'function') {
+          // AudioInitializerの専用関数を使用して最小遅延で音を鳴らす
+          // 最速の音声処理APIを優先
+          if (typeof window !== 'undefined' && window.AudioInitializer) {
+            // 最も優先：統合APIを使用（内部で最適な方法を自動選択）
+            if (
+              typeof window.AudioInitializer.playInstantTypingSound ===
+              'function'
+            ) {
+              window.AudioInitializer.playInstantTypingSound('success');
+            }
+            // 以下は以前のコード（フォールバック）
+            else if (
+              window.AudioInitializer.audioWorklet &&
+              window.AudioInitializer.audioWorklet.isReady &&
+              window.AudioInitializer.audioWorklet.isReady()
+            ) {
+              // AudioWorklet API（最高性能・専用スレッド）
+              window.AudioInitializer.audioWorklet.playSound('success');
+            } else if (
+              window.AudioInitializer.inlineAudio &&
+              window.AudioInitializer.inlineAudio.playSound
+            ) {
+              // インラインオーディオAPI (合成音声で超低遅延)
+              window.AudioInitializer.inlineAudio.playSound('success');
+            }
+          } else if (
+            typeof soundSystem.ultraFastPlayTypingSound === 'function'
+          ) {
+            // 代替策: SoundUtils超高速API
             soundSystem.ultraFastPlayTypingSound('success');
           } else if (typeof soundSystem.playSound === 'function') {
+            // 最終手段: 標準API
             soundSystem.playSound('success');
           }
         }
@@ -352,15 +350,21 @@ export function useHighPerformanceTyping(options = {}) {
             }
           } else if (acceptResult === -1) {
             // 不正解
-            result = { success: false, status: 'wrong_input' };
-
-            // 不正解の場合は追加でエラー音を再生
-            if (
-              playSound &&
-              soundSystem &&
-              typeof soundSystem.playSound === 'function'
-            ) {
-              soundSystem.playSound('error');
+            result = { success: false, status: 'wrong_input' }; // 不正解の場合は追加でエラー音を再生（超最適化版）
+            if (playSound && soundSystem) {
+              if (typeof window !== 'undefined' && window.AudioInitializer) {
+                // 最も優先：統合APIを使用
+                if (
+                  typeof window.AudioInitializer.playInstantTypingSound ===
+                  'function'
+                ) {
+                  window.AudioInitializer.playInstantTypingSound('error');
+                } else if (typeof soundSystem.playSound === 'function') {
+                  soundSystem.playSound('error');
+                }
+              } else if (typeof soundSystem.playSound === 'function') {
+                soundSystem.playSound('error');
+              }
             }
           } else {
             // 無効
@@ -451,26 +455,19 @@ export function useHighPerformanceTyping(options = {}) {
   );
   /**
    * キー入力バッファ処理
-   * 連続キー入力時のパフォーマンス向上とレイテンシ最小化のための最適化バッファ処理
-   * 高速レスポンス向けに改良（2025年5月16日）
+   * 連続キー入力時のパフォーマンス向上とレイテンシ最小化のための超最適化バッファ処理
+   * 2025年5月18日 - 超高速レスポンス向けにさらに改良
    */
   const processKeyBuffer = useCallback(() => {
     // バッファが空の場合は何もしない
     if (keyBufferRef.current.length === 0) return;
 
-    // 処理中フラグをチェック（ただし連続入力時の遅延を避けるため、高速パスを追加）
-    if (processingRef.current && keyBufferRef.current.length <= 1) return; // 複数キーがバッファに溜まっている場合は特別ルール適用（高速処理モード）
-    const fastPath =
-      keyBufferRef.current.length > 1 ||
-      keyMetricsRef.current.consecutiveInputs > 2;
+    // 常に高速パスを使用し、処理中フラグを無視（超低レイテンシモード）
+    // この変更により、複数のキー入力が即時に連続処理されるようになります
 
-    // 高速パス有効化のカウント
-    if (fastPath) {
-      keyMetricsRef.current.fastPathActivations++;
-    }
-
-    // 処理中フラグを設定
-    processingRef.current = true;
+    // 高速パス: 常に有効化
+    const fastPath = true;
+    keyMetricsRef.current.fastPathActivations++;
 
     try {
       // バッファからキーを取得
@@ -482,11 +479,8 @@ export function useHighPerformanceTyping(options = {}) {
         // 即時キー処理（遅延なし）
         processKey(keyData.key);
 
-        // 高速レスポンスのため、状態更新もここで即時実行
-        if (fastPath || performance.now() - processStartTime < 5) {
-          // 処理が早かった場合は即座に表示情報更新（レスポンス向上）
-          refreshDisplayInfo();
-        }
+        // 常に即座に表示情報を更新して応答性を最大化
+        refreshDisplayInfo();
 
         // 処理にかかった時間を計測（パフォーマンス分析用）
         const processingTime = performance.now() - processStartTime;
@@ -533,9 +527,8 @@ export function useHighPerformanceTyping(options = {}) {
     }
   }, [processKey, refreshDisplayInfo, DEBUG_MODE]);
   /**
-   * キー入力ハンドラ関数
-   * キーバッファに追加してから処理をスケジュール
-   * performance.nowでタイムスタンプを記録し、入力レイテンシを計測
+   * キー入力ハンドラ関数 - 超低レイテンシー最適化版（2025年5月18日）
+   * バッファリング処理を短縮し、可能な限り処理遅延を削減
    */
   const handleInput = useCallback(
     (key) => {
@@ -549,6 +542,17 @@ export function useHighPerformanceTyping(options = {}) {
         return;
       }
 
+      // 即時処理を優先（超低レイテンシーモード）
+      // 音声処理を最速で実行
+      if (
+        playSound &&
+        typeof window !== 'undefined' &&
+        window.AudioInitializer
+      ) {
+        // タイマーを使わず直接呼び出し
+        window.AudioInitializer.playInstantTypingSound('success');
+      }
+
       // 現在時刻を取得（高精度）
       const now = performance.now();
 
@@ -557,25 +561,21 @@ export function useHighPerformanceTyping(options = {}) {
       metrics.lastInputTime = now;
       metrics.inputCount++;
 
-      // 入力タイムスタンプを記録（最大10件）
+      // 連続入力検知を常に有効化して最速処理パスを使用
+      metrics.consecutiveInputs++;
+
+      // 入力タイムスタンプを記録（最大5件に削減）
       metrics.inputTimestamps.push(now);
-      if (metrics.inputTimestamps.length > 10) {
-        metrics.inputTimestamps.shift(); // 古いものを削除
-      } // 連続入力の場合、レイテンシを計算
+      if (metrics.inputTimestamps.length > 5) {
+        metrics.inputTimestamps.shift();
+      }
+
+      // レイテンシ計算を簡略化
       if (metrics.inputTimestamps.length >= 2) {
         const lastTwo = metrics.inputTimestamps.slice(-2);
         const currentLatency = lastTwo[1] - lastTwo[0];
-
-        // 平均レイテンシを更新（移動平均）
         metrics.averageLatency =
-          metrics.averageLatency * 0.7 + currentLatency * 0.3;
-
-        // 連続入力検知 (200ms以内の連続入力)
-        if (currentLatency < 200) {
-          metrics.consecutiveInputs++;
-        } else {
-          metrics.consecutiveInputs = 0;
-        }
+          metrics.averageLatency * 0.5 + currentLatency * 0.5;
       }
 
       // キーをバッファに追加

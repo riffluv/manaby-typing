@@ -91,7 +91,9 @@ const GameScreen = () => {
   }
   return (
     <ErrorBoundary>
-      <div className={styles.typing_game__wrapper}>        <div className={styles.typing_game}>
+      <div className={styles.typing_game__wrapper}>
+        {' '}
+        <div className={styles.typing_game}>
           {/* スキャンラインとドットパターン */}
           <div className={styles.typing_game__scanlines}></div>
           <div className={styles.typing_game__dot_pattern}></div>
