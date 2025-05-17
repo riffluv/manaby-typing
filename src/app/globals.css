@@ -25,9 +25,11 @@
   --color-accent: #9c27b0;
 
   /* タイポグラフィ */
-  --font-normal: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+  --font-normal: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Oxygen, sans-serif;
   --font-dot: 'Press Start 2P', cursive, monospace;
-  --font-mono: 'Source Code Pro', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  --font-mono: 'Source Code Pro', 'Fira Code', 'Cascadia Code', Consolas,
+    monospace;
 
   /* フォントサイズ */
   --font-size-xs: 0.75rem;
@@ -76,7 +78,7 @@
   --animation-duration-fast: 0.15s;
   --animation-duration-normal: 0.3s;
   --animation-duration-slow: 0.5s;
-  --animation-easing-ease-out: cubic-bezier(0.0, 0, 0.2, 1);
+  --animation-easing-ease-out: cubic-bezier(0, 0, 0.2, 1);
   --animation-easing-ease-in: cubic-bezier(0.4, 0, 1, 1);
   --animation-easing-ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
   --animation-easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -109,7 +111,8 @@
   /* 見出しスタイル */
   --heading-letter-spacing: 2px;
   --heading-color: var(--color-primary);
-  --heading-text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+  --heading-text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000,
+    -1px 1px 0 #000;
   --heading-drop-shadow: 0 0 3px rgba(255, 140, 0, 0.8);
 }
 
@@ -207,7 +210,11 @@ button {
   image-rendering: pixelated;
 
   /* ドット感を出すためのスタイル */
-  background-image: radial-gradient(circle, var(--color-primary) 50%, transparent 50%);
+  background-image: radial-gradient(
+    circle,
+    var(--color-primary) 50%,
+    transparent 50%
+  );
   background-size: 4px 4px;
   background-repeat: repeat;
   background-clip: text;
@@ -223,7 +230,12 @@ button {
   position: absolute;
   width: 120%;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--color-primary) 50%, transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-primary) 50%,
+    transparent
+  );
   bottom: -5px;
   left: -10%;
 }
@@ -324,4 +336,14 @@ button {
   .screen-title {
     font-size: var(--font-size-xl);
   }
+}
+
+/* すべてのCanvasのフォーカススタイルを制御 */
+canvas:focus {
+  outline: none !important;
+}
+
+/* フォーカス可能なCanvas関連要素のアウトラインを無効化 */
+[tabindex='0']:focus-visible {
+  outline: none !important;
 }

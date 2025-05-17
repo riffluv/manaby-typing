@@ -21,6 +21,16 @@
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
+/* フォーカス時のアウトライン（枠線）を消す */
+.typing_canvas__element:focus {
+  outline: none;
+}
+
+/* Canvas要素のフォーカス時のアウトライン（白い枠線）を消す */
+.typing_canvas__element canvas:focus {
+  outline: none;
+}
+
 /* 要素: ローディング表示 */
 .typing_canvas__loading {
   color: #ffffff;

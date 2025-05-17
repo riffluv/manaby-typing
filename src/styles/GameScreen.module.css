@@ -167,6 +167,11 @@
   /* 最小高さを設定して、コンテンツが下に押しやられないようにする */
 }
 
+/* Canvas対応のメイン要素のフォーカス時のスタイル */
+.typing_game__main:focus {
+  outline: none;
+}
+
 /* スクロールバーのスタイル */
 .typing_game__main::-webkit-scrollbar {
   width: 6px;
